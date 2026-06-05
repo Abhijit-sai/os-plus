@@ -630,6 +630,32 @@ Tenant Commercial Control / GST Readiness
 - Apply `supabase/migrations/20260605110000_tenant_gst_configuration.sql` to live Supabase before saving GST settings in production.
 - Manual QA: create/edit tenant GST settings as super-admin, then edit the same GST settings as tenant owner/admin.
 
+## Session Update - 2026-06-05 - GSTIN Conditional Validation Fix
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+GST Readiness Bug Fix
+
+### Bug Fixed
+
+- Tenant save could throw a Zod regex error when the GSTIN field contained an invalid value even if `GST registered` was not checked.
+- GSTIN is now normalized and validated only when GST registered is checked.
+- When GST registered is off, GSTIN is saved as `null` so ordinary tenant edits are not blocked.
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 
 ### Date

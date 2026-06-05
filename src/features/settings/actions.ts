@@ -26,13 +26,19 @@ const nameSchema = z.string().trim().min(2, "Name is required.");
 
 const optionalProfileText = z.preprocess((value) => (typeof value === "string" && value.trim() ? value : null), z.string().trim().nullable());
 
-const gstinSchema = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() ? value.trim().toUpperCase() : null),
-  z
-    .string()
-    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, "Add a valid GSTIN or leave it blank.")
-    .nullable()
-);
+function normalizeGstin(value: FormDataEntryValue | null, gstRegistered: boolean) {
+  const gstin = typeof value === "string" ? value.replace(/\s+/g, "").toUpperCase() : "";
+
+  if (!gstRegistered || !gstin) {
+    return null;
+  }
+
+  if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+    throw new Error("Add a valid GSTIN or leave GST registered off.");
+  }
+
+  return gstin;
+}
 
 const businessProfileSchema = z.object({
   name: z.string().trim().min(2, "Business name is required."),
@@ -41,7 +47,7 @@ const businessProfileSchema = z.object({
   legalName: optionalProfileText,
   registeredAddress: optionalProfileText,
   gstRegistered: z.boolean().default(false),
-  gstin: gstinSchema,
+  gstin: z.string().trim().nullable(),
   defaultSalesGstRate: z.coerce.number().min(0).max(100).default(0),
   defaultPurchaseGstRate: z.coerce.number().min(0).max(100).default(0),
   defaultOrderGstTreatment: z.enum(["taxable_exclusive", "taxable_inclusive", "exempt_or_nil", "non_gst", "not_applicable"]).default("not_applicable"),
@@ -121,14 +127,15 @@ function isUniqueConstraintError(error: { code?: string; message: string }) {
 
 export async function updateBusinessProfileAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
+  const gstRegistered = formData.get("gstRegistered") === "on";
   const parsed = businessProfileSchema.parse({
     name: formData.get("name"),
     storeName: formData.get("storeName"),
     brandColor: formData.get("brandColor"),
     legalName: formData.get("legalName"),
     registeredAddress: formData.get("registeredAddress"),
-    gstRegistered: formData.get("gstRegistered") === "on",
-    gstin: formData.get("gstin"),
+    gstRegistered,
+    gstin: normalizeGstin(formData.get("gstin"), gstRegistered),
     defaultSalesGstRate: formData.get("defaultSalesGstRate") || 0,
     defaultPurchaseGstRate: formData.get("defaultPurchaseGstRate") || 0,
     defaultOrderGstTreatment: formData.get("defaultOrderGstTreatment") || "not_applicable",
