@@ -813,6 +813,45 @@ Finance Hardening: GST UX Correction
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Summary Memory Consolidation
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Session Handoff
+
+### User Feedback
+
+- Maintaining both the root `project_summary.md` and `docs/05_Project_Summary.md` is duplicate work and wastes context.
+- Future sessions should use the root `project_summary.md` as the only living session memory.
+- Future prompts should not ask Codex to read or update `docs/05_Project_Summary.md`.
+
+### What Changed
+
+- Marked `docs/05_Project_Summary.md` as archived/read-only historical context.
+- Updated `docs/09_Codex_Build_Prompt.md` to explicitly avoid reading/updating `docs/05_Project_Summary.md` unless the user asks for historical comparison.
+- Updated `docs/06_Rules.md` so engineering rules require only root `project_summary.md` updates after major sessions.
+
+### Files/Modules Changed
+
+- `docs/05_Project_Summary.md`
+- `docs/06_Rules.md`
+- `docs/09_Codex_Build_Prompt.md`
+- `project_summary.md`
+
+### New Session Rule
+
+- Read root `project_summary.md` first.
+- Read `docs/01_PRD.md`, `docs/02_WBS.md`, `docs/03_Tech_Development_Plan.md`, `docs/06_Rules.md`, `docs/08_Database_Model.md`, and any feature-specific docs relevant to the task.
+- Do not read or update `docs/05_Project_Summary.md` unless the user explicitly asks for historical comparison.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date

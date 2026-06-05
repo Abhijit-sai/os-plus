@@ -184,6 +184,7 @@
 8. Maintain created_by/updated_by where useful.
 9. Keep migrations clean and versioned.
 10. Update `project_summary.md` after every major development session.
+11. Do not update `docs/05_Project_Summary.md`; it is archived historical context. New sessions should read the root `project_summary.md` plus the relevant product/tech docs instead.
 
 ## 15. UX Rules
 

@@ -154,6 +154,8 @@ Build:
 
 Always update `project_summary.md` after each major development session.
 
+Do not update `docs/05_Project_Summary.md`. That file is archived and should not be read as startup context unless the user explicitly asks for historical comparison.
+
 Update it with:
 
 - What was built

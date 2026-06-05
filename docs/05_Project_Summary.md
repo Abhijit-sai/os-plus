@@ -1,5 +1,7 @@
 # OS PLUS Project Summary
 
+> Archived note, 2026-06-05: do not update this file during future build sessions. The root `project_summary.md` is the only authoritative current project summary and session log. New Codex sessions should not read this file unless the user explicitly asks for historical comparison.
+
 ## 1. Product Context
 
 OS PLUS is a multi-tenant, white-label WorkOS for boutiques and small manufacturing businesses.
