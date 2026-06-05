@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireSuperAdminPageAccess } from "@/lib/auth/super-admin";
 
+const gstTreatmentOptions = [
+  { value: "not_applicable", label: "Not applicable" },
+  { value: "taxable_exclusive", label: "GST added on top" },
+  { value: "taxable_inclusive", label: "GST included in amount" },
+  { value: "exempt_or_nil", label: "Exempt / nil rated" },
+  { value: "non_gst", label: "Non-GST supply" }
+];
+
 export default async function NewTenantPage() {
   await requireSuperAdminPageAccess();
 
@@ -22,7 +30,7 @@ export default async function NewTenantPage() {
           <CardDescription>Tenant data is never hardcoded; memberships are stored in tenant_users.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createTenantAction} encType="multipart/form-data" className="space-y-5">
+          <form action={createTenantAction} className="space-y-5">
             <div className="grid gap-2">
               <Label htmlFor="name">Tenant name</Label>
               <Input id="name" name="name" placeholder="Acme Boutique Pvt Ltd" required />
@@ -52,6 +60,68 @@ export default async function NewTenantPage() {
             <div className="grid gap-2">
               <Label htmlFor="ownerEmail">Owner email</Label>
               <Input id="ownerEmail" name="ownerEmail" type="email" placeholder="owner@example.com" />
+            </div>
+            <div className="space-y-4 rounded-md border p-4">
+              <div>
+                <h3 className="font-medium">GST settings</h3>
+                <p className="text-sm text-muted-foreground">Optional defaults for accountant-handoff GST reports.</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input name="gstRegistered" type="checkbox" className="h-4 w-4" />
+                GST registered
+              </label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="legalName">Legal business name</Label>
+                  <Input id="legalName" name="legalName" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="gstin">GSTIN</Label>
+                  <Input id="gstin" name="gstin" placeholder="29ABCDE1234F1Z5" />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label htmlFor="registeredAddress">Registered address</Label>
+                  <Input id="registeredAddress" name="registeredAddress" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="defaultSalesGstRate">Default sales GST %</Label>
+                  <Input id="defaultSalesGstRate" name="defaultSalesGstRate" type="number" min="0" max="100" step="0.01" defaultValue="0" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="defaultPurchaseGstRate">Default purchase GST %</Label>
+                  <Input id="defaultPurchaseGstRate" name="defaultPurchaseGstRate" type="number" min="0" max="100" step="0.01" defaultValue="0" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="defaultOrderGstTreatment">Default order GST treatment</Label>
+                  <select
+                    id="defaultOrderGstTreatment"
+                    name="defaultOrderGstTreatment"
+                    defaultValue="not_applicable"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    {gstTreatmentOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="defaultExpenseGstTreatment">Default expense GST treatment</Label>
+                  <select
+                    id="defaultExpenseGstTreatment"
+                    name="defaultExpenseGstTreatment"
+                    defaultValue="not_applicable"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    {gstTreatmentOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
             <Button type="submit">Create tenant</Button>
           </form>

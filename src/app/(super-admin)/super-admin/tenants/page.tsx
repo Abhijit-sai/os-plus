@@ -29,13 +29,16 @@ export default async function TenantsPage() {
       <div className="grid gap-4">
         {tenants?.map((tenant) => (
           <Card key={tenant.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                <Link href={`/super-admin/tenants/${tenant.id}`}>{tenant.name}</Link>
-              </CardTitle>
-              <CardDescription>
-                {tenant.store_name} · {tenant.slug} · {tenant.status}
-              </CardDescription>
+            <CardHeader className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <CardTitle className="text-lg">{tenant.name}</CardTitle>
+                <CardDescription>
+                  {tenant.store_name} · {tenant.slug} · {tenant.status}
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline">
+                <Link href={`/super-admin/tenants/${tenant.id}`}>Edit tenant</Link>
+              </Button>
             </CardHeader>
           </Card>
         ))}

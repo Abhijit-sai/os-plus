@@ -24,10 +24,28 @@ const optionalText = z
 
 const nameSchema = z.string().trim().min(2, "Name is required.");
 
+const optionalProfileText = z.preprocess((value) => (typeof value === "string" && value.trim() ? value : null), z.string().trim().nullable());
+
+const gstinSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() ? value.trim().toUpperCase() : null),
+  z
+    .string()
+    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, "Add a valid GSTIN or leave it blank.")
+    .nullable()
+);
+
 const businessProfileSchema = z.object({
   name: z.string().trim().min(2, "Business name is required."),
   storeName: z.string().trim().min(2, "Store name is required."),
-  brandColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color such as #2563eb.")
+  brandColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color such as #2563eb."),
+  legalName: optionalProfileText,
+  registeredAddress: optionalProfileText,
+  gstRegistered: z.boolean().default(false),
+  gstin: gstinSchema,
+  defaultSalesGstRate: z.coerce.number().min(0).max(100).default(0),
+  defaultPurchaseGstRate: z.coerce.number().min(0).max(100).default(0),
+  defaultOrderGstTreatment: z.enum(["taxable_exclusive", "taxable_inclusive", "exempt_or_nil", "non_gst", "not_applicable"]).default("not_applicable"),
+  defaultExpenseGstTreatment: z.enum(["taxable_exclusive", "taxable_inclusive", "exempt_or_nil", "non_gst", "not_applicable"]).default("not_applicable")
 });
 
 const itemTypeSchema = z.object({
@@ -106,7 +124,15 @@ export async function updateBusinessProfileAction(formData: FormData) {
   const parsed = businessProfileSchema.parse({
     name: formData.get("name"),
     storeName: formData.get("storeName"),
-    brandColor: formData.get("brandColor")
+    brandColor: formData.get("brandColor"),
+    legalName: formData.get("legalName"),
+    registeredAddress: formData.get("registeredAddress"),
+    gstRegistered: formData.get("gstRegistered") === "on",
+    gstin: formData.get("gstin"),
+    defaultSalesGstRate: formData.get("defaultSalesGstRate") || 0,
+    defaultPurchaseGstRate: formData.get("defaultPurchaseGstRate") || 0,
+    defaultOrderGstTreatment: formData.get("defaultOrderGstTreatment") || "not_applicable",
+    defaultExpenseGstTreatment: formData.get("defaultExpenseGstTreatment") || "not_applicable"
   });
   const logoFile = getTenantLogoFile(formData);
   const logoUrl = logoFile ? await uploadTenantLogo({ file: logoFile, slug: context.tenant.slug }) : context.tenant.logo_url;
@@ -118,7 +144,15 @@ export async function updateBusinessProfileAction(formData: FormData) {
       name: parsed.name,
       store_name: parsed.storeName,
       brand_color: parsed.brandColor,
-      logo_url: logoUrl
+      logo_url: logoUrl,
+      legal_name: parsed.legalName,
+      registered_address: parsed.registeredAddress,
+      gst_registered: parsed.gstRegistered,
+      gstin: parsed.gstin,
+      default_sales_gst_rate: parsed.defaultSalesGstRate,
+      default_purchase_gst_rate: parsed.defaultPurchaseGstRate,
+      default_order_gst_treatment: parsed.defaultOrderGstTreatment,
+      default_expense_gst_treatment: parsed.defaultExpenseGstTreatment
     })
     .eq("id", context.tenant.id);
 

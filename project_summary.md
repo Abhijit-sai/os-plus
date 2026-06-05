@@ -581,6 +581,55 @@ Tenant Commercial Control
 - Apply `supabase/migrations/20260605100000_tenant_billing_records.sql` to live Supabase before using tenant billing in production.
 - Manual browser QA with a real Clerk super-admin session: add/edit/cancel a billing record and mark a tenant inactive/suspended.
 
+## Session Update - 2026-06-05 - GST Tenant Configuration UI and Form Warning Fix
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Tenant Commercial Control / GST Readiness
+
+### User Feedback
+
+- GST configuration was not visible in the super-admin tenant pages.
+- Existing tenant edit was not obvious from the tenant list.
+- Next.js/React logged a console warning because server-action forms explicitly specified `encType`.
+
+### What Was Built
+
+- Added tenant GST configuration migration:
+  - `tenants.legal_name`
+  - `tenants.registered_address`
+  - `tenants.gst_registered`
+  - `tenants.gstin`
+  - `tenants.default_sales_gst_rate`
+  - `tenants.default_purchase_gst_rate`
+  - `tenants.default_order_gst_treatment`
+  - `tenants.default_expense_gst_treatment`
+  - `tenant_gst_rates` preset table
+- Added GST settings to super-admin tenant creation.
+- Added GST settings to super-admin existing tenant edit.
+- Added GST settings to tenant owner/admin Business profile.
+- Added explicit `Edit tenant` button on the super-admin tenant list.
+- Removed explicit `encType` from server-action forms so React/Next controls multipart form handling automatically.
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending
+
+- Apply `supabase/migrations/20260605110000_tenant_gst_configuration.sql` to live Supabase before saving GST settings in production.
+- Manual QA: create/edit tenant GST settings as super-admin, then edit the same GST settings as tenant owner/admin.
+
 ## Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 
 ### Date

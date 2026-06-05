@@ -532,6 +532,47 @@ Tenant Commercial Control
 - Apply `supabase/migrations/20260605100000_tenant_billing_records.sql` in the live Supabase project.
 - Manual Clerk QA for super-admin billing forms and inactive tenant lockout.
 
+## 21. Session Update - 2026-06-05 - GST Tenant Configuration UI and Form Warning Fix
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Tenant Commercial Control / GST Readiness
+
+### What Was Built
+
+- Added tenant GST configuration migration and TypeScript types.
+- Added GST configuration fields to:
+  - super-admin tenant creation,
+  - super-admin existing tenant edit,
+  - tenant owner/admin Business profile.
+- Added explicit `Edit tenant` buttons on the super-admin tenant list.
+- Removed explicit `encType` from server-action forms to clear the React/Next console warning.
+
+### Key Decisions Made
+
+- GST configuration lives at tenant level first.
+- Order/expense GST capture and GST reports remain the next slices.
+- Existing tenant editing should be visible from the list, not hidden behind title text.
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending
+
+- Apply `supabase/migrations/20260605110000_tenant_gst_configuration.sql` in live Supabase.
+- Manual QA the GST fields in super-admin and tenant owner/admin settings.
+
 ## 17. Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 
 ### Date

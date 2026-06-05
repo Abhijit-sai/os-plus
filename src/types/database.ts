@@ -1,5 +1,6 @@
 export type TenantStatus = "active" | "inactive" | "suspended";
 export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
+export type GstTreatment = "taxable_exclusive" | "taxable_inclusive" | "exempt_or_nil" | "non_gst" | "not_applicable";
 export type TenantUserRole = "owner_admin" | "manager" | "finance" | "viewer";
 export type TenantUserStatus = "active" | "invited" | "disabled";
 export type WorkerStatus = "active" | "inactive";
@@ -96,11 +97,27 @@ export type Tenant = {
   store_name: string;
   logo_url: string | null;
   brand_color: string | null;
+  legal_name: string | null;
+  registered_address: string | null;
+  gst_registered: boolean;
+  gstin: string | null;
+  default_sales_gst_rate: number;
+  default_purchase_gst_rate: number;
+  default_order_gst_treatment: GstTreatment;
+  default_expense_gst_treatment: GstTreatment;
   status: TenantStatus;
   custom_domain: string | null;
   tracking_subdomain: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type TenantGstRate = TenantOwnedBase & {
+  name: string;
+  rate_percent: number;
+  is_default_sales: boolean;
+  is_default_purchase: boolean;
+  is_active: boolean;
 };
 
 export type TenantUser = {
@@ -641,6 +658,18 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      };
+      tenant_gst_rates: {
+        Row: TenantGstRate;
+        Insert: TenantOwnedInsertBase & {
+          name: string;
+          rate_percent: number;
+          is_default_sales?: boolean;
+          is_default_purchase?: boolean;
+          is_active?: boolean;
+        };
+        Update: Partial<Omit<TenantGstRate, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
       };
       customers: {
         Row: Customer;
@@ -1221,6 +1250,7 @@ export type Database = {
     Enums: {
       tenant_status: TenantStatus;
       tenant_billing_payment_status: TenantBillingPaymentStatus;
+      gst_treatment: GstTreatment;
       tenant_user_role: TenantUserRole;
       tenant_user_status: TenantUserStatus;
       worker_status: WorkerStatus;
