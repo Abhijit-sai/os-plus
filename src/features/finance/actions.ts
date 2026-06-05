@@ -6,7 +6,7 @@ import { z } from "zod";
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
-import type { PaymentStatus, ReceivablePayableStatus, ReceivablePayableType } from "@/types/database";
+import type { ExpenseInputGstStatus, GstTreatment, PaymentStatus, ReceivablePayableStatus, ReceivablePayableType } from "@/types/database";
 
 const optionalText = z
   .string()
@@ -14,6 +14,8 @@ const optionalText = z
   .transform((value) => (value.length ? value : null));
 
 const receivablePayableTypeSchema = z.enum(["receivable", "payable"]);
+const gstTreatmentSchema = z.enum(["taxable_exclusive", "taxable_inclusive", "exempt_or_nil", "non_gst", "not_applicable"]);
+const inputGstStatusSchema = z.enum(["not_applicable", "claimable", "needs_review", "not_claimed"]);
 
 const createExpenseSchema = z.object({
   expenseDate: z.string().min(1, "Expense date is required."),
@@ -21,6 +23,12 @@ const createExpenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than zero."),
   paymentModeId: optionalText,
   paidTo: optionalText,
+  vendorGstin: optionalText,
+  vendorInvoiceNumber: optionalText,
+  vendorInvoiceDate: optionalText,
+  expenseGstTreatment: gstTreatmentSchema.default("not_applicable"),
+  expenseGstRate: z.coerce.number().min(0).max(100),
+  inputGstStatus: inputGstStatusSchema.default("not_applicable"),
   description: optionalText,
   receiptUrl: optionalText
 });
@@ -92,6 +100,55 @@ function getDerivedDueStatus({
   }
 
   return "open";
+}
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeOptionalGstin(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const gstin = value.replace(/\s+/g, "").toUpperCase();
+
+  if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+    throw new Error("Add a valid vendor GSTIN or leave it blank.");
+  }
+
+  return gstin;
+}
+
+function calculateExpenseGst({
+  amount,
+  gstRate,
+  gstTreatment
+}: {
+  amount: number;
+  gstRate: number;
+  gstTreatment: GstTreatment;
+}) {
+  if (amount <= 0 || gstRate <= 0 || !["taxable_exclusive", "taxable_inclusive"].includes(gstTreatment)) {
+    return {
+      gstAmount: 0,
+      taxableAmount: 0
+    };
+  }
+
+  if (gstTreatment === "taxable_exclusive") {
+    return {
+      gstAmount: roundMoney((amount * gstRate) / 100),
+      taxableAmount: roundMoney(amount)
+    };
+  }
+
+  const taxableAmount = roundMoney(amount / (1 + gstRate / 100));
+
+  return {
+    gstAmount: roundMoney(amount - taxableAmount),
+    taxableAmount
+  };
 }
 
 async function getAuthorizedFinanceContext() {
@@ -167,6 +224,12 @@ export async function createExpenseAction(formData: FormData) {
     amount: formData.get("amount"),
     paymentModeId: formData.get("paymentModeId"),
     paidTo: formData.get("paidTo"),
+    vendorGstin: formData.get("vendorGstin"),
+    vendorInvoiceNumber: formData.get("vendorInvoiceNumber"),
+    vendorInvoiceDate: formData.get("vendorInvoiceDate"),
+    expenseGstTreatment: formData.get("expenseGstTreatment") || "not_applicable",
+    expenseGstRate: formData.get("expenseGstRate") || 0,
+    inputGstStatus: formData.get("inputGstStatus") || "not_applicable",
     description: formData.get("description"),
     receiptUrl: formData.get("receiptUrl")
   });
@@ -175,6 +238,11 @@ export async function createExpenseAction(formData: FormData) {
   await validateOptionalTenantRecord("payment_modes", context.tenant.id, parsed.paymentModeId);
 
   const supabase = createSupabaseServiceRoleClient();
+  const { gstAmount, taxableAmount } = calculateExpenseGst({
+    amount: parsed.amount,
+    gstRate: parsed.expenseGstRate,
+    gstTreatment: parsed.expenseGstTreatment as GstTreatment
+  });
   const { error } = await supabase.from("expenses").insert({
     tenant_id: context.tenant.id,
     expense_date: parsed.expenseDate,
@@ -182,6 +250,14 @@ export async function createExpenseAction(formData: FormData) {
     amount: parsed.amount,
     payment_mode_id: parsed.paymentModeId,
     paid_to: parsed.paidTo,
+    vendor_gstin: normalizeOptionalGstin(parsed.vendorGstin),
+    vendor_invoice_number: parsed.vendorInvoiceNumber,
+    vendor_invoice_date: parsed.vendorInvoiceDate,
+    gst_treatment: parsed.expenseGstTreatment as GstTreatment,
+    gst_rate: parsed.expenseGstRate,
+    taxable_amount: taxableAmount,
+    gst_amount: gstAmount,
+    input_gst_status: parsed.inputGstStatus as ExpenseInputGstStatus,
     description: parsed.description,
     receipt_url: parsed.receiptUrl,
     is_recurring: false,
@@ -243,6 +319,12 @@ export async function updateExpenseAction(formData: FormData) {
     amount: formData.get("amount"),
     paymentModeId: formData.get("paymentModeId"),
     paidTo: formData.get("paidTo"),
+    vendorGstin: formData.get("vendorGstin"),
+    vendorInvoiceNumber: formData.get("vendorInvoiceNumber"),
+    vendorInvoiceDate: formData.get("vendorInvoiceDate"),
+    expenseGstTreatment: formData.get("expenseGstTreatment") || "not_applicable",
+    expenseGstRate: formData.get("expenseGstRate") || 0,
+    inputGstStatus: formData.get("inputGstStatus") || "not_applicable",
     description: formData.get("description"),
     receiptUrl: formData.get("receiptUrl")
   });
@@ -251,6 +333,11 @@ export async function updateExpenseAction(formData: FormData) {
   await validateOptionalTenantRecord("payment_modes", context.tenant.id, parsed.paymentModeId);
 
   const supabase = createSupabaseServiceRoleClient();
+  const { gstAmount, taxableAmount } = calculateExpenseGst({
+    amount: parsed.amount,
+    gstRate: parsed.expenseGstRate,
+    gstTreatment: parsed.expenseGstTreatment as GstTreatment
+  });
   const { error } = await supabase
     .from("expenses")
     .update({
@@ -259,6 +346,14 @@ export async function updateExpenseAction(formData: FormData) {
       amount: parsed.amount,
       payment_mode_id: parsed.paymentModeId,
       paid_to: parsed.paidTo,
+      vendor_gstin: normalizeOptionalGstin(parsed.vendorGstin),
+      vendor_invoice_number: parsed.vendorInvoiceNumber,
+      vendor_invoice_date: parsed.vendorInvoiceDate,
+      gst_treatment: parsed.expenseGstTreatment as GstTreatment,
+      gst_rate: parsed.expenseGstRate,
+      taxable_amount: taxableAmount,
+      gst_amount: gstAmount,
+      input_gst_status: parsed.inputGstStatus as ExpenseInputGstStatus,
       description: parsed.description,
       receipt_url: parsed.receiptUrl,
       is_recurring: false

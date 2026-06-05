@@ -559,9 +559,9 @@ Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/re
 
 ### Expense GST Tasks
 
-- Add expense/vendor GST fields: vendor GSTIN, invoice number, invoice date, GST treatment, GST rate, taxable amount, GST amount, total amount, and input GST review status.
-- Keep GST paid on expenses separate from cash-out total.
-- Preserve existing finance expense behavior while adding GST fields as optional/defaulted columns.
+- Add expense/vendor GST fields: vendor GSTIN, invoice number, invoice date, GST treatment, GST rate, taxable amount, GST amount, and input GST review status. Implemented first slice for operational expenses.
+- Keep GST paid on expenses separate from cash-out total. Implemented: payment mode and entered amount remain separate from GST classification.
+- Preserve existing finance expense behavior while adding GST fields as optional/defaulted columns. Implemented with an opt-in GST disclosure in add/edit expense dialogs.
 
 ### GST Report Tasks
 

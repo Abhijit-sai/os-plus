@@ -12,6 +12,7 @@ import {
 import { getFinancePageData } from "@/features/finance/queries";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { ExpenseGstFields } from "@/components/finance/expense-gst-fields";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { hasPermission } from "@/lib/permissions/roles";
-import type { Expense, OrderPayment, PaymentMode, PaymentStatus, ReceivablePayable, ReceivablePayableStatus, ReceivablePayableType, WorkerLedger } from "@/types/database";
+import type { Expense, GstTreatment, OrderPayment, PaymentMode, PaymentStatus, ReceivablePayable, ReceivablePayableStatus, ReceivablePayableType, WorkerLedger } from "@/types/database";
 
 type FinanceTab = "dashboard" | "cashflow" | "receivables" | "payables" | "pl" | "balance";
 type RangeKey = "today" | "week" | "mtd" | "ytd" | "custom";
@@ -201,10 +202,16 @@ function buildFinanceHref({
 }
 
 function AddExpenseDialog({
+  defaultExpenseGstRate,
+  defaultExpenseGstTreatment,
   expenseCategories,
+  gstRegistered,
   paymentModes
 }: {
+  defaultExpenseGstRate: number;
+  defaultExpenseGstTreatment: GstTreatment;
   expenseCategories: Array<{ id: string; name: string }>;
+  gstRegistered: boolean;
   paymentModes: PaymentMode[];
 }) {
   return (
@@ -261,6 +268,11 @@ function AddExpenseDialog({
           <Label htmlFor="receiptUrl">Receipt URL</Label>
           <Input id="receiptUrl" name="receiptUrl" placeholder="Optional" />
         </div>
+        <ExpenseGstFields
+          defaultGstRate={defaultExpenseGstRate}
+          defaultGstTreatment={defaultExpenseGstTreatment}
+          gstRegistered={gstRegistered}
+        />
         <Button type="submit">Add expense</Button>
       </form>
     </Dialog>
@@ -351,12 +363,18 @@ function EditManualDueDialog({ entry }: { entry: ReceivablePayable }) {
 }
 
 function EditExpenseDialog({
+  defaultExpenseGstRate,
+  defaultExpenseGstTreatment,
   expense,
   expenseCategories,
+  gstRegistered,
   paymentModes
 }: {
+  defaultExpenseGstRate: number;
+  defaultExpenseGstTreatment: GstTreatment;
   expense: Expense;
   expenseCategories: Array<{ id: string; name: string }>;
+  gstRegistered: boolean;
   paymentModes: PaymentMode[];
 }) {
   return (
@@ -413,6 +431,12 @@ function EditExpenseDialog({
           <Label htmlFor={`receiptUrl-${expense.id}`}>Receipt URL</Label>
           <Input id={`receiptUrl-${expense.id}`} name="receiptUrl" defaultValue={expense.receipt_url ?? ""} />
         </div>
+        <ExpenseGstFields
+          defaultGstRate={defaultExpenseGstRate}
+          defaultGstTreatment={defaultExpenseGstTreatment}
+          expense={expense}
+          gstRegistered={gstRegistered}
+        />
         <Button type="submit">Save expense</Button>
       </form>
     </Dialog>
@@ -466,13 +490,18 @@ function EditOrderPaymentDialog({ payment, paymentModes }: { payment: OrderPayme
 }
 
 function CashMovementList({
+  defaultExpenseGstRate,
+  defaultExpenseGstTreatment,
   events,
   expenses,
   orderPayments,
   expenseCategories,
+  gstRegistered,
   paymentModes,
   canManageFinance
 }: {
+  defaultExpenseGstRate: number;
+  defaultExpenseGstTreatment: GstTreatment;
   events: Array<{
     id: string;
     source: "order_payment" | "expense" | "manual_due" | "salary_payment";
@@ -485,6 +514,7 @@ function CashMovementList({
   expenses: Expense[];
   orderPayments: OrderPayment[];
   expenseCategories: Array<{ id: string; name: string }>;
+  gstRegistered: boolean;
   paymentModes: PaymentMode[];
   canManageFinance: boolean;
 }) {
@@ -515,7 +545,16 @@ function CashMovementList({
                 <p className={`font-semibold sm:text-right ${event.amount < 0 ? "text-destructive" : "text-emerald-700"}`}>{formatMoney(event.amount)}</p>
                 {canManageFinance ? (
                   <div className="flex justify-start sm:justify-end">
-                    {expense ? <EditExpenseDialog expense={expense} expenseCategories={expenseCategories} paymentModes={paymentModes} /> : null}
+                    {expense ? (
+                      <EditExpenseDialog
+                        defaultExpenseGstRate={defaultExpenseGstRate}
+                        defaultExpenseGstTreatment={defaultExpenseGstTreatment}
+                        expense={expense}
+                        expenseCategories={expenseCategories}
+                        gstRegistered={gstRegistered}
+                        paymentModes={paymentModes}
+                      />
+                    ) : null}
                     {payment ? <EditOrderPaymentDialog payment={payment} paymentModes={paymentModes} /> : null}
                   </div>
                 ) : null}
@@ -782,6 +821,9 @@ export default async function FinancePage({
   const range = getRangeBounds(activeRange, customStart, customEnd);
   const { context, expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments } = await getFinancePageData();
   const canManageFinance = hasPermission(context.membership.role, "finance:manage");
+  const defaultExpenseGstRate = Number(context.tenant.default_purchase_gst_rate ?? 0);
+  const defaultExpenseGstTreatment = context.tenant.default_expense_gst_treatment ?? "not_applicable";
+  const gstRegistered = Boolean(context.tenant.gst_registered);
   const categoryById = new Map(expenseCategories.map((category) => [category.id, category]));
   const paymentModeById = new Map(paymentModes.map((mode) => [mode.id, mode]));
   const orderById = new Map(orders.map((order) => [order.id, order]));
@@ -876,7 +918,7 @@ export default async function FinancePage({
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Finance" description="Operational cash, receivables, payables, and owner snapshots. GST and full accounting stay out of MVP." />
+      <PageHeader title="Finance" description="Operational cash, receivables, payables, GST capture, and owner snapshots." />
 
       <CommandBar className="justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -889,7 +931,13 @@ export default async function FinancePage({
         <div className="flex flex-wrap items-center gap-2">
           {canManageFinance ? (
             <>
-              <AddExpenseDialog expenseCategories={expenseCategories} paymentModes={paymentModes} />
+              <AddExpenseDialog
+                defaultExpenseGstRate={defaultExpenseGstRate}
+                defaultExpenseGstTreatment={defaultExpenseGstTreatment}
+                expenseCategories={expenseCategories}
+                gstRegistered={gstRegistered}
+                paymentModes={paymentModes}
+              />
               <AddManualDueDialog />
             </>
           ) : null}
@@ -958,10 +1006,13 @@ export default async function FinancePage({
               </CardContent>
             </Card>
             <CashMovementList
+              defaultExpenseGstRate={defaultExpenseGstRate}
+              defaultExpenseGstTreatment={defaultExpenseGstTreatment}
               events={cashflowRows}
               expenses={expenses}
               orderPayments={orderPayments}
               expenseCategories={expenseCategories}
+              gstRegistered={gstRegistered}
               paymentModes={paymentModes}
               canManageFinance={canManageFinance}
             />
@@ -1017,10 +1068,13 @@ export default async function FinancePage({
 
       {activeTab === "cashflow" ? (
         <CashMovementList
+          defaultExpenseGstRate={defaultExpenseGstRate}
+          defaultExpenseGstTreatment={defaultExpenseGstTreatment}
           events={cashflowRows}
           expenses={expenses}
           orderPayments={orderPayments}
           expenseCategories={expenseCategories}
+          gstRegistered={gstRegistered}
           paymentModes={paymentModes}
           canManageFinance={canManageFinance}
         />
@@ -1062,7 +1116,7 @@ export default async function FinancePage({
 
       <Separator />
       <p className="text-xs text-muted-foreground">
-        Finance remains operational: order collections stay in order payments, manual dues stay separate, and accounting/GST workflows are out of MVP.
+        Finance remains operational: order collections stay in order payments, manual dues stay separate, and GST capture is accountant-handoff first.
       </p>
     </div>
   );

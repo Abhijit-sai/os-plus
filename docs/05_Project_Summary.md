@@ -1156,6 +1156,50 @@ Finance Hardening: GST Capture
 
 - `npm run typecheck` passed.
 
+## Session Update - 2026-06-05 - Expense GST Capture First Slice
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Capture
+
+### What Was Built
+
+- Added expense GST fields for vendor GSTIN, vendor invoice number/date, GST treatment, GST rate, taxable amount, GST amount, and input GST status.
+- Added an opt-in Vendor invoice / GST disclosure to Add expense and Edit expense dialogs.
+- Expense GST defaults use the current tenant's Business profile purchase GST settings.
+- Server-side finance actions calculate GST-inclusive and GST-exclusive expense snapshots.
+- Vendor GSTIN remains optional and is validated only when entered.
+
+### Key Decisions Made
+
+- Expense payment amount remains the operational cash-out amount.
+- Payment mode remains separate from GST treatment.
+- Existing expenses default to `not_applicable` and zero GST.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605123000_expense_gst_capture.sql`
+- `src/types/database.ts`
+- `src/features/finance/actions.ts`
+- `src/components/finance/expense-gst-fields.tsx`
+- `src/app/(tenant)/finance/page.tsx`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/08_Database_Model.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

@@ -1,6 +1,7 @@
 export type TenantStatus = "active" | "inactive" | "suspended";
 export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
 export type GstTreatment = "taxable_exclusive" | "taxable_inclusive" | "exempt_or_nil" | "non_gst" | "not_applicable";
+export type ExpenseInputGstStatus = "not_applicable" | "claimable" | "needs_review" | "not_claimed";
 export type TenantUserRole = "owner_admin" | "manager" | "finance" | "viewer";
 export type TenantUserStatus = "active" | "invited" | "disabled";
 export type WorkerStatus = "active" | "inactive";
@@ -481,6 +482,14 @@ export type Expense = {
   amount: number;
   payment_mode_id: string | null;
   paid_to: string | null;
+  vendor_gstin: string | null;
+  vendor_invoice_number: string | null;
+  vendor_invoice_date: string | null;
+  gst_treatment: GstTreatment;
+  gst_rate: number;
+  taxable_amount: number;
+  gst_amount: number;
+  input_gst_status: ExpenseInputGstStatus;
   description: string | null;
   receipt_url: string | null;
   is_recurring: boolean;
@@ -975,6 +984,14 @@ export type Database = {
           amount: number;
           payment_mode_id?: string | null;
           paid_to?: string | null;
+          vendor_gstin?: string | null;
+          vendor_invoice_number?: string | null;
+          vendor_invoice_date?: string | null;
+          gst_treatment?: GstTreatment;
+          gst_rate?: number;
+          taxable_amount?: number;
+          gst_amount?: number;
+          input_gst_status?: ExpenseInputGstStatus;
           description?: string | null;
           receipt_url?: string | null;
           is_recurring?: boolean;
@@ -1259,6 +1276,7 @@ export type Database = {
       tenant_status: TenantStatus;
       tenant_billing_payment_status: TenantBillingPaymentStatus;
       gst_treatment: GstTreatment;
+      expense_input_gst_status: ExpenseInputGstStatus;
       tenant_user_role: TenantUserRole;
       tenant_user_status: TenantUserStatus;
       worker_status: WorkerStatus;

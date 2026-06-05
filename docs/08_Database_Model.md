@@ -1092,27 +1092,33 @@ tenant_id
 expense_date
 category_id
 amount
-payment_mode
+payment_mode_id
 paid_to
-description
-receipt_url
 vendor_gstin
 vendor_invoice_number
 vendor_invoice_date
 gst_treatment
-gst_rate_percent
+gst_rate
 taxable_amount
 gst_amount
-total_amount
-gst_reportable
-itc_eligible
-itc_review_status
+input_gst_status
+description
+receipt_url
 is_recurring
 created_by
 created_at
 updated_at
 deleted_at
 ```
+
+Expense GST notes:
+
+- `amount` remains the actual cash/payment amount recorded for the expense.
+- `gst_treatment`, `gst_rate`, `taxable_amount`, and `gst_amount` snapshot the expense GST classification at entry time.
+- For GST-inclusive expenses, `gst_amount` is backed out of `amount`.
+- For GST-exclusive expenses, `amount` is treated as the taxable base; GST is recorded separately for reporting, but the current cash-out amount remains whatever the user entered.
+- `input_gst_status` supports accountant handoff: `not_applicable`, `claimable`, `needs_review`, or `not_claimed`.
+- Payment mode remains separate from GST treatment.
 
 ## receivables_payables
 
@@ -1173,7 +1179,8 @@ item_stage_work_logs.tenant_id, item_stage_work_logs.worker_id
 attendance.tenant_id, attendance.worker_id, attendance.attendance_date
 worker_ledger.tenant_id, worker_ledger.worker_id
 expenses.tenant_id, expenses.expense_date
-expenses.tenant_id, expenses.expense_date, expenses.gst_reportable
+expenses.tenant_id, expenses.gst_treatment
+expenses.tenant_id, expenses.input_gst_status
 receivables_payables.tenant_id, receivables_payables.due_date
 communication_channel_settings.tenant_id, communication_channel_settings.channel
 communication_templates.tenant_id, communication_templates.channel, communication_templates.purpose

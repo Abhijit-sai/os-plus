@@ -599,6 +599,64 @@ Finance Hardening: GST Capture
 
 - `npm run typecheck` passed.
 
+## Session Update - 2026-06-05 - Expense GST Capture First Slice
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Capture
+
+### What Was Built
+
+- Added expense-level GST capture migration with:
+  - `expenses.vendor_gstin`,
+  - `expenses.vendor_invoice_number`,
+  - `expenses.vendor_invoice_date`,
+  - `expenses.gst_treatment`,
+  - `expenses.gst_rate`,
+  - `expenses.taxable_amount`,
+  - `expenses.gst_amount`,
+  - `expenses.input_gst_status`.
+- Added an opt-in Vendor invoice / GST disclosure to Add expense and Edit expense dialogs.
+- Expense GST defaults come from the current tenant's Business profile purchase GST settings.
+- Server-side finance actions now calculate GST-inclusive and GST-exclusive expense taxable/GST snapshots.
+- Vendor GSTIN is optional, normalized to uppercase when present, and validated only when entered.
+
+### Tenant Safety
+
+- Expense reads and writes remain scoped to `requireTenantContext()`.
+- Expense category and payment mode validation still confirms selected records belong to the current tenant.
+- Existing expenses default to `not_applicable` and zero GST, avoiding reinterpretation of historical spend.
+
+### Remaining GST Work
+
+- Add Finance > GST report view.
+- Add accountant-handoff XLSX export.
+- Add GST report confirmation flow for GSTIN, legal name, registered address, and reporting period.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605123000_expense_gst_capture.sql`
+- `src/types/database.ts`
+- `src/features/finance/actions.ts`
+- `src/components/finance/expense-gst-fields.tsx`
+- `src/app/(tenant)/finance/page.tsx`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/08_Database_Model.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date
