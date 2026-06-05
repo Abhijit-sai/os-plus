@@ -204,17 +204,23 @@ function FinanceDialogButton({
 }
 
 function buildFinanceHref({
+  gstIncludeNonGst,
   tab,
   range,
   start,
   end
 }: {
+  gstIncludeNonGst?: boolean;
   tab: FinanceTab;
   range: RangeKey;
   start?: string;
   end?: string;
 }) {
   const params = new URLSearchParams({ tab, range });
+
+  if (tab === "gst" && gstIncludeNonGst) {
+    params.set("gstIncludeNonGst", "true");
+  }
 
   if (range === "custom") {
     if (start) {
@@ -231,13 +237,41 @@ function buildFinanceHref({
 
 function buildGstExportHref({
   end,
+  includeNonGst,
   start
 }: {
   end: string;
+  includeNonGst: boolean;
   start: string;
 }) {
-  const params = new URLSearchParams({ end, start });
+  const params = new URLSearchParams({ end, includeNonGst: String(includeNonGst), start });
   return `/api/finance/gst-report/export?${params.toString()}`;
+}
+
+function buildGstInclusionHref({
+  includeNonGst,
+  range,
+  start,
+  end
+}: {
+  includeNonGst: boolean;
+  range: RangeKey;
+  start?: string;
+  end?: string;
+}) {
+  const params = new URLSearchParams({ gstIncludeNonGst: String(includeNonGst), range, tab: "gst" });
+
+  if (range === "custom") {
+    if (start) {
+      params.set("start", start);
+    }
+
+    if (end) {
+      params.set("end", end);
+    }
+  }
+
+  return `/finance?${params.toString()}`;
 }
 
 function AddExpenseDialog({
@@ -849,12 +883,20 @@ function BalanceView({
 
 function GstReportView({
   endDate,
+  includeNonGst,
+  range,
   report,
-  startDate
+  startDate,
+  urlEnd,
+  urlStart
 }: {
   endDate: string;
+  includeNonGst: boolean;
+  range: RangeKey;
   report: GstReportData;
   startDate: string;
+  urlEnd?: string;
+  urlStart?: string;
 }) {
   const customerById = new Map(report.customers.map((customer) => [customer.id, customer]));
   const outputGst = report.orders.reduce((total, order) => total + Number(order.gst_amount), 0);
@@ -905,7 +947,7 @@ function GstReportView({
               <CardDescription>Accountant-handoff summary for {formatDate(startDate)} to {formatDate(endDate)}.</CardDescription>
             </div>
             <Button asChild>
-              <Link href={buildGstExportHref({ end: endDate, start: startDate })} className="gap-2">
+              <Link href={buildGstExportHref({ end: endDate, includeNonGst, start: startDate })} className="gap-2">
                 <Download className="h-4 w-4" />
                 Download XLSX
               </Link>
@@ -932,6 +974,18 @@ function GstReportView({
               <p className="text-muted-foreground">Confirm the GSTIN, legal name, registered address, and period with the accountant.</p>
               <p className="text-muted-foreground">The XLSX is a handoff workbook, not direct GST portal upload.</p>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm">
+            <span className="font-medium">Rows shown</span>
+            <Button asChild size="sm" variant={!includeNonGst ? "default" : "outline"}>
+              <Link href={buildGstInclusionHref({ end: urlEnd, includeNonGst: false, range, start: urlStart })}>GST only</Link>
+            </Button>
+            <Button asChild size="sm" variant={includeNonGst ? "default" : "outline"}>
+              <Link href={buildGstInclusionHref({ end: urlEnd, includeNonGst: true, range, start: urlStart })}>Include non-GST</Link>
+            </Button>
+            <span className="text-muted-foreground">
+              {includeNonGst ? "Showing GST and non-GST transactions in the view and export." : "Showing only transactions where GST amount is recorded."}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -1056,18 +1110,20 @@ function GstReportView({
 export default async function FinancePage({
   searchParams
 }: {
-  searchParams?: Promise<{ tab?: string; range?: string; start?: string; end?: string }>;
+  searchParams?: Promise<{ tab?: string; range?: string; start?: string; end?: string; gstIncludeNonGst?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const activeTab = financeTabs.some((tab) => tab.value === resolvedSearchParams?.tab) ? (resolvedSearchParams?.tab as FinanceTab) : "dashboard";
   const activeRange = rangeOptions.some((range) => range.value === resolvedSearchParams?.range) ? (resolvedSearchParams?.range as RangeKey) : "mtd";
   const customStart = resolvedSearchParams?.start;
   const customEnd = resolvedSearchParams?.end;
+  const gstIncludeNonGst = resolvedSearchParams?.gstIncludeNonGst === "true";
   const range = getRangeBounds(activeRange, customStart, customEnd);
   const gstStartDate = toDateInputValue(range.start);
   const gstEndDate = toDateInputValue(range.end);
   const { context, expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments, gstReport } = await getFinancePageData({
     gstEndDate,
+    gstIncludeNonGst,
     gstStartDate
   });
   const canManageFinance = hasPermission(context.membership.role, "finance:manage");
@@ -1174,7 +1230,7 @@ export default async function FinancePage({
         <div className="flex flex-wrap items-center gap-2">
           {financeTabs.map((tab) => (
             <Button key={tab.value} asChild size="sm" variant={activeTab === tab.value ? "default" : "outline"}>
-              <Link href={buildFinanceHref({ tab: tab.value, range: activeRange, start: customStart, end: customEnd })}>{tab.label}</Link>
+              <Link href={buildFinanceHref({ gstIncludeNonGst, tab: tab.value, range: activeRange, start: customStart, end: customEnd })}>{tab.label}</Link>
             </Button>
           ))}
         </div>
@@ -1198,13 +1254,14 @@ export default async function FinancePage({
         <div className="flex flex-wrap items-center gap-2">
           {rangeOptions.map((option) => (
             <Button key={option.value} asChild size="sm" variant={activeRange === option.value ? "default" : "outline"}>
-              <Link href={buildFinanceHref({ tab: activeTab, range: option.value, start: customStart, end: customEnd })}>{option.label}</Link>
+              <Link href={buildFinanceHref({ gstIncludeNonGst, tab: activeTab, range: option.value, start: customStart, end: customEnd })}>{option.label}</Link>
             </Button>
           ))}
         </div>
         <form action="/finance" className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="tab" value={activeTab} />
           <input type="hidden" name="range" value="custom" />
+          {activeTab === "gst" && gstIncludeNonGst ? <input type="hidden" name="gstIncludeNonGst" value="true" /> : null}
           <Input name="start" type="date" defaultValue={customStart ?? todayIsoDate()} className="h-9 w-[150px]" aria-label="Custom start date" />
           <Input name="end" type="date" defaultValue={customEnd ?? todayIsoDate()} className="h-9 w-[150px]" aria-label="Custom end date" />
           <Button size="sm" type="submit" variant={activeRange === "custom" ? "default" : "outline"}>
@@ -1364,7 +1421,17 @@ export default async function FinancePage({
         />
       ) : null}
 
-      {activeTab === "gst" && gstReport ? <GstReportView endDate={gstEndDate} report={gstReport} startDate={gstStartDate} /> : null}
+      {activeTab === "gst" && gstReport ? (
+        <GstReportView
+          endDate={gstEndDate}
+          includeNonGst={gstIncludeNonGst}
+          range={activeRange}
+          report={gstReport}
+          startDate={gstStartDate}
+          urlEnd={customEnd}
+          urlStart={customStart}
+        />
+      ) : null}
 
       <Separator />
       <p className="text-xs text-muted-foreground">

@@ -17,6 +17,10 @@ function getDateParam(request: Request, name: string) {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 }
 
+function getIncludeNonGstParam(request: Request) {
+  return new URL(request.url).searchParams.get("includeNonGst") === "true";
+}
+
 function formatMoney(value: number) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
@@ -65,12 +69,13 @@ function styleSheet(sheet: ExcelJS.Worksheet) {
 export async function GET(request: Request) {
   const startDate = getDateParam(request, "start");
   const endDate = getDateParam(request, "end");
+  const includeNonGst = getIncludeNonGstParam(request);
 
   if (!startDate || !endDate) {
     return NextResponse.json({ error: "Start and end dates are required." }, { status: 400 });
   }
 
-  const { context, customers, expenses, orders } = await getGstReportData({ endDate, startDate });
+  const { context, customers, expenses, orders } = await getGstReportData({ endDate, includeNonGst, startDate });
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
   const outputGst = orders.reduce((sum, order) => sum + Number(order.gst_amount), 0);
   const claimableInputGst = expenses
@@ -105,6 +110,7 @@ export async function GET(request: Request) {
     ["Registered address", context.tenant.registered_address ?? "Not set"],
     ["Period start", startDate],
     ["Period end", endDate],
+    ["Rows included", includeNonGst ? "GST and non-GST transactions" : "GST-bearing transactions only"],
     ["Output GST collected", formatMoney(outputGst)],
     ["Claimable input GST", formatMoney(claimableInputGst)],
     ["Estimated net GST payable", formatMoney(netPayable)],

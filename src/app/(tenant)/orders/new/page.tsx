@@ -105,11 +105,6 @@ export default async function NewOrderPage({
               <Label htmlFor="deliveryAddress">Delivery address</Label>
               <Input id="deliveryAddress" name="deliveryAddress" placeholder="Optional" />
             </div>
-            <OrderGstFields
-              defaultGstRate={Number(context.tenant.default_sales_gst_rate ?? 0)}
-              defaultGstTreatment={context.tenant.default_order_gst_treatment ?? "not_applicable"}
-              gstRegistered={Boolean(context.tenant.gst_registered)}
-            />
             <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="notes">Order notes</Label>
               <Input id="notes" name="notes" placeholder="Internal order notes" />
@@ -129,6 +124,19 @@ export default async function NewOrderPage({
               measurementFields={measurementFields}
               standardSizes={standardSizes}
               selectedCustomerId={resolvedSearchParams?.customerId}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Total order value</CardTitle>
+            <CardDescription>Review item totals and GST before recording any payment.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <OrderGstFields
+              defaultGstRate={Number(context.tenant.default_sales_gst_rate ?? 0)}
+              defaultGstTreatment={context.tenant.default_order_gst_treatment ?? "not_applicable"}
+              gstRegistered={Boolean(context.tenant.gst_registered)}
             />
           </CardContent>
         </Card>

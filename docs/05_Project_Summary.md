@@ -1255,6 +1255,50 @@ Finance Hardening: GST Reporting
 - Moderate audit findings remain from Next/PostCSS and `exceljs`/`uuid`.
 - Suggested fixes are breaking downgrades, so no automated audit fix was applied.
 
+## Session Update - 2026-06-05 - Order Value GST UX and GST Report Inclusion Toggle
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST UX Correction
+
+### What Was Changed
+
+- Moved order GST controls out of the first Order details section.
+- Added a dedicated `Total order value` section after Order items and before Initial payment.
+- The section shows live subtotal, discounts, GST, and order total before payment entry.
+- Added Finance > GST report inclusion toggle for `GST only` vs `Include non-GST`.
+- XLSX export now respects the same inclusion mode shown in the report view.
+
+### Key Decisions Made
+
+- GST should be decided only after item value is visible.
+- GST report defaults to GST-bearing rows for cleaner aggregates.
+- Non-GST rows remain available when explicitly included for review/audit context.
+
+### Files/Modules Changed
+
+- `src/components/orders/order-gst-fields.tsx`
+- `src/app/(tenant)/orders/new/page.tsx`
+- `src/features/finance/queries.ts`
+- `src/app/(tenant)/finance/page.tsx`
+- `src/app/api/finance/gst-report/export/route.ts`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

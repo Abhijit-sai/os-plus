@@ -6,14 +6,17 @@ import { requireTenantContext } from "@/lib/tenant/context";
 
 type FinancePageDataOptions = {
   gstEndDate?: string;
+  gstIncludeNonGst?: boolean;
   gstStartDate?: string;
 };
 
 export async function getGstReportData({
   endDate,
+  includeNonGst = false,
   startDate
 }: {
   endDate: string;
+  includeNonGst?: boolean;
   startDate: string;
 }) {
   const context = await requireTenantContext();
@@ -21,24 +24,29 @@ export async function getGstReportData({
 
   const supabase = createSupabaseServiceRoleClient();
 
-  const [orders, expenses] = await Promise.all([
-    supabase
+  let ordersQuery = supabase
       .from("orders")
       .select("id, order_number, reference_order_id, customer_id, order_date, subtotal, discount_amount, gst_treatment, gst_rate, taxable_amount, gst_amount, total_amount")
       .eq("tenant_id", context.tenant.id)
       .gte("order_date", startDate)
       .lte("order_date", endDate)
       .is("deleted_at", null)
-      .order("order_date", { ascending: true }),
-    supabase
+      .order("order_date", { ascending: true });
+  let expensesQuery = supabase
       .from("expenses")
       .select("*")
       .eq("tenant_id", context.tenant.id)
       .gte("expense_date", startDate)
       .lte("expense_date", endDate)
       .is("deleted_at", null)
-      .order("expense_date", { ascending: true })
-  ]);
+      .order("expense_date", { ascending: true });
+
+  if (!includeNonGst) {
+    ordersQuery = ordersQuery.gt("gst_amount", 0);
+    expensesQuery = expensesQuery.gt("gst_amount", 0);
+  }
+
+  const [orders, expenses] = await Promise.all([ordersQuery, expensesQuery]);
 
   for (const result of [orders, expenses]) {
     if (result.error) {
@@ -65,6 +73,7 @@ export async function getGstReportData({
     customers: customers.data ?? [],
     endDate,
     expenses: expenses.data ?? [],
+    includeNonGst,
     orders: orders.data ?? [],
     startDate
   };
@@ -130,6 +139,7 @@ export async function getFinancePageData(options: FinancePageDataOptions = {}) {
     options.gstStartDate && options.gstEndDate
       ? getGstReportData({
           endDate: options.gstEndDate,
+          includeNonGst: options.gstIncludeNonGst,
           startDate: options.gstStartDate
         })
       : Promise.resolve(null)

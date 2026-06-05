@@ -729,6 +729,53 @@ Finance Hardening: GST Reporting
 - `npm audit` still reports moderate findings from Next/PostCSS and `exceljs`/`uuid`.
 - Suggested fixes require breaking downgrades (`next@9.3.3` or `exceljs@3.4.0`), so no automated audit fix was applied.
 
+## Session Update - 2026-06-05 - Order Value GST UX and GST Report Inclusion Toggle
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST UX Correction
+
+### What Was Changed
+
+- Removed GST controls from the first Order details section.
+- Added a dedicated `Total order value` section after Order items and before Initial payment.
+- The new section shows live item subtotal, item discounts, GST, and order total before payment entry.
+- GST decision now happens with order value context, before recording payment.
+- Added a Finance > GST report toggle:
+  - `GST only`,
+  - `Include non-GST`.
+- The GST inclusion mode controls both on-screen report rows and XLSX export rows.
+
+### Key Decisions
+
+- Staff should decide GST only after seeing the constructed order value.
+- GST report defaults to GST-bearing transactions so aggregates stay clean.
+- Non-GST/exempt/not-applicable rows are still available for audit context through an explicit toggle.
+
+### Files/Modules Changed
+
+- `src/components/orders/order-gst-fields.tsx`
+- `src/app/(tenant)/orders/new/page.tsx`
+- `src/features/finance/queries.ts`
+- `src/app/(tenant)/finance/page.tsx`
+- `src/app/api/finance/gst-report/export/route.ts`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date
