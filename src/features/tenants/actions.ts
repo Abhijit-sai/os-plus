@@ -83,7 +83,7 @@ const billingRecordBaseSchema = z.object({
   planName: z.string().trim().min(2, "Plan name is required."),
   amountDue: z.coerce.number().min(0, "Amount due cannot be negative."),
   amountPaid: z.coerce.number().min(0, "Amount paid cannot be negative."),
-  paymentStatus: z.enum(["pending", "partially_paid", "paid", "overdue", "waived", "cancelled"]),
+  paymentStatusOverride: z.enum(["waived", "cancelled"]).optional(),
   paymentDate: optionalDate,
   paymentMode: optionalText,
   referenceNumber: optionalText,
@@ -108,6 +108,34 @@ const billingRecordIdSchema = z.object({
   tenantId: z.string().uuid(),
   billingRecordId: z.string().uuid()
 });
+
+function getBillingPaymentStatus({
+  amountDue,
+  amountPaid,
+  billingPeriodEnd,
+  override
+}: {
+  amountDue: number;
+  amountPaid: number;
+  billingPeriodEnd: string;
+  override?: "waived" | "cancelled";
+}) {
+  if (override) {
+    return override;
+  }
+
+  if (amountDue <= 0 || amountPaid >= amountDue) {
+    return "paid";
+  }
+
+  if (amountPaid > 0) {
+    return "partially_paid";
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return billingPeriodEnd < today ? "overdue" : "pending";
+}
 
 export async function createTenantAction(formData: FormData) {
   const superAdminUserId = await requireSuperAdmin();
@@ -248,11 +276,17 @@ export async function createTenantBillingRecordAction(formData: FormData) {
     planName: formData.get("planName"),
     amountDue: formData.get("amountDue") || 0,
     amountPaid: formData.get("amountPaid") || 0,
-    paymentStatus: formData.get("paymentStatus"),
+    paymentStatusOverride: formData.get("paymentStatusOverride") || undefined,
     paymentDate: formData.get("paymentDate"),
     paymentMode: formData.get("paymentMode"),
     referenceNumber: formData.get("referenceNumber"),
     notes: formData.get("notes")
+  });
+  const paymentStatus = getBillingPaymentStatus({
+    amountDue: parsed.amountDue,
+    amountPaid: parsed.amountPaid,
+    billingPeriodEnd: parsed.billingPeriodEnd,
+    override: parsed.paymentStatusOverride
   });
   const supabase = createSupabaseServiceRoleClient();
   const { error } = await supabase.from("tenant_billing_records").insert({
@@ -262,7 +296,7 @@ export async function createTenantBillingRecordAction(formData: FormData) {
     plan_name: parsed.planName,
     amount_due: parsed.amountDue,
     amount_paid: parsed.amountPaid,
-    payment_status: parsed.paymentStatus,
+    payment_status: paymentStatus,
     payment_date: parsed.paymentDate,
     payment_mode: parsed.paymentMode,
     reference_number: parsed.referenceNumber,
@@ -290,11 +324,17 @@ export async function updateTenantBillingRecordAction(formData: FormData) {
     planName: formData.get("planName"),
     amountDue: formData.get("amountDue") || 0,
     amountPaid: formData.get("amountPaid") || 0,
-    paymentStatus: formData.get("paymentStatus"),
+    paymentStatusOverride: formData.get("paymentStatusOverride") || undefined,
     paymentDate: formData.get("paymentDate"),
     paymentMode: formData.get("paymentMode"),
     referenceNumber: formData.get("referenceNumber"),
     notes: formData.get("notes")
+  });
+  const paymentStatus = getBillingPaymentStatus({
+    amountDue: parsed.amountDue,
+    amountPaid: parsed.amountPaid,
+    billingPeriodEnd: parsed.billingPeriodEnd,
+    override: parsed.paymentStatusOverride
   });
   const supabase = createSupabaseServiceRoleClient();
   const { error } = await supabase
@@ -305,7 +345,7 @@ export async function updateTenantBillingRecordAction(formData: FormData) {
       plan_name: parsed.planName,
       amount_due: parsed.amountDue,
       amount_paid: parsed.amountPaid,
-      payment_status: parsed.paymentStatus,
+      payment_status: paymentStatus,
       payment_date: parsed.paymentDate,
       payment_mode: parsed.paymentMode,
       reference_number: parsed.referenceNumber,

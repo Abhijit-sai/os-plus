@@ -462,6 +462,40 @@ Production Hardening and Pilot Readiness
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Tenant Billing Status Derivation
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Tenant Commercial Control
+
+### Change Made
+
+- Tenant billing record payment status is now derived server-side from:
+  - amount due,
+  - amount paid,
+  - billing period end date.
+- Normal statuses are calculated:
+  - `paid` when amount paid covers amount due,
+  - `partially_paid` when some amount is paid but balance remains,
+  - `overdue` when no amount is paid and the period end is before today,
+  - `pending` when no amount is paid and the period is not overdue.
+- Manual status selection was removed from the billing UI to avoid contradictions.
+- Billing cards now show outstanding amount instead of repeating total due as if it were pending.
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date

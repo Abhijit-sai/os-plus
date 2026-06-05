@@ -38,6 +38,10 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString("en-IN") : "Not set";
 }
 
+function getOutstanding(amountDue: number, amountPaid: number) {
+  return Math.max(amountDue - amountPaid, 0);
+}
+
 export default async function TenantDetailPage({
   params
 }: {
@@ -286,19 +290,10 @@ export default async function TenantDetailPage({
                 <Input id="amountPaid" name="amountPaid" type="number" min="0" step="0.01" defaultValue="0" required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="paymentStatus">Payment status</Label>
-                <select
-                  id="paymentStatus"
-                  name="paymentStatus"
-                  defaultValue="pending"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  {Object.entries(paymentStatusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                <Label>Status</Label>
+                <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                  Calculated from due, paid, and period end
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="paymentDate">Payment date</Label>
@@ -334,7 +329,7 @@ export default async function TenantDetailPage({
                     </div>
                     <div className="text-right text-sm">
                       <p>{formatCurrency(Number(record.amount_paid))} paid</p>
-                      <p className="text-muted-foreground">{formatCurrency(Number(record.amount_due))} due</p>
+                      <p className="text-muted-foreground">{formatCurrency(getOutstanding(Number(record.amount_due), Number(record.amount_paid)))} outstanding</p>
                     </div>
                   </div>
                 </summary>
@@ -364,19 +359,10 @@ export default async function TenantDetailPage({
                         <Input id={`amountPaid-${record.id}`} name="amountPaid" type="number" min="0" step="0.01" defaultValue={record.amount_paid} required />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor={`paymentStatus-${record.id}`}>Payment status</Label>
-                        <select
-                          id={`paymentStatus-${record.id}`}
-                          name="paymentStatus"
-                          defaultValue={record.payment_status}
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          {Object.entries(paymentStatusLabels).map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
+                        <Label>Status</Label>
+                        <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                          {paymentStatusLabels[record.payment_status]} · calculated on save
+                        </div>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor={`paymentDate-${record.id}`}>Payment date</Label>
