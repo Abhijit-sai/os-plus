@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
+
 import { selectTenantAction } from "@/features/tenant-users/actions";
-import { getTenantMembershipOptions } from "@/lib/tenant/context";
+import { getInactiveTenantMembershipOptions, getTenantMembershipOptions } from "@/lib/tenant/context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +16,12 @@ function formatRole(role: string) {
 
 export default async function SelectTenantPage() {
   const options = await getTenantMembershipOptions();
+  const inactiveOptions = options.length ? [] : await getInactiveTenantMembershipOptions();
+
+  if (!options.length && inactiveOptions.length) {
+    redirect("/inactive-tenant");
+  }
+
   const account = options[0]?.user;
 
   return (

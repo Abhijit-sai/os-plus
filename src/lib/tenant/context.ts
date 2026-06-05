@@ -29,13 +29,7 @@ export type TenantMembershipOption = {
 
 const selectedTenantCookieName = "os_plus_selected_tenant_id";
 
-export async function getTenantMembershipOptions(): Promise<TenantMembershipOption[]> {
-  const identity = await getCurrentClerkIdentity();
-
-  if (!identity) {
-    return [];
-  }
-
+async function getLinkedTenantMemberships(identity: NonNullable<Awaited<ReturnType<typeof getCurrentClerkIdentity>>>) {
   const supabase = createSupabaseServiceRoleClient();
   const clerkMemberships = await supabase
     .from("tenant_users")
@@ -101,6 +95,17 @@ export async function getTenantMembershipOptions(): Promise<TenantMembershipOpti
     ];
   }
 
+  return { identity, memberships, supabase };
+}
+
+async function getTenantMembershipOptionsByTenantStatus(statuses: Tenant["status"][]): Promise<TenantMembershipOption[]> {
+  const identity = await getCurrentClerkIdentity();
+
+  if (!identity) {
+    return [];
+  }
+
+  const { memberships, supabase } = await getLinkedTenantMemberships(identity);
   const tenantIds = [...new Set(memberships.map((membership) => membership.tenant_id))];
 
   if (!tenantIds.length) {
@@ -111,7 +116,7 @@ export async function getTenantMembershipOptions(): Promise<TenantMembershipOpti
     .from("tenants")
     .select("*")
     .in("id", tenantIds)
-    .eq("status", "active");
+    .in("status", statuses);
 
   if (tenantError) {
     throw new Error(`Unable to resolve tenants: ${tenantError.message}`);
@@ -125,6 +130,14 @@ export async function getTenantMembershipOptions(): Promise<TenantMembershipOpti
       return tenant ? { tenant, membership, user: identity } : null;
     })
     .filter((option): option is TenantMembershipOption => Boolean(option));
+}
+
+export async function getTenantMembershipOptions(): Promise<TenantMembershipOption[]> {
+  return getTenantMembershipOptionsByTenantStatus(["active"]);
+}
+
+export async function getInactiveTenantMembershipOptions(): Promise<TenantMembershipOption[]> {
+  return getTenantMembershipOptionsByTenantStatus(["inactive", "suspended"]);
 }
 
 export async function getTenantContext(): Promise<TenantContext | null> {
@@ -156,6 +169,12 @@ export async function requireTenantContext() {
 
     if (options.length > 1) {
       redirect("/select-tenant");
+    }
+
+    const inactiveOptions = await getInactiveTenantMembershipOptions();
+
+    if (inactiveOptions.length) {
+      redirect("/inactive-tenant");
     }
 
     redirect("/no-tenant");

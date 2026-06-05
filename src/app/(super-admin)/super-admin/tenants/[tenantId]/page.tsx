@@ -1,12 +1,34 @@
 import { notFound } from "next/navigation";
 
-import { updateTenantAction } from "@/features/tenants/actions";
+import { cancelTenantBillingRecordAction, createTenantBillingRecordAction, updateTenantAction, updateTenantBillingRecordAction } from "@/features/tenants/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireSuperAdminPageAccess } from "@/lib/auth/super-admin";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import type { TenantBillingPaymentStatus } from "@/types/database";
+
+const paymentStatusLabels: Record<TenantBillingPaymentStatus, string> = {
+  pending: "Pending",
+  partially_paid: "Partially paid",
+  paid: "Paid",
+  overdue: "Overdue",
+  waived: "Waived",
+  cancelled: "Cancelled"
+};
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
+    currency: "INR",
+    maximumFractionDigits: 2,
+    style: "currency"
+  }).format(amount);
+}
+
+function formatDate(value: string | null) {
+  return value ? new Date(value).toLocaleDateString("en-IN") : "Not set";
+}
 
 export default async function TenantDetailPage({
   params
@@ -37,6 +59,23 @@ export default async function TenantDetailPage({
   if (usersError) {
     throw new Error(`Unable to load tenant users: ${usersError.message}`);
   }
+
+  const { data: billingRecords, error: billingError } = await supabase
+    .from("tenant_billing_records")
+    .select("*")
+    .eq("tenant_id", tenant.id)
+    .is("deleted_at", null)
+    .order("billing_period_end", { ascending: false });
+
+  if (billingError) {
+    throw new Error(`Unable to load tenant billing records: ${billingError.message}`);
+  }
+
+  const activeBillingRecords = billingRecords ?? [];
+  const latestBillingRecord = activeBillingRecords[0];
+  const totalDue = activeBillingRecords.reduce((sum, record) => sum + Number(record.amount_due), 0);
+  const totalPaid = activeBillingRecords.reduce((sum, record) => sum + Number(record.amount_paid), 0);
+  const outstanding = Math.max(totalDue - totalPaid, 0);
 
   return (
     <div className="space-y-6">
@@ -107,6 +146,183 @@ export default async function TenantDetailPage({
             </div>
             <Button type="submit">Save tenant</Button>
           </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tenant billing</CardTitle>
+          <CardDescription>Manual OS PLUS subscription/payment tracking for this tenant.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 text-sm md:grid-cols-4">
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground">Latest status</p>
+              <p className="font-medium">{latestBillingRecord ? paymentStatusLabels[latestBillingRecord.payment_status] : "No records"}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground">Total due</p>
+              <p className="font-medium">{formatCurrency(totalDue)}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground">Total paid</p>
+              <p className="font-medium">{formatCurrency(totalPaid)}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground">Outstanding</p>
+              <p className="font-medium">{formatCurrency(outstanding)}</p>
+            </div>
+          </div>
+          <form action={createTenantBillingRecordAction} className="space-y-4 rounded-md border p-4">
+            <input type="hidden" name="tenantId" value={tenant.id} />
+            <div>
+              <h3 className="font-medium">Add billing record</h3>
+              <p className="text-sm text-muted-foreground">Manual first. Reminders and automation stay later.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="billingPeriodStart">Period start</Label>
+                <Input id="billingPeriodStart" name="billingPeriodStart" type="date" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="billingPeriodEnd">Period end</Label>
+                <Input id="billingPeriodEnd" name="billingPeriodEnd" type="date" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="planName">Plan</Label>
+                <Input id="planName" name="planName" placeholder="Pilot" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="amountDue">Amount due</Label>
+                <Input id="amountDue" name="amountDue" type="number" min="0" step="0.01" defaultValue="0" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="amountPaid">Amount paid</Label>
+                <Input id="amountPaid" name="amountPaid" type="number" min="0" step="0.01" defaultValue="0" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="paymentStatus">Payment status</Label>
+                <select
+                  id="paymentStatus"
+                  name="paymentStatus"
+                  defaultValue="pending"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {Object.entries(paymentStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="paymentDate">Payment date</Label>
+                <Input id="paymentDate" name="paymentDate" type="date" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="paymentMode">Payment mode</Label>
+                <Input id="paymentMode" name="paymentMode" placeholder="UPI, bank transfer" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="referenceNumber">Reference</Label>
+                <Input id="referenceNumber" name="referenceNumber" />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Internal notes</Label>
+              <Input id="notes" name="notes" />
+            </div>
+            <Button type="submit">Add billing record</Button>
+          </form>
+          <div className="space-y-3">
+            {activeBillingRecords.map((record) => (
+              <details key={record.id} className="rounded-md border p-3">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        {record.plan_name} · {paymentStatusLabels[record.payment_status]}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(record.billing_period_start)} to {formatDate(record.billing_period_end)}
+                      </p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{formatCurrency(Number(record.amount_paid))} paid</p>
+                      <p className="text-muted-foreground">{formatCurrency(Number(record.amount_due))} due</p>
+                    </div>
+                  </div>
+                </summary>
+                <div className="mt-4 space-y-4 border-t pt-4">
+                  <form action={updateTenantBillingRecordAction} className="space-y-4">
+                    <input type="hidden" name="tenantId" value={tenant.id} />
+                    <input type="hidden" name="billingRecordId" value={record.id} />
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="grid gap-2">
+                        <Label htmlFor={`billingPeriodStart-${record.id}`}>Period start</Label>
+                        <Input id={`billingPeriodStart-${record.id}`} name="billingPeriodStart" type="date" defaultValue={record.billing_period_start} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`billingPeriodEnd-${record.id}`}>Period end</Label>
+                        <Input id={`billingPeriodEnd-${record.id}`} name="billingPeriodEnd" type="date" defaultValue={record.billing_period_end} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`planName-${record.id}`}>Plan</Label>
+                        <Input id={`planName-${record.id}`} name="planName" defaultValue={record.plan_name} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`amountDue-${record.id}`}>Amount due</Label>
+                        <Input id={`amountDue-${record.id}`} name="amountDue" type="number" min="0" step="0.01" defaultValue={record.amount_due} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`amountPaid-${record.id}`}>Amount paid</Label>
+                        <Input id={`amountPaid-${record.id}`} name="amountPaid" type="number" min="0" step="0.01" defaultValue={record.amount_paid} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`paymentStatus-${record.id}`}>Payment status</Label>
+                        <select
+                          id={`paymentStatus-${record.id}`}
+                          name="paymentStatus"
+                          defaultValue={record.payment_status}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          {Object.entries(paymentStatusLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`paymentDate-${record.id}`}>Payment date</Label>
+                        <Input id={`paymentDate-${record.id}`} name="paymentDate" type="date" defaultValue={record.payment_date ?? ""} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`paymentMode-${record.id}`}>Payment mode</Label>
+                        <Input id={`paymentMode-${record.id}`} name="paymentMode" defaultValue={record.payment_mode ?? ""} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`referenceNumber-${record.id}`}>Reference</Label>
+                        <Input id={`referenceNumber-${record.id}`} name="referenceNumber" defaultValue={record.reference_number ?? ""} />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor={`notes-${record.id}`}>Internal notes</Label>
+                      <Input id={`notes-${record.id}`} name="notes" defaultValue={record.notes ?? ""} />
+                    </div>
+                    <Button type="submit">Save billing record</Button>
+                  </form>
+                  <form action={cancelTenantBillingRecordAction}>
+                    <input type="hidden" name="tenantId" value={tenant.id} />
+                    <input type="hidden" name="billingRecordId" value={record.id} />
+                    <Button type="submit" variant="outline">
+                      Cancel record
+                    </Button>
+                  </form>
+                </div>
+              </details>
+            ))}
+            {!activeBillingRecords.length ? <p className="text-sm text-muted-foreground">No billing records yet.</p> : null}
+          </div>
         </CardContent>
       </Card>
       <Card>

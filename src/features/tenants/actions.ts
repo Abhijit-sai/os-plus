@@ -40,6 +40,43 @@ const updateTenantSchema = z.object({
   status: z.enum(["active", "inactive", "suspended"])
 });
 
+const optionalText = z.preprocess((value) => (typeof value === "string" && value.trim() ? value : null), z.string().trim().nullable());
+
+const optionalDate = z.preprocess((value) => (typeof value === "string" && value.trim() ? value : null), z.string().trim().nullable());
+
+const billingRecordBaseSchema = z.object({
+  tenantId: z.string().uuid(),
+  billingPeriodStart: z.string().trim().min(1, "Billing period start is required."),
+  billingPeriodEnd: z.string().trim().min(1, "Billing period end is required."),
+  planName: z.string().trim().min(2, "Plan name is required."),
+  amountDue: z.coerce.number().min(0, "Amount due cannot be negative."),
+  amountPaid: z.coerce.number().min(0, "Amount paid cannot be negative."),
+  paymentStatus: z.enum(["pending", "partially_paid", "paid", "overdue", "waived", "cancelled"]),
+  paymentDate: optionalDate,
+  paymentMode: optionalText,
+  referenceNumber: optionalText,
+  notes: optionalText
+});
+
+const billingRecordSchema = billingRecordBaseSchema.refine((value) => value.billingPeriodEnd >= value.billingPeriodStart, {
+  path: ["billingPeriodEnd"],
+  message: "Billing period end must be on or after the start date."
+});
+
+const updateBillingRecordSchema = billingRecordBaseSchema
+  .extend({
+    billingRecordId: z.string().uuid()
+  })
+  .refine((value) => value.billingPeriodEnd >= value.billingPeriodStart, {
+    path: ["billingPeriodEnd"],
+    message: "Billing period end must be on or after the start date."
+  });
+
+const billingRecordIdSchema = z.object({
+  tenantId: z.string().uuid(),
+  billingRecordId: z.string().uuid()
+});
+
 export async function createTenantAction(formData: FormData) {
   const superAdminUserId = await requireSuperAdmin();
   const parsed = createTenantSchema.parse({
@@ -134,4 +171,115 @@ export async function updateTenantAction(formData: FormData) {
   revalidatePath("/select-tenant");
   revalidatePath("/settings");
   revalidatePath("/settings/business-profile");
+}
+
+export async function createTenantBillingRecordAction(formData: FormData) {
+  const superAdminUserId = await requireSuperAdmin();
+  const parsed = billingRecordSchema.parse({
+    tenantId: formData.get("tenantId"),
+    billingPeriodStart: formData.get("billingPeriodStart"),
+    billingPeriodEnd: formData.get("billingPeriodEnd"),
+    planName: formData.get("planName"),
+    amountDue: formData.get("amountDue") || 0,
+    amountPaid: formData.get("amountPaid") || 0,
+    paymentStatus: formData.get("paymentStatus"),
+    paymentDate: formData.get("paymentDate"),
+    paymentMode: formData.get("paymentMode"),
+    referenceNumber: formData.get("referenceNumber"),
+    notes: formData.get("notes")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from("tenant_billing_records").insert({
+    tenant_id: parsed.tenantId,
+    billing_period_start: parsed.billingPeriodStart,
+    billing_period_end: parsed.billingPeriodEnd,
+    plan_name: parsed.planName,
+    amount_due: parsed.amountDue,
+    amount_paid: parsed.amountPaid,
+    payment_status: parsed.paymentStatus,
+    payment_date: parsed.paymentDate,
+    payment_mode: parsed.paymentMode,
+    reference_number: parsed.referenceNumber,
+    notes: parsed.notes,
+    created_by: superAdminUserId,
+    updated_by: superAdminUserId,
+    deleted_at: null
+  });
+
+  if (error) {
+    throw new Error(`Unable to add tenant billing record: ${error.message}`);
+  }
+
+  revalidatePath("/super-admin/tenants");
+  revalidatePath(`/super-admin/tenants/${parsed.tenantId}`);
+}
+
+export async function updateTenantBillingRecordAction(formData: FormData) {
+  const superAdminUserId = await requireSuperAdmin();
+  const parsed = updateBillingRecordSchema.parse({
+    tenantId: formData.get("tenantId"),
+    billingRecordId: formData.get("billingRecordId"),
+    billingPeriodStart: formData.get("billingPeriodStart"),
+    billingPeriodEnd: formData.get("billingPeriodEnd"),
+    planName: formData.get("planName"),
+    amountDue: formData.get("amountDue") || 0,
+    amountPaid: formData.get("amountPaid") || 0,
+    paymentStatus: formData.get("paymentStatus"),
+    paymentDate: formData.get("paymentDate"),
+    paymentMode: formData.get("paymentMode"),
+    referenceNumber: formData.get("referenceNumber"),
+    notes: formData.get("notes")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("tenant_billing_records")
+    .update({
+      billing_period_start: parsed.billingPeriodStart,
+      billing_period_end: parsed.billingPeriodEnd,
+      plan_name: parsed.planName,
+      amount_due: parsed.amountDue,
+      amount_paid: parsed.amountPaid,
+      payment_status: parsed.paymentStatus,
+      payment_date: parsed.paymentDate,
+      payment_mode: parsed.paymentMode,
+      reference_number: parsed.referenceNumber,
+      notes: parsed.notes,
+      updated_by: superAdminUserId
+    })
+    .eq("tenant_id", parsed.tenantId)
+    .eq("id", parsed.billingRecordId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to update tenant billing record: ${error.message}`);
+  }
+
+  revalidatePath("/super-admin/tenants");
+  revalidatePath(`/super-admin/tenants/${parsed.tenantId}`);
+}
+
+export async function cancelTenantBillingRecordAction(formData: FormData) {
+  const superAdminUserId = await requireSuperAdmin();
+  const parsed = billingRecordIdSchema.parse({
+    tenantId: formData.get("tenantId"),
+    billingRecordId: formData.get("billingRecordId")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("tenant_billing_records")
+    .update({
+      payment_status: "cancelled",
+      deleted_at: new Date().toISOString(),
+      updated_by: superAdminUserId
+    })
+    .eq("tenant_id", parsed.tenantId)
+    .eq("id", parsed.billingRecordId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to cancel tenant billing record: ${error.message}`);
+  }
+
+  revalidatePath("/super-admin/tenants");
+  revalidatePath(`/super-admin/tenants/${parsed.tenantId}`);
 }

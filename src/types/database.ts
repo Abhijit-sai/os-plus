@@ -1,4 +1,5 @@
 export type TenantStatus = "active" | "inactive" | "suspended";
+export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
 export type TenantUserRole = "owner_admin" | "manager" | "finance" | "viewer";
 export type TenantUserStatus = "active" | "invited" | "disabled";
 export type WorkerStatus = "active" | "inactive";
@@ -114,6 +115,26 @@ export type TenantUser = {
   created_at: string;
   updated_at: string;
   updated_by: string | null;
+};
+
+export type TenantBillingRecord = {
+  id: string;
+  tenant_id: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  plan_name: string;
+  amount_due: number;
+  amount_paid: number;
+  payment_status: TenantBillingPaymentStatus;
+  payment_date: string | null;
+  payment_mode: string | null;
+  reference_number: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+  deleted_at: string | null;
 };
 
 export type CustomerStatus = TenantOwnedBase & {
@@ -595,6 +616,25 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_users_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      tenant_billing_records: {
+        Row: TenantBillingRecord;
+        Insert: Omit<TenantBillingRecord, "id" | "created_at" | "updated_at" | "deleted_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Omit<TenantBillingRecord, "id" | "tenant_id" | "created_at">>;
+        Relationships: [
+          {
+            foreignKeyName: "tenant_billing_records_tenant_id_fkey";
             columns: ["tenant_id"];
             isOneToOne: false;
             referencedRelation: "tenants";
@@ -1180,6 +1220,7 @@ export type Database = {
     Functions: Record<string, never>;
     Enums: {
       tenant_status: TenantStatus;
+      tenant_billing_payment_status: TenantBillingPaymentStatus;
       tenant_user_role: TenantUserRole;
       tenant_user_status: TenantUserStatus;
       worker_status: WorkerStatus;

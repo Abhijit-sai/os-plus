@@ -481,6 +481,57 @@ Post-Deployment Planning
 6. Finance GST report and export.
 7. High-conversion public website and blog engine.
 
+## 20. Session Update - 2026-06-05 - Tenant Billing and Inactive Tenant Lockout
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Tenant Commercial Control
+
+### What Was Built
+
+- Added Supabase migration for `tenant_billing_records`.
+- Added manual super-admin tenant billing/payment record actions.
+- Added super-admin tenant detail billing UI with summary metrics, add form, edit form, and cancel action.
+- Added `/inactive-tenant` locked-state route.
+- Updated tenant context resolution so inactive/suspended tenant access routes to the locked state instead of looking like no tenant membership exists.
+- Updated `/select-tenant` so inactive-only users land on the locked-state route.
+
+### Key Decisions Made
+
+- Tenant billing is manual first.
+- Billing notes and commercial details are super-admin-only.
+- Tenant users see a calm reactivation/support message when their tenant is inactive or suspended.
+- Existing active tenant access and multi-business selection behavior remains unchanged.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605100000_tenant_billing_records.sql`
+- `src/types/database.ts`
+- `src/features/tenants/actions.ts`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/lib/tenant/context.ts`
+- `src/app/inactive-tenant/page.tsx`
+- `src/app/select-tenant/page.tsx`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending
+
+- Apply `supabase/migrations/20260605100000_tenant_billing_records.sql` in the live Supabase project.
+- Manual Clerk QA for super-admin billing forms and inactive tenant lockout.
+
 ## 17. Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 
 ### Date

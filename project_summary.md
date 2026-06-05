@@ -518,6 +518,69 @@ Post-Deployment Planning
 6. Implement Finance > GST report and export.
 7. Build the public marketing site and blog engine after the operational finance plan is locked.
 
+## Session Update - 2026-06-05 - Tenant Billing and Inactive Tenant Lockout
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Tenant Commercial Control
+
+### What Was Built
+
+- Added `tenant_billing_records` migration for manual OS PLUS tenant subscription/payment tracking.
+- Added typed `TenantBillingRecord` and `TenantBillingPaymentStatus` models.
+- Added super-admin server actions to:
+  - create tenant billing records,
+  - update tenant billing records,
+  - cancel billing records through soft delete.
+- Added super-admin tenant detail billing UI:
+  - latest billing status,
+  - total due,
+  - total paid,
+  - outstanding,
+  - add billing record form,
+  - per-record edit and cancel controls.
+- Added `/inactive-tenant` locked-state page for users whose tenant is inactive or suspended.
+- Updated tenant context resolution so inactive/suspended tenants do not fall through to a misleading no-tenant state.
+- Updated `/select-tenant` to redirect inactive-only users to `/inactive-tenant`.
+
+### Tenant-Safety Notes
+
+- Tenant billing records are OS PLUS-owned and only managed through super-admin guarded server actions.
+- Tenant users do not see billing notes, payment references, or internal commercial details.
+- Inactive/suspended tenant users see only a safe contact-support message.
+- Existing active tenant selection behavior is preserved for users with one or more active memberships.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605100000_tenant_billing_records.sql`
+- `src/types/database.ts`
+- `src/features/tenants/actions.ts`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/lib/tenant/context.ts`
+- `src/app/inactive-tenant/page.tsx`
+- `src/app/select-tenant/page.tsx`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending
+
+- Apply `supabase/migrations/20260605100000_tenant_billing_records.sql` to live Supabase before using tenant billing in production.
+- Manual browser QA with a real Clerk super-admin session: add/edit/cancel a billing record and mark a tenant inactive/suspended.
+
 ## Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 
 ### Date
