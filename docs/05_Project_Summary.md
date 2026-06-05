@@ -1070,6 +1070,47 @@ Customer Measurement UX
 - Added reference name input when creating measurements.
 - Showed measurement created and updated timestamps on customer profiles.
 - Added edit controls for reference, item type, notes, photo URL, fields, and default status.
+## Session Update - 2026-06-05 - GST Settings Progressive Disclosure
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### What Was Built
+
+- Moved tenant GST configuration fields behind a click-to-open disclosure on super-admin tenant creation, super-admin tenant edit, and tenant owner/admin Business profile.
+- Existing GST-registered tenants open the GST settings by default during edits.
+- New or non-GST tenants show only a compact GST row until the user intentionally opens it.
+- Extracted repeated GST fields into a shared `GstSettingsFields` component.
+
+### Key Decisions Made
+
+- GST settings should be available but not visually dominate normal tenant profile review.
+- Tenant business identity and tenant billing remain the primary default review surface.
+
+### Files/Modules Changed
+
+- `src/components/settings/gst-settings-fields.tsx`
+- `src/app/(super-admin)/super-admin/tenants/new/page.tsx`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/app/(tenant)/settings/business-profile/page.tsx`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

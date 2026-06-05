@@ -496,6 +496,49 @@ Tenant Commercial Control
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - GST Settings Progressive Disclosure
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### Change Made
+
+- Moved tenant GST configuration fields behind a click-to-open disclosure on:
+  - super-admin tenant creation,
+  - super-admin existing tenant edit,
+  - tenant owner/admin Business profile.
+- Existing GST-registered tenants open the GST section by default so active GST configuration remains visible during edits.
+- New/non-GST tenants show only a compact GST row until the user intentionally opens the settings.
+- Extracted the repeated GST form fields into a shared `GstSettingsFields` component so super-admin and tenant owner/admin configuration stay consistent.
+
+### UX Decision
+
+- GST is important, but it should not dominate default profile/billing review screens. The default state now keeps founders and OS PLUS admins focused on business identity and payments first, with tax configuration available when needed.
+
+### Files/Modules Changed
+
+- `src/components/settings/gst-settings-fields.tsx`
+- `src/app/(super-admin)/super-admin/tenants/new/page.tsx`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/app/(tenant)/settings/business-profile/page.tsx`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date
