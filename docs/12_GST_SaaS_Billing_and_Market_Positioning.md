@@ -403,12 +403,15 @@ cancelled
 
 ## 10. Implementation Sequence
 
-### Slice 1: Documentation and GST UX Decisions
+### Slice 1: Confirmed GST and Billing Decisions
 
 - Confirm GST treatment labels.
 - Confirm rate presets.
-- Confirm whether OS PLUS should support invoice numbering now or later.
-- Confirm whether reports are accountant handoff only or GST portal upload-oriented.
+- GST report export is accountant-handoff XLSX only for the first implementation.
+- OS PLUS will keep existing order numbers for the first GST report implementation.
+- GST invoice numbering is a later enhancement and should not block GST capture/reporting.
+- Tenant billing/payment tracking is manual super-admin recordkeeping first.
+- Automated billing reminders, renewal automation, and payment collection integrations are later.
 
 ### Slice 2: Tenant Commercial Control
 
@@ -441,7 +444,7 @@ cancelled
 - Add Finance > GST view.
 - Add date range filters.
 - Add summary, order sheet, expense sheet, and review exceptions.
-- Export XLSX.
+- Export accountant-handoff XLSX only.
 - Confirm GSTIN/legal details before report generation.
 
 ### Slice 7: Public Website
@@ -454,7 +457,13 @@ cancelled
 ## 11. Open Questions
 
 1. Should GST be in the next pilot release, or after the pilot proves core workflow usage?
-2. Should OS PLUS generate invoice numbers now, or only GST reports from existing order numbers?
-3. Which GST rates should be available by default for the first Indian boutique pilot?
-4. Should tenant subscription/payment tracking include automated reminders now, or only super-admin manual records?
-5. Should inactive tenants block public tracking links immediately, or show a store-contact fallback?
+2. Which GST rates should be available by default for the first Indian boutique pilot?
+3. Should inactive tenants block public tracking links immediately, or show a store-contact fallback?
+
+## 12. Confirmed Decisions - 2026-06-05
+
+- First GST reports are accountant-handoff XLSX only, not direct GST portal upload files.
+- Existing order numbers remain the reference for the first GST report implementation.
+- Dedicated GST invoice numbering will be added later.
+- Tenant billing/payment tracking starts as manual super-admin records.
+- Automated tenant payment reminders, renewal workflows, and payment integrations are later.

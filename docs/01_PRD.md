@@ -759,6 +759,8 @@ Expense/vendor payment entry should capture vendor invoice details, vendor GSTIN
 
 Finance should include a GST report view with date range filters, output GST from orders, input GST from expenses, estimated net GST payable, exceptions needing review, and XLSX export. Before report generation, OS PLUS must ask the tenant to confirm GSTIN, legal business name, registered address, and reporting period.
 
+The first GST report implementation should be accountant-handoff XLSX only. It should use existing order numbers as the reference. Dedicated GST invoice numbering and GST portal upload formats are later enhancements.
+
 Detailed planning is captured in `docs/12_GST_SaaS_Billing_and_Market_Positioning.md`.
 
 ## 8.13 Customer Tracking Page

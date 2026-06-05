@@ -494,6 +494,9 @@ Post-Deployment Planning
 - Cash payment mode must remain separate from GST treatment; OS PLUS should record cash collections and must not treat cash as automatically non-reportable.
 - Finance should add a GST view for output GST, input GST, estimated net GST payable, review exceptions, and XLSX export.
 - GST report generation must confirm tenant GSTIN, legal name, registered address, and reporting period before export.
+- First GST reports are accountant-handoff XLSX only.
+- Existing order numbers remain the GST report reference for now; dedicated GST invoice numbering is later.
+- Tenant billing/payment tracking starts as manual super-admin recordkeeping; reminders and automation are later.
 
 ### Files/Docs Changed
 

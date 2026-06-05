@@ -536,6 +536,7 @@ Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/re
 ### Super-Admin Commercial Tasks
 
 - Add tenant billing/payment records.
+- Keep tenant billing/payment tracking manual in the first implementation.
 - Let super-admins edit mutable tenant fields while keeping slug immutable.
 - Let super-admins mark tenants active, inactive, or suspended at any time.
 - Add an inactive tenant locked-state page that tells tenant users to contact OS PLUS support without exposing internal billing notes.
@@ -570,6 +571,8 @@ Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/re
 - Show exception rows needing review.
 - Before export, confirm GSTIN, legal business name, registered address, and reporting period.
 - Export XLSX with summary, order-wise output GST, expense-wise input GST, and review exceptions.
+- Keep the first export accountant-handoff only; GST portal upload formats are later.
+- Use existing order numbers as the first report reference; dedicated GST invoice numbering is later.
 
 ### Deliverable
 

@@ -466,6 +466,9 @@ Post-Deployment Planning
 - GST readiness is now a near finance hardening area.
 - Direct GST filing, e-invoicing, and accounting integrations remain later.
 - Cash payment mode and GST treatment are separate; OS PLUS must record cash collections and must not treat cash as automatically non-reportable.
+- First GST reports are accountant-handoff XLSX only.
+- Existing order numbers remain the GST report reference for now; dedicated GST invoice numbering is later.
+- Tenant billing/payment tracking starts as manual super-admin recordkeeping; reminders and automation are later.
 - Public website positioning should focus on businesses with real workflows that cannot be run well with standard accounting templates.
 
 ### Next Recommended Sequence
