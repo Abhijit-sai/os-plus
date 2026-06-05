@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OS PLUS | Operating system for custom-order workshops",
+  title: "OS PLUS | Production and workflow business management",
   description:
-    "OS PLUS helps boutiques and small production businesses run orders, item-level workflows, workers, finance, and customer-safe tracking from one tenant-safe workspace.",
+    "OS PLUS helps workflow-driven production businesses run orders, jobs, stages, workers, finance, and customer-safe tracking from one tenant-safe workspace.",
 };
 
 export default function RootLayout({

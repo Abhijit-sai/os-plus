@@ -509,6 +509,61 @@ Public Website and Market Positioning
 - Local browser smoke check passed at `http://127.0.0.1:3000`.
 - Browser metrics confirmed no page-level horizontal overflow, no em dash characters, expected H1/title, and visible primary CTA.
 
+## Session Update - 2026-06-05 - Public Website Positioning Correction
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Public Website and Market Positioning
+
+### User Feedback
+
+- The first public landing page read too much like OS PLUS was made only for boutiques.
+- The intended direction is broader: OS PLUS should be positioned as a production management and business management tool for workflow-driven businesses with assembly, manufacturing, repair, custom production, or staged work.
+- Boutiques should be one industry/campaign/SEO use case page, not the primary homepage positioning.
+
+### What Was Built
+
+- Reframed the root homepage around generic production management:
+  - orders,
+  - jobs/items/batches,
+  - stages,
+  - workers,
+  - finance,
+  - customer-safe tracking.
+- Updated the product visual and copy to avoid boutique-specific examples on the homepage.
+- Updated site metadata to position OS PLUS as production and workflow business management.
+- Added `/industries/boutiques` as a boutique-focused campaign/SEO page.
+- Added boutique-specific modules and FAQs covering custom orders, item-level production, measurements, workers, finance/GST visibility, and safe customer tracking.
+
+### Key Decisions Made
+
+- The homepage should stay industry-neutral and explain the core OS PLUS operating model.
+- Industry pages can target vertical language, SEO keywords, FAQs, and campaign traffic without changing the core product story.
+- Boutique remains an important use case, but not the umbrella category.
+
+### Files/Modules Changed
+
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `src/app/industries/boutiques/page.tsx`
+- `project_summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Local route checks returned HTTP 200 for `/` and `/industries/boutiques`.
+- Static scan confirmed old boutique-first homepage phrases were removed from the root page.
+
 ## Session Update - 2026-06-05 - Tenant Business Selector Hardening
 
 ### Date

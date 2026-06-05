@@ -7,7 +7,6 @@ import {
   Factory,
   LockKeyhole,
   MessageSquareText,
-  Shirt,
   TimerReset,
   Users,
 } from "lucide-react";
@@ -16,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const workflowStages = [
-  { label: "Marked", tone: "bg-zinc-950 text-white" },
-  { label: "Cutting", tone: "bg-white text-zinc-950" },
-  { label: "Stitching", tone: "bg-white text-zinc-950" },
+  { label: "Intake", tone: "bg-zinc-950 text-white" },
+  { label: "Build", tone: "bg-white text-zinc-950" },
   { label: "QC", tone: "bg-white text-zinc-950" },
+  { label: "Pack", tone: "bg-white text-zinc-950" },
   { label: "Ready", tone: "bg-[#f1663b] text-white" },
 ];
 
@@ -30,14 +29,14 @@ const modules = [
     copy: "Capture customer, promise date, payments, GST treatment, delivery type, and tracking token in one controlled order record.",
   },
   {
-    icon: Shirt,
-    title: "Items run production",
-    copy: "Each item gets its own workflow, expected completion date, fit reference, attachments, and customer-facing status.",
+    icon: Factory,
+    title: "Jobs run production",
+    copy: "Each job, item, batch, or service unit gets its own workflow, expected completion date, attachments, and customer-facing status.",
   },
   {
     icon: Factory,
-    title: "Stages match your workshop",
-    copy: "Configure internal stages, allowed workgroups, stage workers, and customer-safe status mapping without forcing a generic board.",
+    title: "Stages match your floor",
+    copy: "Configure internal stages, allowed teams, assigned workers, and customer-safe status mapping without forcing a generic board.",
   },
   {
     icon: Users,
@@ -59,19 +58,19 @@ const modules = [
 const comparisonRows = [
   [
     "Accounting tools",
-    "Money is visible. Production work disappears into notes and WhatsApp.",
+    "Money is visible. Production status disappears into notes, calls, and spreadsheets.",
   ],
   [
     "Project boards",
-    "Tasks move. Customers, payments, measurements, workers, and pickup states stay outside.",
+    "Tasks move. Customers, payments, workers, delivery promises, and job history stay outside.",
   ],
   [
     "Generic CRMs",
-    "Leads are tracked. The workshop still has no item-level production truth.",
+    "Leads are tracked. The production floor still has no unit-level operating truth.",
   ],
   [
     "OS PLUS",
-    "Commercial orders, production items, workers, finance, and customer tracking share one operating model.",
+    "Orders, production units, workers, finance, and customer tracking share one operating model.",
   ],
 ];
 
@@ -83,7 +82,7 @@ const pilotChecks = [
   "Salary suggested and admin-finalized",
   "GST accountant handoff export",
   "Token-based public tracking",
-  "Shopify and inventory kept out of MVP",
+  "Industry pages without changing the core product model",
 ];
 
 function OperationsVisual() {
@@ -96,7 +95,7 @@ function OperationsVisual() {
               <p className="text-xs font-medium text-zinc-500">
                 Production queue
               </p>
-              <p className="text-lg font-semibold">Phantom Threads</p>
+              <p className="text-lg font-semibold">Northline Works</p>
             </div>
             <Badge className="rounded-md" variant="outline">
               Today
@@ -104,7 +103,7 @@ function OperationsVisual() {
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {[
-              ["12", "items active"],
+              ["18", "jobs active"],
               ["4", "due soon"],
               ["2", "need attention"],
             ].map(([value, label]) => (
@@ -119,9 +118,9 @@ function OperationsVisual() {
           </div>
           <div className="mt-4 space-y-3">
             {[
-              ["#OS-1048", "Blazer alteration", "Due Fri", "QC"],
-              ["#OS-1049", "Wedding lehenga", "At risk", "Stitching"],
-              ["#OS-1050", "Kurtha set", "Ready", "Pickup"],
+              ["#OS-1048", "Repair batch", "Due Fri", "QC"],
+              ["#OS-1049", "Custom cabinet", "At risk", "Assembly"],
+              ["#OS-1050", "Packaging run", "Ready", "Dispatch"],
             ].map(([order, item, due, stage]) => (
               <div
                 key={order}
@@ -149,8 +148,10 @@ function OperationsVisual() {
         <div className="rounded-lg border border-white/10 bg-zinc-900 p-4 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-zinc-400">Item workflow</p>
-              <p className="text-lg font-semibold">Wedding lehenga</p>
+              <p className="text-xs font-medium text-zinc-400">
+                Production workflow
+              </p>
+              <p className="text-lg font-semibold">Custom cabinet</p>
             </div>
             <Badge className="rounded-md bg-[#f1663b] text-white">
               Customer sees: In production
@@ -169,7 +170,7 @@ function OperationsVisual() {
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
               <p className="text-xs text-zinc-400">Assigned workers</p>
-              <p className="mt-1 font-medium">Master, Tailor</p>
+              <p className="mt-1 font-medium">Operator, QC lead</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
               <p className="text-xs text-zinc-400">Balance pending</p>
@@ -177,7 +178,7 @@ function OperationsVisual() {
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
               <p className="text-xs text-zinc-400">Fit reference</p>
-              <p className="mt-1 font-medium">Customer measurement</p>
+              <p className="mt-1 font-medium">Job specification</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
               <p className="text-xs text-zinc-400">Tracking</p>
@@ -212,6 +213,9 @@ export default function HomePage() {
             <Link href="#modules" className="hover:text-zinc-950">
               Modules
             </Link>
+            <Link href="/industries/boutiques" className="hover:text-zinc-950">
+              Industries
+            </Link>
             <Link href="#pilot" className="hover:text-zinc-950">
               Pilot
             </Link>
@@ -236,11 +240,12 @@ export default function HomePage() {
               OS PLUS
             </p>
             <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[1.02] tracking-normal md:text-7xl">
-              The operating system for custom-order workshops.
+              Production management for work that moves through people and
+              stages.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 md:text-xl">
-              Run orders, item-level production, workers, attendance, salary,
-              finance, and customer tracking from one tenant-safe workspace.
+              Run orders, jobs, batches, workers, attendance, salary, finance,
+              and customer tracking from one tenant-safe workspace.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -298,12 +303,12 @@ export default function HomePage() {
               Operating model
             </p>
             <h2 className="mt-4 text-4xl font-semibold leading-tight md:text-5xl">
-              Built around the way real boutique work moves.
+              Built around the way real production work moves.
             </h2>
             <p className="mt-5 text-lg leading-8 text-zinc-600">
-              A boutique does not need a swollen ERP. It needs a trusted daily
-              system where the order, item, worker, payment, and customer view
-              all agree.
+              A growing production business does not need a swollen ERP. It
+              needs a trusted daily system where the order, job, worker,
+              payment, and customer view all agree.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -314,11 +319,11 @@ export default function HomePage() {
               ],
               [
                 "Order item",
-                "The production unit: workflow, stage, worker work, fit reference, due risk.",
+                "The production unit: job, item, batch, service unit, workflow, stage, worker work, and due risk.",
               ],
               [
                 "Internal workflow",
-                "Detailed enough for the workshop: cutting, stitching, QC, packing.",
+                "Detailed enough for the floor: intake, assembly, repair, QC, packing, dispatch.",
               ],
               [
                 "Customer status",
@@ -428,7 +433,8 @@ export default function HomePage() {
               Pilot readiness
             </p>
             <h2 className="mt-4 text-4xl font-semibold leading-tight md:text-5xl">
-              Made for boutiques that need discipline without enterprise weight.
+              Made for production businesses that need discipline without
+              enterprise weight.
             </h2>
             <p className="mt-5 text-lg leading-8 text-zinc-600">
               The MVP focuses on trust, tenant safety, role correctness, finance
@@ -473,9 +479,11 @@ export default function HomePage() {
               ))}
             </div>
             <p className="mt-5 text-sm leading-6 text-zinc-600">
-              Direct GST filing, inventory, Shopify sync, worker login, and
+              Direct GST filing, inventory, marketplace sync, worker login, and
               customer login stay outside the MVP until the operating core is
-              proven.
+              proven. Industry-specific pages can speak to boutiques,
+              fabrication, repairs, studios, print shops, and workshops without
+              changing the core OS PLUS model.
             </p>
           </div>
         </div>
@@ -485,7 +493,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
           <p className="font-medium text-zinc-950">OS PLUS</p>
           <p>
-            Workflow operating system for boutiques and small production
+            Workflow operating system for small production and assembly-driven
             businesses.
           </p>
         </div>
