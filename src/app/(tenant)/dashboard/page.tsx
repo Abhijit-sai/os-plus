@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   Activity,
   ArrowUpRight,
@@ -32,8 +31,6 @@ import {
 } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { getDashboardPageData } from "@/features/dashboard/queries";
-import { getDefaultTenantRoute } from "@/lib/permissions/roles";
-import { requireTenantContext } from "@/lib/tenant/context";
 
 type DashboardTab =
   | "overview"
@@ -193,12 +190,6 @@ export default async function DashboardPage({
 }: {
   searchParams?: Promise<{ tab?: string; salesMode?: string }>;
 }) {
-  const context = await requireTenantContext();
-
-  if (context.membership.role !== "owner_admin") {
-    redirect(getDefaultTenantRoute(context.membership.role));
-  }
-
   const resolvedSearchParams = await searchParams;
   const activeTab = dashboardTabs.some(
     (tab) => tab.value === resolvedSearchParams?.tab,

@@ -20,7 +20,7 @@ export type Permission =
   | "settings:manage"
   | "tenant_users:manage";
 
-const rolePermissions: Record<TenantUserRole, Permission[]> = {
+export const rolePermissions: Record<TenantUserRole, Permission[]> = {
   owner_admin: [
     "dashboard:view",
     "orders:view",
@@ -70,8 +70,19 @@ export function getDefaultTenantRoute(role: TenantUserRole) {
     owner_admin: "/dashboard",
     manager: "/orders",
     finance: "/finance",
-    viewer: "/reports"
+    viewer: "/reports",
   };
 
   return defaultRoutes[role];
+}
+
+export function getDefaultTenantRouteLabel(role: TenantUserRole) {
+  const defaultRouteLabels: Record<TenantUserRole, string> = {
+    owner_admin: "Dashboard",
+    manager: "Orders",
+    finance: "Finance",
+    viewer: "Reports",
+  };
+
+  return defaultRouteLabels[role];
 }

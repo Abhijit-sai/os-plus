@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:roles": "node scripts/test-role-route-policy.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

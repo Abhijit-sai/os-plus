@@ -7391,3 +7391,60 @@ Shared Attachments UX Polish
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npm run build` passed.
+
+## Session Update - 2026-06-05 - Module Route Role Guards
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### User Feedback
+
+- Continue with role-level route guards and default role UX polish.
+- Create and run test cases where practical.
+- Manual browser testing for the unsaved-edit flow is deferred to user testing.
+
+### What Was Built
+
+- Added a shared tenant route permission guard that redirects unauthorized tenant users to their role's default workspace.
+- Added module-level layouts for dashboard, orders, customers, production, workers, attendance, salary, finance, reports, and settings so hidden sidebar modules are also blocked on direct URL entry.
+- Kept dashboard owner/admin-only through the dashboard layout, including `/dashboard/sales` and `/dashboard/workers`.
+- Added default workspace labels and links in the app shell sidebar/header/account menu so users can understand their role landing area.
+- Added a focused role route policy test script and `npm run test:roles`.
+
+### Key Decisions Made
+
+- Unauthorized tenant module access redirects to the user's default tenant route instead of rendering a dead-end error.
+- Route boundaries are guarded through nested Next.js layouts so child pages inherit the module permission rule.
+- The current MVP role map remains unchanged: owner/admin has dashboard/settings/all modules, manager has orders/customers/production/attendance, finance has finance/salary, and viewer has reports.
+
+### Files/Modules Changed
+
+- `src/lib/permissions/roles.ts`
+- `src/lib/permissions/tenant-route-guard.ts`
+- `src/app/(tenant)/*/layout.tsx` module guard layouts
+- `src/app/(tenant)/dashboard/page.tsx`
+- `src/components/layout/app-shell.tsx`
+- `scripts/test-role-route-policy.mjs`
+- `package.json`
+- `project_summary.md`
+
+### Verification
+
+- `npm run test:roles` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending Tasks
+
+- User to manually test the unsaved-change navigation prompts in authenticated browser flows.
+- Authenticated role QA with real Clerk users should confirm direct URL redirects for manager, finance, and viewer memberships.

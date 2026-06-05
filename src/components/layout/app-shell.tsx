@@ -24,7 +24,12 @@ import {
 
 import { cn } from "@/lib/utils";
 import type { TenantContext } from "@/lib/tenant/context";
-import { hasPermission, type Permission } from "@/lib/permissions/roles";
+import {
+  getDefaultTenantRoute,
+  getDefaultTenantRouteLabel,
+  hasPermission,
+  type Permission,
+} from "@/lib/permissions/roles";
 import { UnsavedChangesProvider } from "@/components/layout/unsaved-changes-provider";
 
 const navItems: Array<{
@@ -119,6 +124,10 @@ export function AppShell({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarWidthClass = isCollapsed ? "md:w-16" : "md:w-64";
   const contentPaddingClass = isCollapsed ? "md:pl-16" : "md:pl-64";
+  const defaultWorkspaceHref = getDefaultTenantRoute(context.membership.role);
+  const defaultWorkspaceLabel = getDefaultTenantRouteLabel(
+    context.membership.role,
+  );
 
   return (
     <UnsavedChangesProvider>
@@ -160,6 +169,12 @@ export function AppShell({
                 <p className="truncate text-xs text-muted-foreground">
                   {formatRole(context.membership.role)}
                 </p>
+                <Link
+                  href={defaultWorkspaceHref}
+                  className="mt-1 block truncate text-xs font-medium text-primary hover:underline"
+                >
+                  {defaultWorkspaceLabel} workspace
+                </Link>
               </div>
             </div>
             <button
@@ -210,6 +225,15 @@ export function AppShell({
                   OS PLUS
                 </p>
                 <h1 className="text-lg font-semibold">{context.tenant.name}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {formatRole(context.membership.role)} · Default:{" "}
+                  <Link
+                    href={defaultWorkspaceHref}
+                    className="font-medium text-foreground hover:underline"
+                  >
+                    {defaultWorkspaceLabel}
+                  </Link>
+                </p>
               </div>
               <details className="group relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring">
@@ -247,6 +271,13 @@ export function AppShell({
                     <p className="text-xs font-medium text-muted-foreground">
                       Role: {formatRole(context.membership.role)}
                     </p>
+                    <Link
+                      href={defaultWorkspaceHref}
+                      className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium hover:bg-accent"
+                    >
+                      <Home className="h-4 w-4 text-muted-foreground" />
+                      Open {defaultWorkspaceLabel}
+                    </Link>
                   </div>
                   <div className="py-1">
                     <Link
