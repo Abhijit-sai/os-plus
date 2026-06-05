@@ -1200,6 +1200,61 @@ Finance Hardening: GST Capture
 
 - `npm run typecheck` passed.
 
+## Session Update - 2026-06-05 - Finance GST Report and XLSX Export
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Reporting
+
+### What Was Built
+
+- Added a Finance `GST` tab for the selected Finance date range.
+- Added tenant-scoped report data for output GST from orders and input GST from expenses.
+- Added summary cards for output GST, claimable input GST, estimated net GST payable, review input GST, and taxable sales.
+- Added tenant GST profile confirmation inside the GST report view.
+- Added output GST, input GST, and review exception tables.
+- Added authenticated XLSX export at `/api/finance/gst-report/export`.
+- XLSX workbook includes Summary, Output GST, Input GST, and Review Exceptions sheets.
+- Added `exceljs` for server-side workbook generation.
+
+### Key Decisions Made
+
+- XLSX export is accountant-handoff only and not a GST portal upload.
+- `needs_review` input GST is not counted as claimable input GST; it is shown separately.
+- Export route accepts period dates only, not tenant IDs.
+- `xlsx` was rejected because it introduced a high-severity audit finding; `exceljs` was used instead.
+
+### Files/Modules Changed
+
+- `package.json`
+- `package-lock.json`
+- `src/features/finance/queries.ts`
+- `src/app/(tenant)/finance/page.tsx`
+- `src/app/api/finance/gst-report/export/route.ts`
+- `docs/03_Tech_Development_Plan.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- `npm audit --audit-level=high` passed with no high/critical findings.
+
+### Audit Notes
+
+- Moderate audit findings remain from Next/PostCSS and `exceljs`/`uuid`.
+- Suggested fixes are breaking downgrades, so no automated audit fix was applied.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

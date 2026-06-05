@@ -565,12 +565,12 @@ Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/re
 
 ### GST Report Tasks
 
-- Add Finance > GST view.
-- Query output GST from orders and input GST from expenses by tenant and date range.
-- Show net GST payable estimate.
-- Show exception rows needing review.
-- Before export, confirm GSTIN, legal business name, registered address, and reporting period.
-- Export XLSX with summary, order-wise output GST, expense-wise input GST, and review exceptions.
+- Add Finance > GST view. Implemented first accountant-handoff view.
+- Query output GST from orders and input GST from expenses by tenant and date range. Implemented with tenant-scoped report query.
+- Show net GST payable estimate. Implemented as output GST minus claimable input GST.
+- Show exception rows needing review. Implemented for tenant profile gaps and expense input GST review gaps.
+- Before export, confirm GSTIN, legal business name, registered address, and reporting period. Implemented as visible confirmation block and exception list before XLSX download.
+- Export XLSX with summary, order-wise output GST, expense-wise input GST, and review exceptions. Implemented with server-side `exceljs`.
 - Keep the first export accountant-handoff only; GST portal upload formats are later.
 - Use existing order numbers as the first report reference; dedicated GST invoice numbering is later.
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { Pencil, Plus, ReceiptText } from "lucide-react";
+import { Download, Pencil, Plus, ReceiptText } from "lucide-react";
 
 import {
   createExpenseAction,
@@ -24,14 +24,19 @@ import { Separator } from "@/components/ui/separator";
 import { hasPermission } from "@/lib/permissions/roles";
 import type { Expense, GstTreatment, OrderPayment, PaymentMode, PaymentStatus, ReceivablePayable, ReceivablePayableStatus, ReceivablePayableType, WorkerLedger } from "@/types/database";
 
-type FinanceTab = "dashboard" | "cashflow" | "receivables" | "payables" | "pl" | "balance";
+type FinanceTab = "dashboard" | "cashflow" | "receivables" | "payables" | "pl" | "balance" | "gst";
 type RangeKey = "today" | "week" | "mtd" | "ytd" | "custom";
+type GstReportData = NonNullable<Awaited<ReturnType<typeof getFinancePageData>>["gstReport"]>;
 type FinanceOrder = {
   id: string;
   order_number: string;
   reference_order_id: string | null;
   customer_id: string;
   order_date: string;
+  gst_treatment: GstTreatment;
+  gst_rate: number;
+  taxable_amount: number;
+  gst_amount: number;
   total_amount: number;
   amount_paid: number;
   payment_status: PaymentStatus;
@@ -44,8 +49,17 @@ const financeTabs: Array<{ value: FinanceTab; label: string }> = [
   { value: "receivables", label: "Receivables" },
   { value: "payables", label: "Payables" },
   { value: "pl", label: "P&L" },
-  { value: "balance", label: "Balance" }
+  { value: "balance", label: "Balance" },
+  { value: "gst", label: "GST" }
 ];
+
+const gstTreatmentLabels: Record<GstTreatment, string> = {
+  exempt_or_nil: "Exempt / nil rated",
+  non_gst: "Non-GST",
+  not_applicable: "Not applicable",
+  taxable_exclusive: "GST added on top",
+  taxable_inclusive: "GST included in amount"
+};
 
 const rangeOptions: Array<{ value: RangeKey; label: string }> = [
   { value: "today", label: "Today" },
@@ -62,6 +76,13 @@ const receivablePayableTypes: Array<{ value: ReceivablePayableType; label: strin
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(date: string | null) {
@@ -81,6 +102,13 @@ function formatMoney(amount: number) {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
+  }).format(amount);
+}
+
+function formatDecimal(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0
   }).format(amount);
 }
 
@@ -199,6 +227,17 @@ function buildFinanceHref({
   }
 
   return `/finance?${params.toString()}`;
+}
+
+function buildGstExportHref({
+  end,
+  start
+}: {
+  end: string;
+  start: string;
+}) {
+  const params = new URLSearchParams({ end, start });
+  return `/api/finance/gst-report/export?${params.toString()}`;
 }
 
 function AddExpenseDialog({
@@ -808,6 +847,212 @@ function BalanceView({
   );
 }
 
+function GstReportView({
+  endDate,
+  report,
+  startDate
+}: {
+  endDate: string;
+  report: GstReportData;
+  startDate: string;
+}) {
+  const customerById = new Map(report.customers.map((customer) => [customer.id, customer]));
+  const outputGst = report.orders.reduce((total, order) => total + Number(order.gst_amount), 0);
+  const taxableSales = report.orders.reduce((total, order) => total + Number(order.taxable_amount), 0);
+  const claimableInputGst = report.expenses
+    .filter((expense) => expense.input_gst_status === "claimable")
+    .reduce((total, expense) => total + Number(expense.gst_amount), 0);
+  const reviewInputGst = report.expenses
+    .filter((expense) => expense.input_gst_status === "needs_review")
+    .reduce((total, expense) => total + Number(expense.gst_amount), 0);
+  const netPayable = Math.max(outputGst - claimableInputGst, 0);
+  const tenantProfileIssues = [
+    !report.context.tenant.gst_registered ? "Tenant is not marked GST registered." : null,
+    !report.context.tenant.gstin ? "GSTIN is missing." : null,
+    !report.context.tenant.legal_name ? "Legal business name is missing." : null,
+    !report.context.tenant.registered_address ? "Registered address is missing." : null
+  ].filter((issue): issue is string => Boolean(issue));
+  const expenseExceptions = report.expenses.flatMap((expense) => {
+    const issues: string[] = [];
+    const isTaxable = expense.gst_treatment === "taxable_exclusive" || expense.gst_treatment === "taxable_inclusive";
+
+    if (isTaxable && expense.input_gst_status === "needs_review") {
+      issues.push("Input GST needs accountant review.");
+    }
+
+    if (isTaxable && !expense.vendor_invoice_number) {
+      issues.push("Missing vendor invoice number.");
+    }
+
+    if (isTaxable && !expense.vendor_invoice_date) {
+      issues.push("Missing vendor invoice date.");
+    }
+
+    if (isTaxable && expense.input_gst_status === "claimable" && !expense.vendor_gstin) {
+      issues.push("Claimable input GST without vendor GSTIN.");
+    }
+
+    return issues.map((issue) => ({ expense, issue }));
+  });
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <CardTitle>GST report</CardTitle>
+              <CardDescription>Accountant-handoff summary for {formatDate(startDate)} to {formatDate(endDate)}.</CardDescription>
+            </div>
+            <Button asChild>
+              <Link href={buildGstExportHref({ end: endDate, start: startDate })} className="gap-2">
+                <Download className="h-4 w-4" />
+                Download XLSX
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <MetricCard label="Output GST" value={formatMoney(outputGst)} hint={`${report.orders.length} order records`} />
+            <MetricCard label="Input GST claimable" value={formatMoney(claimableInputGst)} hint="Only claimable expenses" />
+            <MetricCard label="Net GST payable" value={formatMoney(netPayable)} hint="Before accountant review" />
+            <MetricCard label="Input GST review" value={formatMoney(reviewInputGst)} hint="Needs review" />
+            <MetricCard label="Taxable sales" value={formatMoney(taxableSales)} hint="From order GST snapshots" />
+          </div>
+          <div className="grid gap-3 rounded-md border p-3 text-sm md:grid-cols-2">
+            <div>
+              <p className="font-medium">Business confirmation</p>
+              <p className="text-muted-foreground">{report.context.tenant.legal_name ?? report.context.tenant.name}</p>
+              <p className="text-muted-foreground">GSTIN: {report.context.tenant.gstin ?? "Not set"}</p>
+              <p className="text-muted-foreground">Address: {report.context.tenant.registered_address ?? "Not set"}</p>
+            </div>
+            <div>
+              <p className="font-medium">Before handoff</p>
+              <p className="text-muted-foreground">Confirm the GSTIN, legal name, registered address, and period with the accountant.</p>
+              <p className="text-muted-foreground">The XLSX is a handoff workbook, not direct GST portal upload.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Output GST</CardTitle>
+            <CardDescription>GST collected from orders in the selected period.</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Order</th>
+                  <th className="px-3 py-2 font-medium">Customer</th>
+                  <th className="px-3 py-2 font-medium">Treatment</th>
+                  <th className="px-3 py-2 text-right font-medium">GST</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.orders.map((order) => (
+                  <tr key={order.id} className="border-t">
+                    <td className="px-3 py-2">
+                      <Link href={`/orders/${order.id}`} className="font-medium underline-offset-4 hover:underline">
+                        {order.order_number}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.order_date)}</p>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{customerById.get(order.customer_id)?.name ?? "Unknown"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {gstTreatmentLabels[order.gst_treatment]} · {formatDecimal(order.gst_rate)}%
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium">{formatMoney(order.gst_amount)}</td>
+                  </tr>
+                ))}
+                {!report.orders.length ? (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={4}>
+                      No orders in this period.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Input GST</CardTitle>
+            <CardDescription>GST paid on expenses, separated by claim/review status.</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Expense</th>
+                  <th className="px-3 py-2 font-medium">Invoice</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 text-right font-medium">GST</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.expenses.map((expense) => (
+                  <tr key={expense.id} className="border-t">
+                    <td className="px-3 py-2">
+                      <p className="font-medium">{expense.paid_to ?? "Expense"}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(expense.expense_date)}</p>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {expense.vendor_invoice_number ?? "No invoice"}
+                      {expense.vendor_gstin ? <p className="text-xs">{expense.vendor_gstin}</p> : null}
+                    </td>
+                    <td className="px-3 py-2">
+                      <StatusBadge value={expense.input_gst_status} />
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium">{formatMoney(expense.gst_amount)}</td>
+                  </tr>
+                ))}
+                {!report.expenses.length ? (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={4}>
+                      No expenses in this period.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Review exceptions</CardTitle>
+          <CardDescription>Resolve these before handing the workbook to an accountant.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {tenantProfileIssues.map((issue) => (
+            <div key={issue} className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+              <p className="font-medium">Tenant profile</p>
+              <p className="text-muted-foreground">{issue}</p>
+            </div>
+          ))}
+          {expenseExceptions.map(({ expense, issue }) => (
+            <div key={`${expense.id}-${issue}`} className="rounded-md border p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium">{expense.paid_to ?? expense.vendor_invoice_number ?? "Expense"}</p>
+                <span className="text-muted-foreground">{formatMoney(expense.amount)}</span>
+              </div>
+              <p className="text-muted-foreground">{issue}</p>
+            </div>
+          ))}
+          {!tenantProfileIssues.length && !expenseExceptions.length ? <p className="text-sm text-muted-foreground">No GST review exceptions for this period.</p> : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default async function FinancePage({
   searchParams
 }: {
@@ -819,7 +1064,12 @@ export default async function FinancePage({
   const customStart = resolvedSearchParams?.start;
   const customEnd = resolvedSearchParams?.end;
   const range = getRangeBounds(activeRange, customStart, customEnd);
-  const { context, expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments } = await getFinancePageData();
+  const gstStartDate = toDateInputValue(range.start);
+  const gstEndDate = toDateInputValue(range.end);
+  const { context, expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments, gstReport } = await getFinancePageData({
+    gstEndDate,
+    gstStartDate
+  });
   const canManageFinance = hasPermission(context.membership.role, "finance:manage");
   const defaultExpenseGstRate = Number(context.tenant.default_purchase_gst_rate ?? 0);
   const defaultExpenseGstTreatment = context.tenant.default_expense_gst_treatment ?? "not_applicable";
@@ -966,7 +1216,7 @@ export default async function FinancePage({
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="Cash in" value={formatMoney(cashIn)} hint={`${visiblePayments.length} order payments + manual receipts`} />
         <MetricCard label="Cash out" value={formatMoney(cashOut)} hint={`${visibleExpenses.length} expenses + ${visibleSalaryPayments.length} salary payments`} />
-        <MetricCard label="Net cash" value={formatMoney(netCash)} hint={`${formatDate(range.start.toISOString().slice(0, 10))} to ${formatDate(range.end.toISOString().slice(0, 10))}`} />
+        <MetricCard label="Net cash" value={formatMoney(netCash)} hint={`${formatDate(gstStartDate)} to ${formatDate(gstEndDate)}`} />
         <MetricCard label="Receivables" value={formatMoney(openReceivables)} hint="Order + manual balances" />
         <MetricCard label="Payables" value={formatMoney(openManualPayables)} hint={`${manualPayables.length} manual payable records`} />
       </div>
@@ -1113,6 +1363,8 @@ export default async function FinancePage({
           payableCount={openManualPayableCount}
         />
       ) : null}
+
+      {activeTab === "gst" && gstReport ? <GstReportView endDate={gstEndDate} report={gstReport} startDate={gstStartDate} /> : null}
 
       <Separator />
       <p className="text-xs text-muted-foreground">

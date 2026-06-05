@@ -657,6 +657,78 @@ Finance Hardening: GST Capture
 
 - `npm run typecheck` passed.
 
+## Session Update - 2026-06-05 - Finance GST Report and XLSX Export
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Reporting
+
+### What Was Built
+
+- Added a Finance `GST` tab.
+- Added tenant-scoped GST report query for the selected Finance date range.
+- GST report view now shows:
+  - output GST from orders,
+  - claimable input GST from expenses,
+  - estimated net GST payable,
+  - input GST needing review,
+  - taxable sales,
+  - tenant GST profile confirmation,
+  - output GST table,
+  - input GST table,
+  - review exceptions.
+- Added `/api/finance/gst-report/export` authenticated export route.
+- XLSX export includes:
+  - Summary,
+  - Output GST,
+  - Input GST,
+  - Review Exceptions.
+- Added `exceljs` for server-side XLSX generation after rejecting `xlsx` because it introduced a high-severity audit finding.
+
+### Tenant Safety
+
+- GST report/export uses `requireTenantContext()` and `finance:view`.
+- Export route accepts only period dates; it does not accept tenant IDs.
+- Order, expense, and customer lookups are scoped to the current tenant.
+
+### Remaining GST Work
+
+- Browser QA with seeded orders/expenses after migrations are applied.
+- Decide whether `needs_review` input GST should be excluded from net payable until accountant confirmation; current implementation excludes it from claimable input GST and surfaces it separately.
+- Dedicated GST invoice numbering remains later.
+- GST portal upload format remains later.
+
+### Files/Modules Changed
+
+- `package.json`
+- `package-lock.json`
+- `src/features/finance/queries.ts`
+- `src/app/(tenant)/finance/page.tsx`
+- `src/app/api/finance/gst-report/export/route.ts`
+- `docs/03_Tech_Development_Plan.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- `npm audit --audit-level=high` passed with no high/critical findings.
+
+### Audit Notes
+
+- `npm audit` still reports moderate findings from Next/PostCSS and `exceljs`/`uuid`.
+- Suggested fixes require breaking downgrades (`next@9.3.3` or `exceljs@3.4.0`), so no automated audit fix was applied.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date
