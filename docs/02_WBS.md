@@ -675,7 +675,7 @@
 - Add tenant GST settings under Business Profile or Finance Settings
 - Store GST registered status, GSTIN, legal name, registered address, default sales rate, and default purchase rate
 - Add tenant GST rate presets
-- Add GST treatment to order creation: GST added on top, GST included in amount, exempt/nil/non-GST, or not applicable
+- Add staff-facing GST treatment to order creation: GST added on top, GST included in amount, or GST off
 - Keep payment mode separate from GST treatment; cash payments must still be recorded normally
 - Snapshot GST rate, taxable amount, GST amount, and GST treatment on each order
 - Add GST treatment to expense/vendor payment entry

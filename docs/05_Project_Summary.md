@@ -1299,6 +1299,41 @@ Finance Hardening: GST UX Correction
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Order GST Choice Simplification
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST UX Correction
+
+### What Was Changed
+
+- Simplified order creation GST treatment dropdown to `GST added on top` and `GST included in amount` only.
+- Staff use the GST checkbox off state when GST is not collected/applied.
+- Non-taxable tenant defaults now start order creation with GST unchecked.
+- Exempt/nil/non-GST remain internal/reporting concepts, not normal order creation dropdown choices.
+
+### Files/Modules Changed
+
+- `src/components/orders/order-gst-fields.tsx`
+- `docs/01_PRD.md`
+- `docs/02_WBS.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

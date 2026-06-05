@@ -776,6 +776,43 @@ Finance Hardening: GST UX Correction
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Order GST Choice Simplification
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST UX Correction
+
+### What Was Changed
+
+- Simplified order creation GST treatment dropdown to only:
+  - `GST added on top`,
+  - `GST included in amount`.
+- Staff now use the GST checkbox off state for orders where GST is not collected/applied.
+- Tenant defaults of `exempt_or_nil`, `non_gst`, or `not_applicable` now start order creation with GST unchecked instead of selecting a confusing non-taxable dropdown option.
+- Updated product docs so exempt/nil/non-GST remain internal/reporting concepts, not normal staff-facing order creation choices.
+
+### Files/Modules Changed
+
+- `src/components/orders/order-gst-fields.tsx`
+- `docs/01_PRD.md`
+- `docs/02_WBS.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date

@@ -10,9 +10,7 @@ const taxableTreatments: GstTreatment[] = ["taxable_exclusive", "taxable_inclusi
 
 const gstTreatmentOptions: Array<{ value: GstTreatment; label: string }> = [
   { value: "taxable_exclusive", label: "GST added on top" },
-  { value: "taxable_inclusive", label: "GST included in amount" },
-  { value: "exempt_or_nil", label: "Exempt / nil rated" },
-  { value: "non_gst", label: "Non-GST supply" }
+  { value: "taxable_inclusive", label: "GST included in amount" }
 ];
 
 type OrderGstFieldsProps = {
@@ -22,11 +20,11 @@ type OrderGstFieldsProps = {
 };
 
 function getInitialTreatment(defaultGstTreatment: GstTreatment): GstTreatment {
-  return defaultGstTreatment === "not_applicable" ? "taxable_exclusive" : defaultGstTreatment;
+  return taxableTreatments.includes(defaultGstTreatment) ? defaultGstTreatment : "taxable_exclusive";
 }
 
 export function OrderGstFields({ defaultGstRate, defaultGstTreatment, gstRegistered }: OrderGstFieldsProps) {
-  const [gstEnabled, setGstEnabled] = React.useState(gstRegistered && defaultGstTreatment !== "not_applicable");
+  const [gstEnabled, setGstEnabled] = React.useState(gstRegistered && taxableTreatments.includes(defaultGstTreatment));
   const [gstTreatment, setGstTreatment] = React.useState<GstTreatment>(getInitialTreatment(defaultGstTreatment));
   const [gstRate, setGstRate] = React.useState(defaultGstRate);
   const [itemTotals, setItemTotals] = React.useState({ discountAmount: 0, subtotal: 0 });
@@ -104,8 +102,8 @@ export function OrderGstFields({ defaultGstRate, defaultGstTreatment, gstRegiste
             className="mt-1 h-4 w-4"
           />
           <span>
-            <span className="block font-medium">Collect GST on this order</span>
-            <span className="block text-muted-foreground">Use the business default, or adjust this order if needed.</span>
+            <span className="block font-medium">Apply GST to this order</span>
+            <span className="block text-muted-foreground">Turn this off when GST is not collected. Choose whether GST is added on top or already included.</span>
           </span>
         </label>
         {gstEnabled ? (

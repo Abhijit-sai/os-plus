@@ -753,7 +753,7 @@ GST support should help tenants classify sales and expenses without turning OS P
 
 Tenant settings should include GST registered status, optional GSTIN, legal business name, registered address, default sales GST rate, default purchase GST rate, and default GST treatment for orders and expenses.
 
-Order creation should let staff choose whether GST is added on top, included in the entered amount, exempt/nil/non-GST, or not applicable. Payment mode and GST treatment are separate; cash collection must still be recorded, and cash does not automatically make a taxable supply non-reportable.
+Order creation should keep the staff-facing GST choice simple: GST added on top, GST included in the entered amount, or GST not applied by turning the GST control off. Internal/reporting models may still retain exempt/nil/non-GST treatments for accountant cleanup and future imports. Payment mode and GST treatment are separate; cash collection must still be recorded, and cash does not automatically make a taxable supply non-reportable.
 
 Expense/vendor payment entry should capture vendor invoice details, vendor GSTIN when available, GST treatment, GST rate, taxable amount, GST amount, and whether input GST needs review.
 
