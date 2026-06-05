@@ -462,6 +462,53 @@ Production Hardening and Pilot Readiness
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Tenant Business Selector Hardening
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### What Was Built
+
+- Added a tenant access option helper that can display active, disabled, inactive, and suspended business memberships without granting blocked access.
+- Improved `/select-tenant` into a clearer business selector with separate Available and Unavailable business sections.
+- Available businesses remain limited to active OS PLUS tenant memberships on active tenants.
+- Disabled memberships, inactive tenants, and suspended tenants now render as blocked cards with clear explanations and disabled actions.
+- Super-admin tenant detail now displays tenant user email/name, friendly role labels, Active/Disabled access language, and verified sign-in link state instead of raw membership fields.
+
+### Tenant Safety
+
+- `requireTenantContext()` and `selectTenantAction()` still rely only on active memberships from active tenants before app access is granted.
+- Disabled tenant memberships are visible for clarity but are not selectable.
+- Inactive/suspended tenants remain blocked from normal tenant app access.
+- Email-first linking still only links active memberships that match the signed-in Clerk verified email.
+
+### UI/UX Notes
+
+- Multi-business users can now understand which businesses they can open and why some are unavailable.
+- Tenant membership status language remains simplified to Active and Disabled for MVP-facing screens.
+
+### Files/Modules Changed
+
+- `src/lib/tenant/context.ts`
+- `src/app/select-tenant/page.tsx`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `project_summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
 ## Session Update - 2026-06-05 - Tenant Billing Status Derivation
 
 ### Date
