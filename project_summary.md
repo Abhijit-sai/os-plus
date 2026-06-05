@@ -462,6 +462,53 @@ Production Hardening and Pilot Readiness
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Public Landing Page First Pass
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Public Website and Market Positioning
+
+### What Was Built
+
+- Replaced the placeholder homepage with a conversion-focused OS PLUS landing page.
+- Positioned OS PLUS as the operating system for custom-order workshops, boutiques, and small production businesses.
+- Added a dark first-viewport hero with a product-style operations visual showing production queue, item workflow, worker assignment, balance, fit reference, and safe tracking.
+- Added sections for:
+  - why accounting tools, project boards, and CRMs do not solve item-level production,
+  - OS PLUS operating model,
+  - core modules,
+  - customer-safe tracking,
+  - pilot readiness guardrails.
+- Updated root metadata title and description for the public site.
+
+### Key Decisions Made
+
+- The landing page avoids claiming direct GST filing, inventory, Shopify sync, worker login, or customer login as current MVP capabilities.
+- The page emphasizes order-to-production workflow as the differentiation, not generic CRM/accounting/project management.
+- The public page remains static and does not read tenant-owned data.
+
+### Files/Modules Changed
+
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `project_summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Local browser smoke check passed at `http://127.0.0.1:3000`.
+- Browser metrics confirmed no page-level horizontal overflow, no em dash characters, expected H1/title, and visible primary CTA.
+
 ## Session Update - 2026-06-05 - Tenant Business Selector Hardening
 
 ### Date
