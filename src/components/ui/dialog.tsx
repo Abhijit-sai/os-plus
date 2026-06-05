@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useUnsavedChanges } from "@/components/layout/unsaved-changes-provider";
 
 export function Dialog({
   trigger,
@@ -14,21 +15,28 @@ export function Dialog({
   className,
   placement = "center",
   open,
-  onOpenChange
+  onOpenChange,
 }: {
   trigger: React.ReactNode;
   title: string;
   description?: string;
-  children: React.ReactNode | ((controls: { close: () => void }) => React.ReactNode);
+  children:
+    | React.ReactNode
+    | ((controls: { close: () => void }) => React.ReactNode);
   className?: string;
   placement?: "center" | "side";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
   const [internalOpen, setInternalOpen] = React.useState(false);
+  const { confirmIfUnsavedChanges } = useUnsavedChanges();
   const isOpen = open ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
-  const close = React.useCallback(() => setOpen(false), [setOpen]);
+  const close = React.useCallback(() => {
+    if (confirmIfUnsavedChanges()) {
+      setOpen(false);
+    }
+  }, [confirmIfUnsavedChanges, setOpen]);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -51,7 +59,9 @@ export function Dialog({
         {trigger}
       </button>
       {isOpen ? (
-        <div className={`fixed inset-0 z-50 flex p-4 ${placement === "side" ? "items-stretch justify-end" : "items-center justify-center"}`}>
+        <div
+          className={`fixed inset-0 z-50 flex p-4 ${placement === "side" ? "items-stretch justify-end" : "items-center justify-center"}`}
+        >
           <button
             type="button"
             aria-label="Close dialog"
@@ -63,15 +73,25 @@ export function Dialog({
               placement === "side"
                 ? "relative z-10 h-full w-full max-w-5xl overflow-y-auto rounded-[14px] border bg-background p-5 shadow-2xl"
                 : "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[14px] border bg-background p-5 shadow-2xl",
-              className
+              className,
             )}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold leading-tight">{title}</h2>
-                {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+                {description ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {description}
+                  </p>
+                ) : null}
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Close">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={close}
+                aria-label="Close"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>

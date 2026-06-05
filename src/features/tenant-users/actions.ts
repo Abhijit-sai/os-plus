@@ -5,12 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { assertPermission } from "@/lib/permissions/roles";
+import {
+  assertPermission,
+  getDefaultTenantRoute,
+} from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import {
   getTenantMembershipOptions,
   requireTenantContext,
-  selectedTenantCookieName
+  selectedTenantCookieName,
 } from "@/lib/tenant/context";
 
 const optionalText = z.preprocess(
@@ -18,7 +21,7 @@ const optionalText = z.preprocess(
   z
     .string()
     .trim()
-    .transform((value) => (value.length ? value : null))
+    .transform((value) => (value.length ? value : null)),
 );
 
 const tenantUserSchema = z.object({
@@ -29,15 +32,15 @@ const tenantUserSchema = z.object({
     .email("Add a valid email address.")
     .transform((value) => value.toLowerCase()),
   role: z.enum(["owner_admin", "manager", "finance", "viewer"]),
-  status: z.enum(["active", "disabled"]).default("active")
+  status: z.enum(["active", "disabled"]).default("active"),
 });
 
 const updateTenantUserSchema = tenantUserSchema.extend({
-  tenantUserId: z.string().uuid()
+  tenantUserId: z.string().uuid(),
 });
 
 const selectTenantSchema = z.object({
-  tenantId: z.string().uuid()
+  tenantId: z.string().uuid(),
 });
 
 async function getAuthorizedTenantUsersContext() {
@@ -50,7 +53,7 @@ async function ensureNotRemovingLastOwnerAdmin({
   nextRole,
   nextStatus,
   tenantId,
-  tenantUserId
+  tenantUserId,
 }: {
   nextRole: string;
   nextStatus: string;
@@ -81,10 +84,12 @@ async function ensureNotRemovingLastOwnerAdmin({
 
 export async function selectTenantAction(formData: FormData) {
   const parsed = selectTenantSchema.parse({
-    tenantId: formData.get("tenantId")
+    tenantId: formData.get("tenantId"),
   });
   const options = await getTenantMembershipOptions();
-  const selected = options.find((option) => option.tenant.id === parsed.tenantId);
+  const selected = options.find(
+    (option) => option.tenant.id === parsed.tenantId,
+  );
 
   if (!selected) {
     throw new Error("You do not have access to this tenant.");
@@ -93,10 +98,10 @@ export async function selectTenantAction(formData: FormData) {
   (await cookies()).set(selectedTenantCookieName, selected.tenant.id, {
     httpOnly: true,
     sameSite: "lax",
-    path: "/"
+    path: "/",
   });
 
-  redirect("/dashboard");
+  redirect(getDefaultTenantRoute(selected.membership.role));
 }
 
 export async function createTenantUserAction(formData: FormData) {
@@ -105,7 +110,7 @@ export async function createTenantUserAction(formData: FormData) {
     displayName: formData.get("displayName"),
     email: formData.get("email"),
     role: formData.get("role"),
-    status: formData.get("status") ?? "active"
+    status: formData.get("status") ?? "active",
   });
   const supabase = createSupabaseServiceRoleClient();
   const actor = context.membership.clerk_user_id ?? context.membership.email;
@@ -117,7 +122,7 @@ export async function createTenantUserAction(formData: FormData) {
     role: parsed.role,
     status: parsed.status,
     invited_by: actor,
-    updated_by: actor
+    updated_by: actor,
   });
 
   if (error) {
@@ -139,14 +144,14 @@ export async function updateTenantUserAction(formData: FormData) {
     displayName: formData.get("displayName"),
     email: formData.get("email"),
     role: formData.get("role"),
-    status: formData.get("status") ?? "active"
+    status: formData.get("status") ?? "active",
   });
 
   await ensureNotRemovingLastOwnerAdmin({
     tenantId: context.tenant.id,
     tenantUserId: parsed.tenantUserId,
     nextRole: parsed.role,
-    nextStatus: parsed.status
+    nextStatus: parsed.status,
   });
 
   const supabase = createSupabaseServiceRoleClient();
@@ -158,7 +163,7 @@ export async function updateTenantUserAction(formData: FormData) {
       email: parsed.email,
       role: parsed.role,
       status: parsed.status,
-      updated_by: actor
+      updated_by: actor,
     })
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.tenantUserId);

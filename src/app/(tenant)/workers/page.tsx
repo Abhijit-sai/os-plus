@@ -8,7 +8,13 @@ import { StatusBadge } from "@/components/design-system/status-badge";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,14 +26,14 @@ const wageTypes = [
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "per_piece", label: "Per piece" },
-  { value: "hybrid", label: "Hybrid" }
+  { value: "hybrid", label: "Hybrid" },
 ];
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
@@ -39,7 +45,7 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   }).format(new Date(`${value}T00:00:00`));
 }
 
@@ -52,7 +58,7 @@ function formatDateTime(value: string | null) {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   }).format(new Date(value));
 }
 
@@ -63,7 +69,7 @@ function normalizeSearch(value: string) {
 function workerFilterHref({
   q,
   status,
-  workgroup
+  workgroup,
 }: {
   q?: string;
   status?: string;
@@ -89,7 +95,11 @@ function workerFilterHref({
 
 function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
   return (
-    <form action={createWorkerAction} className="space-y-4">
+    <form
+      action={createWorkerAction}
+      className="space-y-4"
+      data-unsaved-guard="true"
+    >
       <div className="grid gap-2">
         <Label htmlFor="name">Name</Label>
         <Input id="name" name="name" placeholder="Ravi Kumar" required />
@@ -104,7 +114,11 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="primaryWorkgroupId">Primary workgroup</Label>
-        <select id="primaryWorkgroupId" name="primaryWorkgroupId" className="h-10 rounded-md border bg-background px-3 text-sm">
+        <select
+          id="primaryWorkgroupId"
+          name="primaryWorkgroupId"
+          className="h-10 rounded-md border bg-background px-3 text-sm"
+        >
           <option value="">No primary workgroup</option>
           {workgroups.map((workgroup) => (
             <option key={workgroup.id} value={workgroup.id}>
@@ -116,7 +130,12 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="wageType">Wage type</Label>
-          <select id="wageType" name="wageType" defaultValue="monthly" className="h-10 rounded-md border bg-background px-3 text-sm">
+          <select
+            id="wageType"
+            name="wageType"
+            defaultValue="monthly"
+            className="h-10 rounded-md border bg-background px-3 text-sm"
+          >
             {wageTypes.map((type) => (
               <option key={type.value} value={type.value}>
                 {type.label}
@@ -126,19 +145,39 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="wageAmount">Wage amount</Label>
-          <Input id="wageAmount" name="wageAmount" type="number" min="0" step="0.01" defaultValue="0" required />
+          <Input
+            id="wageAmount"
+            name="wageAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue="0"
+            required
+          />
         </div>
       </div>
       <div className="space-y-2">
         <p className="text-sm font-medium">Additional workgroups</p>
         <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
           {workgroups.map((workgroup) => (
-            <label key={workgroup.id} className="flex items-center gap-2 text-sm">
-              <input name="workgroupIds" type="checkbox" value={workgroup.id} className="h-4 w-4 accent-black" />
+            <label
+              key={workgroup.id}
+              className="flex items-center gap-2 text-sm"
+            >
+              <input
+                name="workgroupIds"
+                type="checkbox"
+                value={workgroup.id}
+                className="h-4 w-4 accent-black"
+              />
               {workgroup.name}
             </label>
           ))}
-          {!workgroups.length ? <p className="text-sm text-muted-foreground">Add workgroups before assigning workers.</p> : null}
+          {!workgroups.length ? (
+            <p className="text-sm text-muted-foreground">
+              Add workgroups before assigning workers.
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="grid gap-2">
@@ -151,18 +190,35 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
 }
 
 export default async function WorkersPage({
-  searchParams
+  searchParams,
 }: {
-  searchParams?: Promise<{ q?: string; status?: string; workgroup?: string; workerId?: string }>;
+  searchParams?: Promise<{
+    q?: string;
+    status?: string;
+    workgroup?: string;
+    workerId?: string;
+  }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const search = resolvedSearchParams?.q?.trim() ?? "";
   const statusFilter = resolvedSearchParams?.status ?? "all";
   const workgroupFilter = resolvedSearchParams?.workgroup ?? "all";
   const selectedWorkerId = resolvedSearchParams?.workerId;
-  const { workers, workgroups, workerWorkgroups, attendance, workLogs, ledger, today } = await getWorkersPageData();
-  const workgroupById = new Map(workgroups.map((workgroup) => [workgroup.id, workgroup]));
-  const attendanceByWorkerId = new Map(attendance.map((record) => [record.worker_id, record]));
+  const {
+    workers,
+    workgroups,
+    workerWorkgroups,
+    attendance,
+    workLogs,
+    ledger,
+    today,
+  } = await getWorkersPageData();
+  const workgroupById = new Map(
+    workgroups.map((workgroup) => [workgroup.id, workgroup]),
+  );
+  const attendanceByWorkerId = new Map(
+    attendance.map((record) => [record.worker_id, record]),
+  );
   const workgroupsByWorkerId = new Map<string, string[]>();
   const workLogsByWorkerId = new Map<string, typeof workLogs>();
   const ledgerByWorkerId = new Map<string, typeof ledger>();
@@ -186,16 +242,26 @@ export default async function WorkersPage({
   });
 
   const activeWorkers = workers.filter((worker) => worker.status === "active");
-  const inactiveWorkers = workers.filter((worker) => worker.status === "inactive");
-  const missingWageWorkers = workers.filter((worker) => worker.wage_amount <= 0);
+  const inactiveWorkers = workers.filter(
+    (worker) => worker.status === "inactive",
+  );
+  const missingWageWorkers = workers.filter(
+    (worker) => worker.wage_amount <= 0,
+  );
   const missingWorkgroupWorkers = workers.filter((worker) => {
     const mappedWorkgroups = workgroupsByWorkerId.get(worker.id) ?? [];
     return !worker.primary_workgroup_id && mappedWorkgroups.length === 0;
   });
-  const presentToday = attendance.filter((record) => record.status === "present").length;
+  const presentToday = attendance.filter(
+    (record) => record.status === "present",
+  ).length;
   const activeWorkLogs = workLogs.filter((log) => log.status === "in_progress");
   const advanceExposure = ledger.reduce((total, entry) => {
-    if (["advance_given", "loan_given", "deduction"].includes(entry.transaction_type)) {
+    if (
+      ["advance_given", "loan_given", "deduction"].includes(
+        entry.transaction_type,
+      )
+    ) {
       return total + entry.amount;
     }
 
@@ -208,19 +274,30 @@ export default async function WorkersPage({
   const searchLower = normalizeSearch(search);
   const filteredWorkers = workers.filter((worker) => {
     const mappedWorkgroupIds = workgroupsByWorkerId.get(worker.id) ?? [];
-    const mappedWorkgroupNames = mappedWorkgroupIds.map((id) => workgroupById.get(id)?.name ?? "");
-    const primaryWorkgroup = worker.primary_workgroup_id ? workgroupById.get(worker.primary_workgroup_id)?.name ?? "" : "";
+    const mappedWorkgroupNames = mappedWorkgroupIds.map(
+      (id) => workgroupById.get(id)?.name ?? "",
+    );
+    const primaryWorkgroup = worker.primary_workgroup_id
+      ? (workgroupById.get(worker.primary_workgroup_id)?.name ?? "")
+      : "";
     const matchesSearch = searchLower
-      ? normalizeSearch(`${worker.name} ${worker.phone ?? ""} ${primaryWorkgroup} ${mappedWorkgroupNames.join(" ")} ${worker.wage_type}`).includes(
-          searchLower
-        )
+      ? normalizeSearch(
+          `${worker.name} ${worker.phone ?? ""} ${primaryWorkgroup} ${mappedWorkgroupNames.join(" ")} ${worker.wage_type}`,
+        ).includes(searchLower)
       : true;
-    const matchesStatus = statusFilter === "all" || worker.status === statusFilter;
-    const matchesWorkgroup = workgroupFilter === "all" || [worker.primary_workgroup_id, ...mappedWorkgroupIds].includes(workgroupFilter);
+    const matchesStatus =
+      statusFilter === "all" || worker.status === statusFilter;
+    const matchesWorkgroup =
+      workgroupFilter === "all" ||
+      [worker.primary_workgroup_id, ...mappedWorkgroupIds].includes(
+        workgroupFilter,
+      );
 
     return matchesSearch && matchesStatus && matchesWorkgroup;
   });
-  const selectedWorker = selectedWorkerId ? workers.find((worker) => worker.id === selectedWorkerId) : null;
+  const selectedWorker = selectedWorkerId
+    ? workers.find((worker) => worker.id === selectedWorkerId)
+    : null;
   const hrefForWorker = (workerId: string) => {
     const params = new URLSearchParams();
 
@@ -239,7 +316,11 @@ export default async function WorkersPage({
     params.set("workerId", workerId);
     return `/workers?${params.toString()}`;
   };
-  const closePaneHref = workerFilterHref({ q: search, status: statusFilter, workgroup: workgroupFilter });
+  const closePaneHref = workerFilterHref({
+    q: search,
+    status: statusFilter,
+    workgroup: workgroupFilter,
+  });
 
   return (
     <div className="space-y-5">
@@ -258,12 +339,36 @@ export default async function WorkersPage({
       />
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <MetricCard label="Active workers" value={activeWorkers.length} hint={`${inactiveWorkers.length} inactive`} />
-        <MetricCard label="Present today" value={presentToday} hint={`${Math.max(activeWorkers.length - attendance.length, 0)} unmarked`} />
-        <MetricCard label="Working now" value={activeWorkLogs.length} hint="Active production logs" />
-        <MetricCard label="Workgroups" value={workgroups.length} hint={`${missingWorkgroupWorkers.length} need mapping`} />
-        <MetricCard label="Wage gaps" value={missingWageWorkers.length} hint="Zero wage amount" />
-        <MetricCard label="Advances/loans" value={formatMoney(Math.max(advanceExposure, 0))} hint="Ledger signal" />
+        <MetricCard
+          label="Active workers"
+          value={activeWorkers.length}
+          hint={`${inactiveWorkers.length} inactive`}
+        />
+        <MetricCard
+          label="Present today"
+          value={presentToday}
+          hint={`${Math.max(activeWorkers.length - attendance.length, 0)} unmarked`}
+        />
+        <MetricCard
+          label="Working now"
+          value={activeWorkLogs.length}
+          hint="Active production logs"
+        />
+        <MetricCard
+          label="Workgroups"
+          value={workgroups.length}
+          hint={`${missingWorkgroupWorkers.length} need mapping`}
+        />
+        <MetricCard
+          label="Wage gaps"
+          value={missingWageWorkers.length}
+          hint="Zero wage amount"
+        />
+        <MetricCard
+          label="Advances/loans"
+          value={formatMoney(Math.max(advanceExposure, 0))}
+          hint="Ledger signal"
+        />
       </div>
 
       <CommandBar className="items-center justify-between">
@@ -273,10 +378,20 @@ export default async function WorkersPage({
           </Label>
           <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="q" name="q" defaultValue={search} placeholder="Search workers" className="h-9 pl-9" />
+            <Input
+              id="q"
+              name="q"
+              defaultValue={search}
+              placeholder="Search workers"
+              className="h-9 pl-9"
+            />
           </div>
-          {statusFilter !== "all" ? <input type="hidden" name="status" value={statusFilter} /> : null}
-          {workgroupFilter !== "all" ? <input type="hidden" name="workgroup" value={workgroupFilter} /> : null}
+          {statusFilter !== "all" ? (
+            <input type="hidden" name="status" value={statusFilter} />
+          ) : null}
+          {workgroupFilter !== "all" ? (
+            <input type="hidden" name="workgroup" value={workgroupFilter} />
+          ) : null}
           <Button type="submit" size="sm" variant="outline">
             Apply
           </Button>
@@ -290,10 +405,23 @@ export default async function WorkersPage({
           {[
             { value: "all", label: "All" },
             { value: "active", label: "Active" },
-            { value: "inactive", label: "Inactive" }
+            { value: "inactive", label: "Inactive" },
           ].map((option) => (
-            <Button key={option.value} asChild size="sm" variant={statusFilter === option.value ? "default" : "outline"}>
-              <Link href={workerFilterHref({ q: search, status: option.value, workgroup: workgroupFilter })}>{option.label}</Link>
+            <Button
+              key={option.value}
+              asChild
+              size="sm"
+              variant={statusFilter === option.value ? "default" : "outline"}
+            >
+              <Link
+                href={workerFilterHref({
+                  q: search,
+                  status: option.value,
+                  workgroup: workgroupFilter,
+                })}
+              >
+                {option.label}
+              </Link>
             </Button>
           ))}
           <select
@@ -313,9 +441,16 @@ export default async function WorkersPage({
           </select>
           <form id="worker-workgroup-filter" className="hidden">
             {search ? <input type="hidden" name="q" value={search} /> : null}
-            {statusFilter !== "all" ? <input type="hidden" name="status" value={statusFilter} /> : null}
+            {statusFilter !== "all" ? (
+              <input type="hidden" name="status" value={statusFilter} />
+            ) : null}
           </form>
-          <Button type="submit" form="worker-workgroup-filter" size="sm" variant="outline">
+          <Button
+            type="submit"
+            form="worker-workgroup-filter"
+            size="sm"
+            variant="outline"
+          >
             Filter
           </Button>
         </div>
@@ -324,7 +459,10 @@ export default async function WorkersPage({
       <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Worker operations</CardTitle>
-          <CardDescription>Directory, wage setup, attendance state, active production, and ledger signals.</CardDescription>
+          <CardDescription>
+            Directory, wage setup, attendance state, active production, and
+            ledger signals.
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="grid gap-3 border-y px-4 py-3 text-xs font-medium uppercase text-muted-foreground lg:grid-cols-[1.2fr_1fr_0.85fr_0.75fr_0.75fr_0.85fr_44px]">
@@ -338,24 +476,37 @@ export default async function WorkersPage({
           </div>
           <div className="divide-y">
             {filteredWorkers.map((worker) => {
-              const mappedWorkgroupIds = workgroupsByWorkerId.get(worker.id) ?? [];
-              const mappedWorkgroupNames = mappedWorkgroupIds.map((id) => workgroupById.get(id)?.name).filter(Boolean);
-              const primaryWorkgroup = worker.primary_workgroup_id ? workgroupById.get(worker.primary_workgroup_id)?.name : null;
+              const mappedWorkgroupIds =
+                workgroupsByWorkerId.get(worker.id) ?? [];
+              const mappedWorkgroupNames = mappedWorkgroupIds
+                .map((id) => workgroupById.get(id)?.name)
+                .filter(Boolean);
+              const primaryWorkgroup = worker.primary_workgroup_id
+                ? workgroupById.get(worker.primary_workgroup_id)?.name
+                : null;
               const workerAttendance = attendanceByWorkerId.get(worker.id);
               const workerWorkLogs = workLogsByWorkerId.get(worker.id) ?? [];
               const workerLedger = ledgerByWorkerId.get(worker.id) ?? [];
-              const activeLogCount = workerWorkLogs.filter((log) => log.status === "in_progress").length;
-              const ledgerSignal = workerLedger.slice(0, 12).reduce((total, entry) => {
-                if (["advance_given", "loan_given", "deduction"].includes(entry.transaction_type)) {
-                  return total + entry.amount;
-                }
+              const activeLogCount = workerWorkLogs.filter(
+                (log) => log.status === "in_progress",
+              ).length;
+              const ledgerSignal = workerLedger
+                .slice(0, 12)
+                .reduce((total, entry) => {
+                  if (
+                    ["advance_given", "loan_given", "deduction"].includes(
+                      entry.transaction_type,
+                    )
+                  ) {
+                    return total + entry.amount;
+                  }
 
-                if (entry.transaction_type === "repayment") {
-                  return total - entry.amount;
-                }
+                  if (entry.transaction_type === "repayment") {
+                    return total - entry.amount;
+                  }
 
-                return total;
-              }, 0);
+                  return total;
+                }, 0);
 
               return (
                 <Link
@@ -381,18 +532,34 @@ export default async function WorkersPage({
                     </p>
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{primaryWorkgroup ?? "No primary group"}</p>
+                    <p className="truncate font-medium">
+                      {primaryWorkgroup ?? "No primary group"}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {mappedWorkgroupNames.length ? mappedWorkgroupNames.join(", ") : "No mapped workgroups"}
+                      {mappedWorkgroupNames.length
+                        ? mappedWorkgroupNames.join(", ")
+                        : "No mapped workgroups"}
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium">{formatMoney(worker.wage_amount)}</p>
-                    <p className="text-xs text-muted-foreground">{worker.wage_type.replace("_", " ")}</p>
+                    <p className="font-medium">
+                      {formatMoney(worker.wage_amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {worker.wage_type.replace("_", " ")}
+                    </p>
                   </div>
                   <StatusBadge value={workerAttendance?.status ?? "unmarked"} />
-                  <p className="text-muted-foreground">{activeLogCount} active</p>
-                  <p className={ledgerSignal > 0 ? "font-medium" : "text-muted-foreground"}>{formatMoney(Math.max(ledgerSignal, 0))}</p>
+                  <p className="text-muted-foreground">
+                    {activeLogCount} active
+                  </p>
+                  <p
+                    className={
+                      ledgerSignal > 0 ? "font-medium" : "text-muted-foreground"
+                    }
+                  >
+                    {formatMoney(Math.max(ledgerSignal, 0))}
+                  </p>
                   <div className="hidden justify-end lg:flex">
                     <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                   </div>
@@ -403,7 +570,9 @@ export default async function WorkersPage({
           {!filteredWorkers.length ? (
             <div className="p-8 text-center">
               <p className="font-medium">No workers found</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try changing the search, status, or workgroup filter.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try changing the search, status, or workgroup filter.
+              </p>
             </div>
           ) : null}
         </CardContent>
@@ -411,62 +580,118 @@ export default async function WorkersPage({
 
       {selectedWorker ? (
         <div className="fixed inset-0 z-50 flex justify-end p-4">
-          <Link href={closePaneHref} aria-label="Close worker pane" className="absolute inset-0 cursor-default bg-black/30" />
+          <Link
+            href={closePaneHref}
+            aria-label="Close worker pane"
+            className="absolute inset-0 cursor-default bg-black/30"
+          />
           <div className="relative z-10 h-full w-full max-w-3xl overflow-y-auto rounded-[14px] border bg-background p-5 shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold leading-tight">{selectedWorker.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Worker profile and operating signals.</p>
+                <h2 className="text-lg font-semibold leading-tight">
+                  {selectedWorker.name}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Worker profile and operating signals.
+                </p>
               </div>
-              <Button asChild type="button" variant="ghost" size="icon" aria-label="Close">
+              <Button
+                asChild
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close"
+              >
                 <Link href={closePaneHref}>
                   <X className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
             {(() => {
-              const mappedWorkgroupIds = workgroupsByWorkerId.get(selectedWorker.id) ?? [];
-              const mappedWorkgroupNames = mappedWorkgroupIds.map((id) => workgroupById.get(id)?.name).filter(Boolean);
-              const primaryWorkgroup = selectedWorker.primary_workgroup_id ? workgroupById.get(selectedWorker.primary_workgroup_id)?.name : null;
-              const workerAttendance = attendanceByWorkerId.get(selectedWorker.id);
-              const workerWorkLogs = workLogsByWorkerId.get(selectedWorker.id) ?? [];
-              const workerLedger = ledgerByWorkerId.get(selectedWorker.id) ?? [];
+              const mappedWorkgroupIds =
+                workgroupsByWorkerId.get(selectedWorker.id) ?? [];
+              const mappedWorkgroupNames = mappedWorkgroupIds
+                .map((id) => workgroupById.get(id)?.name)
+                .filter(Boolean);
+              const primaryWorkgroup = selectedWorker.primary_workgroup_id
+                ? workgroupById.get(selectedWorker.primary_workgroup_id)?.name
+                : null;
+              const workerAttendance = attendanceByWorkerId.get(
+                selectedWorker.id,
+              );
+              const workerWorkLogs =
+                workLogsByWorkerId.get(selectedWorker.id) ?? [];
+              const workerLedger =
+                ledgerByWorkerId.get(selectedWorker.id) ?? [];
 
               return (
                 <div className="space-y-5">
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <MetricCard label="Status" value={<StatusBadge value={selectedWorker.status} />} hint={selectedWorker.phone ?? "No phone"} />
-                    <MetricCard label="Today" value={<StatusBadge value={workerAttendance?.status ?? "unmarked"} />} hint={today} />
-                    <MetricCard label="Active work" value={workerWorkLogs.filter((log) => log.status === "in_progress").length} hint="Open work logs" />
+                    <MetricCard
+                      label="Status"
+                      value={<StatusBadge value={selectedWorker.status} />}
+                      hint={selectedWorker.phone ?? "No phone"}
+                    />
+                    <MetricCard
+                      label="Today"
+                      value={
+                        <StatusBadge
+                          value={workerAttendance?.status ?? "unmarked"}
+                        />
+                      }
+                      hint={today}
+                    />
+                    <MetricCard
+                      label="Active work"
+                      value={
+                        workerWorkLogs.filter(
+                          (log) => log.status === "in_progress",
+                        ).length
+                      }
+                      hint="Open work logs"
+                    />
                   </div>
 
                   <Card>
                     <CardHeader>
                       <CardTitle>Worker setup</CardTitle>
-                      <CardDescription>Assignment and salary configuration.</CardDescription>
+                      <CardDescription>
+                        Assignment and salary configuration.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
                       <div>
                         <p className="font-medium">Primary workgroup</p>
-                        <p className="text-muted-foreground">{primaryWorkgroup ?? "No primary workgroup"}</p>
+                        <p className="text-muted-foreground">
+                          {primaryWorkgroup ?? "No primary workgroup"}
+                        </p>
                       </div>
                       <div>
                         <p className="font-medium">Wage</p>
                         <p className="text-muted-foreground">
-                          {formatMoney(selectedWorker.wage_amount)} · {selectedWorker.wage_type.replace("_", " ")}
+                          {formatMoney(selectedWorker.wage_amount)} ·{" "}
+                          {selectedWorker.wage_type.replace("_", " ")}
                         </p>
                       </div>
                       <div>
                         <p className="font-medium">Joining date</p>
-                        <p className="text-muted-foreground">{formatDate(selectedWorker.joining_date)}</p>
+                        <p className="text-muted-foreground">
+                          {formatDate(selectedWorker.joining_date)}
+                        </p>
                       </div>
                       <div>
                         <p className="font-medium">Workgroups</p>
-                        <p className="text-muted-foreground">{mappedWorkgroupNames.length ? mappedWorkgroupNames.join(", ") : "No mapped workgroups"}</p>
+                        <p className="text-muted-foreground">
+                          {mappedWorkgroupNames.length
+                            ? mappedWorkgroupNames.join(", ")
+                            : "No mapped workgroups"}
+                        </p>
                       </div>
                       <div className="sm:col-span-2">
                         <p className="font-medium">Notes</p>
-                        <p className="text-muted-foreground">{selectedWorker.notes ?? "No notes"}</p>
+                        <p className="text-muted-foreground">
+                          {selectedWorker.notes ?? "No notes"}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -475,42 +700,79 @@ export default async function WorkersPage({
                     <Card>
                       <CardHeader>
                         <CardTitle>Recent work logs</CardTitle>
-                        <CardDescription>Production work remains separate from attendance.</CardDescription>
+                        <CardDescription>
+                          Production work remains separate from attendance.
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {workerWorkLogs.slice(0, 6).map((log) => (
-                          <div key={log.id} className="rounded-md border p-3 text-sm">
+                          <div
+                            key={log.id}
+                            className="rounded-md border p-3 text-sm"
+                          >
                             <div className="flex items-center justify-between gap-3">
                               <StatusBadge value={log.status} />
-                              <p className="text-xs text-muted-foreground">{formatDateTime(log.started_at)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDateTime(log.started_at)}
+                              </p>
                             </div>
                             <p className="mt-2 text-muted-foreground">
-                              {log.duration_minutes ? `${log.duration_minutes} minutes` : "Duration not finalized"}
+                              {log.duration_minutes
+                                ? `${log.duration_minutes} minutes`
+                                : "Duration not finalized"}
                             </p>
-                            {log.notes ? <p className="text-muted-foreground">{log.notes}</p> : null}
+                            {log.notes ? (
+                              <p className="text-muted-foreground">
+                                {log.notes}
+                              </p>
+                            ) : null}
                           </div>
                         ))}
-                        {!workerWorkLogs.length ? <p className="text-sm text-muted-foreground">No recent work logs.</p> : null}
+                        {!workerWorkLogs.length ? (
+                          <p className="text-sm text-muted-foreground">
+                            No recent work logs.
+                          </p>
+                        ) : null}
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardHeader>
                         <CardTitle>Recent ledger</CardTitle>
-                        <CardDescription>Advances, loans, deductions, repayments, and salary payments.</CardDescription>
+                        <CardDescription>
+                          Advances, loans, deductions, repayments, and salary
+                          payments.
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {workerLedger.slice(0, 6).map((entry) => (
-                          <div key={entry.id} className="rounded-md border p-3 text-sm">
+                          <div
+                            key={entry.id}
+                            className="rounded-md border p-3 text-sm"
+                          >
                             <div className="flex items-center justify-between gap-3">
-                              <p className="font-medium">{formatMoney(entry.amount)}</p>
-                              <p className="text-xs text-muted-foreground">{formatDate(entry.transaction_date)}</p>
+                              <p className="font-medium">
+                                {formatMoney(entry.amount)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(entry.transaction_date)}
+                              </p>
                             </div>
-                            <p className="mt-1 text-muted-foreground">{entry.transaction_type.replaceAll("_", " ")}</p>
-                            {entry.description ? <p className="text-muted-foreground">{entry.description}</p> : null}
+                            <p className="mt-1 text-muted-foreground">
+                              {entry.transaction_type.replaceAll("_", " ")}
+                            </p>
+                            {entry.description ? (
+                              <p className="text-muted-foreground">
+                                {entry.description}
+                              </p>
+                            ) : null}
                           </div>
                         ))}
-                        {!workerLedger.length ? <p className="text-sm text-muted-foreground">No ledger entries.</p> : null}
+                        {!workerLedger.length ? (
+                          <p className="text-sm text-muted-foreground">
+                            No ledger entries.
+                          </p>
+                        ) : null}
                       </CardContent>
                     </Card>
                   </div>

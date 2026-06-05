@@ -39,7 +39,7 @@ const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "reports:view",
     "settings:view",
     "settings:manage",
-    "tenant_users:manage"
+    "tenant_users:manage",
   ],
   manager: [
     "orders:view",
@@ -49,15 +49,10 @@ const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "customers:view",
     "customers:manage",
     "attendance:view",
-    "attendance:manage"
+    "attendance:manage",
   ],
-  finance: [
-    "salary:view",
-    "salary:manage",
-    "finance:view",
-    "finance:manage"
-  ],
-  viewer: ["dashboard:view", "reports:view"]
+  finance: ["salary:view", "salary:manage", "finance:view", "finance:manage"],
+  viewer: ["reports:view"],
 };
 
 export function hasPermission(role: TenantUserRole, permission: Permission) {
@@ -68,4 +63,15 @@ export function assertPermission(role: TenantUserRole, permission: Permission) {
   if (!hasPermission(role, permission)) {
     throw new Error(`Permission denied: ${permission}`);
   }
+}
+
+export function getDefaultTenantRoute(role: TenantUserRole) {
+  const defaultRoutes: Record<TenantUserRole, string> = {
+    owner_admin: "/dashboard",
+    manager: "/orders",
+    finance: "/finance",
+    viewer: "/reports"
+  };
+
+  return defaultRoutes[role];
 }

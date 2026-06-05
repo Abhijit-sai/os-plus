@@ -564,6 +564,82 @@ Public Website and Market Positioning
 - Local route checks returned HTTP 200 for `/` and `/industries/boutiques`.
 - Static scan confirmed old boutique-first homepage phrases were removed from the root page.
 
+## Session Update - 2026-06-05 - Role Default Routes and Unsaved Edit Guard
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### User Feedback
+
+- Non-owner users were landing directly on `/dashboard`, even though the dashboard should be owner/admin-only.
+- Users could lose unsaved work by clicking sidebar navigation, closing dialogs, or leaving a create/edit page before submitting.
+
+### What Was Built
+
+- Added role-aware tenant default routes:
+  - owner/admin -> `/dashboard`,
+  - manager -> `/orders`,
+  - finance -> `/finance`,
+  - viewer -> `/reports`.
+- Updated tenant selection so users are redirected to their role-appropriate default page after choosing a business.
+- Removed dashboard permission from viewer role; dashboard is now owner/admin-only.
+- Added a direct `/dashboard` server-side guard that redirects non-owner/admin users before loading owner dashboard data.
+- Added a reusable unsaved-change provider in the tenant app shell.
+- The unsaved-change guard now protects opted-in forms from:
+  - sidebar/link navigation,
+  - browser refresh/tab close,
+  - dialog close/backdrop close.
+- Added guard opt-ins to high-risk forms across:
+  - order creation,
+  - order edit,
+  - order payment,
+  - customer creation,
+  - customer profile edit,
+  - customer measurements,
+  - finance create/edit dialogs,
+  - salary period/payable/payment/ledger forms,
+  - business profile,
+  - worker creation,
+  - attachments,
+  - production workflow correction dialogs.
+
+### Tenant Safety
+
+- Owner dashboard data is no longer fetched for non-owner/admin roles via direct route access.
+- Role defaults now align with the tenant membership role stored by OS PLUS.
+
+### UX Notes
+
+- The unsaved-change warning uses the browser-native confirmation pattern for reliability across sidebar navigation and page unloads.
+- Filter/search forms were not opted in to avoid noisy warnings for non-persistent UI controls.
+
+### Files/Modules Changed
+
+- `src/lib/permissions/roles.ts`
+- `src/features/tenant-users/actions.ts`
+- `src/app/(tenant)/dashboard/page.tsx`
+- `src/components/layout/app-shell.tsx`
+- `src/components/layout/unsaved-changes-provider.tsx`
+- `src/components/ui/dialog.tsx`
+- Order, customer, finance, salary, settings, worker, attachment, and production form surfaces.
+- `project_summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Static scan confirmed guarded form coverage and dashboard redirect wiring.
+
 ## Session Update - 2026-06-05 - Tenant Business Selector Hardening
 
 ### Date

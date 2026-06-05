@@ -7,17 +7,21 @@ import { Pencil } from "lucide-react";
 import {
   changeItemWorkflowFormAction,
   correctStageFormAction,
-  type FormActionState
+  type FormActionState,
 } from "@/features/production/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ItemStageInstance, ItemStageWorkLog, Workflow } from "@/types/database";
+import type {
+  ItemStageInstance,
+  ItemStageWorkLog,
+  Workflow,
+} from "@/types/database";
 
 const initialState: FormActionState = {
   ok: false,
-  message: null
+  message: null,
 };
 
 function toDateTimeLocalValue(value: string | null) {
@@ -26,19 +30,32 @@ function toDateTimeLocalValue(value: string | null) {
   }
 
   const date = new Date(value);
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  const offsetDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60000,
+  );
   return offsetDate.toISOString().slice(0, 16);
 }
 
 function EditStageButton() {
   return (
-    <span className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Correct stage">
+    <span
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+      aria-label="Correct stage"
+    >
       <Pencil className="h-4 w-4" />
     </span>
   );
 }
 
-function SubmitButton({ idleLabel, pendingLabel, variant = "default" }: { idleLabel: string; pendingLabel: string; variant?: "default" | "outline" }) {
+function SubmitButton({
+  idleLabel,
+  pendingLabel,
+  variant = "default",
+}: {
+  idleLabel: string;
+  pendingLabel: string;
+  variant?: "default" | "outline";
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -52,7 +69,7 @@ export function ChangeWorkflowDialog({
   orderItemId,
   currentWorkflowId,
   workflows,
-  hasStartedWork
+  hasStartedWork,
 }: {
   orderItemId: string;
   currentWorkflowId: string;
@@ -91,7 +108,7 @@ export function ChangeWorkflowDialog({
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} className="space-y-4" data-unsaved-guard="true">
         <input type="hidden" name="orderItemId" value={orderItemId} />
         {state.message ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -100,23 +117,41 @@ export function ChangeWorkflowDialog({
         ) : null}
         {hasStartedWork ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-            Work has already started on this item. Changing workflow will close the current workflow path, cancel active work logs, create a fresh workflow, and preserve the old activity in history.
+            Work has already started on this item. Changing workflow will close
+            the current workflow path, cancel active work logs, create a fresh
+            workflow, and preserve the old activity in history.
           </div>
         ) : null}
         <div className="grid gap-2">
           <Label htmlFor={`changeWorkflow-${orderItemId}`}>New workflow</Label>
-          <select id={`changeWorkflow-${orderItemId}`} name="workflowId" defaultValue="" className="h-10 rounded-md border bg-background px-3 text-sm" required>
+          <select
+            id={`changeWorkflow-${orderItemId}`}
+            name="workflowId"
+            defaultValue=""
+            className="h-10 rounded-md border bg-background px-3 text-sm"
+            required
+          >
             <option value="">Select workflow</option>
             {workflows.map((candidate) => (
-              <option key={candidate.id} value={candidate.id} disabled={candidate.id === currentWorkflowId}>
-                {candidate.name}{candidate.id === currentWorkflowId ? " (current)" : ""}
+              <option
+                key={candidate.id}
+                value={candidate.id}
+                disabled={candidate.id === currentWorkflowId}
+              >
+                {candidate.name}
+                {candidate.id === currentWorkflowId ? " (current)" : ""}
               </option>
             ))}
           </select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`changeWorkflowReason-${orderItemId}`}>Reason</Label>
-          <Input id={`changeWorkflowReason-${orderItemId}`} name="reason" placeholder="Why is this workflow changing?" required />
+          <Input
+            id={`changeWorkflowReason-${orderItemId}`}
+            name="reason"
+            placeholder="Why is this workflow changing?"
+            required
+          />
         </div>
         <SubmitButton idleLabel="Change workflow" pendingLabel="Changing..." />
       </form>
@@ -128,7 +163,7 @@ export function CorrectStageDialog({
   stageInstance,
   stageName,
   activeLog,
-  eligibleWorkers
+  eligibleWorkers,
 }: {
   stageInstance: ItemStageInstance;
   stageName: string;
@@ -168,7 +203,11 @@ export function CorrectStageDialog({
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <form action={formAction} className="grid gap-3">
+      <form
+        action={formAction}
+        className="grid gap-3"
+        data-unsaved-guard="true"
+      >
         <input type="hidden" name="stageInstanceId" value={stageInstance.id} />
         {state.message ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -176,12 +215,16 @@ export function CorrectStageDialog({
           </div>
         ) : null}
         <div className="grid gap-2">
-          <Label htmlFor={`correction-status-${stageInstance.id}`}>Status</Label>
+          <Label htmlFor={`correction-status-${stageInstance.id}`}>
+            Status
+          </Label>
           <select
             id={`correction-status-${stageInstance.id}`}
             name="status"
             value={status}
-            onChange={(event) => setStatus(event.target.value as ItemStageInstance["status"])}
+            onChange={(event) =>
+              setStatus(event.target.value as ItemStageInstance["status"])
+            }
             className="h-10 rounded-md border bg-background px-3 text-sm"
             required
           >
@@ -199,31 +242,49 @@ export function CorrectStageDialog({
             <p className="text-sm font-medium">Work record</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor={`correction-worker-${stageInstance.id}`}>Worker{needsWorker ? "" : " (optional)"}</Label>
-                <select id={`correction-worker-${stageInstance.id}`} name="workerId" defaultValue={activeLog?.worker_id ?? ""} className="h-10 rounded-md border bg-background px-3 text-sm" required={needsWorker}>
+                <Label htmlFor={`correction-worker-${stageInstance.id}`}>
+                  Worker{needsWorker ? "" : " (optional)"}
+                </Label>
+                <select
+                  id={`correction-worker-${stageInstance.id}`}
+                  name="workerId"
+                  defaultValue={activeLog?.worker_id ?? ""}
+                  className="h-10 rounded-md border bg-background px-3 text-sm"
+                  required={needsWorker}
+                >
                   <option value="">No worker</option>
                   {eligibleWorkers.map((worker) => (
-                    <option key={worker.id} value={worker.id}>{worker.name}</option>
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor={`correction-started-${stageInstance.id}`}>Started time</Label>
+                <Label htmlFor={`correction-started-${stageInstance.id}`}>
+                  Started time
+                </Label>
                 <Input
                   id={`correction-started-${stageInstance.id}`}
                   name="startedAt"
                   type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(stageInstance.started_at ?? activeLog?.started_at ?? null)}
+                  defaultValue={toDateTimeLocalValue(
+                    stageInstance.started_at ?? activeLog?.started_at ?? null,
+                  )}
                   required={needsStartedAt}
                 />
               </div>
               <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor={`correction-completed-${stageInstance.id}`}>Completed time{needsCompletedAt ? "" : " (optional)"}</Label>
+                <Label htmlFor={`correction-completed-${stageInstance.id}`}>
+                  Completed time{needsCompletedAt ? "" : " (optional)"}
+                </Label>
                 <Input
                   id={`correction-completed-${stageInstance.id}`}
                   name="completedAt"
                   type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(stageInstance.completed_at)}
+                  defaultValue={toDateTimeLocalValue(
+                    stageInstance.completed_at,
+                  )}
                   required={needsCompletedAt}
                 />
               </div>
@@ -237,12 +298,26 @@ export function CorrectStageDialog({
           </>
         )}
         <div className="grid gap-2">
-          <Label htmlFor={`correction-stage-notes-${stageInstance.id}`}>Stage notes</Label>
-          <Input id={`correction-stage-notes-${stageInstance.id}`} name="stageNotes" defaultValue={stageInstance.notes ?? ""} placeholder="Optional note visible on this stage" />
+          <Label htmlFor={`correction-stage-notes-${stageInstance.id}`}>
+            Stage notes
+          </Label>
+          <Input
+            id={`correction-stage-notes-${stageInstance.id}`}
+            name="stageNotes"
+            defaultValue={stageInstance.notes ?? ""}
+            placeholder="Optional note visible on this stage"
+          />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`correction-reason-${stageInstance.id}`}>Correction reason</Label>
-          <Input id={`correction-reason-${stageInstance.id}`} name="correctionReason" placeholder="What was wrong in the original record?" required />
+          <Label htmlFor={`correction-reason-${stageInstance.id}`}>
+            Correction reason
+          </Label>
+          <Input
+            id={`correction-reason-${stageInstance.id}`}
+            name="correctionReason"
+            placeholder="What was wrong in the original record?"
+            required
+          />
         </div>
         <SubmitButton idleLabel="Save correction" pendingLabel="Saving..." />
       </form>

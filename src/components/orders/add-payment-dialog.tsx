@@ -3,7 +3,10 @@
 import * as React from "react";
 import { useFormStatus } from "react-dom";
 
-import { recordOrderPaymentFormAction, type FormActionState } from "@/features/orders/actions";
+import {
+  recordOrderPaymentFormAction,
+  type FormActionState,
+} from "@/features/orders/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,11 +15,13 @@ import type { PaymentMode } from "@/types/database";
 
 const initialState: FormActionState = {
   ok: false,
-  message: null
+  message: null,
 };
 
 function formatMoney(amount: number) {
-  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(amount);
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(
+    amount,
+  );
 }
 
 function todayIsoDate() {
@@ -44,7 +49,7 @@ function SubmitButton() {
 export function AddPaymentDialog({
   orderId,
   outstandingAmount,
-  paymentModes
+  paymentModes,
 }: {
   orderId: string;
   outstandingAmount: number;
@@ -78,7 +83,7 @@ export function AddPaymentDialog({
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} className="space-y-4" data-unsaved-guard="true">
         <input type="hidden" name="orderId" value={orderId} />
         {state.message ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -87,12 +92,26 @@ export function AddPaymentDialog({
         ) : null}
         <div className="grid gap-2">
           <Label htmlFor={`paymentAmount-${orderId}`}>Amount</Label>
-          <Input id={`paymentAmount-${orderId}`} name="amount" type="number" min="0.01" max={outstandingAmount} step="0.01" required />
-          <p className="text-xs text-muted-foreground">Outstanding: ₹{formatMoney(outstandingAmount)}</p>
+          <Input
+            id={`paymentAmount-${orderId}`}
+            name="amount"
+            type="number"
+            min="0.01"
+            max={outstandingAmount}
+            step="0.01"
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Outstanding: ₹{formatMoney(outstandingAmount)}
+          </p>
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`paymentModeId-${orderId}`}>Payment mode</Label>
-          <select id={`paymentModeId-${orderId}`} name="paymentModeId" className="h-10 rounded-md border bg-background px-3 text-sm">
+          <select
+            id={`paymentModeId-${orderId}`}
+            name="paymentModeId"
+            className="h-10 rounded-md border bg-background px-3 text-sm"
+          >
             <option value="">No payment mode</option>
             {paymentModes.map((paymentMode) => (
               <option key={paymentMode.id} value={paymentMode.id}>
@@ -103,15 +122,29 @@ export function AddPaymentDialog({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`paymentDate-${orderId}`}>Payment date</Label>
-          <Input id={`paymentDate-${orderId}`} name="paymentDate" type="date" defaultValue={todayIsoDate()} required />
+          <Input
+            id={`paymentDate-${orderId}`}
+            name="paymentDate"
+            type="date"
+            defaultValue={todayIsoDate()}
+            required
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`referenceNumber-${orderId}`}>Reference number</Label>
-          <Input id={`referenceNumber-${orderId}`} name="referenceNumber" placeholder="Optional" />
+          <Input
+            id={`referenceNumber-${orderId}`}
+            name="referenceNumber"
+            placeholder="Optional"
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`paymentNotes-${orderId}`}>Notes</Label>
-          <Input id={`paymentNotes-${orderId}`} name="notes" placeholder="Optional" />
+          <Input
+            id={`paymentNotes-${orderId}`}
+            name="notes"
+            placeholder="Optional"
+          />
         </div>
         <SubmitButton />
       </form>
