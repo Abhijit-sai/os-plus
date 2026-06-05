@@ -26,6 +26,14 @@ slug
 store_name
 logo_url
 brand_color
+legal_name
+registered_address
+gst_registered
+gstin
+default_sales_gst_rate
+default_purchase_gst_rate
+default_order_gst_treatment
+default_expense_gst_treatment
 status
 custom_domain
 tracking_subdomain
@@ -44,6 +52,41 @@ status
 invited_by
 created_at
 updated_at
+```
+
+## tenant_billing_records
+
+OS PLUS-owned commercial tracking for tenant subscription/payment history.
+
+```text
+id
+tenant_id
+billing_period_start
+billing_period_end
+plan_name
+amount_due
+amount_paid
+payment_status
+payment_date
+payment_mode
+reference_number
+notes
+created_at
+updated_at
+created_by
+updated_by
+deleted_at
+```
+
+Payment statuses:
+
+```text
+pending
+partially_paid
+paid
+overdue
+waived
+cancelled
 ```
 
 Roles:
@@ -183,6 +226,35 @@ is_active
 created_at
 updated_at
 deleted_at
+```
+
+## tenant_gst_rates
+
+Tenant-owned GST rate presets.
+
+```text
+id
+tenant_id
+name
+rate_percent
+is_default_sales
+is_default_purchase
+is_active
+created_at
+updated_at
+created_by
+updated_by
+deleted_at
+```
+
+GST treatments used by orders and expenses:
+
+```text
+taxable_exclusive
+taxable_inclusive
+exempt_or_nil
+non_gst
+not_applicable
 ```
 
 Default values:
@@ -355,6 +427,14 @@ total_amount
 amount_paid
 payment_status
 order_status
+gst_treatment
+gst_rate_percent
+taxable_amount
+gst_amount
+total_before_gst
+gst_reportable
+gst_invoice_number
+gst_invoice_date
 notes
 tracking_token
 created_at
@@ -1012,6 +1092,17 @@ payment_mode
 paid_to
 description
 receipt_url
+vendor_gstin
+vendor_invoice_number
+vendor_invoice_date
+gst_treatment
+gst_rate_percent
+taxable_amount
+gst_amount
+total_amount
+gst_reportable
+itc_eligible
+itc_review_status
 is_recurring
 created_by
 created_at
@@ -1060,11 +1151,15 @@ overdue
 tenants.slug
 tenant_users.clerk_user_id
 tenant_users.tenant_id
+tenant_billing_records.tenant_id, tenant_billing_records.payment_status
+tenant_billing_records.tenant_id, tenant_billing_records.billing_period_end
+tenant_gst_rates.tenant_id, tenant_gst_rates.is_active
 customers.tenant_id, customers.phone
 customers.tenant_id, customers.name
 orders.tenant_id, orders.order_number
 orders.tenant_id, orders.customer_id
 orders.tenant_id, orders.promised_delivery_date
+orders.tenant_id, orders.order_date, orders.gst_reportable
 order_items.tenant_id, order_items.order_id
 order_items.tenant_id, order_items.expected_completion_date
 order_items.tenant_id, order_items.item_status
@@ -1073,6 +1168,7 @@ item_stage_work_logs.tenant_id, item_stage_work_logs.worker_id
 attendance.tenant_id, attendance.worker_id, attendance.attendance_date
 worker_ledger.tenant_id, worker_ledger.worker_id
 expenses.tenant_id, expenses.expense_date
+expenses.tenant_id, expenses.expense_date, expenses.gst_reportable
 receivables_payables.tenant_id, receivables_payables.due_date
 communication_channel_settings.tenant_id, communication_channel_settings.channel
 communication_templates.tenant_id, communication_templates.channel, communication_templates.purpose

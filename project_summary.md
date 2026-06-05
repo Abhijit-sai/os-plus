@@ -27,6 +27,7 @@ MVP includes:
 - Multi-tenant SaaS foundation
 - White-label tenant configuration
 - Manual tenant creation by OS PLUS super admin
+- Super-admin tenant status editing and planned tenant billing/payment tracking
 - Clerk authentication
 - Supabase Postgres database
 - Supabase Storage for files
@@ -48,6 +49,7 @@ MVP includes:
 - Salary suggestion
 - Worker ledger for advances/loans
 - Expenses
+- GST configuration/reporting planned for the next finance hardening phase
 - Partial payments
 - Partial pickup/dispatch
 - Customer tracking link
@@ -61,7 +63,7 @@ The following are not part of MVP:
 - Shopify integration
 - Campaign-style WhatsApp automation
 - Bulk promotional marketing messages
-- GST invoicing
+- Direct GST filing/e-invoicing integration
 - Inventory management
 - QR/barcode scanning
 - Vendor management
@@ -89,6 +91,7 @@ Each tenant should be able to configure:
 - Store name
 - Logo
 - Brand color
+- GST registration settings and default GST rates
 - Tracking page branding
 - WhatsApp sender later
 - Domain/subdomain later
@@ -181,7 +184,7 @@ MVP supports:
 
 ### Finance
 
-- GST invoicing is not part of MVP.
+- GST configuration and GST-ready reporting are now planned as the next finance hardening area; direct GST filing/e-invoicing remains later.
 - Track payments, expenses, receivables, payables, and reminders.
 - Partial payments are essential.
 - Vendor master is Phase 2 or later and low priority.
@@ -341,6 +344,7 @@ Current phase: Production hardening and market-readiness. Core MVP operating mod
 - Workflow tables must not be overcomplicated but should allow future parallel stages.
 - Salary module should remain suggested/admin-finalized, not full payroll.
 - Finance module should not become a full accounting system in MVP.
+- GST capture must be compliance-safe: cash payments are still recorded, and payment mode must not be treated as a way to hide taxable activity.
 - Customer duplicates are allowed, so customer search/suggestion UX must be good.
 - Customer tracking page must not expose internal operational details.
 
@@ -351,7 +355,7 @@ Current phase: Production hardening and market-readiness. Core MVP operating mod
 - Inventory
 - QR/barcode scan updates
 - Vendor master
-- GST invoicing
+- Direct GST filing/e-invoicing
 - Tally/Zoho Books
 - Worker login
 - Customer login
@@ -457,6 +461,59 @@ Production Hardening and Pilot Readiness
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npm run build` passed.
+
+## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Post-Deployment Planning
+
+### Decisions Added
+
+- OS PLUS is live on Vercel and connected to GitHub.
+- Super-admin tenant management must include editing mutable tenant details and changing tenant status at any time.
+- Super-admin tenant configuration should include OS PLUS billing/payment tracking for each tenant.
+- Inactive/suspended tenants should see a calm contact-support locked state instead of the normal dashboard.
+- GST configuration and GST-ready reporting move into the near finance roadmap.
+- Direct GST filing/e-invoicing/accounting integrations remain later.
+- The public website should position OS PLUS as the operating system for workflow-driven businesses, not as generic accounting, CRM, or project management software.
+
+### GST Planning Notes
+
+- Tenant settings should capture GST registered status, optional GSTIN, legal name, registered address, default sales GST rate, default purchase GST rate, and default GST treatment.
+- Order creation should support GST added on top, GST included in amount, exempt/nil/non-GST, and not-applicable treatments.
+- Expense entry should capture vendor invoice/GST details, GST treatment, taxable amount, GST amount, and input GST review state.
+- Cash payment mode must remain separate from GST treatment; OS PLUS should record cash collections and must not treat cash as automatically non-reportable.
+- Finance should add a GST view for output GST, input GST, estimated net GST payable, review exceptions, and XLSX export.
+- GST report generation must confirm tenant GSTIN, legal name, registered address, and reporting period before export.
+
+### Files/Docs Changed
+
+- `docs/12_GST_SaaS_Billing_and_Market_Positioning.md`
+- `docs/01_PRD.md`
+- `docs/02_WBS.md`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/08_Database_Model.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Next Recommended Sequence
+
+1. Finish production smoke QA on the deployed app.
+2. Implement tenant inactive/suspended locked-state and super-admin tenant billing records.
+3. Implement tenant GST settings and GST rate presets.
+4. Implement order GST capture.
+5. Implement expense GST capture.
+6. Implement Finance > GST report and export.
+7. Build the public marketing site and blog engine after the operational finance plan is locked.
 
 ## Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 

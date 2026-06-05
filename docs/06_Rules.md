@@ -18,7 +18,7 @@
 14. Shopify is not part of MVP.
 15. Campaign-style WhatsApp automation is not part of MVP; tenant-scoped transactional WhatsApp/email alerts are allowed as a controlled communication foundation.
 16. Inventory is not part of MVP.
-17. GST invoicing is not part of MVP.
+17. GST configuration/reporting is a planned finance hardening feature; direct GST filing/e-invoicing is later.
 18. QR/barcode is not part of MVP.
 19. Mobile-first internal production screens are required.
 20. Every major item/workflow status change must create history.
@@ -140,7 +140,7 @@
 ## 11. Finance Rules
 
 1. Finance module in MVP is for operational tracking only.
-2. GST invoicing is not part of MVP.
+2. GST configuration/reporting may be added as finance hardening; direct GST filing/e-invoicing is later.
 3. Track order payments and partial payments.
 4. Track payment mode.
 5. Track expenses by category.
@@ -150,6 +150,7 @@
 9. Tally/Zoho Books integration is later.
 10. Salary payments from the Salary module must roll up to Finance as Salary expense.
 11. Finance should not require or encourage duplicate manual salary expense entries for salary payments already recorded in Salary.
+12. Cash payment mode and GST treatment are separate; cash collections must still be recorded and must not be treated as automatically non-reportable.
 
 ## 12. Dashboard Rules
 

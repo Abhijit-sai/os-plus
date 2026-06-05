@@ -65,6 +65,7 @@ MVP includes:
 - Salary suggestions
 - Worker ledger for advances/loans
 - Expense tracking
+- GST configuration/reporting planned as finance hardening
 - Partial payments
 - Partial pickup/dispatch
 - Customer tracking page
@@ -74,7 +75,7 @@ Do not build these in MVP:
 
 - Shopify integration
 - WhatsApp automation
-- GST invoicing
+- Direct GST filing/e-invoicing
 - Inventory
 - QR/barcode scanning
 - Vendor management
@@ -174,4 +175,3 @@ Update it with:
 - Do not hardcode tenant data.
 - Do not build out-of-scope integrations.
 - Keep MVP simple but extensible.
-

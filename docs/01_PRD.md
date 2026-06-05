@@ -79,6 +79,7 @@ Workers such as tailors, masters, designers, finishers, packers, and QC staff ar
 - Salary suggestion module
 - Worker ledger for salary advances and loans
 - Expense tracking
+- GST configuration and GST-ready reporting planned as a finance hardening feature
 - Partial payment support
 - Partial pickup/dispatch support
 - Customer-facing tracking link
@@ -91,7 +92,7 @@ Workers such as tailors, masters, designers, finishers, packers, and QC staff ar
 - Shopify integration
 - Campaign-style WhatsApp automation
 - Bulk promotional marketing messages
-- GST invoicing
+- Direct GST filing/e-invoicing integration
 - Inventory management
 - QR/barcode scanning
 - Vendor management
@@ -175,6 +176,8 @@ Can:
 
 - Create tenants
 - Manage tenant status
+- Edit mutable tenant details after creation
+- Track tenant subscription/payment records
 - View tenant list
 - Access tenant for support if required
 - Disable tenants
@@ -239,6 +242,9 @@ Allow OS PLUS super admin to create and manage boutique/business tenants.
 - Upload logo
 - Configure brand color
 - Set tenant status
+- Edit mutable tenant profile fields after creation while keeping tenant slug immutable
+- Track tenant subscription/payment history for OS PLUS billing
+- Mark a tenant inactive/suspended and show tenant users a safe contact-support inactive state
 - Pre-authorize first tenant admin by email
 - Allow signed-in users linked to multiple tenants to choose which business to enter
 - Allow signed-in users to switch between active business memberships
@@ -257,6 +263,8 @@ Allow each tenant to configure how their boutique operates.
 
 - Business profile
 - Branding
+- GST registration settings
+- Default GST rates and GST treatment defaults
 - Users
 - Item types
 - Stage master
@@ -725,10 +733,11 @@ Track business inflows, outflows, payables, and receivables.
 - Reminders
 - Basic finance dashboard
 - Salary expense rollup sourced from Salary/Worker Ledger `salary_paid` entries
+- GST report view for output GST collected, input GST paid, net GST payable estimate, review exceptions, and XLSX export
 
 ### MVP Excludes
 
-- GST invoicing
+- Direct GST filing/e-invoicing integration
 - Accounting ledger engine
 - Tally integration
 - Zoho Books integration
@@ -737,6 +746,20 @@ Track business inflows, outflows, payables, and receivables.
 ### Finance and Salary Boundary
 
 Finance should show salary as a clean expense category rollup. Salary payments entered in the Salary module must flow into Finance as Salary expense, grouped by date range and payment mode where useful. Users should not need to enter the same salary expense again in manual expenses, and Finance should avoid creating duplicate salary expense records from salary payments.
+
+### GST Readiness
+
+GST support should help tenants classify sales and expenses without turning OS PLUS into a full statutory accounting system.
+
+Tenant settings should include GST registered status, optional GSTIN, legal business name, registered address, default sales GST rate, default purchase GST rate, and default GST treatment for orders and expenses.
+
+Order creation should let staff choose whether GST is added on top, included in the entered amount, exempt/nil/non-GST, or not applicable. Payment mode and GST treatment are separate; cash collection must still be recorded, and cash does not automatically make a taxable supply non-reportable.
+
+Expense/vendor payment entry should capture vendor invoice details, vendor GSTIN when available, GST treatment, GST rate, taxable amount, GST amount, and whether input GST needs review.
+
+Finance should include a GST report view with date range filters, output GST from orders, input GST from expenses, estimated net GST payable, exceptions needing review, and XLSX export. Before report generation, OS PLUS must ask the tenant to confirm GSTIN, legal business name, registered address, and reporting period.
+
+Detailed planning is captured in `docs/12_GST_SaaS_Billing_and_Market_Positioning.md`.
 
 ## 8.13 Customer Tracking Page
 
@@ -1035,6 +1058,8 @@ Hardening requirements:
 - WhatsApp Cloud API
 - Vendor master
 - Basic import/export
+- Super-admin tenant billing/payment tracking
+- GST configuration, order/expense GST capture, and GST report exports
 
 ### Phase 3
 
@@ -1045,7 +1070,7 @@ Hardening requirements:
 
 ### Phase 4
 
-- GST/accounting integrations
+- Direct GST filing/e-invoicing and accounting integrations
 - Tally/Zoho Books integration
 - Advanced analytics
 - Custom domains

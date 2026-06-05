@@ -527,6 +527,75 @@ The current operating surface covers orders, item workflows, customers, measurem
 
 OS PLUS has a documented tenant-safety audit, business switching/account menu, role and membership behavior ready for multi-business users, and a complete QA workbook for market-readiness testing.
 
+## Phase 10C: Tenant Commercial Control and GST Readiness
+
+### Goals
+
+Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/reporting without turning the MVP into a full accounting engine.
+
+### Super-Admin Commercial Tasks
+
+- Add tenant billing/payment records.
+- Let super-admins edit mutable tenant fields while keeping slug immutable.
+- Let super-admins mark tenants active, inactive, or suspended at any time.
+- Add an inactive tenant locked-state page that tells tenant users to contact OS PLUS support without exposing internal billing notes.
+- Ensure tenant status is checked server-side before loading tenant dashboards or tenant-owned data.
+
+### GST Configuration Tasks
+
+- Add tenant GST fields: GST registered status, GSTIN, legal name, registered address, default sales GST rate, default purchase GST rate, default order GST treatment, and default expense GST treatment.
+- Add tenant-owned GST rate presets.
+- Validate GSTIN format when present.
+- Snapshot GST treatment/rate/amount on orders and expenses so historical reports do not change when defaults change.
+
+### Order GST Tasks
+
+- Add GST controls to the first section of order creation.
+- Support GST-exclusive, GST-inclusive, exempt/nil/non-GST, and not-applicable treatments.
+- Keep payment mode separate from GST treatment. Cash payments remain recorded cash movements and do not automatically make a taxable sale non-reportable.
+- Recalculate order taxable amount, GST amount, and total amount with deterministic decimal-safe helpers.
+- Show GST details on order detail.
+
+### Expense GST Tasks
+
+- Add expense/vendor GST fields: vendor GSTIN, invoice number, invoice date, GST treatment, GST rate, taxable amount, GST amount, total amount, and input GST review status.
+- Keep GST paid on expenses separate from cash-out total.
+- Preserve existing finance expense behavior while adding GST fields as optional/defaulted columns.
+
+### GST Report Tasks
+
+- Add Finance > GST view.
+- Query output GST from orders and input GST from expenses by tenant and date range.
+- Show net GST payable estimate.
+- Show exception rows needing review.
+- Before export, confirm GSTIN, legal business name, registered address, and reporting period.
+- Export XLSX with summary, order-wise output GST, expense-wise input GST, and review exceptions.
+
+### Deliverable
+
+Super-admin can manage tenant commercial status, and tenant finance users can classify GST on orders/expenses and generate accountant-review GST reports.
+
+Detailed plan: `docs/12_GST_SaaS_Billing_and_Market_Positioning.md`.
+
+## Phase 10D: Public Website and Content Engine
+
+### Goals
+
+Build a premium, conversion-driven public website that positions OS PLUS as the operating system for workflow-driven businesses.
+
+### Tasks
+
+- Complete market research across accounting tools, generic project tools, boutique/tailoring tools, and small manufacturing ERPs.
+- Define positioning around order-to-production workflow rather than accounting, CRM, or generic task management.
+- Build an Awwwards-level landing page focused on business value: fewer missed orders, clearer production control, better cashflow, and calmer founder operations.
+- Add blog architecture for continuous content publishing.
+- Create content pillars around production workflow, boutique operations, cashflow, GST visibility, worker productivity, and customer tracking.
+- Add conversion CTAs for pilot signup, workflow audit, and demo request.
+
+### Deliverable
+
+The public site clearly explains why OS PLUS exists, which businesses it serves, and why workflow-driven businesses need more than a standard accounting template.
+
 ## 6. Database Development Plan
 
 ### Migration Order

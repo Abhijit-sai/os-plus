@@ -17,6 +17,7 @@ OS PLUS helps business owners manage:
 - Salary suggestions
 - Worker advances/loans
 - Expenses
+- GST configuration/reporting planned for the next finance hardening phase
 - Customer-facing order tracking
 - Dashboards
 
@@ -59,7 +60,7 @@ The following are not part of MVP:
 
 - Shopify integration
 - WhatsApp automation
-- GST invoicing
+- Direct GST filing/e-invoicing integration
 - Inventory management
 - QR/barcode scanning
 - Vendor management
@@ -87,6 +88,7 @@ Each tenant should be able to configure:
 - Store name
 - Logo
 - Brand color
+- GST registration settings and default GST rates
 - Tracking page branding
 - WhatsApp sender later
 - Domain/subdomain later
@@ -182,7 +184,7 @@ MVP supports:
 
 ### Finance
 
-- GST invoicing is not part of MVP.
+- GST configuration and GST-ready reporting are now planned as the next finance hardening area; direct GST filing/e-invoicing remains later.
 - Track payments, expenses, receivables, payables, and reminders.
 - Partial payments are essential.
 - Vendor master is Phase 2 or later and low priority.
@@ -303,7 +305,7 @@ None yet.
 - Inventory
 - QR/barcode scan updates
 - Vendor master
-- GST invoicing
+- Direct GST filing/e-invoicing
 - Tally/Zoho Books
 - Worker login
 - Customer login
@@ -428,6 +430,53 @@ Root `project_summary.md` remains authoritative. This secondary summary was reco
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npm run build` passed.
+
+## 19. Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Post-Deployment Planning
+
+### What Was Added
+
+- Added dedicated plan `docs/12_GST_SaaS_Billing_and_Market_Positioning.md`.
+- Updated PRD, WBS, technical plan, and database model for:
+  - super-admin tenant detail/status editing,
+  - super-admin tenant billing/payment tracking,
+  - inactive tenant locked-state UX,
+  - tenant GST configuration,
+  - order GST capture,
+  - expense/vendor GST capture,
+  - Finance > GST report and XLSX export,
+  - public website positioning for workflow-driven businesses.
+
+### Key Decisions Made
+
+- Tenant slug remains immutable after creation.
+- Super-admin can edit mutable tenant details and status at any time.
+- Tenant billing/payment records are OS PLUS-owned operational records.
+- GST readiness is now a near finance hardening area.
+- Direct GST filing, e-invoicing, and accounting integrations remain later.
+- Cash payment mode and GST treatment are separate; OS PLUS must record cash collections and must not treat cash as automatically non-reportable.
+- Public website positioning should focus on businesses with real workflows that cannot be run well with standard accounting templates.
+
+### Next Recommended Sequence
+
+1. Production smoke QA on deployed Vercel app.
+2. Tenant inactive/suspended locked-state and super-admin billing records.
+3. Tenant GST settings and GST rate presets.
+4. Order GST capture.
+5. Expense/vendor GST capture.
+6. Finance GST report and export.
+7. High-conversion public website and blog engine.
 
 ## 17. Session Update - 2026-06-04 - Tenant Profile Editing Hardening
 

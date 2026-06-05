@@ -77,6 +77,9 @@
 - Create tenant creation page
 - Create tenant detail page
 - Invite/assign tenant admin
+- Edit mutable tenant details after creation while keeping slug fixed
+- Track tenant subscription/payment records
+- Mark tenants inactive/suspended and show tenant users a contact-support inactive state
 
 ## 3. RBAC and Permissions
 
@@ -152,6 +155,12 @@
 - Brand color
 - Contact details
 - Address
+- GST registered toggle
+- GSTIN, optional unless GST registered is enabled
+- Legal business name and registered address
+- Default sales GST rate
+- Default purchase GST rate
+- Default GST treatment for orders and expenses
 
 ### 4.2 Item Type Master
 
@@ -660,6 +669,30 @@
 - Show Salary as one expense category in Finance summaries
 - Avoid duplicating Salary module payments as manual expense records
 - Upcoming receivables
+
+### 11.4 GST Configuration and Capture
+
+- Add tenant GST settings under Business Profile or Finance Settings
+- Store GST registered status, GSTIN, legal name, registered address, default sales rate, and default purchase rate
+- Add tenant GST rate presets
+- Add GST treatment to order creation: GST added on top, GST included in amount, exempt/nil/non-GST, or not applicable
+- Keep payment mode separate from GST treatment; cash payments must still be recorded normally
+- Snapshot GST rate, taxable amount, GST amount, and GST treatment on each order
+- Add GST treatment to expense/vendor payment entry
+- Store vendor GSTIN, invoice number, invoice date, taxable amount, GST amount, and input GST review state
+- Preserve historical GST snapshots even if tenant defaults change later
+
+### 11.5 GST Report
+
+- Add Finance > GST view
+- Add date range filter
+- Show output GST collected from orders
+- Show input GST paid from expenses/vendor payments
+- Show estimated net GST payable
+- Show records missing GST classification or invoice/GSTIN details
+- Ask tenant to confirm GSTIN, legal business name, registered address, and reporting period before generating report
+- Export XLSX with summary, order-wise GST collected, expense-wise GST paid, and exceptions/review sheets
+- Keep direct GST filing/e-invoicing integration for a later accounting phase
 
 ## 12. Customer Tracking Page
 
