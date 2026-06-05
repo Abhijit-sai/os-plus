@@ -423,18 +423,14 @@ delivery_type
 delivery_address
 subtotal
 discount_amount
+gst_treatment
+gst_rate
+taxable_amount
+gst_amount
 total_amount
 amount_paid
 payment_status
 order_status
-gst_treatment
-gst_rate_percent
-taxable_amount
-gst_amount
-total_before_gst
-gst_reportable
-gst_invoice_number
-gst_invoice_date
 notes
 tracking_token
 created_at
@@ -443,6 +439,14 @@ created_by
 updated_by
 deleted_at
 ```
+
+GST notes:
+
+- `gst_treatment` snapshots the order-level GST decision at creation time.
+- `gst_rate` is the percentage used for this order.
+- `taxable_amount` and `gst_amount` are server-calculated from item totals, discounts, treatment, and rate.
+- `total_amount` remains the amount receivable from the customer. For GST-exclusive orders it includes GST added on top. For GST-inclusive orders it is the entered commercial amount with GST backed out into `taxable_amount` and `gst_amount`.
+- Dedicated GST invoice numbering is later; existing `order_number` is the first accountant-handoff report reference.
 
 Order sources:
 
@@ -1159,7 +1163,8 @@ customers.tenant_id, customers.name
 orders.tenant_id, orders.order_number
 orders.tenant_id, orders.customer_id
 orders.tenant_id, orders.promised_delivery_date
-orders.tenant_id, orders.order_date, orders.gst_reportable
+orders.tenant_id, orders.order_date
+orders.tenant_id, orders.gst_treatment
 order_items.tenant_id, order_items.order_id
 order_items.tenant_id, order_items.expected_completion_date
 order_items.tenant_id, order_items.item_status

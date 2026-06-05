@@ -9,7 +9,7 @@ import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { createWorkflowInstanceForOrderItem } from "@/features/production/instances";
-import type { DeliveryType, OrderSource, PaymentStatus } from "@/types/database";
+import type { DeliveryType, GstTreatment, OrderSource, PaymentStatus } from "@/types/database";
 
 export type FormActionState = {
   ok: boolean;
@@ -23,6 +23,7 @@ const optionalText = z
 
 const orderSourceSchema = z.enum(["walk_in", "shopify_manual", "whatsapp", "other"]);
 const deliveryTypeSchema = z.enum(["store_pickup", "self_delivery", "courier"]);
+const gstTreatmentSchema = z.enum(["taxable_exclusive", "taxable_inclusive", "exempt_or_nil", "non_gst", "not_applicable"]);
 
 const createOrderSchema = z.object({
   referenceOrderId: optionalText,
@@ -32,6 +33,8 @@ const createOrderSchema = z.object({
   promisedDeliveryDate: optionalText,
   deliveryType: deliveryTypeSchema,
   deliveryAddress: optionalText,
+  orderGstTreatment: gstTreatmentSchema.default("not_applicable"),
+  orderGstRate: z.coerce.number().min(0).max(100),
   notes: optionalText,
   initialPaymentAmount: z.coerce.number().min(0),
   initialPaymentModeId: optionalText,
@@ -180,6 +183,49 @@ function getPaymentStatus(totalAmount: number, amountPaid: number): PaymentStatu
   return "partially_paid";
 }
 
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function calculateOrderGst({
+  baseAmount,
+  gstRate,
+  gstTreatment
+}: {
+  baseAmount: number;
+  gstRate: number;
+  gstTreatment: GstTreatment;
+}) {
+  if (baseAmount <= 0 || gstRate <= 0 || !["taxable_exclusive", "taxable_inclusive"].includes(gstTreatment)) {
+    return {
+      gstAmount: 0,
+      taxableAmount: 0,
+      totalAmount: roundMoney(baseAmount)
+    };
+  }
+
+  if (gstTreatment === "taxable_exclusive") {
+    const taxableAmount = roundMoney(baseAmount);
+    const gstAmount = roundMoney((taxableAmount * gstRate) / 100);
+
+    return {
+      gstAmount,
+      taxableAmount,
+      totalAmount: roundMoney(taxableAmount + gstAmount)
+    };
+  }
+
+  const totalAmount = roundMoney(baseAmount);
+  const taxableAmount = roundMoney(totalAmount / (1 + gstRate / 100));
+  const gstAmount = roundMoney(totalAmount - taxableAmount);
+
+  return {
+    gstAmount,
+    taxableAmount,
+    totalAmount
+  };
+}
+
 async function validatePaymentMode(tenantId: string, paymentModeId: string | null) {
   if (!paymentModeId) {
     return;
@@ -263,6 +309,8 @@ export async function createOrderAction(formData: FormData) {
     promisedDeliveryDate: formData.get("promisedDeliveryDate"),
     deliveryType: formData.get("deliveryType") || "store_pickup",
     deliveryAddress: formData.get("deliveryAddress"),
+    orderGstTreatment: formData.get("orderGstTreatment") || "not_applicable",
+    orderGstRate: formData.get("orderGstRate") || 0,
     notes: formData.get("notes"),
     initialPaymentAmount: formData.get("initialPaymentAmount") || 0,
     initialPaymentModeId: formData.get("initialPaymentModeId"),
@@ -412,9 +460,14 @@ export async function createOrderAction(formData: FormData) {
     }
   }
 
-  const subtotal = parsed.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const discountAmount = parsed.items.reduce((sum, item) => sum + item.discountAmount, 0);
-  const totalAmount = Math.max(subtotal - discountAmount, 0);
+  const subtotal = roundMoney(parsed.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
+  const discountAmount = roundMoney(parsed.items.reduce((sum, item) => sum + item.discountAmount, 0));
+  const baseAmount = Math.max(subtotal - discountAmount, 0);
+  const { gstAmount, taxableAmount, totalAmount } = calculateOrderGst({
+    baseAmount,
+    gstRate: parsed.orderGstRate,
+    gstTreatment: parsed.orderGstTreatment as GstTreatment
+  });
   const amountPaid = Math.min(parsed.initialPaymentAmount, totalAmount);
   const paymentStatus = getPaymentStatus(totalAmount, amountPaid);
 
@@ -431,6 +484,10 @@ export async function createOrderAction(formData: FormData) {
       delivery_address: parsed.deliveryAddress,
       subtotal,
       discount_amount: discountAmount,
+      gst_treatment: parsed.orderGstTreatment as GstTreatment,
+      gst_rate: parsed.orderGstRate,
+      taxable_amount: taxableAmount,
+      gst_amount: gstAmount,
       total_amount: totalAmount,
       amount_paid: amountPaid,
       payment_status: paymentStatus,

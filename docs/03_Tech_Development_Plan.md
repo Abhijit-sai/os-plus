@@ -551,11 +551,11 @@ Add OS PLUS-owned tenant billing/payment tracking and tenant-safe GST capture/re
 
 ### Order GST Tasks
 
-- Add GST controls to the first section of order creation.
-- Support GST-exclusive, GST-inclusive, exempt/nil/non-GST, and not-applicable treatments.
+- Add GST controls to the first section of order creation. Implemented first slice: tenant-defaulted order GST fields in the order details card.
+- Support GST-exclusive, GST-inclusive, exempt/nil/non-GST, and not-applicable treatments. Implemented first slice: order creation snapshots treatment and rate.
 - Keep payment mode separate from GST treatment. Cash payments remain recorded cash movements and do not automatically make a taxable sale non-reportable.
-- Recalculate order taxable amount, GST amount, and total amount with deterministic decimal-safe helpers.
-- Show GST details on order detail.
+- Recalculate order taxable amount, GST amount, and total amount with deterministic decimal-safe helpers. Implemented for order creation.
+- Show GST details on order detail. Implemented first read-only display.
 
 ### Expense GST Tasks
 

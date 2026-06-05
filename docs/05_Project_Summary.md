@@ -1111,6 +1111,51 @@ Production Hardening and Pilot Readiness
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Order GST Capture First Slice
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Capture
+
+### What Was Built
+
+- Added order-level GST capture fields for GST treatment, GST rate, taxable amount, and GST amount.
+- Added a compact GST decision block to the first order creation section, defaulted from the current tenant's Business profile GST settings.
+- Server-side order creation now calculates GST-exclusive, GST-inclusive, exempt/nil, non-GST, and not-applicable order totals.
+- Order detail now displays GST treatment, taxable amount, GST amount, and GST rate in the payment summary.
+- Existing order numbers remain unchanged and remain the first accountant-handoff report reference.
+
+### Key Decisions Made
+
+- GST calculation is authoritative on the server action, not the browser.
+- Existing orders default to `not_applicable` and zero GST so historical order totals are not reinterpreted.
+- Payment mode remains separate from GST treatment.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605120000_order_gst_capture.sql`
+- `src/types/database.ts`
+- `src/features/orders/actions.ts`
+- `src/components/orders/order-gst-fields.tsx`
+- `src/app/(tenant)/orders/new/page.tsx`
+- `src/app/(tenant)/orders/[orderId]/page.tsx`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/08_Database_Model.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+
 - Added `Make default` for existing measurement records.
 - Added soft archive for incorrect or outdated measurements.
 

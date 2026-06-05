@@ -296,6 +296,10 @@ export type Order = TenantOwnedBase & {
   delivery_address: string | null;
   subtotal: number;
   discount_amount: number;
+  gst_treatment: GstTreatment;
+  gst_rate: number;
+  taxable_amount: number;
+  gst_amount: number;
   total_amount: number;
   amount_paid: number;
   payment_status: PaymentStatus;
@@ -738,6 +742,10 @@ export type Database = {
           delivery_address?: string | null;
           subtotal?: number;
           discount_amount?: number;
+          gst_treatment?: GstTreatment;
+          gst_rate?: number;
+          taxable_amount?: number;
+          gst_amount?: number;
           total_amount?: number;
           amount_paid?: number;
           payment_status?: PaymentStatus;

@@ -17,7 +17,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import type { ItemTypeMeasurementField } from "@/types/database";
+import type { GstTreatment, ItemTypeMeasurementField } from "@/types/database";
+
+const gstTreatmentLabels: Record<GstTreatment, string> = {
+  exempt_or_nil: "Exempt / nil rated",
+  non_gst: "Non-GST supply",
+  not_applicable: "Not applicable",
+  taxable_exclusive: "GST added on top",
+  taxable_inclusive: "GST included in amount"
+};
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(amount);
@@ -295,7 +303,11 @@ export default async function OrderDetailPage({
         ) : null}
       </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Order total" value={`₹${formatMoney(order.total_amount)}`} hint={`Discount ₹${formatMoney(order.discount_amount)}`} />
+        <MetricCard
+          label="Order total"
+          value={`₹${formatMoney(order.total_amount)}`}
+          hint={order.gst_amount > 0 ? `Includes GST ₹${formatMoney(order.gst_amount)}` : `Discount ₹${formatMoney(order.discount_amount)}`}
+        />
         <MetricCard label="Amount paid" value={`₹${formatMoney(order.amount_paid)}`} hint={order.payment_status.replace("_", " ")} />
         <MetricCard label="Receivable" value={`₹${formatMoney(outstandingAmount)}`} hint="Derived from order payments" />
         <MetricCard label="Production" value={`${productionCompleteItems}/${items.length}`} hint="Production-complete items" />
@@ -366,6 +378,21 @@ export default async function OrderDetailPage({
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Total</p>
                   <p className="text-muted-foreground">₹{formatMoney(order.total_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">GST treatment</p>
+                  <p className="text-muted-foreground">{gstTreatmentLabels[order.gst_treatment]}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Taxable</p>
+                  <p className="text-muted-foreground">₹{formatMoney(order.taxable_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">GST</p>
+                  <p className="text-muted-foreground">
+                    ₹{formatMoney(order.gst_amount)}
+                    {order.gst_rate > 0 ? ` at ${order.gst_rate}%` : ""}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Paid</p>

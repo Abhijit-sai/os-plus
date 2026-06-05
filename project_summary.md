@@ -539,6 +539,66 @@ Production Hardening and Pilot Readiness
 - `npm run lint` passed.
 - `npm run build` passed.
 
+## Session Update - 2026-06-05 - Order GST Capture First Slice
+
+### Date
+
+2026-06-05
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Finance Hardening: GST Capture
+
+### What Was Built
+
+- Added order-level GST capture migration with:
+  - `orders.gst_treatment`,
+  - `orders.gst_rate`,
+  - `orders.taxable_amount`,
+  - `orders.gst_amount`.
+- Added a compact order GST decision block to the first order creation section.
+- Order GST defaults come from the current tenant's Business profile GST configuration.
+- Server-side order creation now calculates:
+  - GST-exclusive totals by adding GST on top,
+  - GST-inclusive totals by backing GST out of the entered amount,
+  - zero GST for exempt/nil, non-GST, and not-applicable treatments.
+- Order detail now shows GST treatment, taxable amount, GST amount, and GST rate in the payment summary.
+- Existing order numbers remain unchanged and continue to be the reporting reference for now.
+
+### Tenant Safety
+
+- Order GST defaults are read only from the current tenant context.
+- Order writes remain tenant-scoped through `requireTenantContext()` and existing tenant-owned order validation.
+- Existing orders default to `not_applicable` and zero GST, avoiding reinterpretation of historical commercial totals.
+
+### Remaining GST Work
+
+- Add expense/vendor GST capture.
+- Add Finance > GST view.
+- Add accountant-handoff XLSX export.
+- Add final GST report confirmation flow for GSTIN, legal name, registered address, and reporting period.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260605120000_order_gst_capture.sql`
+- `src/types/database.ts`
+- `src/features/orders/actions.ts`
+- `src/components/orders/order-gst-fields.tsx`
+- `src/app/(tenant)/orders/new/page.tsx`
+- `src/app/(tenant)/orders/[orderId]/page.tsx`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/08_Database_Model.md`
+- `project_summary.md`
+- `docs/05_Project_Summary.md`
+
+### Verification
+
+- `npm run typecheck` passed.
+
 ## Session Update - 2026-06-05 - Post-Deployment Roadmap: Tenant Billing, GST, and Public Website
 
 ### Date

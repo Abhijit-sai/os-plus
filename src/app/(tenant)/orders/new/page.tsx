@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createOrderAction } from "@/features/orders/actions";
 import { getNewOrderPageData } from "@/features/orders/queries";
 import { CustomerPicker } from "@/components/orders/customer-picker";
+import { OrderGstFields } from "@/components/orders/order-gst-fields";
 import { OrderItemBuilder } from "@/components/orders/order-item-builder";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +33,7 @@ export default async function NewOrderPage({
   searchParams?: Promise<{ customerId?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { customers, itemTypes, workflows, paymentModes, customerMeasurements, measurementFields, standardSizes } =
+  const { context, customers, itemTypes, workflows, paymentModes, customerMeasurements, measurementFields, standardSizes } =
     await getNewOrderPageData();
   const today = todayIsoDate();
 
@@ -104,6 +105,11 @@ export default async function NewOrderPage({
               <Label htmlFor="deliveryAddress">Delivery address</Label>
               <Input id="deliveryAddress" name="deliveryAddress" placeholder="Optional" />
             </div>
+            <OrderGstFields
+              defaultGstRate={Number(context.tenant.default_sales_gst_rate ?? 0)}
+              defaultGstTreatment={context.tenant.default_order_gst_treatment ?? "not_applicable"}
+              gstRegistered={Boolean(context.tenant.gst_registered)}
+            />
             <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="notes">Order notes</Label>
               <Input id="notes" name="notes" placeholder="Internal order notes" />
