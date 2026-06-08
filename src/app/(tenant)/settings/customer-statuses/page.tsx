@@ -17,7 +17,7 @@ export default async function CustomerStatusesPage() {
           <CardDescription>Only safe customer-facing labels should live here.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createCustomerStatusAction} className="space-y-4">
+          <form action={createCustomerStatusAction} className="space-y-4" data-unsaved-guard="true">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="Ready for pickup" required />

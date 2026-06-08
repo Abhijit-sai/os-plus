@@ -7516,3 +7516,94 @@ Production Hardening and Pilot Readiness
 
 - Complete authenticated real-account browser QA once browser automation is available or the user can run the flows interactively.
 - Harden unsaved-change coverage so all create/edit mutation forms that can lose meaningful entered data opt into the guard, while passive filter/search forms remain unguarded.
+
+## Session Update - 2026-06-08 - Authenticated QA and Unsaved Guard Hardening
+
+### Date
+
+2026-06-08
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### What Was Verified
+
+- Pulled latest `main`; repository was already up to date.
+- Re-read root `project_summary.md` plus the required PRD, WBS, technical plan, rules, database model, GST/billing plan, and QA workbook.
+- Used Microsoft Edge through Computer Use for authenticated QA.
+- Verified anonymous/public route behavior:
+  - `/` returns 200.
+  - `/industries/boutiques` returns 200.
+  - invalid `/track/[token]` returns 404.
+  - `/dashboard`, `/orders`, and `/finance` redirect anonymous users to Clerk sign-in.
+- Verified `abhiit.sai09@gmail.com` resolves to Phantom Threads as Manager.
+- Verified Manager default route behavior:
+  - direct `/dashboard` redirects to the Orders workspace.
+  - restricted modules such as Finance, Salary, Settings, and Reports are not exposed in the Manager sidebar and direct URL attempts land back in the Orders workspace.
+  - allowed Manager modules Orders, Production, Customers, and Attendance are reachable.
+- Verified the account menu shows signed-in email, current business, current role, default workspace, switch business, and sign out.
+- Signed out and signed in as `abhijit.siddabuthuni@gmail.com` using the approved test password.
+- Verified that account resolves to Phantom Threads as Owner/Admin with Dashboard, Orders, Production, Customers, Workers, Attendance, Salary, Finance, Reports, and Settings visible.
+- Verified `/super-admin/tenants` loads for the approved superadmin account and shows tenant create/edit entry points.
+- Verified Finance > GST loads for Owner/Admin, shows accountant-handoff confirmation, and downloads a valid XLSX export.
+- Opened the downloaded workbook and confirmed sheets:
+  - Summary
+  - Output GST
+  - Input GST
+  - Review Exceptions
+- Static review reconfirmed high-risk tenant/security rules:
+  - tenant context only grants active memberships on active tenants,
+  - attachment downloads filter by current tenant before signed URL creation,
+  - public tracking selects only customer-safe fields,
+  - communication settings reject live mode,
+  - communication templates reject unsafe variables such as `worker_name`,
+  - order, attendance, salary, finance, production, and communication actions validate tenant-owned IDs before writes.
+
+### Bugs Found
+
+- P2: Unsaved-change guard coverage was inconsistent on several setup/admin mutation forms, especially settings and super-admin tenant/billing forms. High-traffic operational forms were already guarded, but configuration data could still be lost by navigating away mid-edit.
+
+### Bugs Fixed
+
+- Added `data-unsaved-guard="true"` to settings and super-admin create/edit forms that can lose meaningful typed input.
+- Left passive filter/search forms and simple destructive confirmation forms unguarded.
+
+### Files/Modules Changed
+
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/app/(super-admin)/super-admin/tenants/new/page.tsx`
+- `src/app/(tenant)/settings/communications/page.tsx`
+- `src/app/(tenant)/settings/customer-statuses/page.tsx`
+- `src/app/(tenant)/settings/expense-categories/page.tsx`
+- `src/app/(tenant)/settings/item-types/page.tsx`
+- `src/app/(tenant)/settings/measurement-standards/page.tsx`
+- `src/app/(tenant)/settings/page.tsx`
+- `src/app/(tenant)/settings/users/page.tsx`
+- `src/app/(tenant)/settings/workflows/[workflowId]/page.tsx`
+- `src/app/(tenant)/settings/workflows/page.tsx`
+- `src/components/settings/standard-size-form.tsx`
+- `src/components/settings/text-master-form.tsx`
+- `project_summary.md`
+
+### Data Created
+
+- Downloaded local QA export: `C:\Users\abhij\Downloads\os-plus-gst-report-2026-06-01-to-2026-06-08.xlsx`.
+- No new customer, order, worker, salary, finance, tenant, or communication database records were intentionally created in this pass.
+
+### Verification
+
+- `npm run test:roles` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+### Pending Tasks
+
+- Full data-mutating pilot loop still needs a deliberate seed-data pass or manual approval to create fresh QA records across customer, order, production, attendance, salary, finance, attachment, and communication workflows.
+- Finance-role and viewer-role browser checks still require active test memberships for the approved accounts or additional approved test accounts.
+- Disabled-membership and inactive-tenant browser checks still require prepared test data.

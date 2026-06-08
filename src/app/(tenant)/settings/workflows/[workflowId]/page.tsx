@@ -65,7 +65,7 @@ export default async function WorkflowDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={replaceWorkflowStagesAction} className="space-y-4">
+          <form action={replaceWorkflowStagesAction} className="space-y-4" data-unsaved-guard="true">
             <input type="hidden" name="workflowId" value={workflow.id} />
             <div className="space-y-3">
               {Array.from({ length: Math.max(stages.length, workflowStages.length, 1) }).map((_, index) => {

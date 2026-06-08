@@ -17,7 +17,7 @@ export default async function ExpenseCategoriesPage() {
           <CardDescription>Operational finance buckets, not GST/accounting categories.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createExpenseCategoryAction} className="space-y-4">
+          <form action={createExpenseCategoryAction} className="space-y-4" data-unsaved-guard="true">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="Repairs" required />

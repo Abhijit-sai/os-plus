@@ -66,7 +66,7 @@ export default async function SettingsPage() {
           description="This adds missing starter records for item types, stages, customer statuses, workgroups, payment modes, and expense categories."
           trigger={<span className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm font-medium hover:bg-accent">Seed defaults</span>}
         >
-          <form action={seedConfigurationDefaultsAction} className="space-y-4">
+          <form action={seedConfigurationDefaultsAction} className="space-y-4" data-unsaved-guard="true">
             <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
               Existing active settings are kept. OS PLUS only creates defaults that are missing, so this is intended for setup or repair, not day-to-day use.
             </div>

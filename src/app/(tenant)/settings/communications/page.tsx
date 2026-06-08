@@ -288,7 +288,7 @@ export default async function CommunicationsSettingsPage() {
               const setting = settingsByChannel.get(channel);
 
               return (
-                <form key={channel} action={upsertCommunicationChannelSettingAction} className="space-y-3 rounded-md border p-4">
+                <form key={channel} action={upsertCommunicationChannelSettingAction} className="space-y-3 rounded-md border p-4" data-unsaved-guard="true">
                   <input type="hidden" name="channel" value={channel} />
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -338,7 +338,7 @@ export default async function CommunicationsSettingsPage() {
                 <CardDescription>Reusable customer-safe message bodies.</CardDescription>
               </div>
               <Dialog title="Add template" description="Create a tenant-owned dry-run template." trigger={<span className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Add template</span>}>
-                <form action={createCommunicationTemplateAction} className="space-y-3">
+                <form action={createCommunicationTemplateAction} className="space-y-3" data-unsaved-guard="true">
                   <TemplateFields />
                   <Button type="submit">Create template</Button>
                 </form>
@@ -353,7 +353,7 @@ export default async function CommunicationsSettingsPage() {
                   <div className="flex items-center gap-2">
                     <Badge variant={template.is_active ? "default" : "neutral"}>{template.channel}</Badge>
                     <Dialog title="Edit template" description="Changes apply to future queued messages only." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                      <form action={updateCommunicationTemplateAction} className="space-y-3">
+                      <form action={updateCommunicationTemplateAction} className="space-y-3" data-unsaved-guard="true">
                         <TemplateFields template={template} />
                         <Button type="submit">Save template</Button>
                       </form>
@@ -389,7 +389,7 @@ export default async function CommunicationsSettingsPage() {
                 <CardDescription>Opt-in rules for future automated queueing.</CardDescription>
               </div>
               <Dialog title="Add trigger rule" description="Rules are stored now; live automation comes after job runner setup." trigger={<span className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm font-medium">Add rule</span>}>
-                <form action={createCommunicationTriggerRuleAction} className="space-y-3">
+                <form action={createCommunicationTriggerRuleAction} className="space-y-3" data-unsaved-guard="true">
                   <TriggerRuleFields activeTemplates={activeTemplates} />
                   <Button type="submit" disabled={!activeTemplates.length}>
                     Create rule
@@ -408,7 +408,7 @@ export default async function CommunicationsSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Badge variant={rule.is_enabled ? "default" : "neutral"}>{rule.is_enabled ? "enabled" : "off"}</Badge>
                       <Dialog title="Edit trigger rule" description="Rules are stored for future automation. Live sends are still blocked." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                        <form action={updateCommunicationTriggerRuleAction} className="space-y-3">
+                        <form action={updateCommunicationTriggerRuleAction} className="space-y-3" data-unsaved-guard="true">
                           <TriggerRuleFields activeTemplates={activeTemplates} rule={rule} />
                           <Button type="submit" disabled={!activeTemplates.length}>
                             Save rule

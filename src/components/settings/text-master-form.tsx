@@ -21,7 +21,7 @@ export function TextMasterForm({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-4" data-unsaved-guard="true">
           <div className="grid gap-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" placeholder={namePlaceholder} required />

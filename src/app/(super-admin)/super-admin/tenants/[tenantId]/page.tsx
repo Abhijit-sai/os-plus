@@ -158,7 +158,7 @@ export default async function TenantDetailPage({
               </p>
             </div>
           </div>
-          <form action={updateTenantAction} className="space-y-4">
+          <form action={updateTenantAction} className="space-y-4" data-unsaved-guard="true">
             <input type="hidden" name="tenantId" value={tenant.id} />
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
@@ -271,6 +271,7 @@ export default async function TenantDetailPage({
           <form
             action={createTenantBillingRecordAction}
             className="space-y-4 rounded-md border p-4"
+            data-unsaved-guard="true"
           >
             <input type="hidden" name="tenantId" value={tenant.id} />
             <div>
@@ -393,6 +394,7 @@ export default async function TenantDetailPage({
                   <form
                     action={updateTenantBillingRecordAction}
                     className="space-y-4"
+                    data-unsaved-guard="true"
                   >
                     <input type="hidden" name="tenantId" value={tenant.id} />
                     <input

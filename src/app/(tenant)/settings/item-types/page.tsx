@@ -17,7 +17,7 @@ export default async function ItemTypesPage() {
           <CardDescription>Item types are tenant-owned and later map to default workflows.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createItemTypeAction} className="space-y-4">
+          <form action={createItemTypeAction} className="space-y-4" data-unsaved-guard="true">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="Sherwani" required />

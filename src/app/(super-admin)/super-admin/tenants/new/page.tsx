@@ -23,7 +23,7 @@ export default async function NewTenantPage() {
           <CardDescription>Tenant data is never hardcoded; memberships are stored in tenant_users.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createTenantAction} className="space-y-5">
+          <form action={createTenantAction} className="space-y-5" data-unsaved-guard="true">
             <div className="grid gap-2">
               <Label htmlFor="name">Tenant name</Label>
               <Input id="name" name="name" placeholder="Acme Boutique Pvt Ltd" required />

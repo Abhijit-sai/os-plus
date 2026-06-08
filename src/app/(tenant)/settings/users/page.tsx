@@ -88,7 +88,7 @@ export default async function TenantUsersSettingsPage() {
             description="Add an email and role. Access starts only after the person signs in with this verified email and the profile is active."
             trigger={<span className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Add user</span>}
           >
-            <form action={createTenantUserAction} className="space-y-3">
+            <form action={createTenantUserAction} className="space-y-3" data-unsaved-guard="true">
               <UserFields />
               <Button type="submit">Add user</Button>
             </form>
@@ -131,7 +131,7 @@ export default async function TenantUsersSettingsPage() {
                   <Badge variant={user.status === "active" ? "default" : "neutral"}>{statusLabel(user.status)}</Badge>
                   <Badge variant="outline">{roleLabel(user.role)}</Badge>
                   <Dialog title="Edit tenant user" description="Role and status changes apply only inside this tenant." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                    <form action={updateTenantUserAction} className="space-y-3">
+                    <form action={updateTenantUserAction} className="space-y-3" data-unsaved-guard="true">
                       <UserFields user={user} />
                       <Button type="submit">Save user</Button>
                     </form>

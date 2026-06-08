@@ -40,7 +40,7 @@ export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes,
   );
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-4" data-unsaved-guard="true">
       {standardSize ? <input type="hidden" name="standardSizeId" value={standardSize.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={standardSize ? `size-item-type-${standardSize.id}` : "size-item-type"}>Item type</Label>

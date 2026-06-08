@@ -49,7 +49,7 @@ function FieldForm({
   const action = field ? updateMeasurementFieldAction : createMeasurementFieldAction;
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-4" data-unsaved-guard="true">
       {field ? <input type="hidden" name="fieldId" value={field.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={field ? `itemTypeId-${field.id}` : "itemTypeId"}>Item type</Label>

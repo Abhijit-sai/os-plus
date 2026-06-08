@@ -27,7 +27,7 @@ export default async function WorkflowsPage() {
             <CardDescription>Choose one stage per step. Empty steps are ignored.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={createWorkflowAction} className="space-y-5">
+            <form action={createWorkflowAction} className="space-y-5" data-unsaved-guard="true">
               <div className="grid gap-2">
                 <Label htmlFor="name">Workflow name</Label>
                 <Input id="name" name="name" placeholder="Standard blouse production" required />
@@ -103,7 +103,7 @@ export default async function WorkflowsPage() {
               <CardDescription>Allowed workgroups will restrict worker assignment when production starts.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <form action={addStageWorkgroupAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <form action={addStageWorkgroupAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" data-unsaved-guard="true">
                 <select name="stageMasterId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
                   <option value="">Stage</option>
                   {stages.map((stage) => (
