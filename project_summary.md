@@ -7448,3 +7448,71 @@ Production Hardening and Pilot Readiness
 
 - User to manually test the unsaved-change navigation prompts in authenticated browser flows.
 - Authenticated role QA with real Clerk users should confirm direct URL redirects for manager, finance, and viewer memberships.
+
+## Session Update - 2026-06-08 - Production Readiness QA Pass
+
+### Date
+
+2026-06-08
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Production Hardening and Pilot Readiness
+
+### User Feedback
+
+- Run the launch-readiness test set end to end where possible.
+- Use the two provided real Clerk accounts for role testing if browser automation is available.
+- List bugs by severity and impact.
+
+### What Was Verified
+
+- Read the authoritative root `project_summary.md` and relevant product, WBS, technical, rules, database, and GST/billing docs.
+- Loaded and reviewed `docs/OS_PLUS_QA_Test_Matrix.xlsx`; it contains 44 checks across tenant access, roles, tenant isolation, customers, measurements, orders, production, attendance, salary, finance, attachments, communications, public tracking, and deployment smoke.
+- Ran the automated verification suite:
+  - `npm run test:roles` passed.
+  - `npm run typecheck` passed.
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Probed anonymous route behavior locally:
+  - `/` returns 200.
+  - `/industries/boutiques` now returns 200.
+  - invalid `/track/[token]` returns 404.
+  - `/dashboard`, `/orders`, and `/finance` redirect to Clerk sign-in.
+- Static access review confirmed tenant route guards are present for dashboard, orders, customers, production, workers, attendance, salary, finance, reports, and settings.
+- Static access review confirmed attachment downloads, GST export, customer measurements, finance, salary, production, and communication actions continue to resolve tenant context and tenant-scoped IDs before reading or mutating data.
+
+### Bug Found and Fixed
+
+- Fixed a public positioning regression where `/industries/boutiques` was protected by Clerk middleware and redirected anonymous visitors to sign-in.
+- Added `/industries(.*)` to the middleware public route matcher.
+- Added a regression assertion to `scripts/test-role-route-policy.mjs` so industry SEO/use-case pages remain public.
+
+### Files/Modules Changed
+
+- `src/proxy.ts`
+- `scripts/test-role-route-policy.mjs`
+- `project_summary.md`
+
+### Verification
+
+- `npm run test:roles` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Local route probe confirmed `/industries/boutiques` is public while tenant app routes remain protected.
+
+### QA Findings Still Open
+
+- Authenticated browser execution was blocked because the in-app browser route was unavailable in the Codex desktop session and the repo does not include Playwright/Puppeteer.
+- The real-account Clerk flows with `abhijit.siddabuthuni@gmail.com` and `abhiit.sai09@gmail.com` still need a browser-capable run to confirm live role redirects, tenant switching, and direct URL behavior.
+- Several mutation/edit forms still lack `data-unsaved-guard="true"`, especially settings/user-management/attendance/worker/super-admin forms. High-traffic order, customer, finance, salary, production-dialog, attachment, and business-profile forms are guarded, but coverage is inconsistent.
+
+### Pending Tasks
+
+- Complete authenticated real-account browser QA once browser automation is available or the user can run the flows interactively.
+- Harden unsaved-change coverage so all create/edit mutation forms that can lose meaningful entered data opt into the guard, while passive filter/search forms remain unguarded.

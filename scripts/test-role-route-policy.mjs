@@ -5,6 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const source = fs.readFileSync("src/lib/permissions/roles.ts", "utf8");
+const proxySource = fs.readFileSync("src/proxy.ts", "utf8");
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.CommonJS,
@@ -62,5 +63,11 @@ for (const [role, permissions] of Object.entries(rolePermissions)) {
     `${role} dashboard permission must match owner-only dashboard rule`,
   );
 }
+
+assert.match(
+  proxySource,
+  /\/industries\(\.\*\)/,
+  "Industry SEO/use-case pages must remain public routes",
+);
 
 console.log("Role route policy tests passed");
