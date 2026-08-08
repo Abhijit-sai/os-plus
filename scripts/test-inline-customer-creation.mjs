@@ -43,7 +43,7 @@ const newOrderPage = fs.readFileSync(
   "utf8",
 );
 
-assert.match(customerActions, /normalizeIndianMobile/);
+assert.match(customerActions, /normalizeCustomerPhone/);
 assert.match(customerActions, /export async function createCustomerInlineAction/);
 assert.match(
   customerActions,
@@ -52,7 +52,7 @@ assert.match(
 );
 assert.match(
   customerActions,
-  /normalizeIndianMobile\(customer\.phone\) === normalizedPhone/,
+  /normalizeCustomerPhone\(customer\.phone\)\?\.e164 === normalized\.e164/,
 );
 assert.match(customerActions, /normalizedPhone: parsed\.phone/);
 assert.match(customerPicker, /CreateCustomerDialog/);

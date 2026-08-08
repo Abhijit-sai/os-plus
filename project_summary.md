@@ -249,7 +249,7 @@ To be finalized later:
 
 ## 7. Current Build Phase
 
-Current phase: Global feedback implementation and authenticated QA closed. Existing-order add-items, shared action feedback, configuration correction paths, attendance spreadsheet import, tenant expense defaults, non-Laundry Task gating, and inline customer creation are implemented, verified, and authorized for the local phase commit. Laundry remains paused; Shopify, customer bulk import, and multi-worker contribution tracking are next-phase planning topics.
+Current phase: Customer file import and external-identity foundation has passed final implementation review and release gates and is ready for commit and branch publication. The migration is applied in the shared production/QA Supabase environment; authenticated owner/admin, manager-permission, cross-tenant, international-phone, address, atomic-confirmation, and idempotent-retry QA pass on localhost. Direct Shopify webhooks remain later scope. Multi-worker stage contribution tracking is the next separately isolated implementation phase after this branch closes.
 
 ## 8. Completed
 
@@ -344,7 +344,7 @@ Current phase: Global feedback implementation and authenticated QA closed. Exist
 - Salary module should remain suggested/admin-finalized, not full payroll.
 - Finance module should not become a full accounting system in MVP.
 - GST capture must be compliance-safe: cash payments are still recorded, and payment mode must not be treated as a way to hide taxable activity.
-- Active customer duplicates by normalized Indian mobile are blocked within each tenant at the application layer; legacy duplicates and database-level normalized uniqueness require a separate migration decision.
+- Active customer duplicates are blocked by canonical E.164 phone within each tenant. The read-only legacy audit found eight resolvable active Indian phones and no collision groups; the applied customer-import migration adds normalized storage and database-level active uniqueness.
 - Customer tracking page must not expose internal operational details.
 
 ## 13. Future Considerations
@@ -12065,3 +12065,54 @@ QA_BLOCKED
 - The mandatory commit gate was rerun after staging: `npm run typecheck`, `npm run lint`, `npm run test:roles`, `npm run test:v2`, and `npm run build` all passed; the build generated all 41 pages.
 - Phase status is `CLOSED`: implementation, applied migrations, focused contracts, authenticated order/configuration/customer/Task/attendance checks, independent reviews, final staged-diff inspection, TypeScript, lint, role/V2 tests, and production build all pass.
 - The phase commit is local only. Push, merge, and production deployment remain separate owner-authorized actions.
+
+### Customer Import and External Identity Phase - 2026-08-08
+
+#### Confirmed Scope
+
+- Owner/admin-only CSV and XLSX customer import, limited to 5 MB and 5,000 data rows.
+- Matching precedence is Shopify customer ID, then canonical phone; exact email is advisory and requires an explicit reuse, create, or skip decision.
+- Reused profiles fill blank fields only. Populated-field conflicts are visible in preview and never overwritten automatically.
+- Indian and international phones use canonical E.164 matching. Foreign national format requires a reliable country code; ambiguous foreign numbers are invalid.
+- Complete addresses create structured customer-address rows. Incomplete addresses remain legacy text.
+- Shopify totals, order counts, tags, tax flags, and marketing flags are private source metadata only and do not affect orders, finance, reports, or messaging consent.
+
+#### Dependency Audit
+
+- Fast-forward merged and pushed `v2/phase-1-platform-primitives` into `main` at `86ca505`, then created `codex/customer-import` from the clean merged baseline.
+- Added a privacy-safe read-only phone-collision audit script. Against the configured shared production/QA database it found eight active customer phones, all resolvable as Indian, zero unresolved values, and zero collision groups.
+- The clean audit cleared the legacy-data prerequisite for `20260809100000_customer_import_and_phone_identity.sql`. The owner applied the migration to the shared production/QA Supabase environment on 2026-08-08.
+- Added `libphonenumber-js` for validated E.164 normalization. Existing Indian standalone create/update flows continue to store the familiar 10-digit display phone while also writing E.164.
+
+#### Implementation
+
+- Added parser support for Shopify and generic customer CSV/XLSX columns, hardened XLSX archive preflight, worksheet/row/column limits, Indian/international phones, structured/incomplete addresses, source metadata, blank names, invalid emails, and same-row phone conflicts.
+- Added deterministic preview matching for create, reuse by Shopify ID, reuse by phone, exact-email review, invalid cross-key conflicts, and duplicate source keys.
+- Added an owner/admin Customers-page side panel with pending protection, write-free preview, visible invalid/skipped counts, conflicts, email decisions, recoverable errors, and success counts.
+- Added canonical phone storage, active tenant uniqueness, tenant-owned external identities, immutable import receipts, and a service-role-only atomic/idempotent `import_customer_rows` RPC migration.
+- Confirmation re-reads the file, re-queries only the active tenant, recomputes the preview fingerprint, excludes invalid/skipped rows, and rejects stale or tampered targets before the database transaction.
+- Updated PRD, WBS, Tech Development Plan, Rules, Database Model, focused implementation spec, QA matrix generator, and project summary.
+
+#### Verification Status
+
+- Focused phone, parser, matching, permission/UI/schema/RPC contract, role, inline-customer, attendance, action-feedback, client-boundary, order, configuration, expense-default, and V2 regressions pass.
+- TypeScript, ESLint, and the Next.js production build pass; all 41 pages generate.
+- The QA workbook was regenerated with CU-004 through CU-007, formula-error scanned, and visually verified across all 16 sheets.
+- Privacy-safe baseline and all-cases customer fixtures were generated as CSV and XLSX under ignored `outputs/`. The source workbook renders were checked and contain no formula errors.
+- The private 13-row sample parsed read-only as 11 usable rows and two blank-name skips, with seven normalized phones, four structured addresses, and six legacy/incomplete address texts. No personal values were printed or committed.
+- Authenticated Edge owner/admin QA on Phantom Threads passed with the synthetic baseline and all-cases XLSX fixtures. Preview, explicit email reuse, international numbers, populated-field conflict protection, blank-field enrichment, structured/incomplete address handling, invalid/skipped rows, pending/close protection, confirmation, and visible result counts behaved as specified.
+- The corrected all-cases fixture confirmed one remaining US customer creation, five authoritative reuses, two new structured addresses, seven invalid rows, and one skipped row. Repeating the same workbook produced zero new customers, six reuses, zero new addresses, and an unchanged customer count.
+- Chrome QA confirmed the import action is absent for the Phantom Threads manager role. Switching the same account to Fundry Laundry showed zero Phantom customer records, confirming tenant-isolated reads in the authenticated UI.
+- The synthetic fixture generator was corrected so the external-ID, phone-reuse, valid-US, and conflicting-phone cases use independent phone identities. The regenerated workbook was formula-error scanned and visually verified.
+- Final standards/spec review found and resolved release-edge cases before commit: all email-only decisions remain reachable beyond the 200-row display sample; email decisions show full conflicts; country-assisted foreign national numbers take precedence over Indian inference; imported international customers remain editable; invalid ISO country codes and malformed UTF-8 CSVs are rejected during preview; notes conflicts are visible; and the stale-preview fingerprint includes matched profile/conflict state.
+- Added regression coverage for country-assisted US numbers beginning with an Indian-looking digit, invalid ISO country codes, malformed UTF-8 CSV input, international-phone action contracts, complete email-review visibility, conflict rendering, and expanded stale-preview state.
+- Final focused customer-import tests, TypeScript, ESLint, QA workbook verification, synthetic fixture generation, and the Next.js production build pass; all 41 pages generate.
+- The shared production/QA environment supplied authenticated confirmation, retry/idempotency, permission, and cross-tenant evidence. A disposable database is still required for a repeatable automated destructive RPC harness covering forced rollback and concurrency; those cases must not be manufactured against the shared production/QA database.
+- The 2026-08-08 dependency audit reports newly published high-severity advisories affecting the existing Next.js 16.2.6 and transitive tooling tree. Customer import adds only `libphonenumber-js`; framework/tooling remediation must be handled as an explicit release dependency rather than silently bundled into this feature.
+
+#### Notes for Next Session
+
+- Customer import is migration-backed, authenticated-QA complete, independently reviewed, and release-gate clean; commit and push `codex/customer-import` before starting the next feature branch.
+- Never commit or use the private `docs_v2/sample_customers_export.csv` as an automated fixture.
+- Use synthetic data for the first confirmation. Preview the real tenant export only from the intended tenant login after the synthetic checks pass.
+- Direct Shopify OAuth/webhooks should reuse `customer_external_identities` and normalized-phone behavior in a separate PRD/WBS phase; this import slice does not create Shopify orders.

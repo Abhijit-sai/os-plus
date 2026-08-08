@@ -327,12 +327,25 @@ Maintain reusable customer profiles with contact details, order history, and mea
 - Gender is optional.
 - Address is optional.
 - Notes are optional.
-- When a phone number is present, accepted Indian formats are a 10-digit mobile number, leading `0`, `+91`, or `0091`; store and compare the normalized final 10 digits.
+- When a phone number is present, normalize valid numbers to E.164 for matching and uniqueness. Existing Indian 10-digit, leading `0`, `+91`, and `0091` inputs remain accepted and resolve to `+91` plus the final 10 digits.
+- Explicit `+` or `00` international numbers are accepted. A national-format foreign number is accepted only when a reliable ISO country code is supplied; ambiguous foreign numbers are invalid rather than guessed.
 - Before saving, the server must check active customers in the current tenant for the same normalized mobile number.
 - If a match exists, do not create a duplicate customer. Resolve and select the existing customer instead.
 - Customer suggestions should remain available while entering the phone number, and selecting a suggestion should immediately choose that customer.
 - Inline customer creation from an order must not navigate away or discard the order draft.
-- The duplicate guard is application-level. A database uniqueness migration requires a separate legacy-data and normalized-storage decision.
+- A read-only legacy audit completed with no active normalized-phone collisions. Persist the canonical E.164 value and enforce one active normalized phone per tenant at the database boundary as well as in application flows.
+
+### Customer File Import
+
+- Owner/admin users can preview and confirm customer imports from CSV or XLSX files up to 5 MB and 5,000 data rows.
+- Preview never writes data. It reports valid creates, authoritative reuses, exact-email review candidates, conflicts, invalid rows, and skipped rows before confirmation.
+- Rows without a customer name are skipped. Email addresses must never be substituted as customer names.
+- Reuse precedence is Shopify customer ID, then normalized E.164 phone. An exact email match is advisory only and requires an explicit choice to reuse the existing customer or create a separate profile.
+- When a matched customer is reused, import may fill blank profile fields but must never overwrite populated fields automatically. Conflicting source values remain visible in preview.
+- Complete addresses create structured default customer-address rows. Incomplete addresses remain available as legacy address text and source metadata.
+- Shopify historical totals, order counts, tags, tax flags, and marketing flags are retained as read-only source metadata. They do not create OS PLUS orders or finance entries, do not affect reports, and do not activate email, SMS, or WhatsApp messaging.
+- Invalid and skipped rows are excluded from confirmation. All explicitly approved create/reuse operations commit atomically and idempotently; a failure leaves no partial customers, addresses, identities, or import receipt.
+- Import matching and every write are tenant-scoped on the server. A source identity from one tenant must never resolve a customer in another tenant.
 
 ### Customer Fields
 

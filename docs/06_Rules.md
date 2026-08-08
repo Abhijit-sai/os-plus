@@ -43,15 +43,19 @@
 3. Email is optional.
 4. Gender is optional.
 5. Address is optional.
-6. When a phone number is present, accepted Indian formats must be normalized to the final 10 digits. Accepted inputs are a 10-digit number, a leading `0`, a `+91` prefix, or a `0091` prefix.
+6. When a phone number is present, normalize valid numbers to E.164. Indian 10-digit, leading `0`, `+91`, and `0091` inputs remain accepted; explicit `+`/`00` international formats are accepted; national-format foreign numbers require a reliable country code.
 7. Before saving, the server must check active customers in the current tenant for the same normalized mobile number.
 8. If a matching customer exists, the application must not create a duplicate; it must resolve and select the existing customer.
 9. Phone suggestions should still be shown while entering a customer so the user can select a match immediately.
-10. The current guard is application-level. A database uniqueness constraint is deferred until legacy duplicates and normalized storage have been analysed.
+10. The legacy collision audit found no active collisions. Canonical normalized phone storage and a tenant-level active uniqueness constraint must backstop the application guard.
 11. Customer profile should maintain order history.
 12. Customer profile should maintain measurements.
 13. Measurements can be stored as notes, photos, and key-value fields.
 14. Measurement-field key/item type, standard-size item type, and customer-measurement item type are immutable after creation. Create a new record instead of repointing historical fit references.
+15. Customer file import is owner/admin-only, write-free during preview, limited to CSV/XLSX files of 5 MB and 5,000 data rows, and atomic during confirmation.
+16. Import reuse priority is tenant-scoped Shopify customer ID, then normalized E.164 phone. Email-only matches require explicit review.
+17. Reused customers may receive values only in blank profile fields; populated-field conflicts must be shown and never overwritten automatically.
+18. Shopify historical and marketing fields are source metadata only. They do not create historical orders, affect reports, or grant messaging consent.
 
 ## 4. Order Rules
 

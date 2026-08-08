@@ -7,7 +7,7 @@ import { z } from "zod";
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
-import { normalizeIndianMobile } from "@/features/customers/phone";
+import { normalizeCustomerPhone } from "@/features/customers/phone";
 import type { CustomerGender, Json } from "@/types/database";
 
 const optionalText = z
@@ -15,7 +15,7 @@ const optionalText = z
   .trim()
   .transform((value) => (value.length ? value : null));
 
-const optionalIndianMobile = z.preprocess(
+const optionalCustomerPhone = z.preprocess(
   (value) => String(value ?? ""),
   z
     .string()
@@ -25,17 +25,17 @@ const optionalIndianMobile = z.preprocess(
         return null;
       }
 
-      const normalized = normalizeIndianMobile(value);
+      const normalized = normalizeCustomerPhone(value);
 
       if (!normalized) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Enter a valid 10-digit Indian mobile number.",
+          message: "Enter a valid Indian mobile or an international number with +country code.",
         });
         return z.NEVER;
       }
 
-      return normalized;
+      return normalized.displayPhone;
     }),
 );
 
@@ -43,7 +43,7 @@ const genderSchema = z.enum(["female", "male", "other", "not_specified"]).nullab
 
 const createCustomerSchema = z.object({
   name: z.string().trim().min(2, "Customer name is required."),
-  phone: optionalIndianMobile,
+  phone: optionalCustomerPhone,
   email: optionalText.pipe(z.string().email().nullable()).or(z.null()),
   gender: genderSchema,
   address: optionalText,
@@ -117,10 +117,13 @@ async function findCustomerByNormalizedMobile({
     return null;
   }
 
+  const normalized = normalizeCustomerPhone(normalizedPhone);
+  if (!normalized) return null;
+
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, name, phone")
+    .select("id, name, phone, normalized_phone_e164")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .not("phone", "is", null);
@@ -133,7 +136,8 @@ async function findCustomerByNormalizedMobile({
     (data ?? []).find(
       (customer) =>
         customer.id !== excludeCustomerId &&
-        normalizeIndianMobile(customer.phone) === normalizedPhone,
+        (customer.normalized_phone_e164 === normalized.e164 ||
+          normalizeCustomerPhone(customer.phone)?.e164 === normalized.e164),
     ) ?? null
   );
 }
@@ -240,6 +244,7 @@ export async function createCustomerAction(formData: FormData) {
       tenant_id: context.tenant.id,
       name: parsed.name,
       phone: parsed.phone,
+      normalized_phone_e164: normalizeCustomerPhone(parsed.phone)?.e164 ?? null,
       email: parsed.email,
       gender: parsed.gender as CustomerGender | null,
       address: parsed.address,
@@ -284,6 +289,7 @@ export async function createCustomerInlineAction(formData: FormData) {
       tenant_id: context.tenant.id,
       name: parsed.name,
       phone: parsed.phone,
+      normalized_phone_e164: normalizeCustomerPhone(parsed.phone)?.e164 ?? null,
       email: parsed.email,
       gender: parsed.gender as CustomerGender | null,
       address: parsed.address,
@@ -348,6 +354,7 @@ export async function updateCustomerAction(formData: FormData) {
     .update({
       name: parsed.name,
       phone: parsed.phone,
+      normalized_phone_e164: normalizeCustomerPhone(parsed.phone)?.e164 ?? null,
       email: parsed.email,
       gender: parsed.gender as CustomerGender | null,
       address: parsed.address,

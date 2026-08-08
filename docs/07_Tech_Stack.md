@@ -430,6 +430,8 @@ Build the workflow engine ourselves for MVP because this is a human production w
 
 ## 10. Future Integration Stack
 
+Customer import uses `libphonenumber-js` for canonical E.164 validation. Indian national formats retain the existing `+91` default; foreign national formats require an ISO country code rather than guessing.
+
 ### Shopify
 
 - Shopify OAuth per tenant

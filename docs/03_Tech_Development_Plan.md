@@ -192,17 +192,22 @@ Create reusable customer profiles.
 - Customer edit
 - Customer detail
 - Customer phone suggestion search
-- Normalize accepted Indian mobile formats to the final 10 digits when a phone is present
+- Normalize valid Indian and explicitly identified international numbers to E.164 when a phone is present
 - Resolve and select the existing active tenant customer when the normalized mobile already exists
 - Enforce the duplicate-mobile rule again on the server when saving
 - Measurement notes
 - Measurement key-value fields
 - Measurement photo upload
 - Customer attachments
+- Owner/admin CSV/XLSX customer-import preview with Shopify-column auto-mapping
+- Source-identity and normalized-phone matching with explicit email-only review
+- Atomic customer/address/source-metadata confirmation with immutable import receipts
 
 ### Deliverable
 
 Managers can create/select customers and store measurements for future orders.
+
+Customer file import is deliberately a separate owner/admin capability. File parsing and matching run during a write-free preview. Confirmation sends the approved normalized payload and preview fingerprint to one service-role-only Postgres function so customers, blank-field enrichment, addresses, source identities, metadata, and the receipt either all commit or all roll back. Direct Shopify webhooks remain a later phase, but reuse the same external-identity and canonical-phone foundations.
 
 ## Phase 4: Orders and Payments
 
