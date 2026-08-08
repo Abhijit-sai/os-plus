@@ -9,7 +9,7 @@ import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { createWorkflowInstanceForOrderItem } from "@/features/production/instances";
-import type { DeliveryType, GstTreatment, OrderSource, PaymentStatus } from "@/types/database";
+import type { DeliveryType, GstTreatment, Json, OrderSource, PaymentStatus } from "@/types/database";
 
 export type FormActionState = {
   ok: boolean;
@@ -92,6 +92,12 @@ const updateOrderItemSchema = z.object({
   notes: optionalText
 });
 
+const addItemsToExistingOrderSchema = z.object({
+  orderId: z.string().uuid("The order reference is invalid."),
+  idempotencyKey: z.string().uuid("The save request is invalid. Reopen the dialog and try again."),
+  items: createOrderSchema.shape.items.min(1)
+});
+
 function getActionErrorMessage(error: unknown) {
   if (error instanceof z.ZodError) {
     return error.issues.map((issue) => issue.message).join(" ");
@@ -102,6 +108,72 @@ function getActionErrorMessage(error: unknown) {
   }
 
   return "Something went wrong. Please try again.";
+}
+
+function getAddItemsErrorMessage(error: unknown) {
+  const message = getActionErrorMessage(error);
+
+  if (message.includes("ORDER_CANCELLED")) {
+    return "Items cannot be added to a cancelled order.";
+  }
+
+  if (message.includes("ORDER_FULLY_DELIVERED")) {
+    return "Items cannot be added after the order is fully delivered.";
+  }
+
+  if (message.includes("ORDER_NOT_FOUND")) {
+    return "This order is unavailable or belongs to another tenant.";
+  }
+
+  if (message.includes("ORDER_NOT_LEGACY_ITEM_RUNTIME")) {
+    return "This order uses a different production runtime and cannot accept Boutique items.";
+  }
+
+  if (message.includes("ITEM_TYPE_NOT_FOUND")) {
+    return "One of the selected item types is no longer available.";
+  }
+
+  if (message.includes("WORKFLOW_NOT_FOUND")) {
+    return "One of the selected workflows is no longer available.";
+  }
+
+  if (message.includes("WORKFLOW_ITEM_TYPE_MISMATCH")) {
+    return "A selected workflow does not match its item type.";
+  }
+
+  if (message.includes("WORKFLOW_HAS_NO_ACTIVE_STAGES") || message.includes("WORKFLOW_STAGE_REFERENCE_INVALID")) {
+    return "A selected workflow is not ready for production. Check its active stages and try again.";
+  }
+
+  if (message.includes("MEASUREMENT_CUSTOMER_MISMATCH")) {
+    return "A selected measurement does not belong to this order customer.";
+  }
+
+  if (message.includes("MEASUREMENT_ITEM_TYPE_MISMATCH")) {
+    return "A selected customer measurement does not match its item type.";
+  }
+
+  if (message.includes("MEASUREMENT_NOT_FOUND")) {
+    return "A selected customer measurement is no longer available.";
+  }
+
+  if (message.includes("STANDARD_SIZE_ITEM_TYPE_MISMATCH")) {
+    return "A selected standard size does not match its item type.";
+  }
+
+  if (message.includes("STANDARD_SIZE_NOT_FOUND")) {
+    return "A selected standard size is no longer available.";
+  }
+
+  if (message.includes("IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_REQUEST")) {
+    return "This save request changed after it started. Reopen the dialog and try again.";
+  }
+
+  if (message.includes("COMMAND_ALREADY_PROCESSING")) {
+    return "These items are already being added. Wait a moment before trying again.";
+  }
+
+  return message;
 }
 
 async function getAuthorizedOrderContext() {
@@ -224,66 +296,6 @@ function calculateOrderGst({
     taxableAmount,
     totalAmount
   };
-}
-
-async function validatePaymentMode(tenantId: string, paymentModeId: string | null) {
-  if (!paymentModeId) {
-    return;
-  }
-
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from("payment_modes")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("id", paymentModeId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Unable to validate payment mode: ${error.message}`);
-  }
-
-  if (!data) {
-    throw new Error("Selected payment mode does not belong to this tenant.");
-  }
-}
-
-async function getOrderPaymentTotal(tenantId: string, orderId: string) {
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from("order_payments")
-    .select("amount")
-    .eq("tenant_id", tenantId)
-    .eq("order_id", orderId)
-    .is("deleted_at", null);
-
-  if (error) {
-    throw new Error(`Unable to total order payments: ${error.message}`);
-  }
-
-  return (data ?? []).reduce((total, payment) => total + payment.amount, 0);
-}
-
-async function updateOrderPaymentSummary(tenantId: string, orderId: string, totalAmount: number, actorId: string) {
-  const supabase = createSupabaseServiceRoleClient();
-  const amountPaid = Math.min(await getOrderPaymentTotal(tenantId, orderId), totalAmount);
-  const paymentStatus = getPaymentStatus(totalAmount, amountPaid);
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      amount_paid: amountPaid,
-      payment_status: paymentStatus,
-      updated_by: actorId
-    })
-    .eq("tenant_id", tenantId)
-    .eq("id", orderId);
-
-  if (error) {
-    throw new Error(`Unable to update order payment summary: ${error.message}`);
-  }
-
-  return { amountPaid, paymentStatus };
 }
 
 async function revalidateOrderSurfaces(orderId: string, trackingToken?: string | null) {
@@ -558,6 +570,80 @@ export async function createOrderAction(formData: FormData) {
   redirect(`/orders/${order.id}`);
 }
 
+export async function addOrderItemsFormAction(
+  _previousState: FormActionState,
+  formData: FormData
+): Promise<FormActionState> {
+  try {
+    const context = await getAuthorizedOrderContext();
+    const parsed = addItemsToExistingOrderSchema.parse({
+      orderId: formData.get("orderId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      items: parseItems(formData)
+    });
+    const supabase = createSupabaseServiceRoleClient();
+    const orderResult = await supabase
+      .from("orders")
+      .select("tracking_token")
+      .eq("tenant_id", context.tenant.id)
+      .eq("id", parsed.orderId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (orderResult.error) {
+      throw new Error(`Unable to validate order: ${orderResult.error.message}`);
+    }
+
+    if (!orderResult.data) {
+      throw new Error("ORDER_NOT_FOUND");
+    }
+
+    const rpcItems = parsed.items.map((item) => ({
+      item_type_id: item.itemTypeId,
+      customer_measurement_id: item.customerMeasurementId,
+      standard_size_id: item.standardSizeId,
+      name: item.name,
+      description: item.description,
+      color: item.color,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      discount_amount: item.discountAmount,
+      workflow_id: item.workflowId,
+      expected_completion_date: item.expectedCompletionDate,
+      delivery_type_override: item.deliveryTypeOverride,
+      notes: item.notes
+    })) satisfies Json[];
+
+    const result = await supabase.rpc("add_items_to_existing_order", {
+      p_tenant_id: context.tenant.id,
+      p_order_id: parsed.orderId,
+      p_items: rpcItems,
+      p_actor_id: context.membership.clerk_user_id,
+      p_idempotency_key: parsed.idempotencyKey
+    });
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    const trackingToken = orderResult.data.tracking_token;
+    await revalidateOrderSurfaces(parsed.orderId, trackingToken);
+    revalidatePath("/production");
+    revalidatePath("/finance");
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true,
+      message: parsed.items.length === 1 ? "1 item added." : `${parsed.items.length} items added.`
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getAddItemsErrorMessage(error)
+    };
+  }
+}
+
 export async function updateOrderDetailsAction(formData: FormData) {
   const context = await getAuthorizedOrderContext();
   const parsed = updateOrderDetailsSchema.parse({
@@ -740,54 +826,26 @@ export async function recordOrderPaymentAction(formData: FormData) {
   });
 
   const supabase = createSupabaseServiceRoleClient();
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select("id, total_amount")
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", parsed.orderId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (orderError) {
-    throw new Error(`Unable to validate order: ${orderError.message}`);
-  }
-
-  if (!order) {
-    throw new Error("Order does not belong to this tenant.");
-  }
-
-  await validatePaymentMode(context.tenant.id, parsed.paymentModeId);
-
-  const currentPaid = await getOrderPaymentTotal(context.tenant.id, order.id);
-  const outstanding = Math.max(order.total_amount - currentPaid, 0);
-
-  if (outstanding <= 0) {
-    throw new Error("This order is already fully paid.");
-  }
-
-  if (parsed.amount > outstanding) {
-    throw new Error(`Payment cannot exceed outstanding amount of ${outstanding}.`);
-  }
-
-  const { error: paymentError } = await supabase.from("order_payments").insert({
-    tenant_id: context.tenant.id,
-    order_id: order.id,
-    amount: parsed.amount,
-    payment_mode_id: parsed.paymentModeId,
-    payment_date: parsed.paymentDate,
-    reference_number: parsed.referenceNumber,
-    notes: parsed.notes,
-    created_by: context.membership.clerk_user_id
+  const { error } = await supabase.rpc("record_order_payment", {
+    p_tenant_id: context.tenant.id,
+    p_order_id: parsed.orderId,
+    p_amount: parsed.amount,
+    p_payment_mode_id: parsed.paymentModeId,
+    p_payment_date: parsed.paymentDate,
+    p_reference_number: parsed.referenceNumber,
+    p_notes: parsed.notes,
+    p_actor_id: context.membership.clerk_user_id
   });
-
-  if (paymentError) {
-    throw new Error(`Unable to record order payment: ${paymentError.message}`);
+  if (error) {
+    if (error.message.includes("ORDER_NOT_FOUND")) throw new Error("Order does not belong to this tenant.");
+    if (error.message.includes("PAYMENT_MODE_NOT_FOUND")) throw new Error("Selected payment mode does not belong to this tenant.");
+    if (error.message.includes("ORDER_FULLY_PAID")) throw new Error("This order is already fully paid.");
+    if (error.message.includes("PAYMENT_EXCEEDS_ORDER_TOTAL")) throw new Error("Payment cannot exceed the order's outstanding amount.");
+    throw new Error(`Unable to record order payment: ${error.message}`);
   }
-
-  await updateOrderPaymentSummary(context.tenant.id, order.id, order.total_amount, context.membership.clerk_user_id);
 
   revalidatePath("/orders");
-  revalidatePath(`/orders/${order.id}`);
+  revalidatePath(`/orders/${parsed.orderId}`);
   revalidatePath("/finance");
 }
 

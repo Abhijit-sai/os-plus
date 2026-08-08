@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/design-system/status-badge";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
+import { AddOrderItemsDialog } from "@/components/orders/add-order-items-dialog";
 import { CustomerContextSheet } from "@/components/orders/customer-context-sheet";
 import { EditOrderDialog } from "@/components/orders/edit-order-dialog";
 import { ItemWorkflowPanel } from "@/components/production/item-workflow-panel";
@@ -181,6 +182,16 @@ export default async function OrderDetailPage({
     fulfillmentLabel === "delivered" || fulfillmentLabel === "partially_delivered"
       ? fulfillmentLabel
       : order.order_status;
+  const productionStarted =
+    items.some((item) => item.item_status !== "not_started") ||
+    workflowInstances.some((instance) => instance.status !== "not_started") ||
+    stageInstances.some((stage) =>
+      ["in_progress", "paused", "completed", "skipped", "blocked"].includes(stage.status)
+    ) ||
+    workLogs.length > 0;
+  const isFullyDelivered =
+    order.order_status === "delivered" ||
+    (items.length > 0 && items.every((item) => item.item_status === "delivered"));
 
   return (
     <div className="space-y-6">
@@ -189,6 +200,18 @@ export default async function OrderDetailPage({
         description={`Order source: ${order.source.replace("_", " ")}`}
         actions={
           <>
+            <AddOrderItemsDialog
+              orderId={order.id}
+              customerId={order.customer_id}
+              orderStatus={order.order_status}
+              isFullyDelivered={isFullyDelivered}
+              productionStarted={productionStarted}
+              itemTypes={itemTypes.filter((itemType) => itemType.is_active)}
+              workflows={workflows.filter((workflow) => workflow.is_active)}
+              measurements={customerMeasurements}
+              measurementFields={measurementFields}
+              standardSizes={standardSizes}
+            />
             <EditOrderDialog
               order={order}
               items={items}

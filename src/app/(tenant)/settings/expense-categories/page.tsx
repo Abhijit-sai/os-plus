@@ -1,10 +1,11 @@
-import { createExpenseCategoryAction } from "@/features/settings/actions";
+import { createExpenseCategoryAction, updateExpenseCategoryAction } from "@/features/settings/actions";
 import { getExpenseCategories } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ExpenseCategoryEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function ExpenseCategoriesPage() {
   const categories = await getExpenseCategories();
@@ -31,6 +32,7 @@ export default async function ExpenseCategoriesPage() {
         description="Tenant expense category master."
         items={categories}
         renderMeta={(item) => item.is_default ? "Default category" : "Custom category"}
+        renderActions={(item) => <ExpenseCategoryEditDialog action={updateExpenseCategoryAction} item={item} />}
       />
     </div>
   );

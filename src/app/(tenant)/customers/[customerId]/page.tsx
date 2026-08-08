@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 
 import {
+  archiveCustomerAddressAction,
   archiveCustomerMeasurementAction,
+  createCustomerAddressAction,
   createCustomerMeasurementAction,
   setDefaultCustomerMeasurementAction,
   updateCustomerAction,
@@ -147,6 +149,7 @@ export default async function CustomerDetailPage({
   const { customerId } = await params;
   const {
     customer,
+    customerAddresses,
     customerAttachments,
     itemTypes,
     measurementFields,
@@ -346,6 +349,121 @@ export default async function CustomerDetailPage({
                   {customer.notes ?? "No notes saved."}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Saved addresses</CardTitle>
+                  <CardDescription>
+                    Reusable customer addresses for pickup and delivery.
+                  </CardDescription>
+                </div>
+                <Dialog
+                  title="Add customer address"
+                  description="Add a tenant-scoped address for this customer."
+                  trigger={
+                    <ActionTrigger>
+                      <Plus className="h-4 w-4" />
+                      Add address
+                    </ActionTrigger>
+                  }
+                >
+                  <form className="space-y-3" data-unsaved-guard="true">
+                    <input type="hidden" name="customerId" value={customer.id} />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="address-label">Label</Label>
+                        <Input id="address-label" name="label" placeholder="Home" required />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="address-country">Country</Label>
+                        <Input id="address-country" name="countryCode" defaultValue="IN" maxLength={2} required />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="address-line-1">Address line 1</Label>
+                      <Input id="address-line-1" name="addressLine1" required />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="address-line-2">Address line 2</Label>
+                      <Input id="address-line-2" name="addressLine2" placeholder="Optional" />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="address-area">Area</Label>
+                        <Input id="address-area" name="area" placeholder="Optional" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="address-city">City</Label>
+                        <Input id="address-city" name="city" placeholder="Optional" />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="address-state">State</Label>
+                        <Input id="address-state" name="state" placeholder="Optional" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="address-postal-code">Postal code</Label>
+                        <Input id="address-postal-code" name="postalCode" placeholder="Optional" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="address-landmark">Landmark</Label>
+                      <Input id="address-landmark" name="landmark" placeholder="Optional" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="address-notes">Notes</Label>
+                      <Input id="address-notes" name="notes" placeholder="Optional" />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="isDefault" className="h-4 w-4 rounded border" />
+                      Set as default
+                    </label>
+                    <Button type="submit" formAction={createCustomerAddressAction}>
+                      Add address
+                    </Button>
+                  </form>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {customer.address ? (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">Legacy profile address</p>
+                  <p className="mt-1 text-muted-foreground">{customer.address}</p>
+                </div>
+              ) : null}
+              {customerAddresses.map((address) => (
+                <div key={address.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{address.label}</p>
+                        {address.is_default ? (
+                          <span className="rounded-full bg-neutral-950 px-2 py-1 text-xs text-white">default</span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-muted-foreground">
+                        {[address.address_line_1, address.address_line_2, address.area, address.city, address.state, address.postal_code].filter(Boolean).join(", ")}
+                      </p>
+                      {address.landmark ? <p className="mt-1 text-xs text-muted-foreground">Landmark: {address.landmark}</p> : null}
+                    </div>
+                    <form>
+                      <input type="hidden" name="customerId" value={customer.id} />
+                      <input type="hidden" name="addressId" value={address.id} />
+                      <Button type="submit" formAction={archiveCustomerAddressAction} size="sm" variant="outline">
+                        Archive
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+              {!customer.address && !customerAddresses.length ? (
+                <p className="text-sm text-muted-foreground">No saved addresses yet.</p>
+              ) : null}
             </CardContent>
           </Card>
           <AttachmentPanel

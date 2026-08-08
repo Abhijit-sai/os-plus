@@ -26,6 +26,11 @@ const createWorkerSchema = z.object({
   workgroupIds: z.array(z.string().uuid())
 });
 
+const updateWorkerSchema = createWorkerSchema.extend({
+  workerId: z.string().uuid(),
+  status: z.enum(["active", "inactive"])
+});
+
 async function getAuthorizedWorkerContext() {
   const context = await requireTenantContext();
   assertPermission(context.membership.role, "settings:manage");
@@ -112,4 +117,24 @@ export async function createWorkerAction(formData: FormData) {
 
   revalidatePath("/workers");
   revalidatePath("/settings/workgroups");
+}
+
+export async function updateWorkerAction(formData: FormData) {
+  const context = await getAuthorizedWorkerContext();
+  const parsed = updateWorkerSchema.parse({
+    workerId: formData.get("workerId"), name: formData.get("name"), phone: formData.get("phone"),
+    joiningDate: formData.get("joiningDate"), status: formData.get("status"), primaryWorkgroupId: formData.get("primaryWorkgroupId"),
+    wageType: formData.get("wageType") || "monthly", wageAmount: formData.get("wageAmount") || 0,
+    notes: formData.get("notes"), workgroupIds: getSelectedWorkgroupIds(formData)
+  });
+  const workgroupIds = Array.from(new Set([parsed.primaryWorkgroupId, ...parsed.workgroupIds].filter((value): value is string => Boolean(value))));
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("update_worker_configuration", {
+    p_tenant_id: context.tenant.id, p_worker_id: parsed.workerId, p_name: parsed.name, p_phone: parsed.phone,
+    p_joining_date: parsed.joiningDate, p_status: parsed.status, p_primary_workgroup_id: parsed.primaryWorkgroupId,
+    p_wage_type: parsed.wageType as WorkerWageType, p_wage_amount: parsed.wageAmount, p_notes: parsed.notes,
+    p_workgroup_ids: workgroupIds, p_actor_id: context.membership.clerk_user_id
+  });
+  if (error) throw new Error(error.message.includes("WORKGROUP_NOT_FOUND") ? "One or more selected workgroups are unavailable." : error.message.includes("WORKER_NOT_FOUND") ? "Worker does not belong to this tenant." : `Unable to update worker: ${error.message}`);
+  revalidatePath("/workers"); revalidatePath("/attendance"); revalidatePath("/salary"); revalidatePath("/settings/workgroups");
 }

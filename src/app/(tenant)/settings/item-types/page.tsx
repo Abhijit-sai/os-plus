@@ -1,10 +1,11 @@
-import { createItemTypeAction } from "@/features/settings/actions";
+import { createItemTypeAction, updateItemTypeAction } from "@/features/settings/actions";
 import { getItemTypes } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ItemTypeEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function ItemTypesPage() {
   const itemTypes = await getItemTypes();
@@ -39,6 +40,7 @@ export default async function ItemTypesPage() {
         description="Current tenant item type master."
         items={itemTypes}
         renderMeta={(item) => item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}
+        renderActions={(item) => <ItemTypeEditDialog action={updateItemTypeAction} item={item} />}
       />
     </div>
   );

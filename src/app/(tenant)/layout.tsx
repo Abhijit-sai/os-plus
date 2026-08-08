@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { getCurrentTenantVerticalKeys } from "@/features/verticals/queries";
 import { requireTenantContext } from "@/lib/tenant/context";
 
 export default async function TenantLayout({
@@ -7,6 +8,7 @@ export default async function TenantLayout({
   children: React.ReactNode;
 }>) {
   const context = await requireTenantContext();
+  const verticalKeys = await getCurrentTenantVerticalKeys(context);
 
-  return <AppShell context={context}>{children}</AppShell>;
+  return <AppShell context={context} verticalKeys={verticalKeys}>{children}</AppShell>;
 }

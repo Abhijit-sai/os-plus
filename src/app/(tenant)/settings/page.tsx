@@ -17,12 +17,16 @@ export default async function SettingsPage() {
     expenseCategories,
     measurementFields,
     communicationTemplates,
-    tenantUsers
+    tenantUsers,
+    tenantLocations,
+    teams
   } = await getSettingsOverview();
 
   const settingsCards = [
     { href: "/settings/business-profile", title: "Business profile", count: tenant.store_name, description: "Store name and brand color" },
     { href: "/settings/users", title: "Users and roles", count: tenantUsers.length, description: "Internal profiles and module access" },
+    { href: "/settings/locations", title: "Locations", count: tenantLocations.length, description: "Stores, workshops, and operational sites" },
+    { href: "/settings/teams", title: "Teams", count: teams.length, description: "Operational assignment groups" },
     { href: "/settings/item-types", title: "Item types", count: itemTypes.length, description: "Products such as shirts and blazers" },
     { href: "/settings/stages", title: "Stages", count: stages.length, description: "Internal production stage master" },
     {

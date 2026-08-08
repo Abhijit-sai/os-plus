@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ArrowUpRight, Phone, Search, UserRound, X } from "lucide-react";
 
-import { createWorkerAction } from "@/features/workers/actions";
+import { createWorkerAction, updateWorkerAction } from "@/features/workers/actions";
 import { getWorkersPageData } from "@/features/workers/queries";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
   CardContent,
@@ -18,7 +19,7 @@ import {
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Workgroup } from "@/types/database";
+import type { Worker, Workgroup } from "@/types/database";
 
 const wageTypes = [
   { value: "hourly", label: "Hourly" },
@@ -93,31 +94,34 @@ function workerFilterHref({
   return query ? `/workers?${query}` : "/workers";
 }
 
-function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
+function WorkerForm({ selectedWorkgroupIds = [], worker, workgroups }: { selectedWorkgroupIds?: string[]; worker?: Worker; workgroups: Workgroup[] }) {
+  const suffix = worker ? `-${worker.id}` : "";
   return (
     <form
-      action={createWorkerAction}
+      action={worker ? updateWorkerAction : createWorkerAction}
       className="space-y-4"
       data-unsaved-guard="true"
     >
+      {worker ? <input type="hidden" name="workerId" value={worker.id} /> : null}
       <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" placeholder="Ravi Kumar" required />
+        <Label htmlFor={`name${suffix}`}>Name</Label>
+        <Input id={`name${suffix}`} name="name" defaultValue={worker?.name ?? ""} placeholder="Ravi Kumar" required />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" placeholder="Optional" />
+        <Label htmlFor={`phone${suffix}`}>Phone</Label>
+        <Input id={`phone${suffix}`} name="phone" defaultValue={worker?.phone ?? ""} placeholder="Optional" />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="joiningDate">Joining date</Label>
-        <Input id="joiningDate" name="joiningDate" type="date" />
+        <Label htmlFor={`joiningDate${suffix}`}>Joining date</Label>
+        <Input id={`joiningDate${suffix}`} name="joiningDate" type="date" defaultValue={worker?.joining_date ?? ""} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="primaryWorkgroupId">Primary workgroup</Label>
+        <Label htmlFor={`primaryWorkgroupId${suffix}`}>Primary workgroup</Label>
         <select
-          id="primaryWorkgroupId"
+          id={`primaryWorkgroupId${suffix}`}
           name="primaryWorkgroupId"
           className="h-10 rounded-md border bg-background px-3 text-sm"
+          defaultValue={worker?.primary_workgroup_id ?? ""}
         >
           <option value="">No primary workgroup</option>
           {workgroups.map((workgroup) => (
@@ -129,11 +133,11 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="wageType">Wage type</Label>
+          <Label htmlFor={`wageType${suffix}`}>Wage type</Label>
           <select
-            id="wageType"
+            id={`wageType${suffix}`}
             name="wageType"
-            defaultValue="monthly"
+            defaultValue={worker?.wage_type ?? "monthly"}
             className="h-10 rounded-md border bg-background px-3 text-sm"
           >
             {wageTypes.map((type) => (
@@ -144,14 +148,14 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
           </select>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="wageAmount">Wage amount</Label>
+          <Label htmlFor={`wageAmount${suffix}`}>Wage amount</Label>
           <Input
-            id="wageAmount"
+            id={`wageAmount${suffix}`}
             name="wageAmount"
             type="number"
             min="0"
             step="0.01"
-            defaultValue="0"
+            defaultValue={worker?.wage_amount ?? 0}
             required
           />
         </div>
@@ -168,6 +172,7 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
                 name="workgroupIds"
                 type="checkbox"
                 value={workgroup.id}
+                defaultChecked={selectedWorkgroupIds.includes(workgroup.id) || worker?.primary_workgroup_id === workgroup.id}
                 className="h-4 w-4 accent-black"
               />
               {workgroup.name}
@@ -181,10 +186,11 @@ function AddWorkerForm({ workgroups }: { workgroups: Workgroup[] }) {
         </div>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Input id="notes" name="notes" placeholder="Optional" />
+        <Label htmlFor={`notes${suffix}`}>Notes</Label>
+        <Input id={`notes${suffix}`} name="notes" defaultValue={worker?.notes ?? ""} placeholder="Optional" />
       </div>
-      <Button type="submit">Add worker</Button>
+      {worker ? <div className="grid gap-2"><Label htmlFor={`status${suffix}`}>Status</Label><select id={`status${suffix}`} name="status" defaultValue={worker.status} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="active">Active</option><option value="inactive">Inactive</option></select></div> : null}
+      <Button type="submit">{worker ? "Save worker" : "Add worker"}</Button>
     </form>
   );
 }
@@ -333,7 +339,7 @@ export default async function WorkersPage({
             description="Set wage basics and workgroup access for production assignment."
             trigger={<span className={buttonVariants()}>Add worker</span>}
           >
-            <AddWorkerForm workgroups={workgroups} />
+            <WorkerForm workgroups={workgroups} />
           </Dialog>
         }
       />
@@ -654,10 +660,7 @@ export default async function WorkersPage({
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Worker setup</CardTitle>
-                      <CardDescription>
-                        Assignment and salary configuration.
-                      </CardDescription>
+                      <div className="flex items-start justify-between gap-3"><div><CardTitle>Worker setup</CardTitle><CardDescription>Assignment and salary configuration.</CardDescription></div><Dialog title="Edit worker" description="Updates preserve attendance, work logs, salary, and ledger history." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit worker</span>}><WorkerForm worker={selectedWorker} workgroups={workgroups} selectedWorkgroupIds={mappedWorkgroupIds} /></Dialog></div>
                     </CardHeader>
                     <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
                       <div>

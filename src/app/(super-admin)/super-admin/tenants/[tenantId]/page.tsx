@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   cancelTenantBillingRecordAction,
   createTenantBillingRecordAction,
+  updateTenantVerticalAction,
   updateTenantAction,
   updateTenantBillingRecordAction,
 } from "@/features/tenants/actions";
@@ -64,6 +65,10 @@ function getOutstanding(amountDue: number, amountPaid: number) {
   return Math.max(amountDue - amountPaid, 0);
 }
 
+function formatVerticalKey(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default async function TenantDetailPage({
   params,
 }: {
@@ -111,6 +116,25 @@ export default async function TenantDetailPage({
     );
   }
 
+  const { data: verticalDefinitions, error: verticalDefinitionsError } = await supabase
+    .from("vertical_definitions")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
+
+  if (verticalDefinitionsError) {
+    throw new Error(`Unable to load vertical definitions: ${verticalDefinitionsError.message}`);
+  }
+
+  const { data: tenantVerticals, error: tenantVerticalsError } = await supabase
+    .from("tenant_verticals")
+    .select("*")
+    .eq("tenant_id", tenant.id);
+
+  if (tenantVerticalsError) {
+    throw new Error(`Unable to load tenant verticals: ${tenantVerticalsError.message}`);
+  }
+
   const activeBillingRecords = billingRecords ?? [];
   const latestBillingRecord = activeBillingRecords[0];
   const totalDue = activeBillingRecords.reduce(
@@ -122,6 +146,11 @@ export default async function TenantDetailPage({
     0,
   );
   const outstanding = Math.max(totalDue - totalPaid, 0);
+  const enabledVerticalDefinitionIds = new Set(
+    (tenantVerticals ?? [])
+      .filter((tenantVertical) => tenantVertical.is_enabled)
+      .map((tenantVertical) => tenantVertical.vertical_definition_id),
+  );
 
   return (
     <div className="space-y-6">
@@ -236,6 +265,51 @@ export default async function TenantDetailPage({
             </div>
             <Button type="submit">Save tenant</Button>
           </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Vertical enablement</CardTitle>
+          <CardDescription>
+            Explicit tenant capabilities. Reusable logic must not depend on tenant slug or name.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(verticalDefinitions ?? []).map((vertical) => {
+            const isEnabled = enabledVerticalDefinitionIds.has(vertical.id);
+            const isProtectedBoutique = vertical.key === "boutique" && isEnabled;
+
+            return (
+              <div key={vertical.id} className="flex flex-col justify-between gap-3 rounded-md border p-3 text-sm md:flex-row md:items-center">
+                <div>
+                  <p className="font-medium">{vertical.name}</p>
+                  <p className="text-muted-foreground">
+                    {formatVerticalKey(vertical.key)} · {isEnabled ? "Enabled" : "Disabled"}
+                  </p>
+                  {vertical.description ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{vertical.description}</p>
+                  ) : null}
+                </div>
+                {isProtectedBoutique ? (
+                  <Button type="button" variant="outline" size="sm" disabled>
+                    Required
+                  </Button>
+                ) : (
+                  <form action={updateTenantVerticalAction}>
+                    <input type="hidden" name="tenantId" value={tenant.id} />
+                    <input type="hidden" name="verticalDefinitionId" value={vertical.id} />
+                    <input type="hidden" name="isEnabled" value={String(!isEnabled)} />
+                    <Button type="submit" variant={isEnabled ? "outline" : "default"} size="sm">
+                      {isEnabled ? "Disable" : "Enable"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+          {!verticalDefinitions?.length ? (
+            <p className="text-sm text-muted-foreground">No vertical definitions configured.</p>
+          ) : null}
         </CardContent>
       </Card>
       <Card>

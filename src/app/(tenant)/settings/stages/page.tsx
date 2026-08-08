@@ -1,7 +1,8 @@
-import { createStageAction } from "@/features/settings/actions";
+import { createStageAction, updateStageAction } from "@/features/settings/actions";
 import { getStages } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { TextMasterForm } from "@/components/settings/text-master-form";
+import { TextMasterEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function StagesPage() {
   const stages = await getStages();
@@ -19,6 +20,7 @@ export default async function StagesPage() {
         description="Internal production stage master."
         items={stages}
         renderMeta={(item) => item.description ?? "Internal stage"}
+        renderActions={(item) => <TextMasterEditDialog action={updateStageAction} idField="stageId" item={item} title="stage" />}
       />
     </div>
   );

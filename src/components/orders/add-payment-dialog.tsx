@@ -83,7 +83,7 @@ export function AddPaymentDialog({
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <form action={formAction} className="space-y-4" data-unsaved-guard="true">
+      <form action={formAction} className="space-y-4" data-unsaved-guard="true" data-preserve-dirty-on-submit="true">
         <input type="hidden" name="orderId" value={orderId} />
         {state.message ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">

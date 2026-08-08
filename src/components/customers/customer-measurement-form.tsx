@@ -128,7 +128,10 @@ export function CustomerMeasurementForm({
     <form action={action} className="space-y-5" data-unsaved-guard="true">
       <input type="hidden" name="customerId" value={customerId} />
       {measurement ? (
-        <input type="hidden" name="measurementId" value={measurement.id} />
+        <>
+          <input type="hidden" name="measurementId" value={measurement.id} />
+          <input type="hidden" name="itemTypeId" value={measurement.item_type_id ?? ""} />
+        </>
       ) : null}
       <div className="grid gap-2">
         <Label
@@ -153,9 +156,10 @@ export function CustomerMeasurementForm({
         </Label>
         <select
           id={measurement ? `itemTypeId-${measurement.id}` : "itemTypeId"}
-          name="itemTypeId"
+          name={measurement ? undefined : "itemTypeId"}
           value={selectedItemTypeId}
           onChange={(event) => handleItemTypeChange(event.target.value)}
+          disabled={Boolean(measurement)}
           className="h-10 rounded-md border bg-background px-3 text-sm"
         >
           <option value="">General measurement</option>
@@ -165,6 +169,7 @@ export function CustomerMeasurementForm({
             </option>
           ))}
         </select>
+        {measurement ? <p className="text-xs text-muted-foreground">Item type is fixed to preserve measurement and order history. Create a new measurement for another item type.</p> : null}
       </div>
       <div className="grid gap-2">
         <Label

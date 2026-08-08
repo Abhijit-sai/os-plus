@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { getAttachmentsForEntities } from "@/features/attachments/queries";
-import type { Customer, CustomerMeasurement, Order, OrderItem, OrderPayment } from "@/types/database";
+import type { Customer, CustomerAddress, CustomerMeasurement, Order, OrderItem, OrderPayment } from "@/types/database";
 
 export type CustomerListRow = {
   activeOrders: number;
@@ -270,9 +270,22 @@ export async function getCustomerDetailPageData(customerId: string) {
     entityType: "customer",
     entityIds: [customer.data.id]
   });
+  const { data: customerAddresses, error: customerAddressesError } = await supabase
+    .from("customer_addresses")
+    .select("*")
+    .eq("tenant_id", context.tenant.id)
+    .eq("customer_id", customer.data.id)
+    .is("deleted_at", null)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (customerAddressesError) {
+    throw new Error(`Unable to load customer addresses: ${customerAddressesError.message}`);
+  }
 
   return {
     context,
+    customerAddresses: (customerAddresses ?? []) as CustomerAddress[],
     customerAttachments,
     customer: customer.data,
     itemTypes: itemTypes.data ?? [],

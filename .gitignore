@@ -26,3 +26,10 @@ pnpm-debug.log*
 
 # types
 *.tsbuildinfo
+
+# generated QA artifacts
+/outputs/
+
+# private reference exports (contain tenant/customer/worker data)
+/docs_v2/sample_Attendance_Report.xls
+/docs_v2/sample_customers_export.csv

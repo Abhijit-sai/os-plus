@@ -1,10 +1,11 @@
-import { createCustomerStatusAction } from "@/features/settings/actions";
+import { createCustomerStatusAction, updateCustomerStatusAction } from "@/features/settings/actions";
 import { getCustomerStatuses } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomerStatusEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function CustomerStatusesPage() {
   const statuses = await getCustomerStatuses();
@@ -43,6 +44,7 @@ export default async function CustomerStatusesPage() {
         description="Customer-safe status labels."
         items={statuses}
         renderMeta={(item) => `Sort ${item.sort_order}${item.is_final_status ? " · Final" : ""}`}
+        renderActions={(item) => <CustomerStatusEditDialog action={updateCustomerStatusAction} item={item} />}
       />
     </div>
   );

@@ -53,10 +53,12 @@ function FieldForm({
       {field ? <input type="hidden" name="fieldId" value={field.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={field ? `itemTypeId-${field.id}` : "itemTypeId"}>Item type</Label>
+        {field ? <input type="hidden" name="itemTypeId" value={field.item_type_id} /> : null}
         <select
           id={field ? `itemTypeId-${field.id}` : "itemTypeId"}
           name="itemTypeId"
           defaultValue={field?.item_type_id ?? ""}
+          disabled={Boolean(field)}
           className="h-10 rounded-md border bg-background px-3 text-sm"
           required
         >
@@ -86,10 +88,12 @@ function FieldForm({
             name="fieldKey"
             defaultValue={field?.field_key ?? ""}
             placeholder="chest"
+            readOnly={Boolean(field)}
             required
           />
         </div>
       </div>
+      {field ? <p className="text-xs text-muted-foreground">Field key and item type are permanent identifiers. Create a new field if either identity is wrong.</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor={field ? `unit-${field.id}` : "unit"}>Unit</Label>

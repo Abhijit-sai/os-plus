@@ -167,7 +167,7 @@ Sections:
 - Phone optional
 - Email optional
 - Gender optional
-- Duplicate customers allowed
+- If the same normalized Indian mobile number already exists in the current tenant, select that customer and do not create a duplicate
 - Phone number entry should show existing customer suggestions
 
 ## 3.5 Workers

@@ -13,6 +13,7 @@ type Option = {
   id: string;
   name: string;
   description?: string | null;
+  item_type_id?: string | null;
 };
 
 type MeasurementOption = Pick<
@@ -410,6 +411,12 @@ export function OrderItemBuilder({
         <div className="divide-y">
           {rowIds.map((rowId, index) => {
             const selectedItemTypeId = itemTypeByRowId[rowId] ?? "";
+            const availableWorkflows = workflows.filter(
+              (workflow) =>
+                !workflow.item_type_id ||
+                !selectedItemTypeId ||
+                workflow.item_type_id === selectedItemTypeId,
+            );
             const availableStandardSizes = selectedItemTypeId
               ? standardSizes.filter((size) => size.item_type_id === selectedItemTypeId)
               : [];
@@ -493,7 +500,7 @@ export function OrderItemBuilder({
                       }
                     >
                       <div className="space-y-3">
-                        {workflows.map((workflow) => (
+                        {availableWorkflows.map((workflow) => (
                           <div key={workflow.id} className="rounded-md border p-3">
                             <p className="text-sm font-medium">{workflow.name}</p>
                             <p className="mt-1 text-sm text-muted-foreground">{workflow.description || "No summary added yet."}</p>
@@ -504,7 +511,7 @@ export function OrderItemBuilder({
                   </Label>
                   <select id={`workflowId_${rowId}`} name={`workflowId_${rowId}`} className="h-10 w-full rounded-md border bg-background px-3 text-sm" required={index === 0}>
                     <option value="">Select workflow</option>
-                    {workflows.map((workflow) => (
+                    {availableWorkflows.map((workflow) => (
                       <option key={workflow.id} value={workflow.id}>
                         {workflow.name}
                       </option>

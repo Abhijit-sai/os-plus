@@ -192,6 +192,8 @@ Note:
 
 MVP uses only sequential flow through `sequence_number`. `parent_stage_id`, `parallel_group_id`, and `dependency_type` are reserved for future parallel workflow support.
 
+`create_workflow_configuration` inserts the workflow, ordered active stage rows, default flags, and item-type default pointer in one tenant-locked transaction. `replace_workflow_stage_sequence` locks the workflow, validates all active tenant-owned stage/status references, soft-deletes the prior active sequence, and inserts the replacement atomically. `update_workflow_configuration` locks the workflow and qualifying active stage-master rows through commit, then rejects activation without an active stage. `update_stage_configuration` uses the same workflow-then-stage order, locks affected active workflows, and rejects deactivation when the stage is their last active stage. This prevents simultaneous activation/deactivation from committing an active workflow with no usable stage.
+
 ## workgroups
 
 ```text
@@ -318,9 +320,11 @@ Customer rules:
 - Phone number is optional.
 - Email is optional.
 - Gender is optional.
-- Duplicates are allowed.
-- No unique constraint on phone number for MVP.
-- Add index on `tenant_id, phone` for suggestion search.
+- When present, accepted Indian mobile formats are normalized to the final 10 digits by the application.
+- Active customers in the same tenant must not be created with the same normalized mobile number; saving resolves and selects the existing customer instead.
+- The server performs the duplicate check for every create path. This is currently an application-level guard that scans normalized active customer phone numbers.
+- A database uniqueness migration is deferred until legacy duplicates and normalized storage have been analysed.
+- Keep an index on `tenant_id, phone` for suggestion lookup.
 
 ## customer_measurements
 
@@ -352,6 +356,8 @@ Example `measurement_data_json`:
 }
 ```
 
+`item_type_id` is immutable after creation. Changing the item-type identity requires a new measurement record so existing order-item references remain compatible.
+
 ## item_type_measurement_fields
 
 Tenant-level configuration table for standard measurement fields per garment/item type.
@@ -378,6 +384,7 @@ Rules:
 
 - `tenant_id` is mandatory.
 - Fields are scoped to one tenant and one item type.
+- `item_type_id` and `field_key` are immutable after creation.
 - Deactivating a field must not remove historical customer measurement values.
 
 ## item_type_standard_sizes
@@ -403,6 +410,7 @@ Rules:
 
 - `tenant_id` is mandatory.
 - Standard sizes are scoped to one tenant and one item type.
+- `item_type_id` is immutable after creation.
 - `measurement_data_json` stores values against `item_type_measurement_fields.field_key`.
 - Standard sizes do not depend on a selected customer.
 - Public customer tracking must not expose standard size measurements.
@@ -543,6 +551,26 @@ created_at
 updated_at
 deleted_at
 ```
+
+## order_payment_corrections
+
+```text
+id
+tenant_id
+order_id
+payment_id
+reason
+old_value_json
+new_value_json
+created_by
+created_at
+```
+
+Rules:
+
+- `record_order_payment` locks the tenant-owned order and validates the payment total before inserting and updating the commercial payment summary.
+- `correct_order_payment` locks the same order, updates the payment, records old/new values plus actor and reason, and updates the summary atomically.
+- Direct update or deletion of correction records is blocked by an immutability trigger; parent-tenant/order cascade cleanup remains possible.
 
 ## 6. Workflow Execution Tables
 
@@ -980,6 +1008,32 @@ half_day
 leave
 holiday
 ```
+
+## attendance_imports
+
+```text
+id
+tenant_id
+file_name
+file_hash
+report_month
+idempotency_key
+source_row_count
+inserted_count
+updated_count
+skipped_count
+result_json
+created_by
+created_at
+```
+
+Rules:
+
+- One idempotency key is unique per tenant.
+- `file_hash` is the lowercase SHA-256 fingerprint confirmed after preview.
+- Import receipts are immutable service-role audit records protected by RLS and a database trigger that blocks direct update or deletion.
+- `import_attendance_rows` validates tenant-owned active workers, rejects future or duplicate worker/date rows, and inserts or updates attendance in one database transaction.
+- Unmatched, ambiguous, future, blank, and unknown-status source rows are summarized but never written to `attendance`.
 
 ## worker_ledger
 

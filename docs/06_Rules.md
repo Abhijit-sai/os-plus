@@ -43,14 +43,15 @@
 3. Email is optional.
 4. Gender is optional.
 5. Address is optional.
-6. Customer duplicates are allowed in MVP.
-7. There is no strict no-duplicates restriction at customer level for now.
-8. When entering a phone number, if existing customers match, suggestions must be shown.
-9. User can select an existing suggested customer.
-10. User can still create a new customer even if suggestions are shown.
+6. When a phone number is present, accepted Indian formats must be normalized to the final 10 digits. Accepted inputs are a 10-digit number, a leading `0`, a `+91` prefix, or a `0091` prefix.
+7. Before saving, the server must check active customers in the current tenant for the same normalized mobile number.
+8. If a matching customer exists, the application must not create a duplicate; it must resolve and select the existing customer.
+9. Phone suggestions should still be shown while entering a customer so the user can select a match immediately.
+10. The current guard is application-level. A database uniqueness constraint is deferred until legacy duplicates and normalized storage have been analysed.
 11. Customer profile should maintain order history.
 12. Customer profile should maintain measurements.
 13. Measurements can be stored as notes, photos, and key-value fields.
+14. Measurement-field key/item type, standard-size item type, and customer-measurement item type are immutable after creation. Create a new record instead of repointing historical fit references.
 
 ## 4. Order Rules
 
@@ -91,6 +92,8 @@
 11. Stage notes should be supported.
 12. Stage attachments should be supported.
 13. Customer-facing status should update based on stage mapping.
+14. Workflow creation, default mapping, and stage-sequence replacement must be atomic.
+15. A default workflow must have an item type and remain active; every active workflow must retain at least one active stage. Workflow activation and last-stage deactivation must serialize in workflow-then-stage lock order.
 
 ## 7. Worker Rules
 
@@ -105,10 +108,16 @@
 ## 8. Attendance Rules
 
 1. Attendance is separate from work logs.
-2. Attendance is manually marked by admin/manager in MVP.
+2. Attendance can be manually marked or imported by admin/manager in MVP.
 3. Attendance status values should include present, absent, half day, leave, and holiday.
 4. Attendance should support check-in and check-out times.
 5. Attendance should not automatically equal productive work time.
+6. Attendance import may update only active workers whose normalized source name has exactly one matching profile in the current tenant.
+7. Attendance import must not create workers or use fuzzy name matching; unmatched and ambiguous names are skipped and reported.
+8. Attendance import preview must not write data, and confirmation must revalidate the file fingerprint, tenant ownership, names, and dates.
+9. Future dates, blank statuses, and unknown status codes must not be imported.
+10. A confirmed workbook import must be atomic and idempotent and must store a tenant-scoped audit receipt.
+11. Attendance import receipts are immutable audit records; direct update or deletion is forbidden.
 
 ## 9. Work Log Rules
 
@@ -151,6 +160,8 @@
 10. Salary payments from the Salary module must roll up to Finance as Salary expense.
 11. Finance should not require or encourage duplicate manual salary expense entries for salary payments already recorded in Salary.
 12. Cash payment mode and GST treatment are separate; cash collections must still be recorded and must not be treated as automatically non-reportable.
+13. New order payments and payment corrections must lock the order, validate the tenant and payment mode, reject overpayment, write the payment change, and recalculate the summary in one transaction.
+14. Payment corrections must retain an immutable before/after snapshot, actor, and required reason; payment history must never be silently overwritten.
 
 ## 12. Dashboard Rules
 
@@ -185,6 +196,7 @@
 9. Keep migrations clean and versioned.
 10. Update `project_summary.md` after every major development session.
 11. Do not update `docs/05_Project_Summary.md`; it is archived historical context. New sessions should read the root `project_summary.md` plus the relevant product/tech docs instead.
+12. Tasks is Laundry-only in the current phase. Navigation, route queries, and mutations must all assert that the current tenant has the Laundry vertical enabled.
 
 ## 15. UX Rules
 

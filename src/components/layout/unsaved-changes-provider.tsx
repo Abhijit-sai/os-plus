@@ -40,6 +40,10 @@ function markFormDirty(target: EventTarget | null) {
     return;
   }
 
+  if (target.closest('[data-unsaved-ignore="true"]')) {
+    return;
+  }
+
   const form = target.closest<HTMLFormElement>(
     'form[data-unsaved-guard="true"]',
   );
@@ -101,6 +105,10 @@ export function UnsavedChangesProvider({
     }
 
     function handleFormSubmit(event: Event) {
+      const form = event.target instanceof HTMLFormElement ? event.target : null;
+      if (form?.dataset.preserveDirtyOnSubmit === "true") {
+        return;
+      }
       markFormClean(event.target);
       setDirtyVersion((version) => version + 1);
     }

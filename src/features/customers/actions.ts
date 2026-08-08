@@ -7,6 +7,7 @@ import { z } from "zod";
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { normalizeIndianMobile } from "@/features/customers/phone";
 import type { CustomerGender, Json } from "@/types/database";
 
 const optionalText = z
@@ -14,11 +15,35 @@ const optionalText = z
   .trim()
   .transform((value) => (value.length ? value : null));
 
+const optionalIndianMobile = z.preprocess(
+  (value) => String(value ?? ""),
+  z
+    .string()
+    .trim()
+    .transform((value, context) => {
+      if (!value) {
+        return null;
+      }
+
+      const normalized = normalizeIndianMobile(value);
+
+      if (!normalized) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Enter a valid 10-digit Indian mobile number.",
+        });
+        return z.NEVER;
+      }
+
+      return normalized;
+    }),
+);
+
 const genderSchema = z.enum(["female", "male", "other", "not_specified"]).nullable();
 
 const createCustomerSchema = z.object({
   name: z.string().trim().min(2, "Customer name is required."),
-  phone: optionalText,
+  phone: optionalIndianMobile,
   email: optionalText.pipe(z.string().email().nullable()).or(z.null()),
   gender: genderSchema,
   address: optionalText,
@@ -39,6 +64,31 @@ const updateCustomerSchema = createCustomerSchema.extend({
   customerId: z.string().uuid()
 });
 
+const customerAddressSchema = z.object({
+  customerId: z.string().uuid(),
+  label: z.string().trim().min(1, "Label is required."),
+  addressLine1: z.string().trim().min(1, "Address line 1 is required."),
+  addressLine2: optionalText,
+  area: optionalText,
+  city: optionalText,
+  state: optionalText,
+  postalCode: optionalText,
+  countryCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2}$/, "Use a two-letter country code.")
+    .default("IN"),
+  landmark: optionalText,
+  notes: optionalText,
+  isDefault: z.boolean().default(false)
+});
+
+const customerAddressIdSchema = z.object({
+  customerId: z.string().uuid(),
+  addressId: z.string().uuid()
+});
+
 const measurementIdSchema = z.object({
   customerId: z.string().uuid(),
   measurementId: z.string().uuid()
@@ -52,6 +102,59 @@ async function getAuthorizedCustomerContext() {
   const context = await requireTenantContext();
   assertPermission(context.membership.role, "customers:manage");
   return context;
+}
+
+async function findCustomerByNormalizedMobile({
+  excludeCustomerId,
+  normalizedPhone,
+  tenantId,
+}: {
+  excludeCustomerId?: string;
+  normalizedPhone: string | null;
+  tenantId: string;
+}) {
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, name, phone")
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null)
+    .not("phone", "is", null);
+
+  if (error) {
+    throw new Error(`Unable to check customer mobile number: ${error.message}`);
+  }
+
+  return (
+    (data ?? []).find(
+      (customer) =>
+        customer.id !== excludeCustomerId &&
+        normalizeIndianMobile(customer.phone) === normalizedPhone,
+    ) ?? null
+  );
+}
+
+async function validateCustomerForMutation(tenantId: string, customerId: string) {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", customerId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to validate customer: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Customer does not belong to this tenant.");
+  }
 }
 
 function parseGender(value: FormDataEntryValue | null) {
@@ -122,6 +225,15 @@ export async function createCustomerAction(formData: FormData) {
   });
 
   const supabase = createSupabaseServiceRoleClient();
+  const existingCustomer = await findCustomerByNormalizedMobile({
+    normalizedPhone: parsed.phone,
+    tenantId: context.tenant.id,
+  });
+
+  if (existingCustomer) {
+    redirect(`/customers/${existingCustomer.id}`);
+  }
+
   const { data: customer, error } = await supabase
     .from("customers")
     .insert({
@@ -144,6 +256,50 @@ export async function createCustomerAction(formData: FormData) {
 
   revalidatePath("/customers");
   redirect(`/customers/${customer.id}`);
+}
+
+export async function createCustomerInlineAction(formData: FormData) {
+  const context = await getAuthorizedCustomerContext();
+  const parsed = createCustomerSchema.parse({
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    email: formData.get("email"),
+    gender: parseGender(formData.get("gender")),
+    address: formData.get("address"),
+    notes: formData.get("notes"),
+  });
+  const existingCustomer = await findCustomerByNormalizedMobile({
+    normalizedPhone: parsed.phone,
+    tenantId: context.tenant.id,
+  });
+
+  if (existingCustomer) {
+    return { customer: existingCustomer, wasExisting: true };
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      phone: parsed.phone,
+      email: parsed.email,
+      gender: parsed.gender as CustomerGender | null,
+      address: parsed.address,
+      notes: parsed.notes,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id,
+    })
+    .select("id, name, phone")
+    .single();
+
+  if (error) {
+    throw new Error(`Unable to create customer: ${error.message}`);
+  }
+
+  revalidatePath("/customers");
+  return { customer, wasExisting: false };
 }
 
 export async function updateCustomerAction(formData: FormData) {
@@ -175,6 +331,18 @@ export async function updateCustomerAction(formData: FormData) {
     throw new Error("Customer does not belong to this tenant.");
   }
 
+  const existingCustomer = await findCustomerByNormalizedMobile({
+    excludeCustomerId: parsed.customerId,
+    normalizedPhone: parsed.phone,
+    tenantId: context.tenant.id,
+  });
+
+  if (existingCustomer) {
+    throw new Error(
+      `Another customer (${existingCustomer.name}) already uses this mobile number.`,
+    );
+  }
+
   const { error } = await supabase
     .from("customers")
     .update({
@@ -191,6 +359,96 @@ export async function updateCustomerAction(formData: FormData) {
 
   if (error) {
     throw new Error(`Unable to update customer: ${error.message}`);
+  }
+
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${parsed.customerId}`);
+}
+
+export async function createCustomerAddressAction(formData: FormData) {
+  const context = await getAuthorizedCustomerContext();
+  const parsed = customerAddressSchema.parse({
+    customerId: formData.get("customerId"),
+    label: formData.get("label"),
+    addressLine1: formData.get("addressLine1"),
+    addressLine2: formData.get("addressLine2"),
+    area: formData.get("area"),
+    city: formData.get("city"),
+    state: formData.get("state"),
+    postalCode: formData.get("postalCode"),
+    countryCode: formData.get("countryCode") || "IN",
+    landmark: formData.get("landmark"),
+    notes: formData.get("notes"),
+    isDefault: formData.get("isDefault") === "on"
+  });
+
+  await validateCustomerForMutation(context.tenant.id, parsed.customerId);
+  const supabase = createSupabaseServiceRoleClient();
+
+  if (parsed.isDefault) {
+    const { error: clearDefaultError } = await supabase
+      .from("customer_addresses")
+      .update({
+        is_default: false,
+        updated_by: context.membership.clerk_user_id
+      })
+      .eq("tenant_id", context.tenant.id)
+      .eq("customer_id", parsed.customerId)
+      .is("deleted_at", null);
+
+    if (clearDefaultError) {
+      throw new Error(`Unable to update default address: ${clearDefaultError.message}`);
+    }
+  }
+
+  const { error } = await supabase.from("customer_addresses").insert({
+    tenant_id: context.tenant.id,
+    customer_id: parsed.customerId,
+    label: parsed.label,
+    address_line_1: parsed.addressLine1,
+    address_line_2: parsed.addressLine2,
+    area: parsed.area,
+    city: parsed.city,
+    state: parsed.state,
+    postal_code: parsed.postalCode,
+    country_code: parsed.countryCode,
+    landmark: parsed.landmark,
+    notes: parsed.notes,
+    is_default: parsed.isDefault,
+    source: "manual",
+    created_by: context.membership.clerk_user_id,
+    updated_by: context.membership.clerk_user_id
+  });
+
+  if (error) {
+    throw new Error(`Unable to add customer address: ${error.message}`);
+  }
+
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${parsed.customerId}`);
+}
+
+export async function archiveCustomerAddressAction(formData: FormData) {
+  const context = await getAuthorizedCustomerContext();
+  const parsed = customerAddressIdSchema.parse({
+    customerId: formData.get("customerId"),
+    addressId: formData.get("addressId")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("customer_addresses")
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_default: false,
+      updated_by: context.membership.clerk_user_id
+    })
+    .eq("tenant_id", context.tenant.id)
+    .eq("customer_id", parsed.customerId)
+    .eq("id", parsed.addressId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to archive customer address: ${error.message}`);
   }
 
   revalidatePath("/customers");
@@ -316,7 +574,7 @@ export async function updateCustomerMeasurementAction(formData: FormData) {
       : Promise.resolve({ data: null, error: null }),
     supabase
       .from("customer_measurements")
-      .select("id")
+      .select("id, item_type_id")
       .eq("tenant_id", context.tenant.id)
       .eq("customer_id", parsed.customerId)
       .eq("id", parsed.measurementId)
@@ -348,6 +606,10 @@ export async function updateCustomerMeasurementAction(formData: FormData) {
     throw new Error("Measurement does not belong to this customer.");
   }
 
+  if (measurement.data.item_type_id !== parsed.itemTypeId) {
+    throw new Error("CUSTOMER_MEASUREMENT_ITEM_TYPE_IMMUTABLE: Item type cannot change after a measurement is created. Create a new measurement instead.");
+  }
+
   await assertRequiredMeasurementFields({
     itemTypeId: parsed.itemTypeId,
     measurementData: parsed.measurementData,
@@ -365,10 +627,9 @@ export async function updateCustomerMeasurementAction(formData: FormData) {
     });
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("customer_measurements")
     .update({
-      item_type_id: parsed.itemTypeId,
       reference_name: parsed.referenceName,
       measurement_data_json: parsed.measurementData as Json,
       notes: parsed.notes,
@@ -378,11 +639,14 @@ export async function updateCustomerMeasurementAction(formData: FormData) {
     })
     .eq("tenant_id", context.tenant.id)
     .eq("customer_id", parsed.customerId)
-    .eq("id", parsed.measurementId);
+    .eq("id", parsed.measurementId)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Unable to update measurement: ${error.message}`);
   }
+  if (!data) throw new Error("Measurement does not belong to this customer.");
 
   revalidatePath("/customers");
   revalidatePath(`/customers/${parsed.customerId}`);

@@ -19,6 +19,10 @@ const createWorkflowSchema = z.object({
   itemTypeId: optionalText,
   isDefault: z.boolean().default(false),
   stageIds: z.array(z.string().uuid()).min(1, "Select at least one stage.")
+}).superRefine((value, context) => {
+  if (value.isDefault && !value.itemTypeId) {
+    context.addIssue({ code: "custom", message: "Choose an item type before making this the default workflow.", path: ["itemTypeId"] });
+  }
 });
 
 const workflowStageSequenceSchema = z.object({
@@ -34,6 +38,15 @@ const deleteWorkflowSchema = z.object({
 const mapStageWorkgroupSchema = z.object({
   stageMasterId: z.string().uuid(),
   workgroupId: z.string().uuid()
+});
+
+const updateWorkflowSchema = z.object({
+  workflowId: z.string().uuid(), name: z.string().trim().min(2, "Workflow name is required."),
+  description: optionalText, itemTypeId: optionalText, isDefault: z.boolean().default(false), isActive: z.boolean().default(true)
+}).superRefine((value, context) => {
+  if (value.isDefault && !value.isActive) {
+    context.addIssue({ code: "custom", message: "Default workflows must remain active.", path: ["isActive"] });
+  }
 });
 
 async function getAuthorizedWorkflowContext() {
@@ -91,93 +104,28 @@ export async function createWorkflowAction(formData: FormData) {
   assertUniqueStageSequence(parsed.stageIds);
 
   const supabase = createSupabaseServiceRoleClient();
-
-  const { data: validStages, error: validStagesError } = await supabase
-    .from("stage_master")
-    .select("id")
-    .eq("tenant_id", context.tenant.id)
-    .in("id", parsed.stageIds)
-    .is("deleted_at", null);
-
-  if (validStagesError) {
-    throw new Error(`Unable to validate workflow stages: ${validStagesError.message}`);
-  }
-
-  if ((validStages ?? []).length !== parsed.stageIds.length) {
-    throw new Error("One or more selected stages do not belong to this tenant.");
-  }
-
-  if (parsed.itemTypeId) {
-    const { data: itemType, error: itemTypeError } = await supabase
-      .from("item_types")
-      .select("id")
-      .eq("tenant_id", context.tenant.id)
-      .eq("id", parsed.itemTypeId)
-      .is("deleted_at", null)
-      .maybeSingle();
-
-    if (itemTypeError) {
-      throw new Error(`Unable to validate item type: ${itemTypeError.message}`);
-    }
-
-    if (!itemType) {
-      throw new Error("Selected item type does not belong to this tenant.");
-    }
-  }
-
-  const { data: workflow, error: workflowError } = await supabase
-    .from("workflows")
-    .insert({
-      tenant_id: context.tenant.id,
-      name: parsed.name,
-      description: parsed.description,
-      item_type_id: parsed.itemTypeId,
-      is_default: parsed.isDefault,
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id
-    })
-    .select("*")
-    .single();
-
-  if (workflowError) {
-    throw new Error(`Unable to create workflow: ${workflowError.message}`);
-  }
-
-  const { error: stagesError } = await supabase.from("workflow_stages").insert(
-    parsed.stageIds.map((stageId, index) => ({
-      tenant_id: context.tenant.id,
-      workflow_id: workflow.id,
-      stage_master_id: stageId,
-      sequence_number: index + 1,
-      is_mandatory: true,
-      allows_multiple_workers: true,
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id
-    }))
-  );
-
-  if (stagesError) {
-    throw new Error(`Workflow created, but stages failed: ${stagesError.message}`);
-  }
-
-  if (parsed.itemTypeId && parsed.isDefault) {
-    const { error: itemTypeUpdateError } = await supabase
-      .from("item_types")
-      .update({
-        default_workflow_id: workflow.id,
-        updated_by: context.membership.clerk_user_id
-      })
-      .eq("tenant_id", context.tenant.id)
-      .eq("id", parsed.itemTypeId);
-
-    if (itemTypeUpdateError) {
-      throw new Error(`Workflow created, but item type default mapping failed: ${itemTypeUpdateError.message}`);
-    }
+  const { data: workflowId, error } = await supabase.rpc("create_workflow_configuration", {
+    p_tenant_id: context.tenant.id,
+    p_name: parsed.name,
+    p_description: parsed.description,
+    p_item_type_id: parsed.itemTypeId,
+    p_is_default: parsed.isDefault,
+    p_stage_ids: parsed.stageIds,
+    p_actor_id: context.membership.clerk_user_id
+  });
+  if (error || !workflowId) {
+    const message = error?.message ?? "Workflow was not created.";
+    throw new Error(
+      message.includes("ITEM_TYPE_NOT_FOUND") ? "Selected item type does not belong to this tenant."
+        : message.includes("STAGE_NOT_FOUND") ? "One or more selected stages are inactive or do not belong to this tenant."
+          : message.includes("DEFAULT_WORKFLOW_REQUIRES_ITEM_TYPE") ? "Choose an item type before making this the default workflow."
+            : `Unable to create workflow: ${message}`
+    );
   }
 
   revalidatePath("/settings");
   revalidatePath("/settings/workflows");
-  redirect(`/settings/workflows/${workflow.id}`);
+  redirect(`/settings/workflows/${workflowId}`);
 }
 
 export async function addStageWorkgroupAction(formData: FormData) {
@@ -227,6 +175,25 @@ export async function addStageWorkgroupAction(formData: FormData) {
   revalidatePath("/settings/workflows");
 }
 
+export async function removeStageWorkgroupAction(formData: FormData) {
+  const context = await getAuthorizedWorkflowContext();
+  const parsed = mapStageWorkgroupSchema.parse({ stageMasterId: formData.get("stageMasterId"), workgroupId: formData.get("workgroupId") });
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("stage_workgroups").delete().eq("tenant_id", context.tenant.id).eq("stage_master_id", parsed.stageMasterId).eq("workgroup_id", parsed.workgroupId).select("id").maybeSingle();
+  if (error) throw new Error(`Unable to remove stage workgroup mapping: ${error.message}`);
+  if (!data) throw new Error("Stage workgroup mapping does not belong to this tenant.");
+  revalidatePath("/settings/workflows");
+}
+
+export async function updateWorkflowAction(formData: FormData) {
+  const context = await getAuthorizedWorkflowContext();
+  const parsed = updateWorkflowSchema.parse({ workflowId: formData.get("workflowId"), name: formData.get("name"), description: formData.get("description"), itemTypeId: formData.get("itemTypeId"), isDefault: formData.get("isDefault") === "on", isActive: formData.get("isActive") === "on" });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("update_workflow_configuration", { p_tenant_id: context.tenant.id, p_workflow_id: parsed.workflowId, p_name: parsed.name, p_description: parsed.description, p_item_type_id: parsed.itemTypeId, p_is_default: parsed.isDefault, p_is_active: parsed.isActive, p_actor_id: context.membership.clerk_user_id });
+  if (error) throw new Error(error.message.includes("ITEM_TYPE_NOT_FOUND") ? "Selected item type is unavailable." : error.message.includes("DEFAULT_WORKFLOW_REQUIRES_ITEM_TYPE") ? "Choose an item type before making this the default workflow." : error.message.includes("DEFAULT_WORKFLOW_MUST_BE_ACTIVE") ? "Default workflows must remain active." : error.message.includes("ACTIVE_WORKFLOW_REQUIRES_ACTIVE_STAGE") ? "An active workflow must contain at least one active stage." : error.message.includes("WORKFLOW_NOT_FOUND") ? "Workflow does not belong to this tenant." : `Unable to update workflow: ${error.message}`);
+  revalidatePath("/settings"); revalidatePath("/settings/workflows"); revalidatePath(`/settings/workflows/${parsed.workflowId}`);
+}
+
 export async function replaceWorkflowStagesAction(formData: FormData) {
   const context = await getAuthorizedWorkflowContext();
   const parsed = workflowStageSequenceSchema.parse({
@@ -237,87 +204,20 @@ export async function replaceWorkflowStagesAction(formData: FormData) {
   assertUniqueStageSequence(parsed.stageIds);
 
   const supabase = createSupabaseServiceRoleClient();
-  const { data: workflow, error: workflowError } = await supabase
-    .from("workflows")
-    .select("id")
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", parsed.workflowId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (workflowError) {
-    throw new Error(`Unable to validate workflow: ${workflowError.message}`);
-  }
-
-  if (!workflow) {
-    throw new Error("Workflow does not belong to this tenant.");
-  }
-
-  const { data: validStages, error: validStagesError } = await supabase
-    .from("stage_master")
-    .select("id")
-    .eq("tenant_id", context.tenant.id)
-    .in("id", parsed.stageIds)
-    .is("deleted_at", null);
-
-  if (validStagesError) {
-    throw new Error(`Unable to validate stages: ${validStagesError.message}`);
-  }
-
-  if ((validStages ?? []).length !== parsed.stageIds.length) {
-    throw new Error("One or more selected stages do not belong to this tenant.");
-  }
-
-  const selectedCustomerStatusIds = Array.from(
-    new Set(parsed.customerStatusIds.filter((value): value is string => Boolean(value)))
-  );
-  if (selectedCustomerStatusIds.length) {
-    const { data: validStatuses, error: validStatusesError } = await supabase
-      .from("customer_statuses")
-      .select("id")
-      .eq("tenant_id", context.tenant.id)
-      .in("id", selectedCustomerStatusIds)
-      .is("deleted_at", null);
-
-    if (validStatusesError) {
-      throw new Error(`Unable to validate customer statuses: ${validStatusesError.message}`);
-    }
-
-    if ((validStatuses ?? []).length !== selectedCustomerStatusIds.length) {
-      throw new Error("One or more selected customer statuses do not belong to this tenant.");
-    }
-  }
-
-  const { error: softDeleteError } = await supabase
-    .from("workflow_stages")
-    .update({
-      deleted_at: new Date().toISOString(),
-      updated_by: context.membership.clerk_user_id
-    })
-    .eq("tenant_id", context.tenant.id)
-    .eq("workflow_id", parsed.workflowId)
-    .is("deleted_at", null);
-
-  if (softDeleteError) {
-    throw new Error(`Unable to replace workflow stages: ${softDeleteError.message}`);
-  }
-
-  const { error: insertError } = await supabase.from("workflow_stages").insert(
-    parsed.stageIds.map((stageId, index) => ({
-      tenant_id: context.tenant.id,
-      workflow_id: parsed.workflowId,
-      stage_master_id: stageId,
-      sequence_number: index + 1,
-      is_mandatory: true,
-      allows_multiple_workers: true,
-      customer_status_id: parsed.customerStatusIds[index] ?? null,
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id
-    }))
-  );
-
-  if (insertError) {
-    throw new Error(`Unable to save workflow stages: ${insertError.message}`);
+  const { error } = await supabase.rpc("replace_workflow_stage_sequence", {
+    p_tenant_id: context.tenant.id,
+    p_workflow_id: parsed.workflowId,
+    p_stage_ids: parsed.stageIds,
+    p_customer_status_ids: parsed.customerStatusIds,
+    p_actor_id: context.membership.clerk_user_id
+  });
+  if (error) {
+    throw new Error(
+      error.message.includes("WORKFLOW_NOT_FOUND") ? "Workflow does not belong to this tenant."
+        : error.message.includes("STAGE_NOT_FOUND") ? "One or more selected stages are inactive or do not belong to this tenant."
+          : error.message.includes("CUSTOMER_STATUS_NOT_FOUND") ? "One or more selected customer statuses do not belong to this tenant."
+            : `Unable to save workflow stages: ${error.message}`
+    );
   }
 
   revalidatePath("/settings/workflows");

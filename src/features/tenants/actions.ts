@@ -109,6 +109,12 @@ const billingRecordIdSchema = z.object({
   billingRecordId: z.string().uuid()
 });
 
+const tenantVerticalSchema = z.object({
+  tenantId: z.string().uuid(),
+  verticalDefinitionId: z.string().uuid(),
+  isEnabled: z.boolean().default(false)
+});
+
 function getBillingPaymentStatus({
   amountDue,
   amountPaid,
@@ -384,6 +390,79 @@ export async function cancelTenantBillingRecordAction(formData: FormData) {
 
   if (error) {
     throw new Error(`Unable to cancel tenant billing record: ${error.message}`);
+  }
+
+  revalidatePath("/super-admin/tenants");
+  revalidatePath(`/super-admin/tenants/${parsed.tenantId}`);
+}
+
+export async function updateTenantVerticalAction(formData: FormData) {
+  const superAdminUserId = await requireSuperAdmin();
+  const parsed = tenantVerticalSchema.parse({
+    tenantId: formData.get("tenantId"),
+    verticalDefinitionId: formData.get("verticalDefinitionId"),
+    isEnabled: formData.get("isEnabled") === "true"
+  });
+  const supabase = createSupabaseServiceRoleClient();
+
+  const [{ data: tenant, error: tenantError }, { data: vertical, error: verticalError }] = await Promise.all([
+    supabase.from("tenants").select("id").eq("id", parsed.tenantId).maybeSingle(),
+    supabase
+      .from("vertical_definitions")
+      .select("id, key, is_active")
+      .eq("id", parsed.verticalDefinitionId)
+      .maybeSingle()
+  ]);
+
+  if (tenantError) {
+    throw new Error(`Unable to validate tenant: ${tenantError.message}`);
+  }
+
+  if (verticalError) {
+    throw new Error(`Unable to validate vertical: ${verticalError.message}`);
+  }
+
+  if (!tenant) {
+    throw new Error("Tenant not found.");
+  }
+
+  if (!vertical || !vertical.is_active) {
+    throw new Error("Vertical is not active.");
+  }
+
+  if (vertical.key === "boutique" && !parsed.isEnabled) {
+    throw new Error("Boutique cannot be disabled for existing tenants.");
+  }
+
+  if (parsed.isEnabled) {
+    const { error } = await supabase.from("tenant_verticals").upsert(
+      {
+        tenant_id: parsed.tenantId,
+        vertical_definition_id: parsed.verticalDefinitionId,
+        is_enabled: true,
+        enabled_at: new Date().toISOString(),
+        created_by: superAdminUserId,
+        updated_by: superAdminUserId
+      },
+      { onConflict: "tenant_id,vertical_definition_id" }
+    );
+
+    if (error) {
+      throw new Error(`Unable to enable tenant vertical: ${error.message}`);
+    }
+  } else {
+    const { error } = await supabase
+      .from("tenant_verticals")
+      .update({
+        is_enabled: false,
+        updated_by: superAdminUserId
+      })
+      .eq("tenant_id", parsed.tenantId)
+      .eq("vertical_definition_id", parsed.verticalDefinitionId);
+
+    if (error) {
+      throw new Error(`Unable to disable tenant vertical: ${error.message}`);
+    }
   }
 
   revalidatePath("/super-admin/tenants");

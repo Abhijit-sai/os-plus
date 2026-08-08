@@ -13,7 +13,9 @@ import {
   Home,
   Landmark,
   LineChart,
+  ListChecks,
   LogOut,
+  Package,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -31,12 +33,14 @@ import {
   type Permission,
 } from "@/lib/permissions/roles";
 import { UnsavedChangesProvider } from "@/components/layout/unsaved-changes-provider";
+import type { TenantVerticalKey } from "@/types/database";
 
 const navItems: Array<{
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   permission: Permission;
+  vertical?: TenantVerticalKey;
 }> = [
   {
     href: "/dashboard",
@@ -55,6 +59,20 @@ const navItems: Array<{
     label: "Production",
     icon: Factory,
     permission: "production:view",
+  },
+  {
+    href: "/tasks",
+    label: "Tasks",
+    icon: ListChecks,
+    permission: "tasks:view",
+    vertical: "laundry",
+  },
+  {
+    href: "/laundry/custody",
+    label: "Laundry",
+    icon: Package,
+    permission: "laundry:view",
+    vertical: "laundry",
   },
   {
     href: "/customers",
@@ -112,13 +130,16 @@ function formatRole(role: string) {
 
 export function AppShell({
   context,
+  verticalKeys,
   children,
 }: {
   context: TenantContext;
+  verticalKeys: TenantVerticalKey[];
   children: React.ReactNode;
 }) {
   const visibleNavItems = navItems.filter((item) =>
-    hasPermission(context.membership.role, item.permission),
+    hasPermission(context.membership.role, item.permission) &&
+    (!item.vertical || verticalKeys.includes(item.vertical)),
   );
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);

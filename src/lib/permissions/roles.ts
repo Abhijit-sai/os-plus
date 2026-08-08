@@ -6,6 +6,10 @@ export type Permission =
   | "orders:manage"
   | "production:view"
   | "production:manage"
+  | "tasks:view"
+  | "tasks:manage"
+  | "laundry:view"
+  | "laundry:manage"
   | "customers:view"
   | "customers:manage"
   | "workers:view"
@@ -27,6 +31,10 @@ export const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "orders:manage",
     "production:view",
     "production:manage",
+    "tasks:view",
+    "tasks:manage",
+    "laundry:view",
+    "laundry:manage",
     "customers:view",
     "customers:manage",
     "workers:view",
@@ -46,12 +54,16 @@ export const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "orders:manage",
     "production:view",
     "production:manage",
+    "tasks:view",
+    "tasks:manage",
+    "laundry:view",
+    "laundry:manage",
     "customers:view",
     "customers:manage",
     "attendance:view",
     "attendance:manage",
   ],
-  finance: ["salary:view", "salary:manage", "finance:view", "finance:manage"],
+  finance: ["tasks:view", "tasks:manage", "salary:view", "salary:manage", "finance:view", "finance:manage"],
   viewer: ["reports:view"],
 };
 

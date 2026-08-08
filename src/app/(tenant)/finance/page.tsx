@@ -606,6 +606,7 @@ function EditExpenseDialog({
       trigger={
         <FinanceDialogButton variant="ghost">
           <Pencil className="h-4 w-4" />
+          Edit
         </FinanceDialogButton>
       }
     >
@@ -715,10 +716,11 @@ function EditOrderPaymentDialog({
   return (
     <Dialog
       title="Edit order payment"
-      description="Update a customer payment while keeping the order payment summary in sync."
+      description="Correct a customer payment. The original and corrected values are retained in an immutable audit record."
       trigger={
         <FinanceDialogButton variant="ghost">
           <Pencil className="h-4 w-4" />
+          Correct
         </FinanceDialogButton>
       }
     >
@@ -783,6 +785,17 @@ function EditOrderPaymentDialog({
             name="notes"
             defaultValue={payment.notes ?? ""}
           />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`correctionReason-${payment.id}`}>Correction reason</Label>
+          <Input
+            id={`correctionReason-${payment.id}`}
+            name="correctionReason"
+            minLength={3}
+            placeholder="Why is this payment being corrected?"
+            required
+          />
+          <p className="text-xs text-muted-foreground">This reason is saved with the before-and-after audit record.</p>
         </div>
         <Button type="submit">Save payment</Button>
       </form>

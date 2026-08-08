@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { addStageWorkgroupAction, createWorkflowAction } from "@/features/workflows/actions";
+import { addStageWorkgroupAction, createWorkflowAction, removeStageWorkgroupAction } from "@/features/workflows/actions";
 import { getWorkflowConfigurationPageData } from "@/features/workflows/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,11 +128,7 @@ export default async function WorkflowsPage() {
                   return (
                     <div key={stage.id} className="rounded-md border p-3">
                       <p className="font-medium">{stage.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {mapped.length
-                          ? mapped.map((row) => workgroupNameById.get(row.workgroup_id) ?? "Unknown").join(", ")
-                          : "No workgroups mapped yet"}
-                      </p>
+                      {mapped.length ? <div className="mt-2 flex flex-wrap gap-2">{mapped.map((row) => <form key={row.id} action={removeStageWorkgroupAction} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs"><input type="hidden" name="stageMasterId" value={stage.id} /><input type="hidden" name="workgroupId" value={row.workgroup_id} /><span>{workgroupNameById.get(row.workgroup_id) ?? "Unknown"}</span><Button type="submit" variant="ghost" size="sm" className="h-6 px-1 text-xs">Remove</Button></form>)}</div> : <p className="text-sm text-muted-foreground">No workgroups mapped yet</p>}
                     </div>
                   );
                 })}

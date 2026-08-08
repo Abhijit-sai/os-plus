@@ -65,7 +65,10 @@ export default async function CustomersPage({
       <Card>
         <CardHeader>
           <CardTitle>Find customers</CardTitle>
-          <CardDescription>Search by name or phone. Duplicate customer profiles remain allowed in MVP.</CardDescription>
+          <CardDescription>
+            Search by name or phone. A matching normalized mobile number reuses
+            the existing tenant customer instead of creating a duplicate.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">

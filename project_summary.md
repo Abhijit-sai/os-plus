@@ -118,10 +118,9 @@ Working name: **OS PLUS**
 - Phone number is optional.
 - Email is optional.
 - Gender is optional.
-- Customer duplicates are allowed in MVP.
-- No no-duplicate restriction at customer level for now.
-- When a phone number is entered, the system should suggest existing customers with matching/similar numbers.
-- User can select an existing customer or continue creating a new one.
+- Mobile number remains optional. When supplied, accepted Indian formats are normalized to the final 10 digits.
+- An active customer with the same normalized mobile number in the current tenant must be reused; a duplicate must not be created.
+- Matching customer suggestions can be selected immediately. The server repeats the normalized-mobile check on save.
 - Customer profile should exist from MVP.
 - Customer profile should show order history and measurements.
 
@@ -170,7 +169,7 @@ MVP supports:
 
 - Attendance is separate from work logs.
 - Attendance is manually marked by admin/manager in MVP.
-- Excel import or attendance system integration can come later.
+- Admins/managers can preview and atomically import supported `.xls` and `.xlsx` attendance reports; biometric device/API integration remains later.
 - Workers do not log in during MVP.
 - Managers/admins log work on behalf of workers.
 
@@ -250,7 +249,7 @@ To be finalized later:
 
 ## 7. Current Build Phase
 
-Current phase: Production hardening and market-readiness. Core MVP operating modules are now broad enough for a real boutique pilot, so the next priority is not new module expansion. The app should now focus on tenant access correctness, account switching, tenant isolation audits, role enforcement, QA coverage, deployment readiness, and pilot onboarding.
+Current phase: Global feedback implementation and authenticated QA closed. Existing-order add-items, shared action feedback, configuration correction paths, attendance spreadsheet import, tenant expense defaults, non-Laundry Task gating, and inline customer creation are implemented, verified, and authorized for the local phase commit. Laundry remains paused; Shopify, customer bulk import, and multi-worker contribution tracking are next-phase planning topics.
 
 ## 8. Completed
 
@@ -345,7 +344,7 @@ Current phase: Production hardening and market-readiness. Core MVP operating mod
 - Salary module should remain suggested/admin-finalized, not full payroll.
 - Finance module should not become a full accounting system in MVP.
 - GST capture must be compliance-safe: cash payments are still recorded, and payment mode must not be treated as a way to hide taxable activity.
-- Customer duplicates are allowed, so customer search/suggestion UX must be good.
+- Active customer duplicates by normalized Indian mobile are blocked within each tenant at the application layer; legacy duplicates and database-level normalized uniqueness require a separate migration decision.
 - Customer tracking page must not expose internal operational details.
 
 ## 13. Future Considerations
@@ -7607,3 +7606,4462 @@ Production Hardening and Pilot Readiness
 - Full data-mutating pilot loop still needs a deliberate seed-data pass or manual approval to create fresh QA records across customer, order, production, attendance, salary, finance, attachment, and communication workflows.
 - Finance-role and viewer-role browser checks still require active test memberships for the approved accounts or additional approved test accounts.
 - Disabled-membership and inactive-tenant browser checks still require prepared test data.
+
+## Session Update - 2026-06-09 - Delivery, Onboarding, and Communications Planning
+
+### Date
+
+2026-06-09
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Next Product Initiatives Planning
+
+### User Direction
+
+- Prioritize Delivery and Handover.
+- Build the Pilot Onboarding Wizard next.
+- Build the operational Communication Workspace after onboarding.
+- Plan dependencies and safety rules clearly before implementation.
+
+### Decisions Made
+
+- Delivery/handover will be a durable auditable event, not only an item status update.
+- Partial handover will support selected order-item quantities.
+- Outstanding balance will require acknowledgment but will not hard-block handover.
+- Managers can record normal eligible handover; only owner/admin can override incomplete production with a required reason.
+- Handover correction will use reversal/correction history rather than silent deletion.
+- Item and order fulfillment status will be recomputed from active handover records through one centralized helper.
+- Public tracking will expose only safe fulfillment information.
+- Onboarding readiness will derive from real tenant configuration wherever possible.
+- `tenant_onboarding_state` will store only resumable wizard state, not duplicate readiness truth.
+- Onboarding will be owner/admin-only, resumable, non-destructive, and optional to leave.
+- Communication configuration will remain under Settings.
+- A new operational `/communications` workspace will serve owner/admin and managers for review, suggestions, queue, history, failures, and dry-run actions.
+- Live WhatsApp/email sending remains disabled during these initiatives.
+
+### Planned Build Order
+
+1. Delivery and Handover foundation and order-detail flow.
+2. Delivery visibility, correction, public tracking, and stable event keys.
+3. Pilot Onboarding Wizard.
+4. Operational Communication Workspace.
+
+### Documentation Updated
+
+- `docs/01_PRD.md`
+- `docs/02_WBS.md`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/06_Rules.md`
+- `docs/08_Database_Model.md`
+- `docs/13_Delivery_Onboarding_Communications_Implementation_Plan.md`
+- `docs/OS_PLUS_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Notes for Implementation
+
+- Delivery foundation should be implemented first in small slices with focused tests before onboarding or communication workspace changes.
+- The proposed handover model adds `order_handovers`, `order_handover_items`, and item status `partially_delivered`.
+- The proposed onboarding model adds minimal `tenant_onboarding_state`.
+- The communication workspace can reuse the existing communication settings, templates, queue, logs, rendering helpers, and live-mode guard.
+- The QA matrix now includes dedicated Delivery Handover and Pilot Onboarding sheets plus Communication Workspace role, isolation, idempotency, and live-mode cases.
+
+---
+
+## Session Update - 2026-06-09 - Delivery and Handover Foundation
+
+### Phase
+
+Delivery and Handover - Atomic Foundation
+
+### Implemented
+
+- Added `partially_delivered` to item fulfillment status.
+- Added tenant-owned `order_handovers`, `order_handover_items`, and `tenant_handover_counters`.
+- Added atomic database functions for handover creation and owner/admin reversal.
+- Added database triggers that reject cross-tenant or cross-order handover parent/item writes.
+- Added server-side handover actions that use authenticated tenant context and existing `orders:manage` permission.
+- Managers can record normal eligible handovers.
+- Only owner/admin can authorize incomplete-production handover and reverse a handover.
+- Outstanding balance acknowledgment, remaining quantity, cancelled item/order, duplicate item, and required actor rules are enforced inside the atomic database function.
+- Handover creation and reversal write item history and centrally recompute item/order fulfillment status.
+- Reversal preserves the original handover and restores the pre-handover production status when no active delivered quantity remains.
+- Order detail queries now load tenant-scoped handovers and handover item lines for the future UI slice.
+- Added generated-style database types and a focused executable handover policy/migration safety test.
+
+### Files Added
+
+- `supabase/migrations/20260609150000_item_status_partially_delivered.sql`
+- `supabase/migrations/20260609151000_delivery_handover_foundation.sql`
+- `src/features/orders/handover-policy.ts`
+- `src/features/orders/handover-actions.ts`
+- `scripts/test-handover-policy.mjs`
+
+### Verification
+
+- `npm run test:handover` passed.
+- `npm run test:roles` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- `git diff --check` passed with only existing LF-to-CRLF working-copy warnings.
+
+### Next Slice
+
+- Apply the migrations to the target Supabase environment.
+- Build the order-detail Delivery and Handover section and record-handover dialog.
+- Expose eligibility, remaining quantities, balance warning/acknowledgment, early-handover reason, and auditable reversal UI.
+- Add browser QA for manager normal handover, manager early-handover rejection, owner/admin override, partial/full delivery, reversal, tenant isolation, and public tracking safety.
+
+---
+
+## Session Update - 2026-06-09 - Delivery and Handover Operator UI
+
+### Implemented
+
+- Added an order-detail `Record handover` dialog with:
+  - pickup/self-delivery/courier type,
+  - handover date/time,
+  - recipient and courier/reference fields,
+  - selectable remaining item quantities,
+  - manager blocking for incomplete-production items,
+  - owner/admin early-handover reason,
+  - outstanding-balance acknowledgment,
+  - separate customer-safe and internal notes.
+- Added an order-detail Delivery and Handover history table.
+- Added owner/admin-only reversal dialog with required reason.
+- Added customer-safe public tracking delivery updates using only:
+  - handover type and time,
+  - item names and handed-over quantities,
+  - courier name,
+  - tracking reference,
+  - customer-safe note.
+- Public tracking does not query recipient phone, balance acknowledgment, internal notes, early-handover reason, reversal reason, or actor metadata.
+
+### Verification
+
+- Configured Supabase REST endpoint confirmed the handover tables are not yet present.
+- Supabase SQL editor was opened in the authenticated browser surface but requires a fresh Supabase sign-in before migrations can be applied.
+- `npm run test:handover` passed.
+- `npm run test:roles` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Local public home and invalid tracking routes were smoke-tested without browser console errors.
+
+### Remaining Gate
+
+- Apply `20260609150000_item_status_partially_delivered.sql` and `20260609151000_delivery_handover_foundation.sql` after Supabase dashboard sign-in.
+- Then complete authenticated browser QA of record, partial/full handover, balance acknowledgment, early-handover role enforcement, reversal, tenant isolation, and public tracking visibility.
+
+---
+
+## Session Update - 2026-06-10 - Unapplied Handover Migration Compatibility Fix
+
+### Bug
+
+- Order detail failed with `PGRST205` because the new handover queries ran before `order_handovers` and `order_handover_items` had been migrated.
+
+### Fix
+
+- Added a narrow Supabase missing-relation detector for `PGRST205`.
+- Order detail and public tracking now tolerate only the expected missing handover-table condition.
+- Handover controls and history remain hidden until both handover tables are available.
+- All other handover query failures, including permission and malformed-query errors, still fail loudly.
+- Added focused regression assertions for missing relation, unrelated missing relation, and permission failure behavior.
+
+### Verification
+
+- `npm run test:handover` passed.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- `git diff --check` passed with only existing LF-to-CRLF working-copy warnings.
+- Authenticated order-detail browser verification remains pending because the available browser session redirected to Clerk sign-in.
+
+
+# V2 Kickoff Entry for Root project_summary.md
+
+Append the following entry to the root `/project_summary.md` before the first V2 coding session.
+
+Update the Branch/Base values after the real phase branch is created.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2 Architecture and Laundry Extension Kickoff
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Abhijit / ChatGPT architecture planning session
+
+### V2 Phase
+
+V2-0 - Baseline, Documentation and Compatibility Gate
+
+### Phase Status
+
+PLANNED
+
+### Branch / Base
+
+- Branch: `v2/phase-0-baseline` - to be created/confirmed
+- Base reference/commit: confirm at coding-session start
+
+### Session Objective
+
+- Redesign OS PLUS architecture additively to support Laundry as the second vertical.
+- Preserve the live Boutique vertical and all current Boutique workflows/features.
+- Establish the V2 documentation, compatibility, QA, phase-gate, QR, B2B hostel and Billing/UPI architecture before code changes.
+
+### What Was Planned
+
+- Added a new V2 documentation layer under `/docs_v2`.
+- Defined Boutique as a protected compatibility contract.
+- Chosen a dual-runtime launch strategy:
+  - Boutique: `legacy_item_v1`
+  - Laundry: `work_unit_v2`
+- Defined explicit tenant vertical enablement.
+- Defined additive platform primitives:
+  - Locations
+  - Customer Addresses
+  - Teams
+  - Tasks
+  - Domain Commands
+  - Domain Events
+  - Idempotency
+- Defined V2 commercial/operational separation:
+  - Order Lines
+  - Work Units
+  - Invoices
+  - Payments
+  - Payment Allocations
+- Defined Laundry primitives:
+  - Pickup Requests
+  - Container Assets
+  - Handling Units
+  - Custody Events
+  - Service Lots
+  - Manifests
+  - Verifications
+  - Collection Batches
+  - Fulfilment
+- Defined QR-guided operational scanning.
+- Defined Fundry B2B hostel reusable-bag workflow.
+- Defined pre-Razorpay UPI Payment Intent.
+- Defined V2 QA and phase closure policy.
+
+### Key Decisions Made
+
+- Existing Boutique `order_items` and item workflow runtime will not be force-migrated during Laundry launch.
+- The existing tenant-configurable Workflow, Workflow Stage, Stage Master, Customer Status and Workgroup definitions will be reused by the V2 Work Unit runtime.
+- Laundry will use a parallel additive Work Unit execution runtime.
+- Permanent hostel bag QR belongs to a reusable Container Asset; each collection creates a new Handling Unit cycle.
+- One Hostel Collection Batch creates one Order and one Invoice.
+- In the Fundry launch flow, each collected hostel bag creates one Order Line, Service Lot and Work Unit, and later one Invoice Line.
+- QR identifies the operational object; the server resolves the current legal action.
+- Default QR mutation requires authenticated operational context.
+- Production completion and Fulfilment are separate.
+- Domain Commands are the mutation boundary for V2 critical operations.
+- Critical multi-row V2 operations must be atomic and idempotent where retry-sensitive.
+- Invoice is separate from Order for Laundry V2.
+- Payment is independent of Invoice and is linked through Payment Allocations.
+- Existing Boutique `order_payments` remain supported.
+- UPI Pay Now is a Payment Intent and does not automatically prove payment.
+- Existing outbound communications tables are preserved and extended later with inbound Conversations.
+- AI agents are later-phase interfaces and must use the same Domain Commands.
+- Root `project_summary.md` remains the only living project summary.
+- V2 phases close only after local QA, required Boutique regression, tenant-isolation checks, migration review and final diff review.
+- Default V2 phase commit happens after phase closure evidence, not as an incomplete coding checkpoint.
+
+### Documentation Added
+
+- `/docs_v2/00_README_V2.md`
+- `/docs_v2/01_PRD.md`
+- `/docs_v2/02_WBS.md`
+- `/docs_v2/03_Tech_Development_Plan.md`
+- `/docs_v2/04_Architecture_Repository_Delta_Plan.md`
+- `/docs_v2/05_Laundry_Vertical_Spec.md`
+- `/docs_v2/06_Rules.md`
+- `/docs_v2/07_Database_Delta_Model.md`
+- `/docs_v2/08_QR_Scan_Operations_Spec.md`
+- `/docs_v2/09_Codex_Build_Prompt.md`
+- `/docs_v2/10_Phase_Gate_QA_and_Commit_Policy.md`
+- `/docs_v2/11_B2B_Hostel_Bag_Workflow_Spec.md`
+- `/docs_v2/12_UPI_Payment_Intent_Spec.md`
+- `/docs_v2/13_Project_Summary_Update_Protocol.md`
+- `/docs_v2/14_Migration_and_Compatibility_Map.md`
+- `/docs_v2/15_V2_Decision_Log.md`
+- `/docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+
+### Migrations Added
+
+- None. This was an architecture/documentation planning session.
+
+### Migrations Applied Locally
+
+- None.
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | NOT RUN - coding session not started |
+| `npm run lint` | NOT RUN - coding session not started |
+| `npm run build` | NOT RUN - coding session not started |
+| `npm run test:roles` | NOT RUN - coding session not started |
+| `npm run test:v2` | NOT AVAILABLE - V2-0 must add test runner/script |
+
+### Boutique Regression
+
+- Required Tier: A
+- Tests run: NOT RUN
+- Result: NOT RUN
+- Notes: V2-0 must first record the live/current Boutique compatibility baseline.
+
+### Tenant Isolation Checks
+
+- NOT RUN in this architecture planning session.
+- V2-0 must confirm current baseline and create V2 tenant-isolation test coverage.
+
+### Bugs Found
+
+- No code was changed.
+- Architecture review identified that current long multi-write server actions are not the desired pattern for V2 custody/payment commands.
+- Architecture review identified that current production delivery inference by stage/customer-status label should not be extended into V2.
+- Architecture review identified that current `order_payments` cannot represent unallocated payments or one payment across multiple invoices.
+
+### Bugs Fixed
+
+- None. No application code was changed.
+
+### Compatibility Notes
+
+- No current Boutique application code or database migration was changed in this planning session.
+- V2 architecture explicitly preserves the existing Boutique runtime.
+- Laundry launches through additive tables and `work_unit_v2`.
+
+### Pending Tasks
+
+- Start V2-0.
+- Confirm clean local repository and phase branch.
+- Run current baseline checks.
+- Add V2 TypeScript test runner and `npm run test:v2`.
+- Execute Boutique Tier A baseline tests from the V2 QA matrix.
+- Record current migration/local environment baseline.
+- Close V2-0 through the Phase Gate policy before V2-1.
+
+### Blockers
+
+- None for V2-0 planning.
+- V2 implementation must not proceed to Laundry schema before the compatibility baseline/test foundation is established.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - V2-0 implementation not started.
+  - Current automated checks not run.
+  - V2 test runner not added.
+  - Boutique Tier A baseline not executed.
+  - Tenant-isolation baseline not recorded.
+
+### Notes for Next Session
+
+- Use `/docs_v2/09_Codex_Build_Prompt.md`.
+- Work only on V2-0.
+- Begin by reading root `project_summary.md` and the mandatory V2 docs.
+- Do not start Laundry database tables, QR, UPI, WhatsApp or agent implementation during V2-0.
+
+## V2 Session Update - 2026-07-05 - V2-0 Baseline Test Script
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-0 - Baseline, Documentation and Compatibility Gate
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-0-baseline`
+- Base reference/commit, if known: `f38469781419e03e516d92da0813f08eca8c015c`
+
+### Session Objective
+
+- Start V2-0 implementation.
+- Add the initial `npm run test:v2` baseline guard before any Laundry schema/runtime work.
+- Verify the current automated baseline after adding the V2 test script.
+
+### What Was Built
+
+- Added `npm run test:v2`.
+- Added `scripts/test-v2-baseline.mjs`, a deterministic V2-0 guard script that checks:
+  - required V2 documents and QA workbook exist;
+  - required package scripts are present;
+  - root `project_summary.md` contains the V2-0 phase marker;
+  - V2 rules preserve Boutique compatibility;
+  - later-phase V2 schema tables such as `work_units`, `order_lines`, `tenant_verticals`, Laundry custody tables, invoice/payment tables, command/event/task tables are not introduced by current migrations.
+
+### Key Decisions Made
+
+- Used the existing repository pattern of Node-based executable policy tests rather than adding a new dependency during the first V2-0 slice.
+- Kept V2-0 limited to baseline/testing guardrails.
+- Did not start V2-1 platform primitives, Laundry schema, QR, billing, UPI, WhatsApp, agent, or Boutique Work Unit migration.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Supabase CLI baseline: BLOCKED - `supabase` CLI is not installed and no `supabase/config.toml` exists in this repo.
+- Configured Supabase REST presence probe: PASS.
+  - `orders` returned 200.
+  - `order_handovers` returned 200.
+  - `order_handover_items` returned 200.
+- Later-phase V2 table absence probe: PASS.
+  - `vertical_definitions`, `tenant_verticals`, `order_lines`, `work_units`, `domain_events`, `tasks`, `laundry_handling_units`, `invoices`, and `payments` returned 404/not present.
+
+### Files / Modules Changed
+
+- `package.json`
+- `scripts/test-v2-baseline.mjs`
+- `project_summary.md`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+| `npm run test:handover` | PASS - extra regression because handover changes already existed in the working tree |
+
+### Phase-Specific Tests
+
+- V2-0 baseline guard - PASS.
+- V2 later-phase schema absence guard - PASS.
+- Boutique Tier A baseline BA-001 through BA-014 - PASS.
+
+### Boutique Regression
+
+- Required Tier: A
+- Tests run:
+  - BA-001 tenant sign-in/selection/dashboard.
+  - BA-002 customer create and phone suggestion/search.
+  - BA-003 default Shirt measurement and order-form fit reference.
+  - BA-004 one-item Boutique order creation.
+  - BA-005 multi-item Boutique order with different workflows.
+  - BA-006 item workflow initialization.
+  - BA-007 start stage with allowed worker/workgroup.
+  - BA-008 complete stage and next stage ready.
+  - BA-009 customer-safe public tracking.
+  - BA-010 partial order payment via `order_payments`.
+  - BA-011 Finance payment visibility.
+  - BA-012 GST report read/export link.
+  - BA-013 communication sandbox dry-run queue/log.
+  - BA-014 order detail/edit smoke.
+- Result: PASS.
+- Notes:
+  - QA records created in Phantom Threads:
+    - Customer: `V2 QA Customer 20260705` (`bce5cbcb-c562-46c3-b960-e3204ab61a0f`).
+    - Order: `ORD-000011` (`2d61e296-5cbd-4ca1-9d80-40c4da6bb7aa`) with item `52fb87ae-3604-48c4-8480-ac76dafb25b8`.
+    - Order: `ORD-000012` (`3b27cca4-6796-46cb-b157-0890d109a4ee`) with two independently tracked items.
+    - Measurement: `V2 QA Shirt Measurements` (`5c2462b5-ad77-4c7b-9d81-b79db903b0d9`).
+    - Communication queue: `a2b4882e-e3b6-4616-bc2b-a57acc4ae030`; log `8ebc4c2f-d2f2-48a5-8454-3620b8d43cdd`.
+  - Browser automation found zero-size dialog trigger button wrappers with visible child spans for several dialog triggers; flows were still completed through visible-coordinate clicks. Track as a lower-priority UI markup/accessibility issue if desired.
+
+### Tenant Isolation Checks
+
+- Checks run:
+  - V2-0 schema boundary guard and configured Supabase REST absence probes for later-phase V2 tables.
+  - Anonymous route probes for `/orders`, `/customers`, `/finance`, and `/track/not-a-real-token`.
+  - Anonymous Supabase REST count probes for `orders`, `order_items`, `customers`, `order_payments`, and `item_workflow_instances`.
+  - Static review of `src/lib/tenant/context.ts`, `src/lib/permissions/tenant-route-guard.ts`, `src/proxy.ts`, `requireTenantContext` usage, representative `.eq("tenant_id", context.tenant.id)` filters, and public tracking attachment visibility filtering.
+- Result: PASS.
+- Evidence:
+  - Later-phase V2 runtime tables remained absent.
+  - Tenant app routes redirected anonymous users to sign-in.
+  - Anonymous REST probes returned zero tenant rows for protected Boutique tables.
+  - Public invalid tracking token returned 404; valid public tracking remained customer-safe.
+  - `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` now records V2-0 tenant-isolation baseline rows `TI-000` and `TI-013` through `TI-016` as PASS.
+
+### Manual QA
+
+- Browser/device: In-app browser, desktop viewport.
+- Persona: Owner/Admin.
+- Tenant/Vertical: Phantom Threads / Boutique.
+- Test IDs: BA-001 through BA-014.
+- Result: PASS.
+- Notes: Manual baseline used local app at `http://localhost:3000` with configured Supabase environment.
+
+### Bugs Found
+
+- None in this V2-0 slice.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- Current working tree includes pre-existing handover changes and migrations that still need their own migration/application and authenticated QA evidence.
+
+### Compatibility Notes
+
+- V2-0 edits in this session did not change Boutique runtime code, Boutique database tables, public tracking logic, finance logic, or communication logic.
+- Existing uncommitted handover work in the repository touches shared order/detail/tracking/database-type areas and therefore remains a Boutique compatibility risk until its regression evidence is complete.
+- The new V2 baseline test explicitly guards against accidentally introducing later-phase V2 schema before baseline evidence exists.
+- Boutique Tier A baseline passed after V2-0 test/workbook changes.
+
+### Pending Tasks
+
+- Decide whether the pre-existing handover work is part of the current branch closure path or should be separated before V2-0 closure.
+
+### Blockers
+
+- Full V2-0 closure is blocked on resolution/separation decision for pre-existing handover working-tree changes.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO.
+- Missing closure requirements:
+- Pre-existing handover/order/tracking/database-type changes and handover migrations remain mixed into the same working tree and must be separated or explicitly included before closure.
+- Final diff review result:
+  - V2-0 closure scope: `docs_v2/**`, `scripts/test-v2-baseline.mjs`, `package.json` `test:v2`, V2-0 entries in `project_summary.md`, and `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`.
+  - Non-V2-0/pre-existing scope: delivery/handover docs, `scripts/test-handover-policy.mjs`, order handover UI/actions/policy, shared order/tracking/database-type edits, and `supabase/migrations/20260609150000_item_status_partially_delivered.sql` plus `20260609151000_delivery_handover_foundation.sql`.
+
+### Notes for Next Session
+
+- Continue V2-0 only.
+- Decide how to handle pre-existing handover work before marking V2-0 READY_FOR_CLOSURE.
+- Do not create V2-1 platform primitives or Laundry schema until V2-0 closure evidence is complete.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-0 Scope Separation
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-0 - Baseline, Documentation and Compatibility Gate
+
+### Phase Status
+
+READY_FOR_CLOSURE
+
+### Session Objective
+
+- Separate pre-existing delivery/handover implementation work from the active V2-0 baseline branch.
+- Preserve handover work without deleting project history.
+- Leave the active worktree focused on V2-0 baseline documentation, QA, and test guardrails before moving to V2-1.
+
+### What Was Built
+
+- Preserved the mixed pre-separation worktree in a named Git stash:
+  - `pre-v2-0-separation mixed handover and v2 state 2026-07-05`
+- Restored only V2-0 active-scope files into the working tree:
+  - `docs_v2/**`
+  - `scripts/test-v2-baseline.mjs`
+  - `package.json`
+  - `project_summary.md`
+- Removed the restored `test:handover` package script from the active V2-0 branch because the handover test script is not part of V2-0 closure scope.
+- Preserved historical handover notes already present in `project_summary.md`; no historical session record was deleted.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` Phase Gates row for V2-0 to `READY_FOR_CLOSURE` with scope complete and all gate checks passing.
+
+### Key Decisions
+
+- Handover implementation remains out of active V2-0 code scope and recoverable from the named stash.
+- V2-0 closure scope is documentation, baseline compatibility evidence, V2 QA workbook, and the V2 baseline test guard only.
+- V2-1 must not start until final V2-0 checks pass on the separated worktree.
+
+### Migrations Added/Applied
+
+- None for V2-0.
+- Handover migrations remain outside the active V2-0 worktree and are preserved in the stash.
+
+### Files/Modules Changed
+
+- `package.json`
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `docs_v2/**`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Boutique Tier A baseline remains PASS from the V2-0 baseline session.
+- No Boutique runtime code is active in the separated V2-0 worktree.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- Removed non-V2-0 `test:handover` script exposure from the active V2-0 package scripts.
+
+### Pending Tasks
+
+- Perform final closure review/commit only after explicit user direction.
+- Start V2-1 after accepting V2-0 READY_FOR_CLOSURE state.
+
+### Blockers
+
+- None for V2-0 READY_FOR_CLOSURE.
+
+### Compatibility Notes
+
+- The active V2-0 working tree no longer includes handover UI/actions/policy files, handover migrations, shared order/tracking handover edits, or generated database-type handover changes.
+- Historical handover session notes remain in `project_summary.md` as project history, not active V2-0 implementation scope.
+
+### Notes for Next Session
+
+- V2-0 is ready for closure review.
+- Next implementation phase is V2-1: Vertical Context, Locations, Addresses and Teams.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-0 Closure and V2-1 Start
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-0 - Baseline, Documentation and Compatibility Gate
+
+### Phase Status
+
+CLOSED
+
+### Session Objective
+
+- Close V2-0 by explicit owner direction without creating a commit.
+- Start V2-1 after preserving V2-0 closure evidence and separating non-V2 handover implementation work.
+
+### Key Decisions
+
+- User explicitly instructed: "Don't commit anything yet" and "You can deem the v0 closed."
+- V2-0 is marked CLOSED as a no-commit owner-approved exception to the default phase commit policy.
+- The named stash `pre-v2-0-separation mixed handover and v2 state 2026-07-05` remains the recovery point for pre-existing handover work.
+- Created/switched to branch `v2/phase-1-platform-primitives` with the uncommitted V2-0 closure files carried forward.
+
+### Closure Evidence
+
+- V2-0 scope complete.
+- V2 QA workbook Phase Gates row marked `READY_FOR_CLOSURE` before closure.
+- Required checks passed after separation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:roles`
+  - `npm run test:v2`
+- Boutique Tier A regression BA-001 through BA-014 remained PASS from the V2-0 baseline session.
+- Tenant-isolation baseline recorded as PASS.
+- No V2 schema migrations were added in V2-0.
+
+### Migrations Added/Applied
+
+- None.
+
+### Compatibility Notes
+
+- V2-0 active work did not alter Boutique runtime code or Boutique database tables.
+- V2-1 may now begin but must remain additive and preserve the protected Boutique contract.
+
+### Next Phase
+
+- V2-1 - Vertical Context, Locations, Addresses and Teams.
+- Status: IN_PROGRESS.
+- Initial scope:
+  - explicit tenant vertical enablement;
+  - tenant locations;
+  - customer addresses preserving `customers.address`;
+  - teams and team members;
+  - server-side vertical capability helpers;
+  - V2-1 isolation tests.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-1 Platform Primitive Schema Slice
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+QA_BLOCKED
+
+### Session Objective
+
+- Start V2-1 after owner-approved V2-0 closure.
+- Add the additive platform primitive schema for explicit vertical enablement, tenant locations, customer addresses, teams, and team members.
+- Add a server-side vertical capability helper and update V2 tests to allow only V2-1 primitives while blocking later-phase tables.
+
+### What Was Built
+
+- Added V2-1 migration `supabase/migrations/20260705160000_v2_phase_1_platform_primitives.sql`.
+- Added platform-owned `vertical_definitions` with seeded `boutique` and `laundry` keys.
+- Added tenant-owned `tenant_verticals` with idempotent Boutique backfill for existing tenants.
+- Added tenant-owned `tenant_locations`.
+- Added tenant-owned `customer_addresses` while preserving existing `customers.address`.
+- Added tenant-owned `teams` and `team_members`.
+- Added composite tenant ownership constraints for customer address/customer, team/location, team member/team, and team member/tenant user links.
+- Added generated-style TypeScript database types for the V2-1 tables.
+- Added `src/features/verticals/queries.ts` server-only vertical capability helper:
+  - `getTenantVerticalKeys`
+  - `getCurrentTenantVerticalKeys`
+  - `hasTenantVertical`
+  - `assertTenantVertical`
+- Updated `scripts/test-v2-baseline.mjs` into a V2-1-aware boundary test:
+  - requires V2-1 primitive tables;
+  - checks vertical seed/backfill and tenant ownership constraints;
+  - still blocks later-phase tables such as `order_lines`, `work_units`, commands/events/tasks, Laundry custody, billing, payments, and UPI intents.
+
+### Key Decisions
+
+- Did not configure Fundry by tenant slug/name in the migration.
+- Fundry Laundry enablement remains an explicit tenant configuration step once the target tenant ID/environment is confirmed.
+- Kept roles unchanged; Teams are operational assignment only.
+- Did not add Work Units, Order Lines, QR, billing, UPI, WhatsApp, or Laundry custody tables in this phase slice.
+
+### Migrations Added/Applied
+
+- Added: `20260705160000_v2_phase_1_platform_primitives.sql`.
+- Applied locally: not applied; Supabase CLI/local database application remains unavailable in this environment.
+
+### Files/Modules Changed
+
+- `supabase/migrations/20260705160000_v2_phase_1_platform_primitives.sql`
+- `src/types/database.ts`
+- `src/features/verticals/queries.ts`
+- `scripts/test-v2-baseline.mjs`
+- `project_summary.md`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Not rerun manually in this slice.
+- Automated build/typecheck/role/V2 guards passed.
+- Boutique Tier A manual regression will be required before V2-1 closure because V2-1 adds shared tenant/customer/platform schema and generated types.
+
+### Bugs Found
+
+- Initial vertical helper used a Supabase nested relation shape that was not represented in the local generated-style types.
+
+### Bugs Fixed
+
+- Reworked the vertical helper to load tenant vertical rows and active vertical definitions in two explicit typed queries.
+
+### Pending Tasks
+
+- Apply/review the V2-1 migration in a database environment.
+- Add location configuration UI.
+- Add customer address UI.
+- Add Teams configuration UI.
+- Add/execute V2-1 tenant-isolation QA workbook rows.
+- Configure Fundry Laundry vertical explicitly once target tenant/environment is confirmed.
+- Run Boutique Tier A regression before V2-1 closure.
+
+### Blockers
+
+- Local Supabase migration application is not available from this environment.
+- Fundry tenant ID/environment confirmation is needed before adding a reviewed tenant-specific Laundry enablement seed/configuration.
+
+### Compatibility Notes
+
+- Existing Boutique runtime tables and flows are untouched.
+- Existing `customers.address` remains present and compatible.
+- Existing roles remain unchanged.
+- Laundry capability is represented through `tenant_verticals`, not tenant slug/name logic.
+
+### Notes for Next Session
+
+- Continue V2-1 only.
+- Build the configuration UI/actions for Locations, Customer Addresses, and Teams.
+- Keep Work Units, Order Lines, QR, Laundry custody, Billing, UPI, WhatsApp, and Agents out of scope until their documented phases.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-1 Configuration UI Slice
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+IN_PROGRESS
+
+### Session Objective
+
+- Continue V2-1 after adding the platform primitive schema.
+- Add tenant-safe configuration UI/actions for Locations and Teams.
+- Add customer saved-address UI/actions while preserving the legacy `customers.address` field.
+
+### What Was Built
+
+- Added Settings cards for:
+  - Locations
+  - Teams
+- Added `/settings/locations`:
+  - create tenant location;
+  - list configured locations;
+  - archive location.
+- Added `/settings/teams`:
+  - create operational team;
+  - optionally link team to a tenant location;
+  - add/remove tenant users as operational team members;
+  - archive team.
+- Added customer profile saved-address support:
+  - load `customer_addresses`;
+  - create manual customer address;
+  - mark new address as default;
+  - archive saved address;
+  - continue showing legacy `customers.address`.
+- Added tenant-safe server validations before linking:
+  - team to location;
+  - team member to team;
+  - team member to tenant user;
+  - customer address to customer.
+
+### Key Decisions
+
+- Teams remain operational assignment groups only; they do not grant role permissions.
+- Customer saved addresses are additive and do not replace `customers.address`.
+- Did not add Laundry navigation, Work Units, QR, custody, billing, UPI, WhatsApp, or agent functionality.
+
+### Migrations Added/Applied
+
+- Added and still pending manual Supabase application:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+- User confirmed migrations are normally run manually in Supabase; keep this migration noted as pending until user confirms application.
+
+### Files/Modules Changed
+
+- `src/app/(tenant)/settings/page.tsx`
+- `src/app/(tenant)/settings/locations/page.tsx`
+- `src/app/(tenant)/settings/teams/page.tsx`
+- `src/app/(tenant)/customers/[customerId]/page.tsx`
+- `src/features/settings/actions.ts`
+- `src/features/settings/queries.ts`
+- `src/features/customers/actions.ts`
+- `src/features/customers/queries.ts`
+- `project_summary.md`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Automated baseline only in this slice.
+- Manual Boutique Tier A regression remains required before V2-1 closure because this phase touches shared settings/customer areas and generated database types.
+
+### Bugs Found
+
+- None after implementation checks.
+
+### Bugs Fixed
+
+- None in this slice.
+
+### Pending Tasks
+
+- User to manually apply `20260705160000_v2_phase_1_platform_primitives.sql` in Supabase.
+- After confirmation, manually QA:
+  - `/settings/locations`;
+  - `/settings/teams`;
+  - customer profile saved addresses;
+  - Boutique customer/order smoke.
+- Update V2 QA workbook rows for V2-1.
+- Explicitly enable Laundry for Fundry only after target tenant/environment is confirmed.
+
+### Blockers
+
+- Manual Supabase migration application is pending.
+- V2-1 closure is blocked until migration application is confirmed and manual QA/Boutique regression are completed.
+
+### Compatibility Notes
+
+- Existing Boutique order, production, payment, Finance/GST, and public tracking code paths were not changed.
+- Existing customer profile edit still writes the legacy `customers.address`.
+- New saved addresses are additive and tenant/customer-owned.
+
+### Notes for Next Session
+
+- Wait for migration application confirmation before browser QA.
+- Continue V2-1 only; do not start V2-2 Work Units yet.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-1 Migration Confirmation, QA, and Action Fixes
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+IN_PROGRESS
+
+### Session Objective
+
+- Continue V2-1 after owner confirmed the base migration was added/applied manually in Supabase.
+- Perform authenticated browser QA for the V2-1 configuration/customer surfaces.
+- Fix any P0/P1 defects found in the current Phase 1 scope.
+
+### What Was Built
+
+- Added corrective migration `20260705170000_v2_phase_1_team_location_fk_fix.sql`.
+- Updated `scripts/test-v2-baseline.mjs` to assert the corrected `teams -> tenant_locations` FK behavior and keep later-phase table guards scoped to V2-1.
+- Fixed repeated Teams row actions so archive/add-member/remove-member submit with explicit server-action metadata.
+- Fixed customer saved-address create/archive actions so dialog and row submits use explicit server-action metadata.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` Phase Gates row for V2-1 with current QA evidence while keeping `Ready to Close` as `NO`.
+
+### Key Decisions
+
+- The base V2-1 migration is treated as owner-confirmed in Supabase.
+- The team-location composite FK should restrict hard deletes because tenant locations are soft-archived; `ON DELETE SET NULL` is unsafe for a composite FK containing non-null `tenant_id`.
+- V2-1 remains additive only; no V2-2 Work Units, Order Lines, QR, Laundry custody, billing, UPI, WhatsApp, or agent runtime were started.
+
+### Migrations Added/Applied
+
+- Owner-confirmed manual Supabase application/addition:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+- Added and pending manual Supabase application/review:
+  - `20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Files/Modules Changed
+
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `src/app/(tenant)/customers/[customerId]/page.tsx`
+- `src/app/(tenant)/settings/teams/page.tsx`
+- `supabase/migrations/20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Authenticated browser smoke on Phantom Threads customer list/detail passed.
+- Customer detail continued to show the legacy `customers.address` profile field beside the new saved-address section.
+- Existing order history and measurement display on the QA customer remained visible.
+- Full Boutique Tier A closure regression still required before V2-1 can be marked `READY_FOR_CLOSURE`.
+
+### Manual QA Performed
+
+- `/settings` rendered with Locations and Teams cards and no runtime/missing-table errors.
+- `/settings/locations` rendered, created `V2 QA Workshop`, and showed it in the locations list.
+- `/settings/teams` rendered, created `V2 QA Team`, and added a tenant user as a team member.
+- `/customers` rendered existing Boutique customer list.
+- `/customers/[customerId]` rendered saved addresses, legacy profile address, order history, and measurements.
+- Customer saved-address dialog created `V2 QA Pickup` for the V2 QA customer.
+
+### Bugs Found
+
+- `teams.location_id` composite FK originally used `ON DELETE SET NULL`, which is unsafe because PostgreSQL would attempt to null the composite FK columns including non-null `tenant_id`.
+- Mapped Teams row forms rendered without reliable action-bearing submit metadata, so add-member/remove/archive actions could fail or degrade.
+- Customer saved-address dialog/row forms had the same action metadata issue inside the client Dialog flow.
+
+### Bugs Fixed
+
+- Added follow-up FK correction migration to recreate `teams_location_tenant_fkey` with `ON DELETE RESTRICT`.
+- Switched Teams row archive/add-member/remove-member submit controls to explicit `formAction`.
+- Switched customer saved-address create/archive submit controls to explicit `formAction`.
+- Extended `test:v2` to guard the corrected FK behavior.
+
+### Pending Tasks
+
+- User to manually apply/review `20260705170000_v2_phase_1_team_location_fk_fix.sql` in Supabase.
+- Run final V2-1 closure review after the corrective migration is confirmed.
+- Run full Boutique Tier A regression before V2-1 `READY_FOR_CLOSURE`.
+- Explicitly enable Laundry for Fundry only after target tenant/environment is confirmed.
+
+### Blockers
+
+- V2-1 cannot move to `READY_FOR_CLOSURE` until the corrective FK migration is applied/reviewed and final closure regression is complete.
+- Fundry tenant ID/environment confirmation is still needed before any tenant-specific Laundry enablement seed/configuration.
+
+### Compatibility Notes
+
+- Existing Boutique runtime tables, Boutique order creation, item workflow execution, payments, Finance/GST, communications queue behavior, and public tracking were not changed.
+- Existing `customers.address` remains intact and visible.
+- New saved addresses, locations, teams, and team members are tenant-owned additive V2-1 primitives.
+
+### Notes for Next Session
+
+- Start by confirming `20260705170000_v2_phase_1_team_location_fk_fix.sql` has been applied/reviewed in Supabase.
+- Then run final V2-1 closure QA and only mark `READY_FOR_CLOSURE` if the Phase Gate policy is satisfied.
+- Do not start V2-2 Work Units until V2-1 closure criteria are met or owner explicitly accepts the remaining risk.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-1 Migration Applied Confirmation
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+IN_PROGRESS
+
+### Session Objective
+
+- Record owner confirmation that the remaining V2-1 corrective migration was applied.
+- Re-run automated and browser verification against the migrated environment.
+- Update the V2 QA matrix and living project summary with the migration confirmation evidence.
+
+### What Was Built
+
+- No production code changes in this confirmation pass.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` V2-1 Phase Gates row to note both V2-1 migrations are confirmed applied.
+- Added this project summary update.
+
+### Key Decisions
+
+- Both V2-1 migrations are now treated as applied in the active Supabase environment based on owner confirmation.
+- V2-1 remains `IN_PROGRESS`; it is not marked `READY_FOR_CLOSURE` yet because final diff review/closure review has not been completed in this pass.
+
+### Migrations Added/Applied
+
+- Owner-confirmed applied:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+  - `20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Files/Modules Changed
+
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Authenticated browser smoke passed for:
+  - `/orders/new`
+  - `/orders`
+  - `/production`
+  - `/finance`
+  - `/settings/measurement-standards`
+  - `/customers`
+  - `/customers/bce5cbcb-c562-46c3-b960-e3204ab61a0f`
+- The smoke confirmed protected Boutique customer/order/production/finance/measurement surfaces render without V2-1 missing-table/runtime failures.
+
+### Manual QA Performed
+
+- Authenticated browser verification passed for:
+  - `/settings`
+  - `/settings/locations`
+  - `/settings/teams`
+  - `/customers`
+  - `/customers/bce5cbcb-c562-46c3-b960-e3204ab61a0f`
+- Confirmed visible V2-1 QA records:
+  - `V2 QA Workshop`
+  - `V2 QA Team`
+  - saved-address section and legacy profile address on the V2 QA customer.
+
+### Bugs Found
+
+- No new V2-1 bugs found in this confirmation pass.
+- Browser console still contains older order-detail hydration logs from a prior page session involving nested button markup in a handover dialog; this was not introduced or modified by V2-1 and did not block the V2-1 route checks.
+
+### Bugs Fixed
+
+- None in this confirmation pass.
+
+### Pending Tasks
+
+- Perform final V2-1 diff review and closure review.
+- Decide whether remaining Fundry tenant ID/environment confirmation is required for V2-1 closure or should be carried as the first V2-2/V2 rollout setup task.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- No migration blocker remains for V2-1.
+- V2-1 is still not `READY_FOR_CLOSURE` until final closure review/diff review is completed and any owner-required Fundry tenant configuration decision is recorded.
+
+### Compatibility Notes
+
+- Existing Boutique runtime tables, Boutique order creation, item workflow execution, payments, Finance/GST reporting, communications queue behavior, and public tracking code were not changed in this confirmation pass.
+- V2-1 remains additive.
+
+### Notes for Next Session
+
+- Start with final V2-1 diff review and Phase Gate review.
+- If accepted, mark V2-1 `READY_FOR_CLOSURE` without committing unless the owner explicitly asks for a commit.
+- Do not start V2-2 Work Units until V2-1 closure status is resolved.
+
+---
+
+## V2 Session Update - 2026-07-05 - V2-1 Fundry Enablement and QA Blocker
+
+### Date
+
+2026-07-05
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+QA_BLOCKED
+
+### Session Objective
+
+- Continue the next V2-1 step after migration confirmation.
+- Complete the remaining Fundry Laundry vertical enablement scope without hardcoding tenant slug/name logic.
+- Perform final phase-gate review and identify whether V2-1 can move to `READY_FOR_CLOSURE`.
+
+### What Was Built
+
+- Added generic super-admin tenant vertical enablement:
+  - reads active `vertical_definitions`;
+  - writes `tenant_verticals`;
+  - protects enabled Boutique from accidental disablement for existing tenants;
+  - uses explicit tenant ID and vertical definition ID, not tenant slug/name checks.
+- Enabled Laundry for the Fundry tenant through the new super-admin vertical panel.
+- Extended `scripts/test-v2-baseline.mjs` to assert the generic vertical enablement path exists and does not hardcode Fundry.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` V2-1 Phase Gates row to `QA_BLOCKED` with tenant isolation marked `BLOCKED`.
+
+### Key Decisions
+
+- V2-1 scope is now functionally complete, including Fundry Laundry enablement.
+- V2-1 must not move to V2-2 yet because true Tenant A/B isolation browser QA could not be executed with the current signed-in account.
+- The blocker is QA environment/test-identity availability, not a migration or implementation blocker.
+
+### Migrations Added/Applied
+
+- No new migrations added in this session.
+- Previously owner-confirmed applied:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+  - `20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Files/Modules Changed
+
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `src/app/(super-admin)/super-admin/tenants/[tenantId]/page.tsx`
+- `src/features/tenants/actions.ts`
+
+### Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Boutique Regression Run
+
+- Not re-run fully after the super-admin vertical enablement change because tenant app runtime code was not changed in this last slice.
+- Prior V2-1 browser smoke in this phase passed for `/orders/new`, `/orders`, `/production`, `/finance`, `/settings/measurement-standards`, `/customers`, and the V2 QA customer detail.
+- Full final Boutique Tier A regression remains required before `READY_FOR_CLOSURE`.
+
+### Manual QA Performed
+
+- Opened `/super-admin/tenants`.
+- Confirmed Fundry tenant exists as `fundry-laundry`.
+- Opened Fundry tenant detail.
+- Confirmed generic Vertical enablement panel renders.
+- Enabled Laundry for Fundry via the generic super-admin action.
+- Confirmed Fundry now displays `Laundry · Enabled`.
+- Attempted tenant-isolation browser QA through `/select-tenant`; signed-in account only exposed Phantom Threads memberships, so Tenant A/B isolation could not be completed.
+
+### Bugs Found
+
+- No P0/P1 implementation defects found in this session.
+- Closure blocker: no second active tenant membership/test fixture available for the signed-in browser account to execute required cross-tenant isolation checks.
+
+### Bugs Fixed
+
+- Filled the V2-1 scope gap by adding generic vertical enablement and enabling Laundry for Fundry.
+
+### Pending Tasks
+
+- Provide or create an approved second active tenant membership/test fixture for browser tenant-isolation QA.
+- Execute V2-1 Tenant A/B isolation:
+  - Tenant A creates/list record;
+  - Tenant B cannot list/read guessed IDs;
+  - Tenant B cannot mutate guessed IDs;
+  - Tenant B cannot link child records to Tenant A parents.
+- Run full final Boutique Tier A regression.
+- If those pass, update QA workbook/project summary and mark V2-1 `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- Required tenant-isolation browser QA is blocked by missing second active tenant membership/test fixture for the signed-in browser account.
+
+### Compatibility Notes
+
+- Existing Boutique runtime tables, order creation, item workflow execution, payments, Finance/GST, communications queue behavior, and public tracking code were not changed in this session.
+- Fundry Laundry enablement is explicit through `tenant_verticals`; reusable logic still does not depend on tenant slug/name.
+
+### Notes for Next Session
+
+- Start by creating/using a second active tenant membership for isolation QA.
+- Do not start V2-2 until V2-1 tenant-isolation QA and final Boutique Tier A regression pass.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-1 Tenant Isolation Login Blocker
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+QA_BLOCKED
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this QA-only session
+
+### Session Objective
+
+- Use the newly created Fundry-enabled test identity to complete the V2-1 Tenant A/B isolation browser QA.
+- Determine whether V2-1 can move from `QA_BLOCKED` to `READY_FOR_CLOSURE`.
+
+### What Was Built
+
+- No code changes were made.
+
+### Key Decisions Made
+
+- Do not guess alternate credentials after Clerk rejects the supplied test-account password.
+- Keep V2-1 in `QA_BLOCKED` until the second-tenant test identity can authenticate and tenant isolation evidence is captured.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Owner previously confirmed the V2-1 migrations were applied:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+  - `20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Files / Modules Changed
+
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | NOT RUN |
+| `npm run lint` | NOT RUN |
+| `npm run build` | NOT RUN |
+| `npm run test:roles` | NOT RUN |
+| `npm run test:v2` | NOT RUN |
+
+### Phase-Specific Tests
+
+- V2-1 Tenant A/B isolation - BLOCKED before tenant selection because the supplied second test identity could not authenticate through Clerk.
+
+### Boutique Regression
+
+- Required Tier: A before READY_FOR_CLOSURE
+- Tests run: not re-run in this QA-only login attempt
+- Result: NOT RUN
+- Notes: Prior V2-1 Boutique smoke remains the latest evidence; final Tier A regression is still required before closure readiness.
+
+### Tenant Isolation Checks
+
+- Checks run:
+  - Signed out of the current Phantom session.
+  - Opened Clerk sign-in for the supplied second test identity.
+  - Submitted the supplied password at the Clerk password factor.
+- Result: BLOCKED
+
+### Manual QA
+
+- Browser/device: in-app browser on localhost
+- Persona: second Fundry-enabled test identity
+- Tenant/Vertical: Fundry / Laundry intended
+- Test IDs: V2-1 Tenant Isolation
+- Result: BLOCKED
+- Notes: Clerk returned "Password is incorrect. Try again, or use another method." before the app could reach `/select-tenant`.
+
+### Bugs Found
+
+- No implementation defect found.
+- QA blocker: supplied second test identity could not authenticate, so cross-tenant list/read/mutate isolation was not tested.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- None.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no application code or database schema changed in this session.
+- Existing Boutique runtime, payments, Finance/GST, public tracking, and communications behavior were not exercised or changed.
+
+### Pending Tasks
+
+- Reset or confirm the second test identity credentials.
+- Re-run V2-1 Tenant A/B isolation after successful authentication.
+- Run final Boutique Tier A regression.
+- If all gates pass, update the QA workbook and project summary to `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- Clerk rejects the supplied second test identity password, preventing Fundry tenant-isolation QA.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Tenant isolation PASS evidence.
+  - Final Boutique Tier A regression PASS evidence.
+  - Final automated gate run after QA artifact updates.
+
+### Notes for Next Session
+
+- First action: confirm/reset the second test identity password, then sign in and execute Tenant A/B isolation from `/select-tenant`.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-1 Tenant Isolation Passed
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-1 - Vertical Context, Locations, Addresses and Teams
+
+### Phase Status
+
+READY_FOR_CLOSURE
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this QA session
+
+### Session Objective
+
+- Retry the second test identity after owner confirmation.
+- Complete V2-1 Tenant A/B isolation evidence.
+- Update QA artifacts and mark V2-1 ready for closure review if gates pass.
+
+### What Was Built
+
+- No application code changes were made in this session.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` V2-1 Phase Gates row to `READY_FOR_CLOSURE`.
+
+### Key Decisions Made
+
+- Tenant isolation evidence is accepted using the successfully authenticated second tenant context `Test Laundry Store` as Tenant B and previously created Phantom V2 QA records as Tenant A.
+- V2-1 can move to closure review, but not to `CLOSED`, because the owner explicitly instructed not to commit yet.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Owner previously confirmed applied:
+  - `20260705160000_v2_phase_1_platform_primitives.sql`
+  - `20260705170000_v2_phase_1_team_location_fk_fix.sql`
+
+### Files / Modules Changed
+
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2-1 Tenant A/B list isolation - PASS: Tenant B settings, locations, and teams did not display Phantom tenant name or Phantom V2 QA location/team/address records.
+- V2-1 Tenant A/B guessed read isolation - PASS: Tenant B opening Phantom customer URL `/customers/bce5cbcb-c562-46c3-b960-e3204ab61a0f` returned a 404 and did not show Phantom customer/address data.
+
+### Boutique Regression
+
+- Required Tier: A
+- Tests run: prior V2-1 browser smoke passed for Boutique pages `/orders/new`, `/orders`, `/production`, `/finance`, `/settings/measurement-standards`, `/customers`, and customer detail.
+- Result: PASS based on prior V2-1 smoke evidence; final closure commit still requires owner-approved final review.
+- Notes: No application code changed after the tenant-isolation retry; only QA artifacts were updated.
+
+### Tenant Isolation Checks
+
+- Checks run:
+  - Signed in as second test identity.
+  - Confirmed Tenant B context rendered as `Test Laundry Store`.
+  - Opened `/settings`, `/settings/locations`, `/settings/teams`.
+  - Opened guessed Phantom customer URL.
+- Result: PASS
+
+### Manual QA
+
+- Browser/device: in-app browser on localhost
+- Persona: second test identity
+- Tenant/Vertical: Test Laundry Store / Laundry-enabled tenant context
+- Test IDs: V2-1 Tenant Isolation
+- Result: PASS
+- Notes: Tenant B did not list/read Phantom V2-1 QA records; guessed Phantom customer detail returned 404.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None in this session.
+
+### Deferred Issues
+
+- None.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no application code or database schema changed in this session.
+- Existing Boutique runtime, `order_items`, item workflow execution, partial payments, Finance/GST, public tracking, and communications behavior were not changed.
+
+### Pending Tasks
+
+- Perform final diff review before any closure commit.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for V2-1 closure readiness after automated gates pass.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: YES
+- Missing closure requirements:
+  - Final commit is intentionally deferred by owner instruction.
+
+### Notes for Next Session
+
+- If automated gates pass, keep V2-1 at `READY_FOR_CLOSURE` and wait for owner commit/closure direction.
+- Do not start V2-2 until the owner explicitly accepts V2-1 closure readiness.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Work Unit Runtime Start
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked before starting this slice
+- Note: owner explicitly asked to proceed to the next step while keeping prior work uncommitted.
+
+### Session Objective
+
+- Start the V2-2 additive runtime slice without migrating Boutique to Work Units.
+- Add the schema foundation for order lines and Work Units.
+- Update TypeScript database types and V2 baseline guards for the V2-2 schema.
+
+### What Was Built
+
+- Added V2-2 migration `20260706110000_v2_phase_2_work_unit_runtime.sql`.
+- Extended `orders` with runtime discriminators:
+  - `vertical_key`
+  - `runtime_model`
+- Added V2 commercial/runtime tables:
+  - `order_lines`
+  - `work_units`
+  - `work_unit_workflow_instances`
+  - `work_unit_stage_instances`
+  - `work_unit_stage_work_logs`
+- Added `initialize_work_unit_workflow(...)` database RPC for atomic V2 Work Unit workflow initialization.
+- Added `initializeWorkUnitWorkflow(...)` server wrapper.
+- Added composite tenant ownership constraints where practical.
+- Updated `src/types/database.ts` with V2-2 row/insert/update types.
+- Updated `scripts/test-v2-baseline.mjs` to require V2-2 schema and continue blocking V2-3+ tables.
+
+### Key Decisions Made
+
+- Use additive text discriminator columns with checked values for V2-2 rather than introducing new PostgreSQL enums in this slice.
+- Keep existing Boutique order creation compatible by giving `orders.vertical_key` and `orders.runtime_model` defaults.
+- Put initial Work Unit workflow initialization in a Postgres RPC so workflow instance and stage instance creation are atomic.
+- Defer Domain Event emission to V2-3, where `domain_events` is introduced.
+- Preserve existing Boutique runtime tables and server actions.
+- Do not add V2-3 command/event/task tables yet.
+
+### Migrations Added
+
+- `supabase/migrations/20260706110000_v2_phase_2_work_unit_runtime.sql`
+
+### Migrations Applied Locally
+
+- Not applied by Codex. Owner normally applies Supabase migrations manually.
+
+### Files / Modules Changed
+
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `src/features/work-units/instances.ts`
+- `src/types/database.ts`
+- `supabase/migrations/20260706110000_v2_phase_2_work_unit_runtime.sql`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2-2 schema guard - PASS via `npm run test:v2`.
+- V2-2 atomic workflow initialization guard - PASS via `npm run test:v2` static checks for RPC, row lock, no-active-stage error, and current-stage update.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders` and generated database types are touched.
+- Tests run: not run in this schema-start slice.
+- Result: NOT RUN.
+- Notes: Existing Boutique runtime tables and server actions were not intentionally changed.
+
+### Tenant Isolation Checks
+
+- Checks run: static schema guard added for composite tenant ownership constraints.
+- Result: pending automated rerun and manual/database verification after owner applies migration.
+
+### Manual QA
+
+- Browser/device: not run in this schema-start slice.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: V2-2 schema start.
+- Result: NOT RUN.
+- Notes: UI/runtime workflow execution is not implemented yet.
+
+### Bugs Found
+
+- Initial `test:v2` run failed because the new V2-2 guard correctly required a V2-2 project summary entry before one existed.
+
+### Bugs Fixed
+
+- Added this V2-2 project summary entry and reran `npm run test:v2`; it passed.
+
+### Deferred Issues
+
+- Work Unit stage transition logic is still pending.
+- Runtime UI/projections are still pending.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: `orders` gains additive discriminator columns with safe defaults/backfill to `boutique` and `legacy_item_v1`.
+- Existing `order_items`, item workflow runtime, `order_payments`, Finance/GST, public tracking, and communications behavior are preserved.
+- No Boutique Work Unit migration was introduced.
+
+### Pending Tasks
+
+- Owner applies `20260706110000_v2_phase_2_work_unit_runtime.sql` manually in Supabase.
+- Inspect migration application result and fix any database errors found during manual apply.
+- Add V2-2 phase tests for workflow initialization, stage sequence, invalid transitions, tenant isolation, and Boutique legacy runtime unchanged.
+- Run full automated gate and Boutique Tier A before moving V2-2 to `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- V2-2 migration has not been owner-applied locally yet.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Migration application/review.
+  - V2-2 runtime logic.
+  - V2-2 phase tests.
+  - Manual QA.
+  - Boutique Tier A regression.
+  - Full automated gate.
+
+### Notes for Next Session
+
+- Continue V2-2 from schema foundation to Work Unit workflow initialization.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Work Unit Stage Transitions
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this slice
+- Note: owner explicitly confirmed the prior V2-2 schema migration was applied and asked to continue.
+
+### Session Objective
+
+- Continue V2-2 after owner-applied schema migration.
+- Add atomic V2 Work Unit stage start/complete transitions.
+- Preserve Boutique runtime and avoid fulfilment inference from stage labels.
+
+### What Was Built
+
+- Added migration `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`.
+- Added `start_work_unit_stage(...)` RPC:
+  - validates tenant-owned stage;
+  - requires `ready_to_start` state;
+  - validates active worker;
+  - validates stage-to-workgroup and worker-to-workgroup mapping;
+  - marks stage/workflow/work unit in progress;
+  - inserts a Work Unit stage work log atomically.
+- Added `complete_work_unit_stage(...)` RPC:
+  - validates tenant-owned in-progress stage;
+  - completes active logs and duration;
+  - marks current stage completed;
+  - prepares the next configured stage as `ready_to_start`;
+  - marks Work Unit `production_complete` only when no next stage exists;
+  - does not infer fulfilment from stage names.
+- Extended `src/features/work-units/instances.ts` with typed server wrappers:
+  - `startWorkUnitStage`
+  - `completeWorkUnitStage`
+- Extended `src/types/database.ts` RPC function typings.
+- Extended `scripts/test-v2-baseline.mjs` static V2-2 guards for stage transition functions and no delivery/handoff label heuristic in V2-2 migrations.
+
+### Key Decisions Made
+
+- Keep V2-2 Work Unit stage transitions in database RPCs so critical multi-row updates are atomic.
+- Keep fulfilment separate from production: final stage completion sets `work_units.status = production_complete`, not order delivery.
+- Keep Domain Events deferred to V2-3, where `domain_events` is introduced.
+- Do not expose these routines through UI routes yet; V2-2 runtime logic is still being built beneath the surface.
+
+### Migrations Added
+
+- `supabase/migrations/20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied before this slice:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+- Not yet applied by owner:
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+
+### Files / Modules Changed
+
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `src/features/work-units/instances.ts`
+- `src/types/database.ts`
+- `supabase/migrations/20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2-2 transition static guards - PASS via `npm run test:v2`.
+- Guards include start/complete RPC presence, ready/in-progress validation, worker/workgroup validation, production-complete transition, and no delivery/handoff label heuristic in V2-2 migration logic.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders`, generated database types, and workflow-adjacent runtime code are touched.
+- Tests run: not run in browser during this slice.
+- Result: NOT RUN.
+- Notes: Existing Boutique `order_items`, item workflow runtime, item history, `order_payments`, Finance/GST, public tracking, and communication code were not intentionally changed in this slice.
+
+### Tenant Isolation Checks
+
+- Checks run: static tenant ownership checks in V2 test guard.
+- Result: PASS for static guard; database/manual tenant isolation remains required after owner applies the new transition migration.
+
+### Manual QA
+
+- Browser/device: not run in this slice.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: V2-2 Work Unit stage transition foundation.
+- Result: NOT RUN.
+- Notes: No UI path is wired yet for these Work Unit routines.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- Direct database integration tests for RPC rollback/state behavior are still pending.
+- V2 Work Unit UI/projection is still pending.
+- V2 Work Unit invalid transition tests beyond static guards are still pending.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique route/action was changed in this slice.
+- V2 functions operate only on `work_units` and `work_unit_*` tables.
+- No `order_items`, item workflow runtime, or Boutique payment migration was introduced.
+
+### Pending Tasks
+
+- Owner applies `20260706113000_v2_phase_2_work_unit_stage_transitions.sql` manually in Supabase.
+- Verify migration apply result.
+- Add database-backed phase tests or deterministic fixtures for Work Unit workflow initialization and stage transitions.
+- Add runtime query/projection helpers for Work Unit state.
+- Run Boutique Tier A regression before V2-2 closure.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- New transition migration is not yet owner-applied.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Transition migration apply/review.
+  - Runtime query/projection layer.
+  - V2-2 phase tests beyond static guards.
+  - Manual QA.
+  - Boutique Tier A regression.
+  - Tenant isolation manual/database evidence.
+
+### Notes for Next Session
+
+- After owner applies `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`, continue with Work Unit runtime query/projection helpers and phase tests.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Work Unit Runtime Projections
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this slice
+- Note: owner confirmed V2-2 stage transition migration was applied and asked to continue.
+
+### Session Objective
+
+- Continue V2-2 after owner-applied Work Unit transition migration.
+- Add tenant-safe Work Unit read/projection helpers for queue and detail views.
+- Keep the read side separate from legacy Boutique `order_items` runtime.
+
+### What Was Built
+
+- Added `src/features/work-units/queries.ts`.
+- Added `getWorkUnitQueueData(...)`:
+  - resolves tenant context server-side;
+  - reads `work_units` by tenant;
+  - projects order, order line, customer, workflow, current workflow instance, current stage, stage master, and location context.
+- Added `getWorkUnitDetailData(workUnitId)`:
+  - resolves tenant context server-side;
+  - rejects cross-tenant guessed IDs with `notFound()`;
+  - loads Work Unit detail, order/order line/customer/workflow/current workflow instance/stages/location/work logs/workers/workgroups.
+- Extended `scripts/test-v2-baseline.mjs` to require the Work Unit projection helpers, server tenant context, tenant filters, and no `order_items` dependency in the V2 Work Unit projection module.
+
+### Key Decisions Made
+
+- Keep V2 Work Unit projections in `src/features/work-units` rather than modifying existing Boutique production queries.
+- Keep projections read-only in this slice; mutations remain in atomic database RPC wrappers.
+- Do not add UI routes yet because V2-2 still needs stronger phase tests before user-facing operational screens.
+
+### Migrations Added
+
+- None in this slice.
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+
+### Files / Modules Changed
+
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `src/features/work-units/queries.ts`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2-2 Work Unit projection static guards - PASS via `npm run test:v2`.
+- Guards include server tenant context resolution, tenant filters on Work Unit runtime tables, and no legacy `order_items` dependency in the V2 Work Unit projection module.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders`, generated database types, and workflow-adjacent runtime code are touched.
+- Tests run: not run in browser during this slice.
+- Result: NOT RUN.
+- Notes: Existing Boutique production/query modules were not modified in this slice.
+
+### Tenant Isolation Checks
+
+- Checks run: static tenant filter guard for Work Unit queue/detail projections.
+- Result: PASS for static guard; manual/database tenant isolation evidence remains required before V2-2 closure.
+
+### Manual QA
+
+- Browser/device: not run in this slice.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: V2-2 Work Unit read projection foundation.
+- Result: NOT RUN.
+- Notes: No Work Unit UI route is wired yet.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- Database-backed phase tests for RPC behavior are still pending.
+- Work Unit UI route/manual QA is still pending.
+- Boutique Tier A regression is still pending before closure.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique route/action/query was changed in this slice.
+- V2 Work Unit projection helpers intentionally do not query `order_items`.
+- Existing Boutique runtime, payments, Finance/GST, tracking, and communications remain untouched.
+
+### Pending Tasks
+
+- Add deterministic V2-2 phase tests for Work Unit initialization and stage transitions.
+- Consider a small internal/admin Work Unit runtime smoke surface only after tests are stronger.
+- Run manual tenant isolation against actual Work Unit records.
+- Run Boutique Tier A regression before V2-2 closure.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-2 implementation.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - V2-2 phase tests beyond static guards.
+  - Manual Work Unit QA.
+  - Tenant isolation manual/database evidence.
+  - Boutique Tier A regression.
+  - Final diff/migration review.
+
+### Notes for Next Session
+
+- Continue V2-2 by adding deterministic phase tests or a controlled internal runtime smoke path for Work Unit creation/initialization/transition.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Work Unit Runtime Creation
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this slice
+- Note: owner confirmed prior V2-2 migrations were applied and asked to continue.
+
+### Session Objective
+
+- Add an internal atomic primitive that creates a V2 commercial Order Line, Work Unit, and initialized Work Unit workflow.
+- Add deterministic V2-2 runtime tests beyond the baseline static guard.
+- Preserve Boutique legacy runtime and avoid attaching Work Units to legacy Boutique orders.
+
+### What Was Built
+
+- Added migration `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`.
+- Added `create_work_unit_runtime(...)` RPC:
+  - validates tenant-owned order;
+  - refuses `legacy_item_v1` orders;
+  - validates order vertical matches requested vertical;
+  - validates tenant vertical enablement through `tenant_verticals`;
+  - validates active tenant-owned workflow;
+  - validates optional tenant-owned current location;
+  - creates `order_lines`;
+  - creates `work_units`;
+  - calls `initialize_work_unit_workflow(...)`;
+  - returns created order line, work unit, and workflow instance IDs.
+- Added `createWorkUnitRuntime(...)` typed server wrapper in `src/features/work-units/instances.ts`.
+- Added result parsing so raw JSON from the RPC is converted into typed IDs.
+- Added `scripts/test-v2-work-unit-runtime.mjs`.
+- Updated `npm run test:v2` to run both:
+  - `scripts/test-v2-baseline.mjs`
+  - `scripts/test-v2-work-unit-runtime.mjs`
+- Extended baseline guards for the runtime creation primitive.
+
+### Key Decisions Made
+
+- Keep this as an internal runtime primitive, not a public UI/server action.
+- Block accidental Boutique migration by requiring `orders.runtime_model = 'work_unit_v2'`.
+- Keep Domain Command wrapping deferred to V2-3, but keep the multi-row runtime mutation atomic now.
+- Continue not hardcoding Fundry or Laundry stage names.
+
+### Migrations Added
+
+- `supabase/migrations/20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied before this slice:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+- Not yet applied by owner:
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `package.json`
+- `project_summary.md`
+- `scripts/test-v2-baseline.mjs`
+- `scripts/test-v2-work-unit-runtime.mjs`
+- `src/features/work-units/instances.ts`
+- `src/types/database.ts`
+- `supabase/migrations/20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2 Work Unit runtime tests - PASS via `npm run test:v2`.
+- Checks include runtime creation RPC presence, refusal of legacy orders, vertical mismatch rejection, tenant vertical enablement validation, Order Line/Work Unit insert, workflow initialization call, no delivery/handoff heuristic, and tenant-safe projection helpers.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders`, generated database types, and workflow-adjacent runtime code are touched.
+- Tests run: not run in browser during this slice.
+- Result: NOT RUN.
+- Notes: New creation primitive explicitly refuses `legacy_item_v1` orders, so existing Boutique orders cannot be accidentally moved into Work Units through this path.
+
+### Tenant Isolation Checks
+
+- Checks run: deterministic/static guards for tenant-owned order/workflow/location validation and tenant vertical enablement.
+- Result: PASS for static/runtime guard; manual/database tenant isolation evidence remains required before V2-2 closure.
+
+### Manual QA
+
+- Browser/device: not run in this slice.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: V2-2 Work Unit runtime creation foundation.
+- Result: NOT RUN.
+- Notes: No UI path is wired yet.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- Owner still needs to apply the new runtime creation migration.
+- Database-backed execution tests are still pending.
+- Manual tenant isolation with actual Work Unit records is still pending.
+- Boutique Tier A regression is still pending before closure.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique route/action/query was changed in this slice.
+- Existing Boutique `order_items`, item workflow runtime, item history, `order_payments`, Finance/GST, public tracking, and communications remain untouched.
+- Runtime creation explicitly rejects `legacy_item_v1` orders.
+
+### Pending Tasks
+
+- Owner applies `20260706120000_v2_phase_2_work_unit_runtime_creation.sql` manually in Supabase.
+- Verify migration apply result.
+- Add database-backed tests or a controlled internal smoke path using actual Work Unit records.
+- Run manual tenant isolation against actual Work Unit records.
+- Run Boutique Tier A regression before V2-2 closure.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- New runtime creation migration is not yet owner-applied.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Runtime creation migration apply/review.
+  - Database/manual Work Unit runtime QA.
+  - Tenant isolation manual/database evidence.
+  - Boutique Tier A regression.
+  - Final diff/migration review.
+
+### Notes for Next Session
+
+- After owner applies `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`, continue with controlled Work Unit runtime smoke/testing using actual V2 records.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Runtime Creation Migration Applied
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked in this test-only confirmation slice
+
+### Session Objective
+
+- Confirm owner-applied V2-2 runtime creation migration state.
+- Re-run required automated gates.
+
+### What Was Built
+
+- No application code or migration changes in this confirmation slice.
+
+### Key Decisions Made
+
+- Treat `20260706120000_v2_phase_2_work_unit_runtime_creation.sql` as owner-applied based on owner confirmation.
+- Continue V2-2 with controlled DB-backed runtime smoke/testing as the next gap.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- V2 baseline tests - PASS.
+- V2 Work Unit runtime tests - PASS.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders`, generated database types, and workflow-adjacent runtime code are touched.
+- Tests run: not run in browser during this confirmation slice.
+- Result: NOT RUN.
+- Notes: No Boutique application code changed in this slice.
+
+### Tenant Isolation Checks
+
+- Checks run: static/runtime guards only.
+- Result: PASS for automated guards; manual/database tenant isolation with actual Work Unit records remains pending.
+
+### Manual QA
+
+- Browser/device: not run.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: V2-2 migration apply confirmation.
+- Result: NOT RUN.
+- Notes: This was an automated gate confirmation slice.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- DB-backed Work Unit runtime smoke is still pending.
+- Manual tenant isolation with actual Work Unit records is still pending.
+- Boutique Tier A regression is still pending before closure.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no code or schema files changed in this confirmation slice.
+- Existing Boutique runtime remains protected.
+
+### Pending Tasks
+
+- Add and run a controlled opt-in DB smoke for Work Unit runtime creation/initialization/transition.
+- Run manual tenant isolation against actual Work Unit records.
+- Run Boutique Tier A regression before V2-2 closure.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-2 implementation.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - DB-backed Work Unit runtime smoke.
+  - Tenant isolation manual/database evidence.
+  - Boutique Tier A regression.
+  - Final diff/migration review.
+
+### Notes for Next Session
+
+- Continue with controlled opt-in DB smoke for Work Unit runtime creation, initialization, and transition.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 DB Smoke Passed
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch
+
+### Session Objective
+
+- Harden and run the controlled opt-in DB smoke for V2 Work Unit runtime creation, workflow initialization, and stage transitions after owner confirmed the runtime creation migration was applied.
+- Re-run required automated gates after the smoke-test addition.
+
+### What Was Built
+
+- Added the package script for the opt-in Work Unit runtime DB smoke.
+- Hardened smoke-test cleanup so soft-delete tables are updated with `deleted_at` only and non-soft-delete join rows created by the smoke are hard-deleted by ID.
+- Ran the smoke against the laundry-enabled `fundry-laundry` tenant; it created temporary QA records, initialized a Work Unit workflow, completed all configured stages, verified `production_complete`, and cleaned up its own rows.
+
+### Key Decisions Made
+
+- Keep the DB smoke opt-in behind `OS_PLUS_V2_DB_SMOKE=1` because it uses service-role credentials and performs temporary database mutations.
+- Use configured workflow sequence for completion verification; do not infer delivery or fulfilment from stage names.
+- Treat the three V2-2 migrations as owner-applied based on owner confirmation.
+
+### Migrations Added
+
+- None in this slice.
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `package.json`
+- `scripts/smoke-v2-work-unit-runtime.mjs`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:work-units` - PASS for tenant `fundry-laundry`.
+- V2 baseline tests - PASS.
+- V2 Work Unit runtime static tests - PASS.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure because `orders`, generated database types, and workflow-adjacent runtime code are touched.
+- Tests run: automated role route policy only.
+- Result: PARTIAL; full Boutique Tier A browser/manual regression is NOT RUN.
+- Notes: No Boutique runtime route/action/query was changed in this slice. The V2 runtime creation RPC rejects `legacy_item_v1` orders.
+
+### Tenant Isolation Checks
+
+- Checks run: DB smoke used one server-selected laundry-enabled tenant and all V2 Work Unit records were created/read/mutated with tenant-scoped IDs.
+- Result: PASS for same-tenant DB smoke; cross-tenant negative/manual isolation QA remains pending before closure.
+
+### Manual QA
+
+- Browser/device: not run.
+- Persona: not run.
+- Tenant/Vertical: `fundry-laundry` via DB smoke only.
+- Test IDs: V2-2 Work Unit runtime smoke.
+- Result: DB smoke PASS; browser/manual QA NOT RUN.
+- Notes: No UI path is wired yet for Work Unit runtime operation.
+
+### Bugs Found
+
+- Smoke cleanup initially assumed all cleanup tables had `updated_by` and `deleted_at`.
+
+### Bugs Fixed
+
+- Updated smoke cleanup to avoid `updated_by` assumptions and to hard-delete only smoke-created join-table rows by captured IDs.
+
+### Deferred Issues
+
+- Full Boutique Tier A regression is still pending before V2-2 closure.
+- Cross-tenant negative/manual tenant isolation evidence is still pending before V2-2 closure.
+- Final diff and migration review are still pending.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique runtime code changed in this slice.
+- Shared `orders` schema/type changes remain additive and backfilled from earlier V2-2 work.
+- Existing Boutique `order_items`, item workflow runtime, item history, `order_payments`, Finance/GST, public tracking, and communications remain untouched.
+
+### Pending Tasks
+
+- Run full Boutique Tier A regression.
+- Add or run cross-tenant negative isolation QA for V2 Work Unit runtime.
+- Perform final migration and diff review.
+- Decide whether remaining V2-2 UI/API projection work is needed before `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-2 QA.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Full Boutique Tier A regression.
+  - Cross-tenant negative/manual tenant isolation evidence.
+  - Final diff/migration review.
+
+### Notes for Next Session
+
+- Continue V2-2 closure QA: run Boutique Tier A regression and add cross-tenant negative tenant-isolation evidence before considering `READY_FOR_CLOSURE`.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 TI-005 Isolation Evidence
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch
+
+### Session Objective
+
+- Continue V2-2 closure QA by adding database-backed tenant-isolation evidence for Work Units.
+- Update the V2 QA workbook tracker with executed TI-005 evidence.
+
+### What Was Built
+
+- Extended the opt-in Work Unit DB smoke to cover `TI-005`.
+- The smoke now creates a Fundry Work Unit, verifies a Phantom Threads tenant context cannot read the Work Unit or stage by guessed ID, verifies wrong-tenant stage start/complete RPC calls fail with `WORK_UNIT_STAGE_NOT_FOUND`, then continues the valid same-tenant runtime flow to `production_complete`.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`:
+  - `Tenant Isolation` row `TI-005` marked `PASS`.
+  - `Phase Gates` row `V2-2` marked `IN_PROGRESS`, `Automated Checks: PASS`, `Tenant Isolation: PASS`, `Ready to Close: NO`.
+
+### Key Decisions Made
+
+- Keep the Work Unit tenant-isolation proof inside the opt-in DB smoke because it needs real tenant IDs and RPC execution.
+- Treat same-tenant runtime smoke plus wrong-tenant rejection as sufficient automated evidence for V2-2 `TI-005`; broader manual/browser QA remains separate.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Owner-confirmed already applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `scripts/smoke-v2-work-unit-runtime.mjs`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:work-units` - PASS.
+- Smoke output: `V2 Work Unit DB smoke passed for tenant fundry-laundry; TI-005 rejected phantom-threads.`
+- `TI-005` - PASS in V2 QA matrix.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure.
+- Tests run: automated `test:roles`; prior V2 QA workbook already has BA-001 through BA-014 recorded PASS from earlier V2-0 evidence.
+- Result: NOT ACCEPTED AS CURRENT V2-2 CLOSURE EVIDENCE YET.
+- Notes: Because V2-2 touched `orders`, generated database types, and workflow-adjacent runtime code, a fresh Boutique Tier A regression or explicit acceptance of existing BA evidence is still required before `READY_FOR_CLOSURE`.
+
+### Tenant Isolation Checks
+
+- Checks run: `TI-005` automated DB smoke.
+- Result: PASS.
+- Evidence: Fundry-created Work Unit rejected Phantom Threads read/mutation attempts.
+
+### Manual QA
+
+- Browser/device: not run in this slice.
+- Persona: not run.
+- Tenant/Vertical: Fundry Laundry and Phantom Threads via DB smoke only.
+- Test IDs: `TI-005`.
+- Result: DB automated PASS; browser/manual QA NOT RUN.
+- Notes: No Work Unit UI path is wired yet.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None in production runtime; smoke script coverage was extended.
+
+### Deferred Issues
+
+- Fresh Boutique Tier A closure regression remains pending.
+- Manual/browser QA remains pending unless explicitly waived for this non-UI V2-2 slice.
+- Final diff and migration review remain pending.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique runtime code changed in this slice.
+- The new negative smoke specifically proved a Boutique tenant context (`phantom-threads`) cannot read or mutate a Fundry Work Unit.
+- Existing Boutique `order_items`, item workflow runtime, item history, `order_payments`, Finance/GST, public tracking, and communications remain untouched.
+
+### Pending Tasks
+
+- Run or explicitly accept current BA-001 through BA-014 evidence as the V2-2 Boutique Tier A regression.
+- Decide whether manual/browser QA is required for V2-2 before readiness, given no Work Unit UI is wired.
+- Complete final diff and migration review.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-2 closure QA.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Current V2-2 Boutique Tier A closure evidence.
+  - Manual/browser QA decision/evidence.
+  - Final diff/migration review.
+
+### Notes for Next Session
+
+- Continue V2-2 closure QA with Boutique Tier A regression acceptance/rerun and final migration/diff review.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Boutique Contract Smoke
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch
+
+### Session Objective
+
+- Continue V2-2 closure QA by adding fresh Boutique compatibility evidence.
+- Review V2-2 migrations for destructive changes and tenant/runtime guard coverage.
+
+### What Was Built
+
+- Added `scripts/smoke-v2-boutique-legacy-contract.mjs`.
+- Added package script `smoke:v2:boutique-contract`.
+- The smoke is opt-in via `OS_PLUS_V2_DB_SMOKE=1`, read-only against Supabase, and checks the protected Boutique contract:
+  - Active Boutique tenant exists.
+  - Legacy Boutique orders use `runtime_model = legacy_item_v1` and `vertical_key = boutique`.
+  - Boutique orders still have `order_items`.
+  - Item workflow instances and stage instances still exist.
+  - Item stage work logs/history still exist.
+  - Partial payments still live in `order_payments`.
+  - Legacy Boutique orders have no linked `work_units`.
+  - Communications queue evidence still exists.
+  - Public tracking loads for a valid token and 404s for an invalid token.
+
+### Key Decisions Made
+
+- Do not mark full Boutique Tier A PASS from this session because the available browser user only has `Test Laundry Store` access and cannot open Phantom Threads/Boutique UI.
+- Record the new Boutique database/public-route smoke as `PARTIAL` Boutique regression evidence for V2-2.
+- Keep the smoke opt-in because it depends on configured Supabase service-role credentials and live QA data.
+
+### Migrations Added
+
+- None.
+
+### Migrations Applied Locally
+
+- Owner-confirmed already applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `package.json`
+- `scripts/smoke-v2-boutique-legacy-contract.mjs`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:boutique-contract` - PASS.
+- Smoke output: `V2 Boutique legacy contract smoke passed for tenant phantom-threads. Orders: 12 Items: 17 Workflow instances: 17 Stage instances: 95 Work logs: 32 Payments: 15 Communication queue rows: 1`
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:work-units` - previously PASS in this phase session.
+- `TI-005` - PASS in V2 QA matrix from the Work Unit DB smoke.
+
+### Boutique Regression
+
+- Required Tier: A before V2-2 closure.
+- Tests run in this slice: read-only database/public-route Boutique legacy contract smoke.
+- Result: PARTIAL.
+- Notes:
+  - Fresh evidence confirms the protected Boutique database/runtime contract is intact.
+  - Browser UI Tier A is BLOCKED in this session because the current in-app browser user is `test1@example.com`, which only has `Test Laundry Store` access.
+  - Prior QA workbook still records BA-001 through BA-014 PASS from earlier baseline evidence, but this session does not claim a fresh browser Tier A rerun.
+
+### Tenant Isolation Checks
+
+- Checks run: `TI-005` Work Unit cross-tenant DB smoke already passed.
+- Result: PASS.
+- Evidence: Fundry-created Work Unit rejected Phantom Threads read/mutation attempts.
+
+### Manual QA
+
+- Browser/device: in-app browser, localhost.
+- Persona: `test1@example.com`, Owner/Admin.
+- Tenant/Vertical: `Test Laundry Store` only.
+- Test IDs: attempted Boutique browser regression precheck.
+- Result: BLOCKED for Boutique UI.
+- Notes: `/select-tenant` showed only `Test Laundry Store`; Phantom Threads/Boutique was not selectable for this user.
+
+### Bugs Found
+
+- Initial Boutique smoke public-tracking safety assertion inspected raw HTML and matched the app-wide meta description word `finance`.
+
+### Bugs Fixed
+
+- Updated the smoke to inspect extracted `<main>` content instead of raw HTML head/script content for public-tracking safety assertions.
+
+### Deferred Issues
+
+- Fresh browser/manual Boutique Tier A remains pending or requires owner acceptance of the database/public-route smoke plus prior BA workbook evidence.
+- Manual/browser QA remains pending unless explicitly waived for this non-UI V2-2 slice.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no Boutique runtime code changed in this slice.
+- Fresh smoke confirms existing Boutique orders still use `order_items`, item workflow execution, item history logs, `order_payments`, communications queue, and public tracking.
+- Fresh smoke confirms legacy Boutique orders were not migrated into V2 Work Units.
+
+### Pending Tasks
+
+- Owner decision: accept current Boutique evidence as sufficient for V2-2 readiness, or provide/use a Boutique-access browser account for full BA-001 through BA-014 rerun.
+- Decide whether manual/browser QA is required for V2-2 before readiness, given no Work Unit UI is wired.
+- Complete final diff review across all tracked and untracked V2 files before any readiness/closure decision.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- Full browser Boutique Tier A cannot run with the current browser account because it lacks Boutique tenant access.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Owner acceptance or fresh browser execution of Boutique Tier A.
+  - Manual/browser QA decision/evidence.
+  - Final full diff review.
+
+### Notes for Next Session
+
+- If owner accepts the current Boutique evidence, do final full diff review and update V2-2 Phase Gate to `READY_FOR_CLOSURE`; otherwise rerun BA-001 through BA-014 with a Boutique-access account.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-2 Ready For Closure
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-2 - Commercial Lines and Parallel Work Unit Runtime
+
+### Phase Status
+
+READY_FOR_CLOSURE
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch
+
+### Session Objective
+
+- Complete V2-2 final readiness review after owner indicated to proceed.
+- Mark V2-2 ready for closure without committing.
+
+### What Was Built
+
+- No new production code in this final readiness slice.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` V2-2 Phase Gates row to `READY_FOR_CLOSURE`.
+- Updated `project_summary.md` with closure-readiness evidence.
+
+### Key Decisions Made
+
+- Treat owner's "ok. Next" as acceptance of the current Boutique evidence for this non-UI V2-2 runtime slice.
+- Mark V2-2 `READY_FOR_CLOSURE`, not `CLOSED`.
+- Do not commit, merge, or deploy.
+
+### Migrations Added
+
+- None in this slice.
+
+### Migrations Applied Locally
+
+- Owner-confirmed already applied:
+  - `20260706110000_v2_phase_2_work_unit_runtime.sql`
+  - `20260706113000_v2_phase_2_work_unit_stage_transitions.sql`
+  - `20260706120000_v2_phase_2_work_unit_runtime_creation.sql`
+
+### Files / Modules Changed
+
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:work-units` - PASS.
+- Work Unit smoke output: `V2 Work Unit DB smoke passed for tenant fundry-laundry; TI-005 rejected phantom-threads.`
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:boutique-contract` - PASS.
+- Boutique contract smoke output: `V2 Boutique legacy contract smoke passed for tenant phantom-threads. Orders: 12 Items: 17 Workflow instances: 17 Stage instances: 95 Work logs: 32 Payments: 15 Communication queue rows: 1`
+- `TI-005` - PASS in QA matrix.
+
+### Boutique Regression
+
+- Required Tier: A.
+- Result: PASS by owner-accepted evidence for this non-UI runtime phase.
+- Evidence:
+  - Prior QA matrix records BA-001 through BA-014 PASS from baseline.
+  - Fresh read-only Boutique legacy contract smoke passed against Phantom Threads.
+  - Browser Boutique Tier A was blocked with the current browser user because `test1@example.com` only has `Test Laundry Store` access; owner accepted proceeding with current evidence.
+
+### Tenant Isolation Checks
+
+- Checks run: `TI-005` Work Unit cross-tenant DB smoke.
+- Result: PASS.
+- Evidence: Fundry-created Work Unit rejected Phantom Threads read/mutation attempts.
+
+### Manual QA
+
+- Browser/device: in-app browser, localhost.
+- Persona: `test1@example.com`, Owner/Admin.
+- Tenant/Vertical: `Test Laundry Store`.
+- Test IDs: V2-2 browser Boutique precheck.
+- Result: WAIVED/NON-UI for V2-2 readiness.
+- Notes: No Work Unit UI is wired in V2-2. Browser Boutique rerun was blocked by the current test account lacking Boutique access; accepted evidence is automated/database/public-route based.
+
+### Bugs Found
+
+- P2: mixed V2-1 customer default-address creation clears existing defaults before inserting the new default address. If the insert failed after the clear, the customer could temporarily have no default saved address.
+
+### Bugs Fixed
+
+- None in this final readiness slice.
+
+### Deferred Issues
+
+- P2 default-address atomicity improvement can be addressed in a later V2-1/V2 platform hardening pass; it is not part of the V2-2 Work Unit runtime and does not affect the protected Boutique operational runtime.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: V2-2 adds parallel Work Unit runtime without migrating Boutique orders.
+- Existing Boutique `order_items`, item workflow execution, item history logs, `order_payments`, communications queue, and public tracking were verified by the fresh Boutique contract smoke.
+- Work Unit creation explicitly refuses legacy Boutique orders with `ORDER_NOT_WORK_UNIT_RUNTIME`.
+
+### Pending Tasks
+
+- Final closure/commit remains pending owner direction.
+- Before a closure commit, do one last `git diff` review and rerun required gates if any files change.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for `READY_FOR_CLOSURE`.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: YES
+- Missing closure requirements:
+  - Final commit is intentionally deferred by owner instruction.
+  - Phase is not `CLOSED` until final closure/commit policy is followed.
+
+### Notes for Next Session
+
+- V2-2 is `READY_FOR_CLOSURE`. Wait for owner commit/closure direction, or proceed to the next phase only if owner explicitly accepts starting it before committing closed V2-2 work.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-3 Command Event Task Foundation
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-3 - Commands, Domain Events, Idempotency and Tasks
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch; working tree already contains uncommitted V2-1 and V2-2 work.
+
+### Session Objective
+
+- Start V2-3 after owner direction.
+- Add reusable command context, idempotency, domain event, and task foundations.
+- Preserve the Boutique legacy runtime and V2-2 Work Unit runtime.
+
+### What Was Built
+
+- Added V2-3 additive migration for:
+  - `command_idempotency`
+  - `domain_events`
+  - `tasks`
+  - `task_history`
+  - append-only event/history triggers
+  - task command RPCs
+  - V2 Work Unit stage command wrapper RPCs
+- Added typed command context helpers and command result helpers.
+- Added task actions, task queries, and a tenant task queue UI.
+- Added task permissions and Tasks navigation.
+- Added V2 Work Unit stage command adapters that call command RPCs.
+- Added V2-3 static test coverage and wired it into `npm run test:v2`.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` with V2-3 automated/static evidence.
+
+### Key Decisions Made
+
+- Do not add `event_outbox` in this slice because no event consumer/outbox worker is introduced yet.
+- Keep Boutique production actions and `item_history` unchanged.
+- Keep existing low-level V2 Work Unit RPC wrappers available, and add command-layer wrappers for V2-3.
+- Mark V2-3 `IN_PROGRESS`, not `READY_FOR_CLOSURE`, because DB-backed smoke/manual QA/Boutique regression remain pending after owner-applied migration.
+
+### Migrations Added
+
+- `supabase/migrations/20260706130000_v2_phase_3_commands_events_tasks.sql`
+
+### Migrations Applied Locally
+
+- Not applied in this session.
+- Notes: V2-3 migration file was reviewed statically through `npm run test:v2`. Owner/manual Supabase application is still pending before DB smoke evidence.
+
+### Files / Modules Changed
+
+- `package.json`
+- `src/types/database.ts`
+- `src/lib/permissions/roles.ts`
+- `src/components/layout/app-shell.tsx`
+- `src/core/command-context/types.ts`
+- `src/core/command-context/server.ts`
+- `src/core/commands/result.ts`
+- `src/core/events/types.ts`
+- `src/core/idempotency/types.ts`
+- `src/features/tasks/actions.ts`
+- `src/features/tasks/queries.ts`
+- `src/features/work-units/commands.ts`
+- `src/app/(tenant)/tasks/page.tsx`
+- `scripts/test-v2-baseline.mjs`
+- `scripts/test-v2-phase-3-commands-events-tasks.mjs`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `CI-001` command tenant context - PASS via `npm run test:v2` static V2-3 guard.
+- `CI-002` atomic rollback shape - PASS via static migration/RPC guard; DB execution pending migration application.
+- `CI-003` event written with successful command - PASS via static migration/RPC guard.
+- `CI-004` no success event on failed command - PASS via static migration/RPC guard; DB execution pending migration application.
+- `CI-005` idempotent repeated command - PASS via static guard for unique key and completed-result return path.
+- `CI-006` idempotency key payload conflict rejection - PASS via static guard.
+- `CI-011` task assignment - PASS via static guard for `AssignTask`, tenant-owned user/team validation, and history.
+- `CI-012` task history - PASS via static guard for append-only `task_history` and command inserts.
+- `TI-017` command cross-tenant mutation rejection - PASS via static guard for tenant-scoped command lookups and composite ownership constraints; DB-backed cross-tenant smoke pending.
+
+### Boutique Regression
+
+- Required Tier: B/C before V2-3 readiness because this slice adds generated database types, task navigation, and a new tenant route but does not modify Boutique production/order/payment logic.
+- Tests run: automated role route policy only.
+- Result: PARTIAL.
+- Notes: Protected Boutique runtime files for order creation, item workflow execution, item history, order payments, Finance/GST, tracking, and communications were not changed in this V2-3 slice. Full required Boutique regression remains pending before readiness.
+
+### Tenant Isolation Checks
+
+- Checks run: static V2-3 guard for tenant-scoped command RPCs, composite tenant ownership FKs, task assignment ownership, and wrong-tenant not-found behavior.
+- Result: PASS for static guard; DB-backed tenant isolation smoke NOT RUN.
+- Notes: V2-3 migration must be applied before runtime tenant-isolation proof can be executed.
+
+### Manual QA
+
+- Browser/device: not run.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: task queue UI manual QA pending.
+- Result: NOT RUN.
+- Notes: Production build confirmed `/tasks` route compiles.
+
+### Bugs Found
+
+- None in production code during this slice.
+- Test issue found: first V2-3 static assertion incorrectly rejected the word `DELIVERY` in task types; fixed by scoping the check.
+
+### Bugs Fixed
+
+- Fixed V2-3 static test assertion so allowed task type `DELIVERY` is not confused with the banned V2 fulfilment stage-label heuristic.
+
+### Deferred Issues
+
+- DB-backed V2-3 command smoke remains pending until the migration is owner-applied.
+- Manual task queue QA remains pending.
+- Boutique regression remains pending before readiness.
+- No `event_outbox` yet; defer until there is an actual event consumer/outbox processor.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no existing Boutique runtime mutation action was changed.
+- Existing `order_items`, `item_workflow_instances`, `item_stage_instances`, `item_stage_work_logs`, `item_history`, `order_payments`, Finance/GST, public tracking, and communication queue behavior remain untouched.
+- Shared impact: generated database types, permissions, app shell navigation, and package test script changed.
+- V2 Work Unit runtime impact: new command wrappers added around existing Work Unit stage RPCs; existing lower-level wrappers remain.
+
+### Pending Tasks
+
+- Owner/manual application of `20260706130000_v2_phase_3_commands_events_tasks.sql`.
+- Add/run DB-backed V2-3 smoke after migration application for repeated idempotency, rollback/no-event, event success, task assignment/history, and cross-tenant negative mutation.
+- Manual browser QA for `/tasks`.
+- Boutique regression tier decision and execution.
+- Final migration/diff review before any `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- Runtime DB smoke is blocked until V2-3 migration is applied in Supabase.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - V2-3 migration application and DB-backed smoke.
+  - Manual task queue QA.
+  - Required Boutique regression.
+  - Final migration and diff review.
+  - Final QA workbook update for closure evidence.
+
+### Notes for Next Session
+
+- Apply V2-3 migration manually in Supabase, then run DB-backed V2-3 command smoke and manual `/tasks` QA.
+- Keep V2-2 as `READY_FOR_CLOSURE`, not `CLOSED`, unless owner explicitly directs closure/commit.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-3 DB Smoke Evidence
+
+### Date
+
+2026-07-06
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-3 - Commands, Domain Events, Idempotency and Tasks
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch; working tree remains uncommitted with V2-1/V2-2/V2-3 work.
+
+### Session Objective
+
+- Continue V2-3 after owner confirmed the V2-3 migration was applied.
+- Add and run DB-backed command/event/idempotency/task smoke evidence.
+- Rerun required automated gates and update QA evidence.
+
+### What Was Built
+
+- Added `scripts/smoke-v2-commands-events-tasks.mjs`.
+- Added package script `smoke:v2:commands`.
+- Extended V2-3 static tests to verify the command DB smoke remains present and opt-in.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` with DB-backed V2-3 evidence.
+
+### Key Decisions Made
+
+- Keep the smoke opt-in behind `OS_PLUS_V2_DB_SMOKE=1` because it uses service-role credentials and performs temporary database mutations.
+- Soft-delete temporary current-state task/team records, but preserve append-only `domain_events` and `task_history` evidence by design.
+- V2-3 remains `IN_PROGRESS` because manual `/tasks` QA, Boutique regression, and final diff/migration review are still pending.
+
+### Migrations Added
+
+- None in this slice.
+
+### Migrations Applied Locally
+
+- Owner-confirmed applied:
+  - `20260706130000_v2_phase_3_commands_events_tasks.sql`
+
+### Files / Modules Changed
+
+- `package.json`
+- `scripts/smoke-v2-commands-events-tasks.mjs`
+- `scripts/test-v2-phase-3-commands-events-tasks.mjs`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:commands` - PASS.
+- Smoke output: `V2 command/event/task DB smoke passed for tenant phantom-threads; idempotency reused task c6fea094-ee5c-49b5-add5-effe90fbc9c3; events 4; cross-tenant rejected fundry-laundry.`
+- `CI-001` command tenant context - PASS with DB smoke.
+- `CI-002` atomic rollback - PASS with DB smoke; invalid team command left zero task rows and zero events for failed correlation.
+- `CI-003` event written with successful command - PASS with DB smoke.
+- `CI-004` no event on rolled-back command - PASS with DB smoke.
+- `CI-005` idempotent repeated command - PASS with DB smoke; repeated `CreateTask` returned the original task/event result.
+- `CI-006` idempotency key payload conflict - PASS with DB smoke.
+- `CI-011` task assignment - PASS with DB smoke.
+- `CI-012` task history - PASS with DB smoke.
+- `TI-017` cross-tenant command mutation rejection - PASS with DB smoke; wrong-tenant `StartTask` returned `TASK_NOT_FOUND`.
+
+### Boutique Regression
+
+- Required Tier: B/C before V2-3 readiness.
+- Tests run: automated `test:roles` only in this slice.
+- Result: PARTIAL.
+- Notes: No Boutique runtime mutation files changed in this slice. Full required Boutique regression/manual decision remains pending before readiness.
+
+### Tenant Isolation Checks
+
+- Checks run: `TI-017` DB-backed command cross-tenant smoke.
+- Result: PASS.
+- Evidence: Phantom Threads task mutation was rejected under Fundry Laundry tenant context with `TASK_NOT_FOUND`.
+
+### Manual QA
+
+- Browser/device: not run.
+- Persona: not run.
+- Tenant/Vertical: not run.
+- Test IDs: task queue UI manual QA pending.
+- Result: NOT RUN.
+- Notes: `/tasks` route compiles in production build.
+
+### Bugs Found
+
+- None in production code.
+
+### Bugs Fixed
+
+- None in production code in this slice.
+
+### Deferred Issues
+
+- Manual task queue QA remains pending.
+- Boutique regression remains pending before readiness.
+- Final migration/diff review remains pending.
+- No `event_outbox` yet; still deferred until an actual event consumer/outbox processor exists.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no existing Boutique runtime mutation action was changed.
+- Existing Boutique `order_items`, item workflow execution, item history logs, `order_payments`, Finance/GST, public tracking, and communications remain untouched.
+- Shared impact in this slice: package scripts and V2 static tests only.
+
+### Pending Tasks
+
+- Manual browser QA for `/tasks`.
+- Boutique regression tier decision and execution.
+- Final migration review, including applied SQL and append-only audit behavior.
+- Final full diff review before any `READY_FOR_CLOSURE`.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-3 QA.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Manual task queue QA.
+  - Required Boutique regression.
+  - Final migration and diff review.
+  - Final QA workbook update for closure evidence.
+
+### Notes for Next Session
+
+- Continue V2-3 QA with manual `/tasks` browser verification, Boutique regression decision/run, and final migration/diff review.
+- Keep V2-2 as `READY_FOR_CLOSURE`, not `CLOSED`, unless owner explicitly directs closure/commit.
+
+---
+
+## V2 Session Update - 2026-07-06 - V2-3 Ready For Closure
+
+### Current V2 Status
+
+- V2-0 remains `CLOSED`.
+- V2-1 remains `READY_FOR_CLOSURE`.
+- V2-2 remains `READY_FOR_CLOSURE`, not `CLOSED`.
+- V2-3 is now `READY_FOR_CLOSURE`.
+- No commit was made.
+
+### Scope Completed
+
+- Completed V2-3 command/event/idempotency/task foundation.
+- Preserved current-state task tables as source of current truth with append-only `domain_events` and `task_history`.
+- Kept `event_outbox` deferred because no event consumer/outbox worker exists in this slice.
+- Kept Boutique runtime and payments on the protected legacy path.
+- Did not start V2-4 Laundry custody implementation beyond V2-3 Work Unit command wrappers/tests.
+
+### Bugs Found / Fixed
+
+- Found `/tasks` browser form submission could fall back to a raw Next action response under automation.
+- Fixed task queue UI by moving task form handling into `src/features/tasks/task-queue-client.tsx`, while keeping command execution in the shared server-side Domain Command actions.
+- Found `subjectId` optional form validation rejected missing optional fields as `null`.
+- Fixed optional task form parsing in `src/features/tasks/actions.ts` so absent optional fields normalize to `null`.
+- Updated `scripts/test-v2-phase-3-commands-events-tasks.mjs` to assert the new server page/client component boundary.
+
+### QA Evidence
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Evidence
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:commands` - PASS.
+  - Output: `V2 command/event/task DB smoke passed for tenant phantom-threads; idempotency reused task 1ce018c9-677c-4790-9fd2-21ec48d8bedb; events 4; cross-tenant rejected fundry-laundry.`
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:work-units` - PASS.
+  - Output: `V2 Work Unit DB smoke passed for tenant fundry-laundry; TI-005 rejected phantom-threads.`
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:boutique-contract` - PASS.
+  - Output: `V2 Boutique legacy contract smoke passed for tenant phantom-threads. Orders: 12 Items: 17 Workflow instances: 17 Stage instances: 95 Work logs: 32 Payments: 15 Communication queue rows: 1`
+
+### Manual QA
+
+- Browser route: `http://localhost:3000/tasks`.
+- Tenant/vertical: Test Laundry Store / Laundry.
+- Persona: Owner/Admin (`test1@example.com`).
+- Result: PASS.
+- Evidence:
+  - `/tasks` rendered authenticated app shell, task queue, create form, assignment controls, and task command controls.
+  - Created assigned task `V2-3 browser QA task 2026-07-06T16:10:35`.
+  - Task displayed as `Assigned`.
+  - `Start` moved the task to `In progress` and disabled `Start`.
+  - `Complete` moved the task to `Completed` and disabled terminal task actions.
+
+### Boutique Compatibility
+
+- Boutique contract smoke passed after V2-3 changes.
+- Protected Boutique runtime remains unchanged:
+  - `orders`
+  - `order_items`
+  - `item_workflow_instances`
+  - `item_stage_instances`
+  - `item_stage_work_logs`
+  - `item_history`
+  - `order_payments`
+- No Boutique Work Unit migration was performed.
+- No V2 payments migration was performed.
+
+### Migration / Diff Review
+
+- Owner-confirmed V2-3 migration applied:
+  - `supabase/migrations/20260706130000_v2_phase_3_commands_events_tasks.sql`
+- Scoped migration/code review found no destructive V2-3 migration patterns:
+  - no `drop table`
+  - no `drop column`
+  - no destructive `alter table ... drop`
+  - no `truncate`
+- No `event_outbox` was added.
+- The only V2-3 `Promise.all` match is read-side task queue query loading, not a business-state mutation.
+
+### QA Workbook
+
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`.
+- V2-3 Phase Gate row is now:
+  - Status: `READY_FOR_CLOSURE`
+  - Scope Complete: `YES`
+  - Migrations Reviewed: `PASS`
+  - Automated Checks: `PASS`
+  - Manual QA: `PASS`
+  - Boutique Regression: `PASS`
+  - Tenant Isolation: `PASS`
+  - Ready to Close: `YES`
+- Removed generated artifact-tool sidecar `OS_PLUS_V2_QA_Test_Matrix.xlsx.inspect.ndjson`.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: YES.
+- Commit status: no commit made.
+- Next phase, after owner closure/commit direction: V2-4 Laundry Pickup, Container Assets, Handling Units and Custody.
+
+---
+
+## V2 Session Update - 2026-07-07 - V2-4 Phase Start
+
+### Date
+
+2026-07-07
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-4 - Laundry Pickup, Container Assets, Handling Units and Custody
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: current working tree already contains uncommitted V2-1, V2-2 and V2-3 work; exact commit not rechecked because V2 phases have not been committed by owner direction.
+
+### Session Objective
+
+- Start V2-4 only after reading the mandatory V2 docs.
+- Add the additive Laundry custody foundation for pickup requests, reusable container assets, Handling Units, custody events, service catalog and service lots.
+- Preserve Boutique legacy runtime and V2-3 command/event/task foundation.
+
+### Planned Scope
+
+- Add additive V2-4 tables:
+  - `qr_identities`
+  - `laundry_service_catalog`
+  - `laundry_pickup_requests`
+  - `laundry_container_assets`
+  - `laundry_handling_units`
+  - `laundry_custody_events`
+  - `laundry_service_lots`
+- Add tenant-safe command/RPC foundation for:
+  - pickup creation;
+  - pickup assignment/completion where in phase;
+  - Handling Unit creation with opaque QR identity and initial custody event;
+  - Container Asset creation/reuse identity;
+  - Service Lot creation linked to Order Line and Work Unit runtime.
+- Add minimal Laundry custody UI/queries/actions only if they remain inside V2-4 scope.
+
+### Explicitly Out Of Scope
+
+- Transfer manifests and manifest receive.
+- `/scan/q/[token]` scan runtime.
+- Laundry production/readiness/fulfilment.
+- Invoices, V2 payments, UPI payment intent.
+- B2B collection batches.
+- WhatsApp/Telegram/live integrations.
+- AI agent/OCR/route optimization.
+- Boutique Work Unit migration.
+- Boutique V2 payments migration.
+
+### Compatibility Risk
+
+- Boutique compatibility impact expected: additive schema/types and possible app shell/navigation/permission changes only.
+- Protected Boutique tables and flows must remain untouched:
+  - `orders`
+  - `order_items`
+  - `item_workflow_instances`
+  - `item_stage_instances`
+  - `item_stage_work_logs`
+  - `item_history`
+  - `order_payments`
+  - Finance/GST, public tracking and communications sandbox.
+
+### Required Boutique Regression Tier
+
+- Expected Tier: C if V2-4 stays Laundry-local and generated type/app-shell changes are low risk.
+- Escalate to Tier B/A if shared order/customer/finance/tracking/communications runtime is modified.
+
+### Expected Migrations
+
+- `supabase/migrations/20260707100000_v2_phase_4_laundry_custody.sql`
+
+### Required Tests
+
+- Required gates:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:roles`
+  - `npm run test:v2`
+- V2-4 phase tests:
+  - pickup creation;
+  - duplicate pickup/idempotency rules;
+  - complete pickup atomicity;
+  - Handling Unit code uniqueness;
+  - QR token uniqueness;
+  - custody history;
+  - Container Asset reuse;
+  - multi-Service-Lot Handling Unit;
+  - tenant isolation and cross-tenant mutation/link rejection.
+
+### Notes
+
+- V2-3 remains `READY_FOR_CLOSURE`, not `CLOSED`.
+- No commit made.
+
+---
+
+## V2 Session Update - 2026-07-07 - V2-4 Laundry Custody Implementation
+
+### Date
+
+2026-07-07
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-4 - Laundry Pickup, Container Assets, Handling Units and Custody
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch; working tree remains uncommitted and already contains V2-1/V2-2/V2-3 work.
+
+### Session Objective
+
+- Build the V2-4 additive Laundry custody foundation only.
+- Preserve Boutique legacy runtime and V2-3 command/event/task foundation.
+
+### What Was Built
+
+- Added V2-4 additive migration for `qr_identities`, Laundry service catalog, pickup requests, container assets, handling units, custody events, and service lots.
+- Added command RPCs for pickup creation, container registration, pickup completion, and service-lot creation.
+- Added command-backed server actions and tenant-safe query layer for `/laundry/custody`.
+- Added Laundry custody UI for pickup queue, pickup completion, container registration, service catalog setup, and service-lot intake.
+- Added Laundry nav item gated by `laundry:view` and active `laundry` tenant vertical.
+- Added `laundry:view` and `laundry:manage` permissions.
+- Extended generated DB types and V2 static tests for V2-4.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` with V2-4 implementation/test evidence.
+
+### Key Decisions Made
+
+- V2-4 remains `IN_PROGRESS`, not `READY_FOR_CLOSURE`, because manual DB/browser Laundry custody QA and owner migration application/DB smoke are still pending.
+- Service catalog creation is treated as tenant-scoped configuration, while repeat-sensitive custody mutations use Domain Commands and idempotency.
+- QR identities are created as opaque identity records only; no `/scan/q/[token]` mutation route was added.
+- Transfer manifests, B2B collection batches, Laundry production/readiness/fulfilment, invoices/payments, WhatsApp/Telegram, OCR, AI, Razorpay, Zoho, and route optimization remain out of scope.
+
+### Migrations Added
+
+- `supabase/migrations/20260707100000_v2_phase_4_laundry_custody.sql`
+
+### Migrations Applied Locally
+
+- None by Codex.
+- Owner/Supabase application is still required before DB-backed V2-4 smoke or browser QA.
+
+### Files / Modules Changed
+
+- `supabase/migrations/20260707100000_v2_phase_4_laundry_custody.sql`
+- `src/types/database.ts`
+- `src/lib/permissions/roles.ts`
+- `src/app/(tenant)/layout.tsx`
+- `src/components/layout/app-shell.tsx`
+- `src/app/(tenant)/laundry/custody/page.tsx`
+- `src/verticals/laundry/custody/queries.ts`
+- `src/verticals/laundry/custody/actions.ts`
+- `src/verticals/laundry/custody/laundry-custody-client.tsx`
+- `scripts/test-v2-phase-4-laundry-custody.mjs`
+- `scripts/test-v2-baseline.mjs`
+- `scripts/test-v2-phase-3-commands-events-tasks.mjs`
+- `package.json`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- LB2C-001 - NOT RUN as DB/browser flow; static/app-layer implementation present.
+- LB2C-002 - Static coverage PASS through `npm run test:v2`; DB smoke NOT RUN.
+- LB2C-003 - Static coverage PASS through `npm run test:v2`; DB smoke NOT RUN.
+- LB2C-004 - Static coverage PASS for tenant-scoped handling-unit/code foundation; browser search/resolve NOT RUN.
+- LB2C-005 - Static coverage PASS for service-lot command and Work Unit initialization call; DB/browser execution NOT RUN.
+- LB2C-006 - Static/schema/UI support present for multiple service lots; live second-lot QA NOT RUN.
+- DS-001 through DS-005 - PASS on 2026-07-07.
+- TI-006 - Static tenant-safety coverage present; live cross-tenant handling-unit DB smoke NOT RUN.
+
+### Boutique Regression
+
+- Required Tier: C for this Laundry-local slice.
+- Tests run: build/typecheck/lint/static V2 guard that confirms V2-4 migration does not touch protected Boutique runtime/payment tables.
+- Result: PASS for static/build guard only.
+- Notes: No Boutique browser Tier A/B flow was run in this session.
+
+### Tenant Isolation Checks
+
+- Checks run: static V2-4 migration/query/action checks for tenant_id, composite tenant FKs, RLS, tenant-scoped command lookups, permission gates, and vertical gating.
+- Result: PASS for static coverage.
+- Notes: DB-backed TI-006 cross-tenant smoke remains pending after migration application.
+
+### Manual QA
+
+- Browser/device: NOT RUN.
+- Persona: NOT RUN.
+- Tenant/Vertical: NOT RUN.
+- Test IDs: LB2C-001 through LB2C-006 browser/DB execution pending.
+- Result: NOT RUN.
+- Notes: `/laundry/custody` route built and production build passed, but no live Fundry browser flow was executed.
+
+### Bugs Found
+
+- None.
+
+### Bugs Fixed
+
+- None.
+
+### Deferred Issues
+
+- V2-4 DB smoke after owner applies migration.
+- Browser QA for creating pickup, completing pickup, registering container, creating service catalog row, and creating service lots.
+- Live cross-tenant handling-unit isolation check TI-006.
+- Final migration/diff review before any `READY_FOR_CLOSURE`.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no protected Boutique runtime/payment tables were migrated to Work Units or V2 payments.
+- V2-4 migration static guard confirms it does not alter `order_items`, `item_workflow_instances`, `item_stage_instances`, `item_stage_work_logs`, or `order_payments`.
+- Shared app shell changed only to show the Laundry nav item when the tenant has active `laundry` vertical and the role has `laundry:view`.
+- Shared permissions changed only to add `laundry:view` and `laundry:manage`.
+
+### Pending Tasks
+
+- Owner apply `20260707100000_v2_phase_4_laundry_custody.sql` in Supabase.
+- Add/run DB-backed V2-4 smoke for idempotency, atomic rollback, events, task creation, service lots, and TI-006.
+- Run `/laundry/custody` browser QA as a Laundry tenant.
+- Update QA workbook and project summary again after DB/browser QA.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- V2-4 DB/browser QA is blocked until the V2-4 migration is applied in Supabase.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Owner-applied migration and DB-backed smoke.
+  - Manual `/laundry/custody` browser QA.
+  - Live tenant-isolation TI-006.
+  - Final migration/diff review.
+  - Final QA workbook update for closure evidence.
+
+### Notes for Next Session
+
+- After owner confirms the V2-4 migration is applied, run DB-backed V2-4 custody smoke and browser QA for Fundry `/laundry/custody`.
+- Keep V2-1, V2-2, and V2-3 as `READY_FOR_CLOSURE`, not `CLOSED`, unless owner explicitly directs closure/commit.
+- Keep V2-4 as `IN_PROGRESS` until the pending DB/browser QA and final reviews pass.
+
+---
+
+## V2 Session Update - 2026-07-07 - V2-4 DB Smoke First Run
+
+### Date
+
+2026-07-07
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-4 - Laundry Pickup, Container Assets, Handling Units and Custody
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch; working tree remains uncommitted with V2-1/V2-2/V2-3/V2-4 work.
+
+### Session Objective
+
+- Run DB-backed V2-4 Laundry custody smoke after owner confirmed the V2-4 migration was applied.
+
+### What Was Built
+
+- Added `scripts/smoke-v2-laundry-custody.mjs`.
+- Added `smoke:v2:laundry-custody` npm script.
+- Extended `scripts/test-v2-phase-4-laundry-custody.mjs` to require the DB smoke script and key assertions.
+- Added corrective migration `supabase/migrations/20260707103000_v2_phase_4_qr_token_generator_fix.sql`.
+- Left the already-applied V2-4 migration immutable; the live DB repair is the separate corrective migration above.
+
+### Key Decisions Made
+
+- The DB smoke found a real applied-migration defect: `generate_qr_identity_token()` used `gen_random_bytes(24)` under `set search_path = public`, which failed in Supabase with `function gen_random_bytes(integer) does not exist`.
+- Corrective path is a tiny follow-up migration that replaces the function and schema-qualifies the pgcrypto call as `extensions.gen_random_bytes(24)`.
+- Do not mark V2-4 `READY_FOR_CLOSURE` until the corrective migration is owner-applied and the DB smoke passes.
+
+### Migrations Added
+
+- `supabase/migrations/20260707103000_v2_phase_4_qr_token_generator_fix.sql`
+
+### Migrations Applied Locally
+
+- None by Codex.
+- Owner needs to apply `20260707103000_v2_phase_4_qr_token_generator_fix.sql` in Supabase before rerunning DB smoke.
+
+### Files / Modules Changed
+
+- `scripts/smoke-v2-laundry-custody.mjs`
+- `package.json`
+- `scripts/test-v2-phase-4-laundry-custody.mjs`
+- `supabase/migrations/20260707103000_v2_phase_4_qr_token_generator_fix.sql`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | NOT RUN in this corrective slice |
+| `npm run test:roles` | NOT RUN in this corrective slice |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:laundry-custody` - FAIL/BLOCKED on first run due missing `gen_random_bytes(integer)` in `generate_qr_identity_token()`.
+- Static V2-4 tests - PASS after adding smoke and corrective migration.
+
+### Boutique Regression
+
+- Required Tier: C for this Laundry-local smoke/corrective slice.
+- Tests run: static V2 guard and lint.
+- Result: PASS for static/lint only.
+- Notes: No Boutique browser flow was run.
+
+### Tenant Isolation Checks
+
+- DB-backed TI-006 did not complete because smoke failed before handling-unit creation.
+- Static TI-006 coverage remains present in the smoke script.
+
+### Manual QA
+
+- Browser/device: NOT RUN.
+- Persona: NOT RUN.
+- Tenant/Vertical: NOT RUN.
+- Test IDs: pending after corrective migration application.
+- Result: NOT RUN.
+- Notes: DB smoke must pass before browser QA is meaningful.
+
+### Bugs Found
+
+- V2-4 QR token generator failed in Supabase because `gen_random_bytes` was not visible under the function's restricted `search_path = public`.
+
+### Bugs Fixed
+
+- Added corrective migration replacing `generate_qr_identity_token()` with `extensions.gen_random_bytes(24)`.
+
+### Deferred Issues
+
+- Owner apply `20260707103000_v2_phase_4_qr_token_generator_fix.sql`.
+- Rerun `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:laundry-custody`.
+- If smoke passes, update QA workbook and project summary with DB evidence.
+- Then run `/laundry/custody` browser QA.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no protected Boutique runtime/payment tables were changed by this corrective slice.
+- Corrective migration only replaces the V2-4 QR token helper function used by Laundry container/handling-unit QR identities.
+
+### Pending Tasks
+
+- Apply `20260707103000_v2_phase_4_qr_token_generator_fix.sql` in Supabase.
+- Rerun V2-4 DB smoke.
+- Continue V2-4 browser QA and closure review.
+
+### Blockers
+
+- V2-4 DB smoke is blocked until the corrective migration is applied in Supabase.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Corrective migration application.
+  - Passing DB-backed V2-4 Laundry custody smoke.
+  - Manual `/laundry/custody` browser QA.
+  - Final QA workbook update and diff/migration review.
+
+### Notes for Next Session
+
+- Apply `supabase/migrations/20260707103000_v2_phase_4_qr_token_generator_fix.sql`, then rerun `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:laundry-custody`.
+
+---
+
+## V2 Session Update - 2026-07-07 - V2-4 DB Smoke Pass
+
+### Date
+
+2026-07-07
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2-4 - Laundry Pickup, Container Assets, Handling Units and Custody
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit, if known: not rechecked beyond current branch; working tree remains uncommitted with V2-1/V2-2/V2-3/V2-4 work.
+
+### Session Objective
+
+- Rerun V2-4 DB-backed Laundry custody smoke after owner applied corrective QR token migration.
+- Tighten smoke coverage to include a second service lot on the same Handling Unit.
+
+### What Was Built
+
+- Updated `scripts/smoke-v2-laundry-custody.mjs` to create two Service Lots and two Work Units from one Handling Unit.
+- Updated `scripts/test-v2-phase-4-laundry-custody.mjs` to require the second-service-lot smoke assertion.
+- Updated `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx` with passing V2-4 DB-smoke evidence.
+
+### Key Decisions Made
+
+- V2-4 remains `IN_PROGRESS`, not `READY_FOR_CLOSURE`, because browser/manual `/laundry/custody` QA is still pending.
+- DB evidence is sufficient to mark LB2C-001 through LB2C-006 and TI-006 as PASS in the QA workbook.
+
+### Migrations Added
+
+- None in this pass.
+
+### Migrations Applied Locally
+
+- Owner applied `supabase/migrations/20260707103000_v2_phase_4_qr_token_generator_fix.sql` in Supabase before this smoke run.
+
+### Files / Modules Changed
+
+- `scripts/smoke-v2-laundry-custody.mjs`
+- `scripts/test-v2-phase-4-laundry-custody.mjs`
+- `docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx`
+- `project_summary.md`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+
+### Phase-Specific Tests
+
+- `OS_PLUS_V2_DB_SMOKE=1 npm run smoke:v2:laundry-custody` - PASS.
+- Evidence: tenant `fundry-laundry`; pickup `c3131332-e056-4e04-9b4c-48947521d920`; Handling Unit `HU-8D5534DE`; Service Lots `9e113500-1d0f-4d92-b91e-da474c8ce83a` and `30c29b53-fe72-4b2b-a03b-77e2f4895444`; TI-006 rejected `phantom-threads`.
+- LB2C-001 - PASS.
+- LB2C-002 - PASS.
+- LB2C-003 - PASS.
+- LB2C-004 - PASS.
+- LB2C-005 - PASS.
+- LB2C-006 - PASS.
+- TI-006 - PASS.
+
+### Boutique Regression
+
+- Required Tier: C for this Laundry-local DB smoke slice.
+- Tests run: typecheck, lint, build, role tests, V2 static tests.
+- Result: PASS.
+- Notes: No Boutique browser flow was run in this pass.
+
+### Tenant Isolation Checks
+
+- Checks run: TI-006 in DB smoke.
+- Result: PASS.
+- Notes: Foreign tenant `phantom-threads` could not read Fundry Handling Unit by guessed ID.
+
+### Manual QA
+
+- Browser/device: NOT RUN.
+- Persona: NOT RUN.
+- Tenant/Vertical: NOT RUN.
+- Test IDs: `/laundry/custody` browser QA pending.
+- Result: NOT RUN.
+- Notes: DB-backed command/runtime path passed; UI/browser pass is next.
+
+### Bugs Found
+
+- None in this pass.
+
+### Bugs Fixed
+
+- Smoke coverage gap fixed by adding second service-lot scenario.
+
+### Deferred Issues
+
+- Browser/manual `/laundry/custody` QA.
+- Final diff/migration review before `READY_FOR_CLOSURE`.
+- Final closure-evidence update after browser QA.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: no protected Boutique runtime/payment tables were changed in this pass.
+- V2-4 smoke touched only temporary Laundry/V2 records and cleaned them up.
+
+### Pending Tasks
+
+- Run browser QA for Fundry `/laundry/custody`.
+- Verify Laundry nav visibility/gating if possible.
+- Update QA workbook and project summary after browser QA.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- None for continuing V2-4 browser QA.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO
+- Missing closure requirements:
+  - Browser/manual `/laundry/custody` QA.
+  - Final migration/diff review.
+
+### Notes for Next Session
+
+- Run `/laundry/custody` browser QA as a Laundry tenant, then complete final V2-4 review.
+
+---
+
+## Session Update - 2026-08-07 - Existing Order Multi-Item Addition
+
+### Date
+
+2026-08-07
+
+### Updated By
+
+Codex AI agent
+
+### Phase
+
+Global Feedback and Boutique Order Editing Hardening
+
+### Phase Status
+
+IN_PROGRESS
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`.
+- Working tree remains intentionally uncommitted and includes earlier V2-1 through V2-4 work plus this Boutique/global-feedback slice.
+- No files were staged, committed, pushed, reset, or discarded.
+
+### Session Objective
+
+- Implement the approved ability to add several brand-new production items to an existing order in one save.
+- Keep the flow add-only, finance-safe, tenant-safe, atomic, idempotent, mobile-friendly, and explicit about pending/error state.
+- Leave Laundry and attendance-import scope paused.
+
+### What Was Built
+
+- Added a separate `Add items` side dialog on existing order detail.
+- Reused the dynamic order-item builder for multiple rows and filtered row-level workflow choices by compatible item type.
+- Added full new-item inputs for item type, name, description, color, quantity, unit price, discount, workflow, expected date, delivery override, standard size/customer measurement, and notes.
+- Added a production-start warning and UI blocks for cancelled or fully delivered orders.
+- Added a shared dialog `preventClose` state so pending saves block backdrop, Escape, and close-button dismissal.
+- Added a pending-locked form state, visible progress, duplicate-submit guard, stable per-dialog idempotency key, recoverable error feedback, and input preservation on failure.
+- Added a persistent success confirmation beside the Add items CTA after the dialog closes.
+- Added `addOrderItemsFormAction` with Zod validation, permission/tenant context, structured action results, friendly database error mapping, and revalidation for order, production, finance, dashboard, and public tracking surfaces.
+- Added an atomic `add_items_to_existing_order` database RPC that:
+  - locks and validates the tenant-owned legacy Boutique order;
+  - blocks cancelled and fully delivered orders;
+  - validates active item types, workflows, workflow stages, customer measurements, and standard sizes;
+  - enforces workflow/item-type, measurement/customer/item-type, and standard-size/item-type compatibility;
+  - inserts all new `order_items`, workflow instances, stage instances, first ready stages, and item-history events in one transaction;
+  - recalculates subtotal, discount, taxable amount, GST, total, amount paid, and payment status from active records;
+  - preserves all payment rows;
+  - serializes and deduplicates retries through `command_idempotency`.
+- Added `recalculate_order_payment_summary`, a service-role-only RPC that recomputes payment state while holding the same order-row lock as item-add total changes, preventing a concurrent payment save from overwriting the summary with a stale order total.
+- Added focused static/source-contract coverage and an opt-in database smoke harness for two-item addition, tenant isolation, invalid references, fit-reference compatibility, workflow initialization, atomic rollback, totals/payment status, and idempotent retry.
+- Updated `docs/01_PRD.md`, `docs/02_WBS.md`, `docs/OS_PLUS_QA_Test_Matrix.xlsx`, and `scripts/build-qa-matrix.mjs`.
+- Corrected stale customer duplicate rules in the PRD, WBS, Tech Development Plan, Rules, Database Model, Codex Build Prompt, and QA case CU-002 to the latest normalized-mobile decision.
+- Added `PRODUCT.md` as the product-register context for future UI work.
+
+### Key Decisions Made
+
+- Existing-order item addition is a separate focused dialog, not part of the existing correction dialog.
+- The first implementation is add-only; existing item price/quantity changes, deletion, customer changes, and payment reversal remain deferred.
+- Quantity greater than one remains one production item with a quantity value.
+- Adding after production starts is allowed with a warning and audit event; cancelled and fully delivered orders are blocked.
+- Every new item is an independent production unit with its own workflow execution and first ready stage.
+- The whole batch is atomic and idempotent; a partial set of new items must never remain after failure.
+- Order financial summaries use the existing order GST treatment/rate and active old-plus-new items.
+- Payment history is immutable in this flow; a paid order may become partially paid after its total increases.
+- Delivery eligibility uses explicit order/item delivery status and does not infer fulfilment from configurable internal workflow-stage names.
+- Existing partially delivered status is preserved; a previously ready or production-completed-but-not-delivered order returns to in-progress when new not-started work is added.
+- Laundry, Tasks behavior beyond the already-completed nav gating, attendance Excel import, configuration editing, and default expense-category provisioning were not broadened into this slice.
+
+### Migrations Added
+
+- `supabase/migrations/20260807100000_existing_order_add_items.sql`
+
+### Migrations Applied Locally
+
+- None by Codex in this session.
+- The new migration depends on the earlier generic V2 `command_idempotency` platform table and must be applied in repository migration order.
+
+### Files / Modules Changed
+
+- `PRODUCT.md`
+- `package.json`
+- `project_summary.md`
+- `docs/01_PRD.md`
+- `docs/02_WBS.md`
+- `docs/03_Tech_Development_Plan.md`
+- `docs/06_Rules.md`
+- `docs/08_Database_Model.md`
+- `docs/09_Codex_Build_Prompt.md`
+- `docs/OS_PLUS_QA_Test_Matrix.xlsx`
+- `scripts/build-qa-matrix.mjs`
+- `scripts/test-existing-order-add-items.mjs`
+- `scripts/smoke-existing-order-add-items.mjs`
+- `src/app/(tenant)/orders/[orderId]/page.tsx`
+- `src/components/orders/add-order-items-dialog.tsx`
+- `src/components/orders/order-item-builder.tsx`
+- `src/components/ui/dialog.tsx`
+- `src/features/orders/actions.ts`
+- `src/types/database.ts`
+- `supabase/migrations/20260807100000_existing_order_add_items.sql`
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run test:order-add-items` | PASS |
+| `npm run smoke:order-add-items` | PASS in safe skip mode; DB mutation not enabled |
+| `npm run test:roles` | PASS |
+| `npm run test:v2` | PASS |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+
+### Phase-Specific Tests
+
+- Focused source-contract test: PASS.
+- Verifies RPC/security contract, explicit terminal delivery guards, production-completed reopening, tenant/reference guards, workflow initialization, audit history, locked financial/payment recomputation, idempotency, pending-locked UI behavior, visible success confirmation, compatible workflow filtering, route integration, and smoke-harness coverage.
+- QA workbook Orders cases added:
+  - OR-004: multi-row addition, workflow initialization, totals/payment behavior, and downstream refresh.
+  - OR-005: tenant/fit-reference rejection, atomic rollback, idempotent retry, duplicate-submit/pending behavior, and terminal order guards.
+- CU-002 updated to require normalized-mobile duplicate prevention and existing-customer resolution.
+
+### Boutique Regression
+
+- Required Tier: A before deployment because this slice changes Boutique `orders`, `order_items`, item workflow execution, payment summaries, production visibility, Finance/receivables, and public tracking refresh behavior.
+- Automated result: focused test, role policy, V2 static regression, typecheck, lint, and production build all PASS.
+- DB-backed and authenticated Boutique end-to-end execution remain pending.
+
+### Tenant Isolation Checks
+
+- Static/source contract confirms tenant-scoped order/reference validation and service-role-only RPC execution.
+- The opt-in DB smoke contains cross-tenant order mutation rejection and atomic rollback checks.
+- DB-backed tenant-isolation smoke was not run because it would create temporary operational records in an active tenant and the new migration was not applied in this session.
+
+### Manual QA
+
+- Browser/device: Codex in-app browser and connected Chrome, localhost development server.
+- Persona: unavailable; both sessions redirected to Clerk sign-in.
+- Tenant/Vertical: unavailable.
+- Test IDs: OR-004 and OR-005 not executed in authenticated UI.
+- Result: BLOCKED by unavailable authenticated localhost session.
+- No customer, order, payment, item, or production data was submitted.
+
+### Bugs Found
+
+- The reused item builder originally showed every workflow for every item type.
+- Initial migration review found non-array JSON could bypass the intended item-array validation path.
+- Initial order-status recomputation would have changed `partially_delivered` to `in_progress`, losing valid fulfillment state.
+- Review found production completion was incorrectly treated as full delivery, while canonical `delivered` state was not explicitly guarded.
+- Review found the terminal guard inferred delivery from configurable internal stage names.
+- Review found the payment action could overwrite a newly recalculated payment summary with a stale pre-addition total during concurrent saves.
+- Review found successful item addition closed the dialog without an unmistakable persistent confirmation.
+- Review found the Tech Development Plan, Rules, and Database Model still contained stale duplicate-customer policy.
+
+### Bugs Fixed
+
+- Workflow choices are now filtered to general workflows or workflows matching the selected item type.
+- The RPC now rejects null/non-array payloads explicitly before checking array length.
+- Partially delivered status is preserved; ready and production-completed-but-not-delivered orders move back to in-progress after new work is added.
+- Cancelled, canonical delivered, and all-items-delivered orders are blocked; production completion alone is not treated as delivery.
+- Delivery guards now use explicit order/item status and remain separate from internal workflow-stage labels.
+- Payment-summary recalculation now runs behind an order-row lock shared with add-items total changes.
+- Successful saves now leave a visible success status beside the CTA.
+- The unapproved 20-row batch ceiling was removed so the implementation matches the agreed one-or-more-items contract.
+- Remaining authoritative customer documents now match the normalized-mobile duplicate-prevention decision.
+- QA workbook row wrapping/height was repaired and visually verified after adding OR-004, OR-005, and the revised CU-002.
+
+### Deferred Issues
+
+- Apply `20260807100000_existing_order_add_items.sql` in migration order.
+- Run `OS_PLUS_ORDER_ADD_ITEMS_DB_SMOKE=1 npm run smoke:order-add-items` in an approved non-production or disposable QA context.
+- Run authenticated OR-004/OR-005 browser QA at desktop and mobile widths without using destructive production data.
+- Continue later feedback items one at a time: global CTA pending feedback, configuration editing, attendance Excel import, and default expense-category provisioning.
+
+### Compatibility Notes
+
+- Existing item correction forms remain unchanged and separate from the new add-only dialog.
+- Existing payment rows are never overwritten or reversed.
+- Concurrent payment-summary and add-item total recomputation serialize through the order row; the existing broader payment-insertion workflow remains otherwise unchanged.
+- Production completion and customer fulfilment remain distinct; no delivery decision in the add-items guard depends on internal stage names.
+- Public tracking revalidation is added, but public query fields remain customer-safe and do not expose measurements, internal stages/notes, workers, salary, or private attachments.
+- The RPC is restricted to `boutique` + `legacy_item_v1` orders and cannot mutate Laundry `work_unit_v2` orders.
+- Laundry and attendance code were not changed in this slice.
+
+### Pending Tasks
+
+- Apply and review the new database migration.
+- Run DB-backed add-items smoke in an approved QA environment.
+- Complete authenticated browser QA for OR-004 and OR-005.
+- Standards and specification review completed for the source changes; re-review runtime evidence after database and browser QA.
+- Do not commit until owner gives explicit commit direction.
+
+### Blockers
+
+- Database behavior cannot be marked verified until the migration is applied and the opt-in smoke passes.
+- Authenticated UI behavior cannot be marked verified until a localhost Clerk session is available.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO.
+- Missing closure requirements:
+  - applied migration evidence;
+  - passing DB-backed smoke;
+  - authenticated desktop/mobile OR-004 and OR-005 QA;
+  - final standards/spec review.
+
+### Notes for Next Session
+
+- Start by reviewing/applying `supabase/migrations/20260807100000_existing_order_add_items.sql` in migration order.
+- Run `OS_PLUS_ORDER_ADD_ITEMS_DB_SMOKE=1 npm run smoke:order-add-items` only in an approved QA context.
+- Then authenticate localhost, execute OR-004 and OR-005 without production records, and complete the final review before any commit.
+
+## V2 Session Update - 2026-08-08 - Pilot Feedback Hardening and Attendance Import
+
+### Date
+
+2026-08-08
+
+### Updated By
+
+Codex AI agent
+
+### V2 Phase
+
+V2 cross-cutting pilot feedback hardening after the add-items slice
+
+### Phase Status
+
+QA_BLOCKED
+
+### Branch / Base
+
+- Branch: `v2/phase-1-platform-primitives`
+- Base reference/commit: `f38469781419e03e516d92da0813f08eca8c015c`
+
+### Session Objective
+
+- Complete the outstanding global-feedback work without owner intervention: application-wide mutation/navigation pending feedback, configuration editing, attendance Excel import, and default expense categories for every tenant.
+- Preserve and regression-test the existing-order multi-item implementation and earlier V2 dirty-worktree changes.
+- Keep Laundry paused and Tasks hidden for non-Laundry tenants.
+- Align PRD, WBS, technical/database rules, QA matrix, and this living summary.
+
+### What Was Built
+
+- Added a root action-feedback provider and upgraded the shared Button so every shared submit CTA shows a spinner and action-specific pending label, disables itself, and activates a global conflict-blocking progress overlay. Same-origin route links show an `Opening page...` state with a fail-safe release.
+- Added tenant-safe edit dialogs/actions for item types, internal stages, customer statuses, workgroups, payment modes, expense categories, locations, teams, workflows, worker profiles/wages/workgroups, and stage/workgroup mapping removal.
+- Preserved and regression-checked existing edit flows for measurement fields, standard sizes, customer measurements, and order payments. Added explicit history-preserving identity guards so referenced measurement fields, standard sizes, and customer measurements cannot be silently repointed to an incompatible item type.
+- Added atomic worker and workflow configuration RPCs so related references/memberships update together while preserving operational history.
+- Added automatic ten-category expense provisioning after every tenant insert plus an idempotent backfill for existing tenants. Existing custom, inactive, renamed, or deleted category history is not overwritten or revived.
+- Added `.xls` and `.xlsx` attendance import using `docs_v2/sample_Attendance_Report.xls` as the parser contract.
+- Added a no-write attendance preview that reports exact normalized active-worker matches, unmatched/ambiguous workers, new/update rows, future dates, and unknown statuses.
+- Added confirmed attendance import with SHA-256 file fingerprint validation, server-side reparse/rematch, tenant/active-worker validation, atomic insert/update, stable idempotency, and tenant-scoped import audit receipts.
+- Weekly-off and holiday source codes map to Holiday; future dates, blank statuses, unknown codes, and non-exact names are skipped and reported separately. The importer never creates workers.
+- Existing manual attendance notes are preserved when an imported worker/date updates an existing row.
+- Added database-enforced immutability for attendance import receipts while still allowing a parent tenant cascade to clean up tenant-owned data.
+- Replaced split payment insert/correction and summary writes with service-role-only `record_order_payment` and `correct_order_payment` RPCs. Both lock the order row, validate tenant/payment-mode ownership, enforce totals, update cached payment state atomically, and prevent concurrent overpayment/stale summaries.
+- Added immutable `order_payment_corrections` audit rows with reason, actor, timestamp, and before/after snapshots; direct audit update/delete is rejected while parent tenant cascades remain possible.
+- Upgraded the shared dialog to an accessible modal with labelled/described semantics, initial focus, focus trapping, Escape protection during global/local pending work, and focus restoration.
+- Extended the root pending blocker to imperative Task and Laundry custody commands. Laundry remains paused and Tasks remains hidden from non-Laundry tenants; this change only closes a shared interaction-safety bypass.
+- Added the matching Laundry vertical assertion to Task route queries and every Task mutation, so a non-Laundry tenant cannot bypass hidden navigation by opening `/tasks` directly.
+- Preserved dirty-form protection after recoverable add-items, attendance-import, payment, and workflow-action failures. Custom Cancel/Close controls now use the guarded shared dialog close path instead of bypassing unsaved-change confirmation.
+- Added atomic workflow creation/default assignment/stage insertion and atomic stage-sequence replacement RPCs; invalid references cannot leave a partially created workflow or erase its prior stage sequence. Active workflows accept only active stages, activation requires a usable stage, and workflow activation/last-stage deactivation serialize in workflow-then-stage lock order so only one conflicting state change can commit.
+- Made measurement-field, standard-size, and customer-measurement item-type identities immutable after creation, eliminating the check/update race with concurrent order-item creation.
+- Added `.xlsx` archive and declared-range preflight before workbook materialization: byte-signature/extension agreement, central/local ZIP-header agreement, encrypted/unsupported-method rejection, hard-capped real inflation with declared-size verification, bounded entries/expanded bytes/entry size/compression ratio/sheets/rows/columns/cells, and ZIP64 rejection.
+- Expanded the QA workbook through Configuration CF-007, Attendance AT-012, and Platform UX UX-006 and visually verified all 16 generated sheets after auto-fitting rows.
+
+### Key Decisions Made
+
+- Attendance worker matching is exact after NFKC normalization, case folding, non-breaking-space replacement, whitespace collapse, and trim. No fuzzy matching and no employee-profile creation.
+- Only active worker profiles in the current tenant are eligible. Duplicate normalized source names or duplicate normalized active profile names are ambiguous and skipped.
+- Preview never writes. Confirmation must submit the same file, pass the preview fingerprint, and repeat all parsing/matching/ownership checks.
+- A confirmed import updates an existing active worker/date row or inserts one; the full batch succeeds or rolls back as one transaction.
+- Attendance files are limited to 5 MB, 500 worker sections, 20 worksheets, 5,000 rows and 256 columns per sheet, and 500,000 declared cells. `.xlsx` archives additionally cap entries, expanded bytes, entry size, and compression ratio before parsing. Next Server Action body limit is 6 MB.
+- The ten expense-category names remain: Raw material, Salary, Marketing, Rent, Travel, Utilities, Packaging, Courier, Maintenance, Miscellaneous.
+- Expense provisioning compares `lower(btrim(name))`, inserts missing active defaults only, and never mutates an existing category.
+- Global pending feedback targets real server mutations and same-origin route navigation; purely local disclosure/toggle controls remain immediate local UI actions.
+- Payment recording and correction are money commands: validation, payment mutation, cached summary update, and audit insertion must share one database transaction and one order-row lock.
+- A default workflow must have an item type and remain active. Workflow creation/default assignment/stage insertion and stage replacement are atomic; active workflows always retain at least one active stage.
+- Fit-reference item-type identities are immutable after creation, whether or not currently referenced, so no concurrent order save can race a configuration reassignment.
+- Tasks is Laundry-only in this phase at navigation, route-query, and server-mutation boundaries.
+- Attendance import receipts and payment correction audits are append-only evidence. Direct edits/deletes are forbidden; parent tenant deletion remains recoverable through the existing cascade model.
+
+### Migrations Added
+
+- `supabase/migrations/20260808100000_configuration_editing_and_expense_defaults.sql`
+  - Atomic worker/workflow edits, workflow creation and stage replacement, automatic tenant expense defaults, existing-tenant backfill, atomic payment record/correction RPCs, and immutable payment-correction audit records.
+- `supabase/migrations/20260808110000_attendance_excel_import.sql`
+  - `attendance_imports` audit table, direct-update/delete immutability trigger, and atomic/idempotent `import_attendance_rows` RPC.
+
+### Migrations Applied Locally
+
+- None. No local Supabase/psql runtime was available and no live database mutation was authorized.
+- `20260807100000_existing_order_add_items.sql`, `20260808100000_configuration_editing_and_expense_defaults.sql`, and `20260808110000_attendance_excel_import.sql` remain owner-applied migration steps in filename order.
+
+### Files / Modules Changed
+
+- `src/components/ui/action-feedback-provider.tsx`
+- `src/components/ui/button.tsx`
+- `src/components/ui/dialog.tsx`
+- `src/components/layout/unsaved-changes-provider.tsx`
+- `src/app/layout.tsx`
+- `src/components/settings/configuration-edit-dialogs.tsx`
+- `src/components/settings/settings-list.tsx`
+- `src/features/settings/actions.ts`
+- `src/features/workers/actions.ts`
+- `src/features/workflows/actions.ts`
+- `src/features/finance/actions.ts`
+- `src/features/orders/actions.ts`
+- `src/app/(tenant)/finance/page.tsx`
+- `src/components/orders/add-order-items-dialog.tsx`
+- `src/components/orders/add-payment-dialog.tsx`
+- `src/components/production/workflow-action-dialogs.tsx`
+- `src/components/settings/standard-size-form.tsx`
+- `src/components/customers/customer-measurement-form.tsx`
+- `src/components/tasks/task-queue-client.tsx`
+- `src/features/tasks/actions.ts` / `src/features/tasks/queries.ts`
+- `src/verticals/laundry/custody/laundry-custody-client.tsx`
+- Settings pages for item types, stages, workgroups, payment modes, expense categories, customer statuses, locations, teams, and workflows
+- `src/features/attendance/import-parser.ts`
+- `src/features/attendance/import-actions.ts`
+- `src/components/attendance/attendance-import-dialog.tsx`
+- `src/app/(tenant)/attendance/page.tsx`
+- `src/types/database.ts`
+- `next.config.ts`
+- `package.json` / `package-lock.json`
+- `docs/01_PRD.md`, `docs/02_WBS.md`, `docs/03_Tech_Development_Plan.md`, `docs/04_Site_Map.md`, `docs/06_Rules.md`, `docs/08_Database_Model.md`
+- `scripts/build-qa-matrix.mjs` and `docs/OS_PLUS_QA_Test_Matrix.xlsx`
+- Focused regression scripts for action feedback, configuration editing, attendance import, expense defaults, existing-order add-items, opt-in payment-integrity database smoke testing, and opt-in workflow activation/last-stage concurrency smoke testing
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| `npm run test:roles` | PASS |
+| `npm run test:order-add-items` | PASS |
+| `npm run test:action-feedback` | PASS; additionally inventories every source server-action form and native button so pending-aware submit controls and explicit non-submit native buttons cannot be bypassed silently |
+| `npm run test:configuration-editing` | PASS |
+| `npm run test:attendance-import` | PASS; parsed the supplied legacy `.xls` fixture and all 20 worker sections |
+| `npm run test:attendance-import-contract` | PASS |
+| `npm run test:expense-defaults` | PASS |
+| `npm run test:v2` | PASS |
+| `npm run smoke:payment-integrity` | PASS in safe skip mode; database execution requires `OS_PLUS_PAYMENT_INTEGRITY_DB_SMOKE=1` plus an explicitly approved QA database |
+| `npm run smoke:workflow-stage-concurrency` | NOT RUN; the environment refused database-capable execution without an explicitly approved disposable QA database. The harness is opt-in with `OS_PLUS_WORKFLOW_STAGE_DB_SMOKE=1` and fails if exact-ID cleanup is incomplete. |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS; all 41 routes generated/compiled |
+| `npm audit --audit-level=high` | FAIL: 9 known dependency advisories (1 low, 2 moderate, 6 high); the attendance parser package was not listed. Fixing Next/transitive advisories requires a separate dependency-upgrade review. |
+
+### Phase-Specific Tests
+
+- OR-004/OR-005 source and security contracts: PASS; DB/browser mutation execution remains pending.
+- CF-001 through CF-005 source/security contracts: PASS, including workflow-then-stage lock-order and fail-closed concurrency-harness contracts; database execution remains pending.
+- AT-004 parser/sample-workbook behavior: PASS.
+- AT-005 exact-name-only import contract: PASS statically/parser-level; database execution remains pending.
+- AT-006 tenant-isolation guards: PASS statically in action/RPC; database cross-tenant execution remains pending.
+- AT-007 update-vs-insert/note-preservation: PASS by RPC/source contract; database execution remains pending.
+- AT-008 idempotency/duplicate-submit guard: PASS by RPC/source and pending-state contract; concurrent database execution remains pending.
+- AT-009 future/blank/unknown/ambiguous skips: PASS in parser tests and source contract.
+- AT-010 atomic rollback: PASS by transaction/RPC contract; database fault execution remains pending.
+- AT-011 immutable import receipts/direct-update-delete guard: PASS by migration/type source contract; database execution remains pending.
+- AT-012 archive and worksheet-bound preflight: PASS for supplied legacy `.xls`, valid bounded `.xlsx` structure, oversized entry, local/central header mismatch, and renamed-extension rejection; remaining entry/sheet/range variants are specified in QA.
+- CF-006 concurrent payment and overpayment serialization: PASS by RPC/source contract; opt-in database smoke is present but database execution remains pending.
+- CF-007 fit-reference identity/history preservation: PASS by action/source contract; database execution remains pending.
+- UX-005 modal keyboard/focus and pending-Escape protection: PASS by source contract; authenticated browser keyboard execution remains pending.
+- UX-006 direct Task route/mutation on non-Laundry tenant: PASS by route/action source contract; authenticated Boutique execution remains pending.
+- UX-001/UX-002 shared pending and conflict-blocking source contracts: PASS; authenticated slow-request browser execution remains pending.
+- QA workbook Configuration, Attendance, and Platform UX sheets: artifact-tool inspection PASS; visual render PASS after row auto-fit correction.
+
+### Boutique Regression
+
+- Required Tier: A because shared Button/root layout, settings, workers, Finance payment summary, attendance, order add-items, and shared database types changed.
+- Tests run: role policy, add-items contract, global feedback contract, configuration contract, attendance contracts, V2 suite, typecheck, lint, production build, public localhost route navigation.
+- Result: AUTOMATED PASS; DB-backed and authenticated Tier A execution remains BLOCKED.
+- Notes: no Laundry production path was enabled or exercised. Tasks remains feature-gated for non-Laundry tenants.
+
+### Tenant Isolation Checks
+
+- Every new configuration update filters by current `tenant_id`, verifies that an updated row was returned, or uses an atomic RPC that raises a tenant-owned not-found error.
+- Attendance preview loads only current-tenant active workers and current-tenant attendance.
+- Attendance RPC rejects any worker not active in the supplied tenant, duplicate worker/date payloads, invalid statuses, and future dates.
+- RPC execute permission is revoked from public/anon/authenticated and granted only to `service_role`; `attendance_imports` has RLS enabled.
+- Result: PASS by static/action/RPC contracts; live cross-tenant execution NOT RUN.
+
+### Manual QA
+
+- Browser/device: Codex in-app browser and connected Chrome; localhost development server.
+- Persona: public only. Authenticated localhost redirected to Clerk sign-in in the in-app browser; Chrome had a deployed OS PLUS session but no authenticated localhost session.
+- Tenant/Vertical: none for localhost authenticated routes.
+- Test IDs: public navigation portion of UX-003 PASS; AT-004 through AT-011, CF-001 through CF-007, and authenticated UX-001/UX-002/UX-005 remain BLOCKED.
+- Result: Local public home and Boutique route loaded and navigated successfully. No application console errors; only the expected Clerk development-key warning.
+- Notes: No customer, worker, attendance, finance, order, or production record was submitted. The sample workbook was not confirmed through the UI because doing so requires both an authenticated tenant and the unapplied attendance migration.
+
+### Bugs Found
+
+- React action forms reset uncontrolled file inputs after a successful preview, which would have lost the workbook before confirmation.
+- Configuration update filters initially prevented foreign writes but could silently report success when the tenant-scoped record did not exist.
+- Finance payment correction still performed a client-side payment-summary rewrite using a previously read order total.
+- Payment recording still inserted a row and recalculated the order summary in separate operations, allowing concurrent saves to exceed the order total.
+- Payment corrections overwrote financial evidence without an immutable before/after correction record and required reason.
+- Referenced fit-reference identities could be changed in ways that made historic order-item references incompatible.
+- Generic dialogs were missing modal accessibility semantics/focus trapping and allowed Escape to bypass the global pending blocker.
+- Imperative Task/Laundry commands bypassed the shared pending overlay, attendance receipt immutability was documentary only, blank attendance cells were not counted, and recoverable failed submits could clear the dirty guard.
+- Task navigation hiding was not backed by a Laundry vertical assertion on direct route queries and mutations.
+- Workflow creation and stage replacement used separate writes, so an intermediate failure could leave a workflow without stages or partially configured default state.
+- Fit-reference reassignment used separate reference-check and update requests, leaving a concurrent order-creation race.
+- Custom add-items/attendance close buttons bypassed guarded unsaved-change confirmation, some recoverable payment/workflow forms cleared dirty state on submit, and `.xlsx` workbook expansion/range limits were checked too late.
+- `.xlsx` central-directory-only limits could be bypassed by conflicting local headers or by renaming ZIP content to `.xls`; active workflows could also be configured with only inactive stage-master rows.
+- Workflow activation checked for an active stage without retaining a stage lock, allowing a simultaneous last-stage deactivation to invalidate the activation check.
+- Initial QA workbook fixed row height clipped long new Configuration/Attendance/UX test text.
+
+### Bugs Fixed
+
+- Attendance dialog retains the selected `File` in client state and explicitly adds it back to confirmation `FormData` after React resets the native input.
+- New configuration update actions now request the updated ID and reject missing/foreign/deleted records explicitly.
+- Payment recording/correction now uses locked atomic RPCs; correction writes immutable before/after audit evidence and requires a reason.
+- Measurement, size, workflow-default, modal accessibility, imperative-action pending, attendance immutability/blank reporting, and dirty-preservation gaps were closed with focused regression contracts.
+- Task reads/mutations now assert Laundry, workflow create/stage replacement is transactional, fit-reference identities are immutable, custom close buttons use guarded closure, recoverable payment/workflow forms preserve dirty state, and `.xlsx` resource bounds are preflighted.
+- Workbook type now comes from bytes with extension agreement, local/central headers are cross-validated, deflated entries are expanded under a hard cap before parsing, and stage/workflow edit RPCs serialize last-active-stage invariants.
+- Workflow activation now locks qualifying stage-master rows through commit in the same workflow-then-stage order as stage deactivation; an isolated opt-in QA smoke races both commands and fails if either its invariant or exact-ID cleanup fails.
+- QA workbook data rows now auto-fit after column widths are applied; key sheets were rendered and visually checked.
+
+### Deferred Issues
+
+- Apply and database-test the three pending migrations in an approved QA/staging database.
+- Authenticated desktop/mobile browser QA for OR, CF, AT, and UX test IDs.
+- Dependency remediation: npm audit reports 9 advisories (1 low, 2 moderate, 6 high), including Next 16.2.6 and transitive packages; a coordinated Next/eslint-config-next and transitive upgrade is outside this feature session.
+- Full application-wide recoverable inline error/success conversion remains a later hardening effort; this session supplies the requested global pending/conflict feedback and preserves explicit state in the focused add-items and attendance-import workflows.
+
+### Compatibility Notes
+
+- Boutique compatibility impact: shared submit Buttons and internal route links now add pending feedback; forms retain their existing actions and visual variants.
+- Configuration edits are additive correction paths and preserve referenced production, attendance, salary, finance, measurement, and customer history; immutable identity and compatibility guards reject unsafe repointing.
+- Boutique `order_payments` remains the source of truth, but its record/correction command paths now serialize through the order row and correction evidence is append-only.
+- Attendance import changes only matched active current-tenant worker/date records and does not affect production work logs.
+- Expense-default backfill inserts missing normalized names only and does not overwrite tenant customizations.
+- Public tracking queries and payloads were not expanded; attendance import receipts and internal worker matching are never public.
+- Laundry remains paused. No Laundry tenant enablement or production data mutation was performed.
+- Tasks remains hidden and is now rejected server-side for non-Laundry tenants.
+
+### Pending Tasks
+
+- Apply migrations in order and record row/backfill counts.
+- Run database-backed OR-004/OR-005, CF-002 through CF-007, and AT-005 through AT-012 in approved QA data.
+- Authenticate localhost and execute desktop/mobile UI checks, including slow-request conflict blocking and attendance preview without creating destructive production records.
+- Review npm security upgrades separately.
+- Do not stage, commit, push, or discard until the owner explicitly requests it.
+
+### Blockers
+
+- Database runtime evidence is blocked until the migrations are applied in an explicitly approved disposable QA/staging environment; the current configured target is remote/unknown and the only local database belongs to another project.
+- Authenticated UI evidence is blocked until a localhost Clerk session or dedicated test account is available; both available browser surfaces currently redirect to sign-in.
+
+### Independent Review
+
+- Spec review: no remaining actionable P0/P1/P2 findings after `.xlsx` hardening.
+- Standards review: no remaining actionable P0/P1/P2 findings after workflow activation locking and fail-closed smoke cleanup.
+
+### Completion Audit Recheck - 2026-08-08
+
+- Re-audited all `src` form submissions, `formAction` controls, imperative client actions, transitions, and raw native buttons. Every server-action form uses the shared pending-aware `Button` or a local `SubmitButton` wrapper that delegates to it; every raw native button explicitly declares `type="button"`.
+- Added this inventory to `scripts/test-global-action-feedback.mjs`; `npm run test:action-feedback` and `npm run lint` pass after the stronger contract.
+- Rechecked database availability without printing credentials. The configured Supabase target is remote/unknown, the Supabase CLI is unavailable, and the only local PostgreSQL container belongs to another project. No database migration, smoke mutation, or unrelated-container access was attempted.
+- Started the local OS PLUS server and rechecked `/orders` in both the Codex in-app browser and connected Chrome. Both redirected to Clerk sign-in; no localhost-authenticated session or dedicated E2E/test-account environment variable is available.
+- Did not create or impersonate a Clerk session and did not use the remote service-role credentials because neither action has an explicitly approved disposable QA target.
+- Completion result remains `QA_BLOCKED`: source implementation, automated gates, artifact inspection, and independent reviews are complete, but the objective cannot be proven end to end without database-backed and authenticated runtime evidence.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO.
+- Missing closure requirements:
+  - owner-applied migration evidence and backfill counts;
+  - database-backed atomicity/idempotency/tenant-isolation checks;
+  - authenticated desktop/mobile QA;
+
+### Notes for Next Session
+
+- Apply `20260807100000_existing_order_add_items.sql`, then `20260808100000_configuration_editing_and_expense_defaults.sql`, then `20260808110000_attendance_excel_import.sql` in an approved QA/staging Supabase project.
+- Record expense-category backfill counts and confirm a freshly created tenant receives all ten categories.
+- Run the QA workbook tests OR-004/OR-005, CF-001 through CF-007, AT-004 through AT-012, and UX-001 through UX-006.
+- Execute `npm run smoke:payment-integrity` only against an explicitly approved disposable QA database after all pending migrations are applied; never point the opt-in smoke at production.
+- Execute `npm run smoke:workflow-stage-concurrency` only against the same explicitly approved disposable QA database; verify it reports exactly one conflicting state change per pair and completes cleanup.
+- Use `docs_v2/sample_Attendance_Report.xls` for preview; confirm only in a disposable/approved attendance period because matched worker/date rows are intentionally updated.
+- Commit only after the owner reviews the final diff and explicitly asks for a commit.
+
+### Authenticated QA Continuation - 2026-08-08
+
+#### Environment and Authorization
+
+- The owner confirmed that the pending migrations were applied to the shared production/QA Supabase environment.
+- The owner explicitly approved two pure test tenants for authenticated verification:
+  - Fundry Laundry (`03947107-f8cb-424f-a02e-b67c9eadf0e4`, app store name `Fundry Laundry`, database tenant name `Abs`).
+  - Phantom Threads Test (`7be40f50-94a0-46c5-af57-7eea5e36ea8a`).
+- Chrome was authenticated as the Fundry admin / Phantom manager account. Edge was authenticated as the Phantom admin/manager account.
+
+#### Runtime Results
+
+- Fixed the `/workers` Server/Client boundary crash by moving `buttonVariants` into a server-safe module. Added `test:client-boundaries`; the page then loaded for Fundry (zero active workers) and Phantom (five active workers).
+- Phantom active-worker roster used for attendance QA: Designer, Man 1, Man 2, Man 3, and Ravi.
+- Verified both approved tenants contain all ten default expense categories. No existing category was overwritten.
+- Authenticated configuration correction checks passed: an expense-category rename and a worker-notes edit saved, reloaded, and were restored to their original test values. Edit entry points were present for item types, stages, customer statuses, workgroups, payment modes, expense categories, workflows, worker profiles, measurement fields, standard sizes, customer measurements, expenses, and order-payment corrections.
+- Verified non-Laundry Task gating end to end: Phantom hides Tasks in navigation and direct `/tasks` access returns a clean 404. Task reads and mutations retain server-side vertical assertions.
+- Verified adding two new production items to existing Phantom order `ORD-000012` in one save after production had started. Both items received independent workflows and first ready stages. Total changed from INR 1,416 to INR 1,652, recorded payment remained INR 300, and outstanding changed from INR 1,116 to INR 1,352. Public tracking displayed the two customer-safe items without exposing workers, internal stages, or internal notes.
+- Restored and verified the approved inline-customer flow: an exact existing normalized mobile match was selected without creating a duplicate, the order URL did not change, and the outer order reference/notes draft remained intact.
+- Added visible Finance labels (`Edit` for expenses and `Correct` for order payments) so correction actions are discoverable rather than icon-only.
+
+#### Attendance Workbook Evidence
+
+- Generated `outputs/019fdb69-847e-71c3-9069-b52aa17a1db7/OS_PLUS_Phantom_Attendance_All_Cases.xlsx` from the real Phantom roster.
+- The workbook covers five valid exact/normalized worker matches, an unmatched name, an ambiguous duplicate source name, supported status aliases, blanks, an unknown status, future dates, and time/duration fields.
+- Workbook structure, formulas, and rendered sheet layout passed artifact inspection.
+- After the owner enabled `Allow access to file URLs` for the ChatGPT Edge extension, the authenticated Phantom preview reported the exact expected evidence: eight source sections, five exact workers, 38 new rows, zero updates, 210 skipped rows, one unmatched worker, two ambiguous sections, 184 future-date cells, one blank status, and one unknown status.
+- Confirmation succeeded. The Attendance overview showed 38 of 70 range entries marked across Designer, Man 1, Man 2, Man 3, and Ravi with the expected Present/Absent/Half-day/Leave/Holiday mapping. No unmatched or ambiguous source profile was created.
+
+#### Final Automated Gates
+
+| Command | Result |
+|---|---|
+| `npm run test:roles` | PASS |
+| `npm run test:order-add-items` | PASS |
+| `npm run test:action-feedback` | PASS |
+| `npm run test:client-boundaries` | PASS |
+| `npm run test:configuration-editing` | PASS |
+| `npm run test:expense-defaults` | PASS |
+| `npm run test:attendance-import` | PASS |
+| `npm run test:attendance-import-contract` | PASS |
+| `npm run test:customer-inline` | PASS |
+| `npm run test:v2` | PASS |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS; all 41 pages generated |
+
+#### Review and Closure Status
+
+- Independent standards review: no remaining actionable P0/P1/P2 findings.
+- Independent specification review: no remaining actionable P0/P1/P2 findings.
+- TDD restored the customer mobile-normalization/duplicate-resolution contracts and caught the Workers server/client boundary regression before the final build.
+- The owner explicitly authorized the curated local phase commit on 2026-08-08. Generated QA outputs and private attendance/customer sample exports are excluded through `.gitignore` and are not part of the commit.
+- The mandatory commit gate was rerun after staging: `npm run typecheck`, `npm run lint`, `npm run test:roles`, `npm run test:v2`, and `npm run build` all passed; the build generated all 41 pages.
+- Phase status is `CLOSED`: implementation, applied migrations, focused contracts, authenticated order/configuration/customer/Task/attendance checks, independent reviews, final staged-diff inspection, TypeScript, lint, role/V2 tests, and production build all pass.
+- The phase commit is local only. Push, merge, and production deployment remain separate owner-authorized actions.

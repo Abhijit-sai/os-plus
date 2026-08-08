@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { deleteWorkflowAction, replaceWorkflowStagesAction } from "@/features/workflows/actions";
+import { deleteWorkflowAction, replaceWorkflowStagesAction, updateWorkflowAction } from "@/features/workflows/actions";
 import { getWorkflowDetailPageData } from "@/features/workflows/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default async function WorkflowDetailPage({
   params
@@ -12,7 +14,7 @@ export default async function WorkflowDetailPage({
   params: Promise<{ workflowId: string }>;
 }) {
   const { workflowId } = await params;
-  const { workflow, workflowStages, stages, customerStatuses } = await getWorkflowDetailPageData(workflowId);
+  const { workflow, workflowStages, stages, customerStatuses, itemTypes } = await getWorkflowDetailPageData(workflowId);
 
   if (!workflow) {
     notFound();
@@ -28,10 +30,20 @@ export default async function WorkflowDetailPage({
           <h2 className="text-2xl font-semibold tracking-tight">{workflow.name}</h2>
           <p className="text-muted-foreground">{workflow.description ?? "Sequential item-level workflow"}</p>
         </div>
-        <form action={deleteWorkflowAction}>
-          <input type="hidden" name="workflowId" value={workflow.id} />
-          <Button type="submit" variant="destructive">Delete workflow</Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <Dialog title="Edit workflow" description="Existing item workflow instances keep their copied production history." trigger={<span className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium hover:bg-accent">Edit workflow</span>}>
+            <form action={updateWorkflowAction} className="space-y-4" data-unsaved-guard="true">
+              <input type="hidden" name="workflowId" value={workflow.id} />
+              <div className="grid gap-2"><Label htmlFor="workflow-name">Name</Label><Input id="workflow-name" name="name" defaultValue={workflow.name} required /></div>
+              <div className="grid gap-2"><Label htmlFor="workflow-description">Description</Label><Input id="workflow-description" name="description" defaultValue={workflow.description ?? ""} /></div>
+              <div className="grid gap-2"><Label htmlFor="workflow-item-type">Item type</Label><select id="workflow-item-type" name="itemTypeId" defaultValue={workflow.item_type_id ?? ""} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="">General workflow</option>{itemTypes.map((itemType) => <option key={itemType.id} value={itemType.id}>{itemType.name}</option>)}</select></div>
+              <label className="flex items-center gap-2 text-sm"><input name="isDefault" type="checkbox" defaultChecked={workflow.is_default} className="h-4 w-4" />Default for selected item type</label>
+              <label className="flex items-center gap-2 text-sm"><input name="isActive" type="checkbox" defaultChecked={workflow.is_active} className="h-4 w-4" />Active</label>
+              <Button type="submit">Save workflow</Button>
+            </form>
+          </Dialog>
+          <form action={deleteWorkflowAction}><input type="hidden" name="workflowId" value={workflow.id} /><Button type="submit" variant="destructive">Delete workflow</Button></form>
+        </div>
       </div>
       <Card>
         <CardHeader>

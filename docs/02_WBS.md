@@ -20,7 +20,9 @@
 - Create app shell
 - Create responsive sidebar
 - Create top navigation
-- Create loading states
+- Add global submit-button pending labels and spinners for server mutations
+- Block conflicting interaction and duplicate submission while mutations or internal route transitions are pending
+- Keep focused dialogs open and preserve recoverable form data until save succeeds
 - Create empty states
 - Create error states
 
@@ -171,6 +173,8 @@
 - Seed defaults: Shirt, Pant, Kurtha, Blazer
 - Add default SLA days
 - Add default workflow mapping
+- Create workflows/default mapping/stage rows in one atomic RPC and replace stage sequences transactionally
+- Enforce active-stage invariants when creating, replacing, activating, or deactivating workflow configuration, including workflow-then-stage locking for simultaneous activation/last-stage deactivation
 
 ### 4.3 Stage Master
 
@@ -229,6 +233,19 @@
 - Edit expense category
 - Disable expense category
 - Seed defaults: Raw material, Salary, Marketing, Rent, Travel, Utilities, Packaging, Courier, Maintenance, Miscellaneous
+- Automatically provision all ten defaults after every tenant insert
+- Idempotently backfill only missing normalized names for existing tenants without overwriting custom or disabled records
+
+### 4.10 Configuration Correction Coverage
+
+- Edit or activate/deactivate item types, stages, customer statuses, workgroups, payment modes, and expense categories
+- Edit locations and teams while validating referenced locations and tenant ownership
+- Edit worker profile, status, wage configuration, and workgroup membership atomically
+- Edit workflow metadata and remove incorrect stage/workgroup mappings without rewriting existing production history
+- Retain edit flows for measurement fields, standard sizes, customer measurements, and audited order payments
+- Keep measurement-field identity immutable after creation; block standard-size or customer-measurement item-type reassignment when order history references it
+- Record order-payment corrections through one order-locking transaction with an immutable reason and before/after audit record
+- Reject foreign, deleted, or incompatible referenced IDs server-side
 
 ## 5. Customer Module
 
@@ -253,8 +270,12 @@
 - When phone is entered, search existing customers
 - Show suggestions for matching phone number
 - Allow selecting existing customer
-- Allow creating a new customer even if suggestion exists
-- Do not enforce duplicate prevention in MVP
+- Normalize accepted Indian mobile formats to the final 10 digits when phone is present
+- Recheck normalized mobile number server-side within the current tenant before save
+- Resolve and select the existing customer when the normalized mobile matches
+- Block creation of a second active customer with the same normalized mobile number
+- Keep mobile optional
+- Keep the duplicate guard application-level until legacy duplicate cleanup and normalized database storage are designed
 
 ### 5.4 Customer Detail
 
@@ -341,6 +362,8 @@
 - Add payment date
 - Add payment reference
 - Update order payment status
+- Record new payments through one order-locking transaction so concurrent requests cannot exceed the order total
+- Correct payments through one order-locking transaction and retain immutable before/after values, actor, and correction reason
 
 ### 6.6 Order Detail
 
@@ -363,6 +386,17 @@
 - Add or correct payment records through existing payment flow
 - Edit item notes, expected completion date, delivery override, and linked fit reference
 - Edit item name, description, and color
+- Add several brand-new item rows in one focused Add items dialog
+- Support full new-item fields including workflow, price, discount, due date, delivery override, standard size or customer measurement, and notes
+- Allow additions after production starts with an explicit warning and per-item audit history
+- Block additions for cancelled or fully delivered orders; allow production-completed but not delivered orders and return them to in-progress after addition
+- Validate all referenced IDs, tenant ownership, workflow/item-type compatibility, measurement/customer/item-type compatibility, and standard-size/item-type compatibility server-side
+- Create one workflow instance and ordered stage instances per new item, with the first stage ready immediately
+- Add all rows, workflow records, history, and financial-summary changes in one atomic database operation
+- Recalculate subtotal, discount, taxable amount, GST, total, amount paid, and payment status without altering payment records
+- Use an idempotency key and block closing, editing, and duplicate submission while save is pending
+- Preserve entered rows and show a visible recoverable error when save fails; show unmistakable success confirmation after the dialog closes
+- Revalidate order, production, finance, dashboard, and public tracking surfaces after success
 - Restrict destructive item edits once production work has started
 - Defer customer changes, price changes, quantity changes, item deletion, and payment reversal to later finance-safe correction flows
 
@@ -562,7 +596,16 @@
 - Add active-worker multi-select filtering
 - View monthly attendance
 - Keep attendance day units aligned to salary suggestion rules
-- Park Excel attendance upload/import as later work with preview and confirmation before database write
+- Accept legacy `.xls` and `.xlsx` biometric attendance reports up to 5 MB
+- Detect `.xlsx` by signature, require matching extension, cross-check local/central ZIP headers, bounded-inflate entries, and reject ZIP64, unsafe expansion/ratios, oversized entries, or excessive sheets/rows/columns/cells before materialization
+- Parse one report month and show a no-write preview before confirmation
+- Match source names only to one exact normalized active worker profile in the current tenant
+- Skip and report unmatched names, duplicate/ambiguous names, future dates, blank cells, and unknown status codes
+- Show new-versus-update attendance row counts by worker before confirmation
+- Re-read and fingerprint-check the workbook on confirmation
+- Atomically insert or update all matched worker/date rows through an idempotent service-role RPC
+- Store a tenant-scoped attendance import audit receipt and revalidate attendance, salary, workers, and dashboard views
+- Add regression coverage using `docs_v2/sample_Attendance_Report.xls`
 
 ### 9.3 Worker Detail
 

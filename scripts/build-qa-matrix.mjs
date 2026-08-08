@@ -51,7 +51,7 @@ const sheets = [
     name: "Customers",
     rows: [
       ["CU-001", "P1", "Manager", "Phantom Threads", "Manager has customers permission.", "Create customer with name only.", "Customer saves with optional phone/email/address blank.", "", "Not Run", "Manual + Automated", ""],
-      ["CU-002", "P1", "Manager", "Phantom Threads", "Existing customer has phone.", "Create another customer with similar phone.", "Suggestions appear, but duplicate creation remains allowed.", "", "Not Run", "Manual", ""],
+      ["CU-002", "P0", "Manager", "Phantom Threads", "An active customer already has a mobile number.", "Attempt to create another customer using the same normalized Indian mobile in 10-digit, leading 0, +91, or 0091 form.", "Server blocks the duplicate, resolves the existing customer, and the inline order flow selects that customer without losing the order draft.", "", "Not Run", "Manual + Automated", "Application-level normalized mobile guard; mobile remains optional."],
       ["CU-003", "P1", "Manager", "Phantom Threads", "Customer exists with orders.", "Open customer detail.", "Order history and summary are tenant-scoped and accurate.", "", "Not Run", "Manual", ""]
     ]
   },
@@ -64,11 +64,25 @@ const sheets = [
     ]
   },
   {
+    name: "Configuration",
+    rows: [
+      ["CF-001", "P1", "Owner/Admin", "Phantom Threads", "Item types, stages, statuses, workgroups, payment modes, and expense categories exist.", "Edit each master and toggle an active state.", "Each tenant-owned record updates; historical production and finance references remain intact.", "", "Not Run", "Manual + Automated", ""],
+      ["CF-002", "P0", "Owner/Admin", "Tenant A and Tenant B", "Tenant B configuration IDs are known.", "Submit Tenant B IDs from Tenant A edit forms.", "Every action rejects or returns not found; no Tenant B record changes.", "", "Not Run", "Automated", ""],
+      ["CF-003", "P1", "Owner/Admin", "Phantom Threads", "Worker, workflow, locations, teams, measurement fields, standard sizes, and customer measurements exist.", "Edit each record, replace a workflow stage sequence, repeat with an inactive/foreign stage, then simultaneously activate an inactive workflow while deactivating its sole active stage.", "Valid changes save with tenant/reference validation; workflow create/default/stage writes are atomic; invalid replacement leaves the prior sequence intact; workflow-then-stage locking allows exactly one conflicting state change to commit; existing history remains available.", "", "Not Run", "Database + Manual + Automated", ""],
+      ["CF-004", "P0", "Finance", "Phantom Threads", "An order payment exists.", "Open Finance payment correction, change allowed fields, enter a reason, and save.", "One order-locking transaction updates the payment and summary and stores immutable old/new values, actor, and reason without deleting payment history.", "", "Not Run", "Database + Manual", ""],
+      ["CF-005", "P0", "System", "All tenants", "Expense-default migration is ready and tenants contain custom or partial categories.", "Apply migration, inspect existing tenants, then create a fresh tenant.", "Each tenant has the ten defaults exactly once by normalized name; custom, renamed, inactive, and deleted history is not overwritten or revived.", "", "Not Run", "Database + Automated", ""]
+      ,["CF-006", "P0", "Finance", "Phantom Threads", "An order has an outstanding balance.", "Submit two concurrent payments whose combined value exceeds the balance.", "The order lock serializes both requests; at most one succeeds and payment rows never exceed the order total.", "", "Not Run", "Database", ""]
+      ,["CF-007", "P1", "Owner/Admin", "Phantom Threads", "Measurement fields, sizes, measurements, and order history exist.", "Try to change a field key/item type or reassign any existing size/measurement to another item type.", "Creation identities are always immutable while labels, dimensions, notes, order, and active state remain editable; concurrent order creation cannot create an incompatible reference.", "", "Not Run", "Manual + Automated", ""]
+    ]
+  },
+  {
     name: "Orders",
     rows: [
       ["OR-001", "P0", "Manager", "Phantom Threads", "Customer, item type, workflow, payment mode exist.", "Create order with two items and partial payment.", "Order number auto-generates; items and payment save under selected tenant.", "", "Not Run", "Manual + Automated", ""],
       ["OR-002", "P1", "Manager", "Phantom Threads", "Order exists.", "Edit item notes, due date, delivery override, and fit reference.", "Allowed fields update; destructive changes are not exposed.", "", "Not Run", "Manual", ""],
-      ["OR-003", "P0", "Manager", "Tenant A and Tenant B", "Known Tenant B order ID.", "Open Tenant B order ID from Tenant A session.", "Order detail returns not found or blocked.", "", "Not Run", "Automated", ""]
+      ["OR-003", "P0", "Manager", "Tenant A and Tenant B", "Known Tenant B order ID.", "Open Tenant B order ID from Tenant A session.", "Order detail returns not found or blocked.", "", "Not Run", "Automated", ""],
+      ["OR-004", "P0", "Manager", "Phantom Threads", "An active legacy Boutique order exists with payment history; active item types and workflows are configured.", "Open order detail, add two new item rows in one save, and use a customer measurement on one row and a standard size on the other.", "Both items save atomically, each gets its own workflow instance and first ready stage, item history records the addition, totals recalculate from all active items, payments remain unchanged, and production/finance/public tracking refresh.", "", "Not Run", "Manual + Automated", "Run against an unpaid or paid order; a paid order can become partially paid after the total increases."],
+      ["OR-005", "P0", "Manager", "Tenant A and Tenant B", "An editable Tenant A order exists; Tenant B IDs and an incompatible measurement or size are known.", "Attempt a multi-row add with one invalid or foreign reference, retry the same valid request key, and attempt rapid duplicate submission.", "Invalid batches roll back completely; tenant and fit-reference mismatches are rejected; an idempotent retry returns the original result; the pending dialog blocks edits, closing, and duplicate submission while preserving rows on error.", "", "Not Run", "Automated + Manual UI", "Also confirm cancelled and fully delivered orders cannot add items."]
     ]
   },
   {
@@ -84,7 +98,27 @@ const sheets = [
     rows: [
       ["AT-001", "P1", "Manager", "Phantom Threads", "Active workers exist.", "Mark daily attendance and save sheet.", "One tenant-scoped attendance row per marked worker/date is saved.", "", "Not Run", "Manual + Automated", ""],
       ["AT-002", "P1", "Manager", "Phantom Threads", "Attendance data exists.", "Open overview with 14-day range and worker filters.", "Charts, regularity, and attention board reflect selected workers only.", "", "Not Run", "Manual", ""],
-      ["AT-003", "P0", "Manager", "Tenant A and Tenant B", "Tenant B worker ID known.", "Submit attendance for Tenant B worker ID from Tenant A.", "Action rejects worker ownership mismatch.", "", "Not Run", "Automated", ""]
+      ["AT-003", "P0", "Manager", "Tenant A and Tenant B", "Tenant B worker ID known.", "Submit attendance for Tenant B worker ID from Tenant A.", "Action rejects worker ownership mismatch.", "", "Not Run", "Automated", ""],
+      ["AT-004", "P0", "Manager", "Phantom Threads", "The supplied sample .xls report is available and some active worker profile names match exactly after normalization.", "Upload the report and preview it.", "Preview writes nothing and shows report month, exact matches, unmatched/ambiguous workers, new/update rows, future dates, blank statuses, and unknown statuses.", "", "Not Run", "Manual + Automated", "Use docs_v2/sample_Attendance_Report.xls."],
+      ["AT-005", "P0", "Manager", "Phantom Threads", "Preview contains matched and unmatched source workers.", "Confirm import.", "Only exact normalized active-worker matches are inserted or updated; no worker profiles are created and skipped names remain unchanged.", "", "Not Run", "Database + Automated", "No fuzzy matching."],
+      ["AT-006", "P0", "Manager", "Tenant A and Tenant B", "Both tenants contain workers; a workbook name matches only Tenant B.", "Import while selected into Tenant A.", "Tenant B worker and attendance rows are untouched; the source worker is skipped for Tenant A.", "", "Not Run", "Database + Automated", ""],
+      ["AT-007", "P0", "Manager", "Phantom Threads", "A worker/date already has manual attendance and a note.", "Preview and confirm a workbook containing that worker/date.", "Preview labels the row as an update; status/time/hours update atomically and the existing free-text note is preserved.", "", "Not Run", "Database + Automated", ""],
+      ["AT-008", "P0", "Manager", "Phantom Threads", "A valid preview and idempotency key exist.", "Confirm twice or rapidly double-click confirmation.", "The second request returns the stored receipt and creates no duplicate attendance or import receipt.", "", "Not Run", "Database + Manual UI", ""],
+      ["AT-009", "P0", "Manager", "Phantom Threads", "A workbook contains a future date, blank status, unknown status, and duplicate normalized worker name.", "Preview and confirm.", "Those rows/workers are explicitly reported and skipped; valid exact matches still import.", "", "Not Run", "Automated", ""],
+      ["AT-010", "P0", "Manager", "Phantom Threads", "A confirmed batch contains a tampered/invalid referenced row.", "Execute confirmation through the database contract.", "The complete transaction rolls back and no partial attendance/import receipt remains.", "", "Not Run", "Database", ""],
+      ["AT-011", "P0", "System", "Phantom Threads", "A confirmed attendance import receipt exists.", "Attempt direct update and direct delete as service role, then delete its parent test tenant through approved cleanup.", "Direct mutation is rejected as immutable; approved parent cascade cleanup remains possible.", "", "Not Run", "Database", ""],
+      ["AT-012", "P0", "System", "Phantom Threads", "Adversarial .xlsx fixtures contain oversized expansion, unsafe ratios, local/central header mismatches, renamed extensions, or excessive entries/sheets/rows/columns/cells.", "Preview each fixture.", "Every unsafe workbook is rejected before worksheet materialization via signature/header checks and hard-capped inflation; no receipt is written; valid .xls and .xlsx structures still reach format validation.", "", "Not Run", "Automated", ""]
+    ]
+  },
+  {
+    name: "Platform UX",
+    rows: [
+      ["UX-001", "P1", "Any authorized user", "Phantom Threads", "A server mutation is available.", "Click its submit CTA.", "The CTA immediately shows a spinner and action-specific pending label and is disabled until completion.", "", "Not Run", "Manual + Automated", ""],
+      ["UX-002", "P0", "Any authorized user", "Phantom Threads", "A slow mutation is available.", "Submit, then attempt another CTA, navigation, dialog close, Escape, and rapid resubmit.", "Conflicting interaction is blocked, focused pending dialogs cannot close, and only one mutation is accepted.", "", "Not Run", "Manual UI", ""],
+      ["UX-003", "P1", "Any authorized user", "Phantom Threads", "An internal route link is available.", "Click the link on desktop and mobile widths.", "A visible Opening page progress state appears and clears after navigation or the fail-safe timeout.", "", "Not Run", "Manual UI", ""],
+      ["UX-004", "P1", "Manager", "Phantom Threads", "A recoverable validation failure can be triggered in add-items or attendance import.", "Submit invalid data.", "Error feedback is visible, the draft remains available, and retry succeeds without duplicate submission.", "", "Not Run", "Manual + Automated", ""],
+      ["UX-005", "P1", "Keyboard user", "Phantom Threads", "Any shared dialog is available.", "Open it, tab through controls, press Shift+Tab at the first control, close it, and repeat during a pending save.", "Focus stays inside the modal, accessible name/description are exposed, focus returns to the trigger, and pending dialogs cannot close.", "", "Not Run", "Manual + Automated", ""],
+      ["UX-006", "P0", "Boutique user", "Boutique-only tenant", "The user has a role that would otherwise permit Tasks.", "Open /tasks directly and attempt a Task server action.", "Both read and mutation paths reject access because Laundry is not enabled; Tasks remains hidden in navigation.", "", "Not Run", "Manual + Automated", ""]
     ]
   },
   {
@@ -164,7 +198,7 @@ function writeSheet(sheetConfig) {
   sheet.getRange("I:I").format.columnWidthPx = 95;
   sheet.getRange("J:J").format.columnWidthPx = 130;
   sheet.getRange("K:K").format.columnWidthPx = 190;
-  sheet.getRangeByIndexes(0, 0, data.length, columns.length).format.rowHeightPx = 42;
+  sheet.getRangeByIndexes(1, 0, sheetConfig.rows.length, columns.length).format.autofitRows();
   sheet.getRangeByIndexes(0, 0, 1, columns.length).format.rowHeightPx = 28;
   sheet.tables.add(`A1:K${data.length}`, true, `${sheetConfig.name.replace(/[^A-Za-z0-9]/g, "")}Table`);
 }

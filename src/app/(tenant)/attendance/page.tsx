@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, ArrowRight, BarChart3, CalendarDays, Search, Upload } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BarChart3, CalendarDays, Search } from "lucide-react";
 
 import {
   CapacityTrendChart,
@@ -8,6 +8,7 @@ import {
   type WorkerRegularityPoint
 } from "@/components/attendance/attendance-charts";
 import { AttendanceSheet } from "@/components/attendance/attendance-sheet";
+import { AttendanceImportDialog } from "@/components/attendance/attendance-import-dialog";
 import { AttendanceWorkerFilter } from "@/components/attendance/attendance-worker-filter";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { CommandBar } from "@/components/layout/command-bar";
@@ -419,10 +420,7 @@ export default async function AttendancePage({
               Mark attendance
             </Link>
           </Button>
-          <Button size="sm" variant="outline" disabled>
-            <Upload className="h-4 w-4" />
-            Excel upload later
-          </Button>
+          <AttendanceImportDialog />
         </div>
       </CommandBar>
 

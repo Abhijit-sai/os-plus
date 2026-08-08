@@ -42,13 +42,15 @@ export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes,
   return (
     <form action={action} className="space-y-4" data-unsaved-guard="true">
       {standardSize ? <input type="hidden" name="standardSizeId" value={standardSize.id} /> : null}
+      {standardSize ? <input type="hidden" name="itemTypeId" value={standardSize.item_type_id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={standardSize ? `size-item-type-${standardSize.id}` : "size-item-type"}>Item type</Label>
         <select
           id={standardSize ? `size-item-type-${standardSize.id}` : "size-item-type"}
-          name="itemTypeId"
+          name={standardSize ? undefined : "itemTypeId"}
           value={selectedItemTypeId}
           onChange={(event) => setSelectedItemTypeId(event.target.value)}
+          disabled={Boolean(standardSize)}
           className="h-10 rounded-md border bg-background px-3 text-sm"
           required
         >
@@ -59,6 +61,7 @@ export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes,
             </option>
           ))}
         </select>
+        {standardSize ? <p className="text-xs text-muted-foreground">Item type is fixed to preserve size and order history. Create a new size for another item type.</p> : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
         <div className="grid gap-2">

@@ -110,10 +110,10 @@ Do not build these in MVP:
 - Email is optional.
 - Gender is optional.
 - Address is optional.
-- Customer duplicates are allowed in MVP.
-- Do not enforce unique phone number.
-- When entering a phone number, show existing customer suggestions.
-- User may select an existing customer or continue creating a new one.
+- When present, accept Indian mobile numbers as 10 digits, with a leading `0`, with `+91`, or with `0091`, and normalize them to the final 10 digits.
+- When entering a phone number, show existing active customer suggestions from the current tenant.
+- On save, check the normalized mobile again on the server. If an active tenant customer matches, do not create a duplicate; resolve and select the existing customer.
+- Keep this as an application-level guard until legacy duplicates and normalized database storage have been analysed. Do not add a uniqueness migration without that analysis.
 
 ## Workflow Rules
 

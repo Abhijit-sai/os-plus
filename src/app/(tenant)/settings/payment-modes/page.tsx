@@ -1,7 +1,8 @@
-import { createPaymentModeAction } from "@/features/settings/actions";
+import { createPaymentModeAction, updatePaymentModeAction } from "@/features/settings/actions";
 import { getPaymentModes } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { TextMasterForm } from "@/components/settings/text-master-form";
+import { TextMasterEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function PaymentModesPage() {
   const paymentModes = await getPaymentModes();
@@ -19,6 +20,7 @@ export default async function PaymentModesPage() {
         description="Tenant payment mode master."
         items={paymentModes}
         renderMeta={(item) => item.description ?? "Payment mode"}
+        renderActions={(item) => <TextMasterEditDialog action={updatePaymentModeAction} idField="paymentModeId" item={item} title="payment mode" />}
       />
     </div>
   );

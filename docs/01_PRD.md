@@ -168,6 +168,10 @@ For MVP, tenant user status in the owner/admin UI should be simplified to:
 
 Tenant owners/admins add internal users by email only. Clerk user IDs are internal technical identifiers and must not be entered by tenant owners.
 
+### 6.7 Mutations must provide immediate feedback.
+
+Every server mutation and internal route transition must make progress visible immediately. Submit controls show a specific pending label and spinner, conflicting interaction is blocked while the request is pending, and duplicate submissions are prevented. Focused dialogs that own unsaved work must not close while saving. Recoverable workflows keep entered data and show an explicit success or error result.
+
 ## 7. User Roles
 
 ### 7.1 OS PLUS Super Admin
@@ -296,6 +300,19 @@ Allow each tenant to configure how their boutique operates.
 - Maintenance
 - Miscellaneous
 
+These ten categories are provisioned automatically for every new tenant. Existing tenants receive any missing defaults through an idempotent backfill matched by normalized category name. The backfill must not rename, reactivate, delete, or overwrite existing tenant categories.
+
+### Configuration Editing Rules
+
+- Tenant owner/admin can edit operational configuration after creation, including item types, stages, customer statuses, workgroups, payment modes, expense categories, locations, teams, workflows, worker details, measurement fields, standard sizes, and customer measurements.
+- Workflow creation, default reassignment, and stage-sequence replacement must be atomic; a failed save must not leave a workflow without stages or multiple defaults for one item type.
+- Active workflows may reference only active stage-master rows and must always retain at least one active stage. Workflow activation and last-stage deactivation must lock in workflow-then-stage order, so simultaneous requests serialize and one conflicting change is rejected transactionally.
+- Measurement-field key/item type, standard-size item type, and customer-measurement item type are creation identities. Edit labels, values, notes, order, and active state in place; create a new record to change identity so order and production history cannot be invalidated.
+- Editing validates the record and every referenced ID against the current tenant on the server.
+- Configuration records already referenced by production, finance, attendance, salary, or customer history are updated or disabled without deleting historical records.
+- Existing order payments remain editable through an atomic finance correction flow. The order row is locked, overpayment is rejected, and immutable before/after values, actor, and reason are stored; configuration payment modes are edited separately.
+- Workflow metadata and stage/workgroup mappings can be corrected without rewriting copied production-stage history on existing items.
+
 ## 8.3 Customer Module
 
 ### Purpose
@@ -310,10 +327,12 @@ Maintain reusable customer profiles with contact details, order history, and mea
 - Gender is optional.
 - Address is optional.
 - Notes are optional.
-- Customer duplicates are allowed for now.
-- There is no strict no-duplicate restriction at customer level in MVP.
-- When entering a phone number, if existing customers with the same or similar phone number exist, the system should show suggestions and allow the user to select an existing customer.
-- The user may still choose to create a new customer even if suggestions are shown.
+- When a phone number is present, accepted Indian formats are a 10-digit mobile number, leading `0`, `+91`, or `0091`; store and compare the normalized final 10 digits.
+- Before saving, the server must check active customers in the current tenant for the same normalized mobile number.
+- If a match exists, do not create a duplicate customer. Resolve and select the existing customer instead.
+- Customer suggestions should remain available while entering the phone number, and selecting a suggestion should immediately choose that customer.
+- Inline customer creation from an order must not navigate away or discard the order draft.
+- The duplicate guard is application-level. A database uniqueness migration requires a separate legacy-data and normalized-storage decision.
 
 ### Customer Fields
 
@@ -408,6 +427,23 @@ Allow boutique staff to manually create and manage customer orders.
 - Partial payments must be supported.
 - Partial pickup/dispatch must be supported.
 - Order-level delivery type applies to all items unless overridden at item level.
+
+### Adding Items to an Existing Order
+
+- Order detail provides a separate focused **Add items** flow for adding one or more brand-new production items in one save.
+- The flow is add-only. It does not change or delete existing items, change the order customer, reverse payments, or edit existing item quantity or price.
+- Newly added rows support the complete item-creation field set: item type, name, description, color, quantity, unit price, discount, workflow, expected completion date, delivery override, standard size or customer measurement, and notes.
+- Quantity greater than one remains one production item row with a quantity value. Independently tracked physical pieces must be entered as separate rows.
+- Adding items is allowed after production has started on existing items, but the UI must warn the user and every new item must receive an audit/history event.
+- Cancelled and fully delivered orders cannot accept new items. Production-completed orders that have not been delivered can accept new items and return to in-progress.
+- Each new item must immediately receive its own workflow instance, stage instances, and first ready stage.
+- The complete batch is atomic: any validation or workflow-initialization failure must leave the order unchanged.
+- The server must validate tenant ownership and active/compatible state for the order, item types, workflows, workflow stages, customer measurements, and standard sizes.
+- Customer measurements must belong to the order customer and match the item type when item-type-specific. Standard sizes must belong to the selected item type.
+- Order subtotal, discount, taxable amount, GST, and total are recalculated from all active old and new items using the order's existing GST treatment and rate.
+- Existing payment records are preserved. The order payment summary is recalculated from active payment history, so a previously paid order may become partially paid when its total increases.
+- Saving uses an idempotency key and blocks duplicate submissions. While pending, the entire dialog is disabled and cannot be closed; failures keep entered rows and show recoverable error feedback, and success remains visibly confirmed after the dialog closes.
+- Successful saves refresh order detail/list, production, finance/receivables, dashboard, and public tracking surfaces without exposing internal workflow or fit-reference data publicly.
 
 ## 8.5 Order Item Module
 
@@ -543,7 +579,7 @@ Track worker presence separately from productive work logs.
 ### Attendance MVP
 
 - Admin/manager manually marks attendance.
-- Excel import can be added later.
+- Admin/manager can import supported biometric attendance reports in legacy `.xls` or `.xlsx` format.
 - Attendance manager integration can be added later.
 - Attendance is recorded as a daily sheet before salary calculation.
 - Attendance status is the primary payroll day-unit signal.
@@ -554,7 +590,20 @@ Track worker presence separately from productive work logs.
 - Attendance should open with an overview before daily entry.
 - The overview should default to a 14-day window and support custom date range analysis.
 - The overview should support active-worker multi-select filtering.
-- Excel import remains later work and must use preview plus confirmation before inserting attendance rows.
+
+### Attendance Excel Import
+
+- Import accepts one report month per workbook and files up to 5 MB. `.xlsx` uploads are detected by signature, require a matching extension, cross-check central and local ZIP headers, inflate each entry under a hard output cap, and bound archive entries/expanded size/compression ratio plus worksheet count/declared rows/columns/cells before worksheet materialization.
+- The import first shows a preview. Preview never writes attendance.
+- A source worker is eligible only when the normalized source name exactly matches one active worker profile in the current tenant. Matching ignores case, Unicode presentation differences, non-breaking spaces, repeated spaces, and leading/trailing spaces; it does not use fuzzy matching.
+- If no active profile matches, or more than one source/profile candidate has the same normalized name, that worker is skipped. Import never creates a worker profile.
+- The preview clearly reports exact matches, unmatched names, ambiguous names, new rows, existing rows that will be updated, future dates, blank status cells, and unknown status codes.
+- Supported source statuses map to Present, Absent, Half day, Leave, and Holiday. Weekly off and holiday source codes map to Holiday because attendance and production work logs remain separate.
+- Future dates and unknown or blank status cells are not imported.
+- Confirmation re-reads the workbook, rechecks its SHA-256 fingerprint, revalidates active tenant workers, and recalculates matches before writing.
+- For a matched worker/date, the confirmed report updates the existing active attendance row; otherwise it creates one. Existing free-text notes are preserved when an existing row is updated.
+- The entire confirmed import is one atomic, idempotent database operation. Any invalid row or ownership failure rolls back all rows, and retrying the same confirmation does not create duplicates.
+- Every confirmed import stores a database-enforced immutable, tenant-scoped audit receipt with file metadata, report month, row counts, actor, idempotency key, and aggregate result. Workbook contents are not exposed publicly.
 
 ### Attendance Overview
 
@@ -1068,7 +1117,7 @@ Hardening requirements:
 - Inventory management
 - QR/barcode labels
 - OCR for measurement cards
-- Attendance import
+- Advanced attendance device/API integrations
 
 ### Phase 4
 

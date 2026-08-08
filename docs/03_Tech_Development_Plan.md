@@ -170,6 +170,7 @@ Allow each boutique to configure their own business operating model.
 - Workgroups
 - Stage-to-workgroup mapping
 - Workflow builder, sequential MVP
+- Workflow/stage configuration commands serialize workflow activation against last-active-stage deactivation using a consistent workflow-then-stage lock order
 - Payment modes
 - Expense categories
 - Default seed data for each tenant
@@ -191,7 +192,9 @@ Create reusable customer profiles.
 - Customer edit
 - Customer detail
 - Customer phone suggestion search
-- Allow duplicates
+- Normalize accepted Indian mobile formats to the final 10 digits when a phone is present
+- Resolve and select the existing active tenant customer when the normalized mobile already exists
+- Enforce the duplicate-mobile rule again on the server when saving
 - Measurement notes
 - Measurement key-value fields
 - Measurement photo upload
@@ -354,7 +357,12 @@ Attendance should be implemented as a daily sheet. The sheet can contain draft r
 - Active-worker multi-select filter driven by repeated `workers` search params
 - Recharts-based attendance split and worker regularity charts
 - Attention-board heuristics kept informational and separate from salary finalization
-- Excel upload/import parked as a later view with file preview and explicit confirmation before persistence
+- Legacy `.xls` and `.xlsx` attendance parser with a 5 MB server-action limit plus signature/extension checks, local/central ZIP-header agreement, hard-capped entry inflation, and worksheet-range preflight
+- No-write import preview with exact normalized active-worker name matching and explicit unmatched/ambiguous/future/blank/unknown skips
+- SHA-256 file fingerprint plus stable idempotency key between preview and confirmation
+- Atomic service-role RPC that revalidates tenant-owned active workers and inserts or updates one attendance row per worker/date
+- Tenant-scoped, database-enforced immutable `attendance_imports` audit receipts for confirmed imports
+- Focused parser, tenant/security contract, atomicity, and duplicate-submit regression tests using the supplied sample report
 - Attendance calendar
 - Worker work log list
 - Productive time summary
@@ -420,6 +428,8 @@ Track operational inflow and outflow.
 - Inflow/outflow summary
 - Salary expense rollup sourced from worker ledger `salary_paid` entries
 - Salary grouped as a single Finance expense category without requiring duplicate manual expense entry
+- Order-locking `record_order_payment` RPC for race-safe payment capture and summary update
+- Order-locking `correct_order_payment` RPC with immutable before/after values, actor, and required correction reason
 
 ### Deliverable
 

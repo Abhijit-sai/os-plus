@@ -72,6 +72,46 @@ const customerStatusSchema = z.object({
   isFinalStatus: z.boolean().default(false)
 });
 
+const locationTypeSchema = z.enum(["store", "workshop", "warehouse", "office", "other"]);
+
+const tenantLocationSchema = z.object({
+  code: z.string().trim().min(1, "Code is required.").max(32),
+  name: nameSchema,
+  locationType: locationTypeSchema.default("store"),
+  addressLine1: optionalText,
+  addressLine2: optionalText,
+  area: optionalText,
+  city: optionalText,
+  state: optionalText,
+  postalCode: optionalText,
+  countryCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2}$/, "Use a two-letter country code.")
+    .default("IN")
+});
+
+const tenantLocationIdSchema = z.object({
+  locationId: z.string().uuid()
+});
+
+const teamSchema = z.object({
+  name: nameSchema,
+  code: z.string().trim().min(1, "Code is required.").max(32),
+  description: optionalText,
+  locationId: optionalText
+});
+
+const teamIdSchema = z.object({
+  teamId: z.string().uuid()
+});
+
+const teamMemberSchema = z.object({
+  teamId: z.string().uuid(),
+  tenantUserId: z.string().uuid()
+});
+
 const measurementFieldSchema = z.object({
   itemTypeId: z.string().uuid(),
   fieldKey: z.string().trim().min(1, "Field key is required."),
@@ -106,6 +146,8 @@ const updateStandardSizeSchema = standardSizeSchema.extend({
 const standardSizeIdSchema = z.object({
   standardSizeId: z.string().uuid()
 });
+
+const activeFlagSchema = z.object({ isActive: z.boolean().default(true) });
 
 async function getAuthorizedSettingsContext() {
   const context = await requireTenantContext();
@@ -395,6 +437,249 @@ export async function createWorkgroupAction(formData: FormData) {
   revalidatePath("/settings/workgroups");
 }
 
+export async function createTenantLocationAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = tenantLocationSchema.parse({
+    code: formData.get("code"),
+    name: formData.get("name"),
+    locationType: formData.get("locationType") || "store",
+    addressLine1: formData.get("addressLine1"),
+    addressLine2: formData.get("addressLine2"),
+    area: formData.get("area"),
+    city: formData.get("city"),
+    state: formData.get("state"),
+    postalCode: formData.get("postalCode"),
+    countryCode: formData.get("countryCode") || "IN"
+  });
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from("tenant_locations").insert({
+    tenant_id: context.tenant.id,
+    code: parsed.code,
+    name: parsed.name,
+    location_type: parsed.locationType,
+    address_line_1: parsed.addressLine1,
+    address_line_2: parsed.addressLine2,
+    area: parsed.area,
+    city: parsed.city,
+    state: parsed.state,
+    postal_code: parsed.postalCode,
+    country_code: parsed.countryCode,
+    created_by: context.membership.clerk_user_id,
+    updated_by: context.membership.clerk_user_id
+  });
+
+  if (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new Error("A location with this code already exists.");
+    }
+
+    throw new Error(`Unable to create location: ${error.message}`);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/locations");
+}
+
+export async function archiveTenantLocationAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = tenantLocationIdSchema.parse({
+    locationId: formData.get("locationId")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("tenant_locations")
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_active: false,
+      updated_by: context.membership.clerk_user_id
+    })
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", parsed.locationId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to archive location: ${error.message}`);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/locations");
+  revalidatePath("/settings/teams");
+}
+
+async function validateLocationForSettings(tenantId: string, locationId: string | null) {
+  if (!locationId) {
+    return;
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from("tenant_locations")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", locationId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to validate location: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Location does not belong to this tenant.");
+  }
+}
+
+async function validateTeamForSettings(tenantId: string, teamId: string) {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", teamId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to validate team: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Team does not belong to this tenant.");
+  }
+}
+
+async function validateTenantUserForSettings(tenantId: string, tenantUserId: string) {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from("tenant_users")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", tenantUserId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to validate tenant user: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Tenant user does not belong to this tenant.");
+  }
+}
+
+export async function createTeamAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = teamSchema.parse({
+    name: formData.get("name"),
+    code: formData.get("code"),
+    description: formData.get("description"),
+    locationId: formData.get("locationId")
+  });
+
+  await validateLocationForSettings(context.tenant.id, parsed.locationId);
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from("teams").insert({
+    tenant_id: context.tenant.id,
+    name: parsed.name,
+    code: parsed.code,
+    description: parsed.description,
+    location_id: parsed.locationId,
+    created_by: context.membership.clerk_user_id,
+    updated_by: context.membership.clerk_user_id
+  });
+
+  if (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new Error("A team with this code already exists.");
+    }
+
+    throw new Error(`Unable to create team: ${error.message}`);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/teams");
+}
+
+export async function archiveTeamAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = teamIdSchema.parse({
+    teamId: formData.get("teamId")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("teams")
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_active: false,
+      updated_by: context.membership.clerk_user_id
+    })
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", parsed.teamId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to archive team: ${error.message}`);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/teams");
+}
+
+export async function addTeamMemberAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = teamMemberSchema.parse({
+    teamId: formData.get("teamId"),
+    tenantUserId: formData.get("tenantUserId")
+  });
+
+  await Promise.all([
+    validateTeamForSettings(context.tenant.id, parsed.teamId),
+    validateTenantUserForSettings(context.tenant.id, parsed.tenantUserId)
+  ]);
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from("team_members").insert({
+    tenant_id: context.tenant.id,
+    team_id: parsed.teamId,
+    tenant_user_id: parsed.tenantUserId,
+    created_by: context.membership.clerk_user_id
+  });
+
+  if (error) {
+    if (isUniqueConstraintError(error)) {
+      revalidatePath("/settings/teams");
+      return;
+    }
+
+    throw new Error(`Unable to add team member: ${error.message}`);
+  }
+
+  revalidatePath("/settings/teams");
+}
+
+export async function removeTeamMemberAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = teamMemberSchema.parse({
+    teamId: formData.get("teamId"),
+    tenantUserId: formData.get("tenantUserId")
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from("team_members")
+    .update({ deleted_at: new Date().toISOString(), is_active: false })
+    .eq("tenant_id", context.tenant.id)
+    .eq("team_id", parsed.teamId)
+    .eq("tenant_user_id", parsed.tenantUserId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error(`Unable to remove team member: ${error.message}`);
+  }
+
+  revalidatePath("/settings/teams");
+}
+
 export async function createPaymentModeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
   const parsed = textMasterSchema.parse({
@@ -596,11 +881,22 @@ export async function updateMeasurementFieldAction(formData: FormData) {
   await validateItemTypeForSettings(context.tenant.id, parsed.itemTypeId);
 
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
+  const existing = await supabase
+    .from("item_type_measurement_fields")
+    .select("id, item_type_id, field_key")
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", parsed.fieldId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing.error) throw new Error(`Unable to load measurement field: ${existing.error.message}`);
+  if (!existing.data) throw new Error("Measurement field does not belong to this tenant.");
+  if (existing.data.item_type_id !== parsed.itemTypeId || existing.data.field_key !== fieldKey) {
+    throw new Error("MEASUREMENT_FIELD_IDENTITY_IMMUTABLE: Field key and item type cannot change after creation. Create a new field instead.");
+  }
+
+  const { data, error } = await supabase
     .from("item_type_measurement_fields")
     .update({
-      item_type_id: parsed.itemTypeId,
-      field_key: fieldKey,
       field_label: parsed.fieldLabel,
       unit: parsed.unit,
       sort_order: parsed.sortOrder,
@@ -611,7 +907,9 @@ export async function updateMeasurementFieldAction(formData: FormData) {
     })
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.fieldId)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (isUniqueConstraintError(error)) {
@@ -620,6 +918,7 @@ export async function updateMeasurementFieldAction(formData: FormData) {
 
     throw new Error(`Unable to update measurement field: ${error.message}`);
   }
+  if (!data) throw new Error("Measurement field does not belong to this tenant.");
 
   revalidatePath("/settings");
   revalidatePath("/settings/measurement-standards");
@@ -710,10 +1009,22 @@ export async function updateStandardSizeAction(formData: FormData) {
   });
 
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
+  const existing = await supabase
+    .from("item_type_standard_sizes")
+    .select("id, item_type_id")
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", parsed.standardSizeId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing.error) throw new Error(`Unable to load standard size: ${existing.error.message}`);
+  if (!existing.data) throw new Error("Standard size does not belong to this tenant.");
+  if (existing.data.item_type_id !== parsed.itemTypeId) {
+    throw new Error("STANDARD_SIZE_ITEM_TYPE_IMMUTABLE: Item type cannot change after a standard size is created. Create a new size instead.");
+  }
+
+  const { data, error } = await supabase
     .from("item_type_standard_sizes")
     .update({
-      item_type_id: parsed.itemTypeId,
       size_label: parsed.sizeLabel,
       measurement_data_json: parsed.measurementData as Json,
       sort_order: parsed.sortOrder,
@@ -722,7 +1033,9 @@ export async function updateStandardSizeAction(formData: FormData) {
     })
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.standardSizeId)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (isUniqueConstraintError(error)) {
@@ -731,6 +1044,7 @@ export async function updateStandardSizeAction(formData: FormData) {
 
     throw new Error(`Unable to update standard size: ${error.message}`);
   }
+  if (!data) throw new Error("Standard size does not belong to this tenant.");
 
   revalidatePath("/settings");
   revalidatePath("/settings/measurement-standards");
@@ -759,4 +1073,99 @@ export async function archiveStandardSizeAction(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/settings/measurement-standards");
+}
+
+export async function updateItemTypeAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = itemTypeSchema.extend({ itemTypeId: z.string().uuid() }).merge(activeFlagSchema).parse({
+    itemTypeId: formData.get("itemTypeId"), name: formData.get("name"), description: formData.get("description"),
+    defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays")), isActive: formData.get("isActive") === "on"
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("item_types").update({ name: parsed.name, description: parsed.description, default_sla_days: parsed.defaultSlaDays ?? null, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.itemTypeId).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw new Error(isUniqueConstraintError(error) ? "An item type with this name already exists." : `Unable to update item type: ${error.message}`);
+  if (!data) throw new Error("Item type does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath("/settings/item-types"); revalidatePath("/settings/measurement-standards");
+}
+
+async function updateTextMaster(formData: FormData, kind: "workgroup" | "paymentMode") {
+  const context = await getAuthorizedSettingsContext();
+  const idField = kind === "workgroup" ? "workgroupId" : "paymentModeId";
+  const parsed = textMasterSchema.extend({ recordId: z.string().uuid() }).merge(activeFlagSchema).parse({ recordId: formData.get(idField), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on" });
+  const update = { name: parsed.name, description: parsed.description, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id };
+  const supabase = createSupabaseServiceRoleClient();
+  const result = kind === "workgroup"
+    ? await supabase.from("workgroups").update(update).eq("tenant_id", context.tenant.id).eq("id", parsed.recordId).is("deleted_at", null).select("id").maybeSingle()
+    : await supabase.from("payment_modes").update(update).eq("tenant_id", context.tenant.id).eq("id", parsed.recordId).is("deleted_at", null).select("id").maybeSingle();
+  if (result.error) throw new Error(isUniqueConstraintError(result.error) ? "A record with this name already exists." : `Unable to update configuration: ${result.error.message}`);
+  if (!result.data) throw new Error("Configuration record does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath(kind === "workgroup" ? "/settings/workgroups" : "/settings/payment-modes");
+}
+
+export async function updateStageAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = textMasterSchema.extend({ stageId: z.string().uuid() }).merge(activeFlagSchema).parse({
+    stageId: formData.get("stageId"), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on"
+  });
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("update_stage_configuration", {
+    p_tenant_id: context.tenant.id,
+    p_stage_id: parsed.stageId,
+    p_name: parsed.name,
+    p_description: parsed.description,
+    p_is_active: parsed.isActive,
+    p_actor_id: context.membership.clerk_user_id
+  });
+  if (error) {
+    throw new Error(
+      isUniqueConstraintError(error) ? "A stage with this name already exists."
+        : error.message.includes("STAGE_REQUIRED_BY_ACTIVE_WORKFLOW") ? "This stage is the last active stage in an active workflow. Replace that workflow sequence before deactivating it."
+          : error.message.includes("STAGE_NOT_FOUND") ? "Stage does not belong to this tenant."
+            : `Unable to update stage: ${error.message}`
+    );
+  }
+  revalidatePath("/settings"); revalidatePath("/settings/stages"); revalidatePath("/settings/workflows");
+}
+export async function updateWorkgroupAction(formData: FormData) { await updateTextMaster(formData, "workgroup"); }
+export async function updatePaymentModeAction(formData: FormData) { await updateTextMaster(formData, "paymentMode"); }
+
+export async function updateCustomerStatusAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = customerStatusSchema.extend({ customerStatusId: z.string().uuid() }).merge(activeFlagSchema).parse({ customerStatusId: formData.get("customerStatusId"), name: formData.get("name"), description: formData.get("description"), sortOrder: formData.get("sortOrder") || 0, isFinalStatus: formData.get("isFinalStatus") === "on", isActive: formData.get("isActive") === "on" });
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("customer_statuses").update({ name: parsed.name, description: parsed.description, sort_order: parsed.sortOrder, is_final_status: parsed.isFinalStatus, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.customerStatusId).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw new Error(isUniqueConstraintError(error) ? "A customer status with this name already exists." : `Unable to update customer status: ${error.message}`);
+  if (!data) throw new Error("Customer status does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath("/settings/customer-statuses");
+}
+
+export async function updateExpenseCategoryAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = z.object({ expenseCategoryId: z.string().uuid(), name: nameSchema }).merge(activeFlagSchema).parse({ expenseCategoryId: formData.get("expenseCategoryId"), name: formData.get("name"), isActive: formData.get("isActive") === "on" });
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("expense_categories").update({ name: parsed.name, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.expenseCategoryId).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw new Error(isUniqueConstraintError(error) ? "An expense category with this name already exists." : `Unable to update expense category: ${error.message}`);
+  if (!data) throw new Error("Expense category does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath("/settings/expense-categories"); revalidatePath("/finance");
+}
+
+export async function updateTenantLocationAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = tenantLocationSchema.extend({ locationId: z.string().uuid() }).merge(activeFlagSchema).parse({ locationId: formData.get("locationId"), code: formData.get("code"), name: formData.get("name"), locationType: formData.get("locationType") || "store", addressLine1: formData.get("addressLine1"), addressLine2: formData.get("addressLine2"), area: formData.get("area"), city: formData.get("city"), state: formData.get("state"), postalCode: formData.get("postalCode"), countryCode: formData.get("countryCode") || "IN", isActive: formData.get("isActive") === "on" });
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("tenant_locations").update({ code: parsed.code, name: parsed.name, location_type: parsed.locationType, address_line_1: parsed.addressLine1, address_line_2: parsed.addressLine2, area: parsed.area, city: parsed.city, state: parsed.state, postal_code: parsed.postalCode, country_code: parsed.countryCode, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.locationId).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw new Error(isUniqueConstraintError(error) ? "A location with this code already exists." : `Unable to update location: ${error.message}`);
+  if (!data) throw new Error("Location does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath("/settings/locations"); revalidatePath("/settings/teams");
+}
+
+export async function updateTeamAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = teamSchema.extend({ teamId: z.string().uuid() }).merge(activeFlagSchema).parse({ teamId: formData.get("teamId"), name: formData.get("name"), code: formData.get("code"), description: formData.get("description"), locationId: formData.get("locationId"), isActive: formData.get("isActive") === "on" });
+  await validateLocationForSettings(context.tenant.id, parsed.locationId);
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase.from("teams").update({ name: parsed.name, code: parsed.code, description: parsed.description, location_id: parsed.locationId, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.teamId).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw new Error(isUniqueConstraintError(error) ? "A team with this code already exists." : `Unable to update team: ${error.message}`);
+  if (!data) throw new Error("Team does not belong to this tenant.");
+  revalidatePath("/settings"); revalidatePath("/settings/teams");
 }

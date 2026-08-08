@@ -28,8 +28,8 @@ export default async function NewCustomerPage({
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Add customer</h2>
         <p className="text-muted-foreground">
-          Create a reusable customer profile. Phone helps suggestions, but
-          duplicates remain allowed.
+          Create a reusable customer profile. If the mobile number already
+          belongs to this tenant, OS PLUS opens that existing customer instead.
         </p>
       </div>
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
@@ -37,7 +37,7 @@ export default async function NewCustomerPage({
           <CardHeader>
             <CardTitle>Phone suggestions</CardTitle>
             <CardDescription>
-              Check for similar phone numbers before creating a new customer.
+              Check for a matching customer before creating a new profile.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

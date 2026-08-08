@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { createOrderAction } from "@/features/orders/actions";
 import { getNewOrderPageData } from "@/features/orders/queries";
 import { CustomerPicker } from "@/components/orders/customer-picker";
@@ -63,9 +61,6 @@ export default async function NewOrderPage({
             production.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/customers/new">Add customer first</Link>
-        </Button>
       </div>
       <form
         action={createOrderAction}

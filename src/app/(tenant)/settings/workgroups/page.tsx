@@ -1,7 +1,8 @@
-import { createWorkgroupAction } from "@/features/settings/actions";
+import { createWorkgroupAction, updateWorkgroupAction } from "@/features/settings/actions";
 import { getWorkgroups } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { TextMasterForm } from "@/components/settings/text-master-form";
+import { TextMasterEditDialog } from "@/components/settings/configuration-edit-dialogs";
 
 export default async function WorkgroupsPage() {
   const workgroups = await getWorkgroups();
@@ -19,6 +20,7 @@ export default async function WorkgroupsPage() {
         description="Worker capability groups."
         items={workgroups}
         renderMeta={(item) => item.description ?? "Worker group"}
+        renderActions={(item) => <TextMasterEditDialog action={updateWorkgroupAction} idField="workgroupId" item={item} title="workgroup" />}
       />
     </div>
   );

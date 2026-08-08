@@ -1,36 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  CreateCustomerDialog,
+  type InlineCustomerOption,
+} from "@/components/customers/create-customer-dialog";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type CustomerOption = {
-  id: string;
-  name: string;
-  phone: string | null;
-};
+type CustomerOption = InlineCustomerOption;
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
-}
-
-function createCustomerHref(query: string) {
-  const trimmed = query.trim();
-
-  if (!trimmed) {
-    return "/customers/new";
-  }
-
-  const digits = trimmed.replace(/\D/g, "");
-  const params = new URLSearchParams();
-
-  if (digits.length >= 3) {
-    params.set("phone", digits);
-  }
-
-  return params.size ? `/customers/new?${params.toString()}` : "/customers/new";
 }
 
 function notifyCustomerSelection(customerId: string | null) {
@@ -47,6 +30,7 @@ export function CustomerPicker({
   onCustomerChange?: (customerId: string | null) => void;
 }) {
   const initialCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
+  const [customerOptions, setCustomerOptions] = useState(customers);
   const [query, setQuery] = useState(initialCustomer ? `${initialCustomer.name}${initialCustomer.phone ? ` · ${initialCustomer.phone}` : ""}` : "");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(initialCustomer);
@@ -55,16 +39,29 @@ export function CustomerPicker({
   const trimmedQuery = normalize(query);
   const filteredCustomers = useMemo(() => {
     if (!trimmedQuery) {
-      return customers.slice(0, 8);
+      return customerOptions.slice(0, 8);
     }
 
-    return customers
+    return customerOptions
       .filter((customer) => {
         const haystack = `${customer.name} ${customer.phone ?? ""}`.toLowerCase();
         return haystack.includes(trimmedQuery);
       })
       .slice(0, 8);
-  }, [customers, trimmedQuery]);
+  }, [customerOptions, trimmedQuery]);
+
+  function selectCustomer(customer: CustomerOption) {
+    setCustomerOptions((current) =>
+      current.some((option) => option.id === customer.id)
+        ? current
+        : [customer, ...current],
+    );
+    setSelectedCustomer(customer);
+    setQuery(`${customer.name}${customer.phone ? ` · ${customer.phone}` : ""}`);
+    onCustomerChange?.(customer.id);
+    inputRef.current?.setCustomValidity("");
+    setIsOpen(false);
+  }
 
   useEffect(() => {
     onCustomerChange?.(selectedCustomer?.id ?? null);
@@ -130,11 +127,7 @@ export function CustomerPicker({
                 if (blurTimeoutRef.current) {
                   clearTimeout(blurTimeoutRef.current);
                 }
-                setSelectedCustomer(customer);
-                setQuery(`${customer.name}${customer.phone ? ` · ${customer.phone}` : ""}`);
-                onCustomerChange?.(customer.id);
-                inputRef.current?.setCustomValidity("");
-                setIsOpen(false);
+                selectCustomer(customer);
               }}
               className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
             >
@@ -143,15 +136,27 @@ export function CustomerPicker({
             </button>
           ))}
           {!filteredCustomers.length ? (
-            <div className="space-y-2 p-3 text-sm">
+            <div className="p-3 text-sm">
               <p className="text-muted-foreground">No customer found.</p>
-              <Link href={createCustomerHref(query)} className="font-medium text-primary underline-offset-4 hover:underline">
-                Create new customer
-              </Link>
             </div>
           ) : null}
         </div>
       ) : null}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          Select an existing customer or create one here.
+        </p>
+        <CreateCustomerDialog
+          customers={customerOptions}
+          initialPhone={query}
+          onCustomerResolved={selectCustomer}
+          trigger={
+            <span className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Add customer
+            </span>
+          }
+        />
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
-import type { ExpenseInputGstStatus, GstTreatment, PaymentStatus, ReceivablePayableStatus, ReceivablePayableType } from "@/types/database";
+import type { ExpenseInputGstStatus, GstTreatment, ReceivablePayableStatus, ReceivablePayableType } from "@/types/database";
 
 const optionalText = z
   .string()
@@ -69,7 +69,8 @@ const updateOrderPaymentSchema = z.object({
   paymentModeId: optionalText,
   paymentDate: z.string().min(1, "Payment date is required."),
   referenceNumber: optionalText,
-  notes: optionalText
+  notes: optionalText,
+  correctionReason: z.string().trim().min(3, "Explain why this payment is being corrected.")
 });
 
 function getDerivedDueStatus({
@@ -171,48 +172,6 @@ async function validateOptionalTenantRecord(table: "expense_categories" | "payme
 
   if (!data) {
     throw new Error("Selected record does not belong to this tenant.");
-  }
-}
-
-function getPaymentStatus(totalAmount: number, amountPaid: number): PaymentStatus {
-  if (amountPaid <= 0) {
-    return "unpaid";
-  }
-
-  if (amountPaid >= totalAmount) {
-    return "paid";
-  }
-
-  return "partially_paid";
-}
-
-async function updateOrderPaymentSummary(tenantId: string, orderId: string, totalAmount: number, actorId: string) {
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from("order_payments")
-    .select("amount")
-    .eq("tenant_id", tenantId)
-    .eq("order_id", orderId)
-    .is("deleted_at", null);
-
-  if (error) {
-    throw new Error(`Unable to total order payments: ${error.message}`);
-  }
-
-  const amountPaid = Math.min((data ?? []).reduce((total, payment) => total + payment.amount, 0), totalAmount);
-  const paymentStatus = getPaymentStatus(totalAmount, amountPaid);
-  const update = await supabase
-    .from("orders")
-    .update({
-      amount_paid: amountPaid,
-      payment_status: paymentStatus,
-      updated_by: actorId
-    })
-    .eq("tenant_id", tenantId)
-    .eq("id", orderId);
-
-  if (update.error) {
-    throw new Error(`Unable to update order payment summary: ${update.error.message}`);
   }
 }
 
@@ -419,12 +378,13 @@ export async function updateOrderPaymentAction(formData: FormData) {
     paymentModeId: formData.get("paymentModeId"),
     paymentDate: formData.get("paymentDate"),
     referenceNumber: formData.get("referenceNumber"),
-    notes: formData.get("notes")
+    notes: formData.get("notes"),
+    correctionReason: formData.get("correctionReason")
   });
   const supabase = createSupabaseServiceRoleClient();
   const payment = await supabase
     .from("order_payments")
-    .select("*")
+    .select("order_id")
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.paymentId)
     .is("deleted_at", null)
@@ -438,61 +398,25 @@ export async function updateOrderPaymentAction(formData: FormData) {
     throw new Error("Payment does not belong to this tenant.");
   }
 
-  const order = await supabase
-    .from("orders")
-    .select("id, total_amount")
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", payment.data.order_id)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (order.error) {
-    throw new Error(`Unable to load order: ${order.error.message}`);
+  const correction = await supabase.rpc("correct_order_payment", {
+    p_tenant_id: context.tenant.id,
+    p_payment_id: parsed.paymentId,
+    p_amount: parsed.amount,
+    p_payment_mode_id: parsed.paymentModeId,
+    p_payment_date: parsed.paymentDate,
+    p_reference_number: parsed.referenceNumber,
+    p_notes: parsed.notes,
+    p_reason: parsed.correctionReason,
+    p_actor_id: context.membership.clerk_user_id
+  });
+  if (correction.error) {
+    if (correction.error.message.includes("PAYMENT_NOT_FOUND")) throw new Error("Payment does not belong to this tenant.");
+    if (correction.error.message.includes("PAYMENT_MODE_NOT_FOUND")) throw new Error("Selected payment mode does not belong to this tenant.");
+    if (correction.error.message.includes("PAYMENT_EXCEEDS_ORDER_TOTAL")) throw new Error("Payment correction would exceed the order total.");
+    throw new Error(`Unable to correct order payment: ${correction.error.message}`);
   }
-
-  if (!order.data) {
-    throw new Error("Linked order does not belong to this tenant.");
-  }
-
-  await validateOptionalTenantRecord("payment_modes", context.tenant.id, parsed.paymentModeId);
-
-  const otherPayments = await supabase
-    .from("order_payments")
-    .select("amount")
-    .eq("tenant_id", context.tenant.id)
-    .eq("order_id", order.data.id)
-    .neq("id", payment.data.id)
-    .is("deleted_at", null);
-
-  if (otherPayments.error) {
-    throw new Error(`Unable to validate payment total: ${otherPayments.error.message}`);
-  }
-
-  const otherTotal = (otherPayments.data ?? []).reduce((total, row) => total + row.amount, 0);
-
-  if (otherTotal + parsed.amount > order.data.total_amount) {
-    throw new Error(`Payment edit would exceed order total. Remaining editable amount is ${Math.max(order.data.total_amount - otherTotal, 0)}.`);
-  }
-
-  const update = await supabase
-    .from("order_payments")
-    .update({
-      amount: parsed.amount,
-      payment_mode_id: parsed.paymentModeId,
-      payment_date: parsed.paymentDate,
-      reference_number: parsed.referenceNumber,
-      notes: parsed.notes
-    })
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", parsed.paymentId);
-
-  if (update.error) {
-    throw new Error(`Unable to update order payment: ${update.error.message}`);
-  }
-
-  await updateOrderPaymentSummary(context.tenant.id, order.data.id, order.data.total_amount, context.membership.clerk_user_id);
 
   revalidatePath("/finance");
   revalidatePath("/orders");
-  revalidatePath(`/orders/${order.data.id}`);
+  revalidatePath(`/orders/${payment.data.order_id}`);
 }
