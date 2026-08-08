@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 
+import { CustomerImportDialog } from "@/components/customers/customer-import-dialog";
 import { getCustomersPageData } from "@/features/customers/queries";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PageHeader } from "@/components/layout/page-header";
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { hasPermission } from "@/lib/permissions/roles";
+import { requireTenantContext } from "@/lib/tenant/context";
 
 function formatDate(date: string | null) {
   if (!date) {
@@ -36,7 +39,10 @@ export default async function CustomersPage({
   searchParams?: Promise<{ q?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { customerRows, search } = await getCustomersPageData(resolvedSearchParams?.q);
+  const [{ customerRows, search }, context] = await Promise.all([
+    getCustomersPageData(resolvedSearchParams?.q),
+    requireTenantContext(),
+  ]);
   const totalPending = customerRows.reduce((total, row) => total + row.pendingAmount, 0);
   const activeCustomers = customerRows.filter((row) => row.activeOrders > 0).length;
   const measurementReady = customerRows.filter((row) => row.measurementCount > 0).length;
@@ -47,12 +53,15 @@ export default async function CustomersPage({
         title="Customers"
         description="Customer profiles, measurement readiness, repeat orders, and pending balances."
         actions={
-          <Button asChild>
-            <Link href="/customers/new">
-              <Plus className="h-4 w-4" />
-              Add customer
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {hasPermission(context.membership.role, "customer_imports:manage") ? <CustomerImportDialog /> : null}
+            <Button asChild>
+              <Link href="/customers/new">
+                <Plus className="h-4 w-4" />
+                Add customer
+              </Link>
+            </Button>
+          </div>
         }
       />
 

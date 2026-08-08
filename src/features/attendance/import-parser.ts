@@ -285,6 +285,14 @@ function preflightXlsxArchive(buffer: Uint8Array) {
   }
 }
 
+export function assertSafeXlsxWorkbook(buffer: Uint8Array, fileName: string) {
+  const detectedExtension = assertWorkbookSignature(buffer, fileName);
+  if (detectedExtension !== "xlsx") {
+    throw new Error("Choose a valid XLSX workbook.");
+  }
+  preflightXlsxArchive(buffer);
+}
+
 function getDeclaredSheetSize(sheet: XLSX.WorkSheet) {
   if (!sheet["!ref"]) return { cells: 0, columns: 0, rows: 0 };
   let range: XLSX.Range;

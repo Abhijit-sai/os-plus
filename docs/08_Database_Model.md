@@ -303,6 +303,7 @@ id
 tenant_id
 name mandatory
 phone optional
+normalized_phone_e164 optional
 email optional
 gender optional
 address optional
@@ -320,11 +321,62 @@ Customer rules:
 - Phone number is optional.
 - Email is optional.
 - Gender is optional.
-- When present, accepted Indian mobile formats are normalized to the final 10 digits by the application.
+- When present, valid Indian and explicitly identified international numbers are normalized to canonical E.164.
 - Active customers in the same tenant must not be created with the same normalized mobile number; saving resolves and selects the existing customer instead.
-- The server performs the duplicate check for every create path. This is currently an application-level guard that scans normalized active customer phone numbers.
-- A database uniqueness migration is deferred until legacy duplicates and normalized storage have been analysed.
+- The server performs the duplicate check for every create path and writes `normalized_phone_e164`.
+- A completed read-only audit found no active legacy collisions. A partial unique index on `(tenant_id, normalized_phone_e164)` for active rows enforces the invariant under concurrent imports and webhooks.
 - Keep an index on `tenant_id, phone` for suggestion lookup.
+
+## customer_external_identities
+
+```text
+id
+tenant_id
+customer_id
+provider
+external_customer_id
+source_metadata_json
+created_at
+updated_at
+created_by
+updated_by
+deleted_at
+```
+
+Rules:
+
+- Active `(tenant_id, provider, external_customer_id)` is unique.
+- Customer and identity must share the same tenant through a composite foreign key.
+- Shopify totals, order counts, tags, tax flags, and marketing flags may be retained in `source_metadata_json`, but reports and messaging must not consume them yet.
+- External identity matching never crosses tenant boundaries.
+
+## customer_imports
+
+```text
+id
+tenant_id
+file_name
+file_hash
+preview_fingerprint
+idempotency_key
+source_row_count
+created_count
+reused_count
+updated_count
+address_count
+invalid_count
+skipped_count
+result_json
+created_by
+created_at
+```
+
+Rules:
+
+- Preview creates no receipt and performs no writes.
+- Confirmation validates the tenant and normalized payload and writes customers, blank-field enrichment, addresses, identities, metadata, and one receipt in one transaction.
+- Reusing an idempotency key with the same fingerprints returns the stored result; fingerprint mismatch is rejected.
+- Receipts are immutable except approved parent-tenant cascade cleanup.
 
 ## customer_measurements
 

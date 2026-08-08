@@ -112,8 +112,10 @@ Do not build these in MVP:
 - Address is optional.
 - When present, accept Indian mobile numbers as 10 digits, with a leading `0`, with `+91`, or with `0091`, and normalize them to the final 10 digits.
 - When entering a phone number, show existing active customer suggestions from the current tenant.
-- On save, check the normalized mobile again on the server. If an active tenant customer matches, do not create a duplicate; resolve and select the existing customer.
-- Keep this as an application-level guard until legacy duplicates and normalized database storage have been analysed. Do not add a uniqueness migration without that analysis.
+- On save, check canonical E.164 phone again on the server. If an active tenant customer matches, do not create a duplicate; resolve and select the existing customer.
+- The read-only legacy audit found no active collisions. Preserve application checks and the tenant-level partial unique database index on active normalized phone.
+- Customer file import is owner/admin-only. Preview must write nothing; confirmation must be atomic, idempotent, tenant-scoped, and must never overwrite populated customer fields automatically.
+- Shopify historical and marketing fields imported from files are inert source metadata. Do not use them in reports or as messaging consent.
 
 ## Workflow Rules
 

@@ -270,12 +270,12 @@
 - When phone is entered, search existing customers
 - Show suggestions for matching phone number
 - Allow selecting existing customer
-- Normalize accepted Indian mobile formats to the final 10 digits when phone is present
+- Normalize valid Indian and explicitly identified international numbers to E.164 when phone is present
 - Recheck normalized mobile number server-side within the current tenant before save
 - Resolve and select the existing customer when the normalized mobile matches
 - Block creation of a second active customer with the same normalized mobile number
 - Keep mobile optional
-- Keep the duplicate guard application-level until legacy duplicate cleanup and normalized database storage are designed
+- Persist canonical E.164 phone storage and enforce active tenant-level uniqueness after the clean legacy collision audit
 
 ### 5.4 Customer Detail
 
@@ -308,6 +308,21 @@
 - Pre-fill customer measurement forms from tenant-level item type standards
 - Configure tenant-level standard size templates per item type
 - Store each standard size as a named combination of measurement values
+
+### 5.6 Customer File Import
+
+- Add owner/admin-only CSV and XLSX upload entry point on Customers
+- Enforce 5 MB and 5,000 data-row limits before preview
+- Recognize Shopify customer-export headers and the OS PLUS import template
+- Normalize Indian and international phone numbers conservatively to E.164
+- Preview create, Shopify-ID reuse, phone reuse, exact-email review, conflict, invalid, and skipped outcomes without writes
+- Require an explicit decision for exact-email-only candidates
+- Fill only blank fields on reused customers and show every populated-field conflict
+- Create structured default addresses only when address line 1 is present; preserve incomplete address text otherwise
+- Retain Shopify totals, order counts, tags, tax flags, and marketing flags as source metadata only
+- Confirm all approved rows through one tenant-scoped, idempotent database transaction
+- Store an immutable import receipt and reject cross-tenant or tampered confirmation payloads
+- Add automated parser, matching, security-contract, atomicity, idempotency, and permission coverage
 
 ## 6. Order Module
 

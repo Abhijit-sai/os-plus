@@ -2,7 +2,7 @@ export type TenantStatus = "active" | "inactive" | "suspended";
 export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
 export type TenantVerticalKey = "boutique" | "laundry";
 export type TenantLocationType = "store" | "workshop" | "warehouse" | "office" | "other";
-export type CustomerAddressSource = "manual" | "legacy_customer_address" | "whatsapp" | "pickup";
+export type CustomerAddressSource = "manual" | "legacy_customer_address" | "whatsapp" | "pickup" | "shopify_import";
 export type GstTreatment = "taxable_exclusive" | "taxable_inclusive" | "exempt_or_nil" | "non_gst" | "not_applicable";
 export type ExpenseInputGstStatus = "not_applicable" | "claimable" | "needs_review" | "not_claimed";
 export type TenantUserRole = "owner_admin" | "manager" | "finance" | "viewer";
@@ -385,10 +385,37 @@ export type WorkerWorkgroup = {
 export type Customer = TenantOwnedBase & {
   name: string;
   phone: string | null;
+  normalized_phone_e164: string | null;
   email: string | null;
   gender: CustomerGender | null;
   address: string | null;
   notes: string | null;
+};
+
+export type CustomerExternalIdentity = TenantOwnedBase & {
+  customer_id: string;
+  provider: string;
+  external_customer_id: string;
+  source_metadata_json: Json;
+};
+
+export type CustomerImport = {
+  id: string;
+  tenant_id: string;
+  file_name: string;
+  file_hash: string;
+  preview_fingerprint: string;
+  idempotency_key: string;
+  source_row_count: number;
+  created_count: number;
+  reused_count: number;
+  updated_count: number;
+  address_count: number;
+  invalid_count: number;
+  skipped_count: number;
+  result_json: Json;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type CustomerMeasurement = TenantOwnedBase & {
@@ -1187,12 +1214,47 @@ export type Database = {
         Insert: TenantOwnedInsertBase & {
           name: string;
           phone?: string | null;
+          normalized_phone_e164?: string | null;
           email?: string | null;
           gender?: CustomerGender | null;
           address?: string | null;
           notes?: string | null;
         };
         Update: Partial<Omit<Customer, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
+      };
+      customer_external_identities: {
+        Row: CustomerExternalIdentity;
+        Insert: TenantOwnedInsertBase & {
+          customer_id: string;
+          provider: string;
+          external_customer_id: string;
+          source_metadata_json?: Json;
+        };
+        Update: Partial<Omit<CustomerExternalIdentity, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
+      };
+      customer_imports: {
+        Row: CustomerImport;
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          file_name: string;
+          file_hash: string;
+          preview_fingerprint: string;
+          idempotency_key: string;
+          source_row_count: number;
+          created_count?: number;
+          reused_count?: number;
+          updated_count?: number;
+          address_count?: number;
+          invalid_count?: number;
+          skipped_count?: number;
+          result_json?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: never;
         Relationships: [TenantRelationship];
       };
       customer_measurements: {
@@ -2111,6 +2173,21 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      import_customer_rows: {
+        Args: {
+          p_tenant_id: string;
+          p_file_name: string;
+          p_file_hash: string;
+          p_preview_fingerprint: string;
+          p_idempotency_key: string;
+          p_source_row_count: number;
+          p_invalid_count: number;
+          p_skipped_count: number;
+          p_rows: Json;
+          p_actor_id: string;
+        };
+        Returns: Json;
+      };
       import_attendance_rows: {
         Args: {
           p_tenant_id: string;

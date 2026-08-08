@@ -167,7 +167,8 @@ Sections:
 - Phone optional
 - Email optional
 - Gender optional
-- If the same normalized Indian mobile number already exists in the current tenant, select that customer and do not create a duplicate
+- If the same canonical E.164 phone already exists in the current tenant, select that customer and do not create a duplicate
+- Owner/admin can open an Import file side panel for write-free CSV/XLSX preview, conflict review, and atomic confirmation
 - Phone number entry should show existing customer suggestions
 
 ## 3.5 Workers

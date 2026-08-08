@@ -23,6 +23,10 @@
     "test:attendance-import": "node --experimental-strip-types scripts/test-attendance-import.mjs",
     "test:attendance-import-contract": "node scripts/test-attendance-import-contract.mjs",
     "test:customer-inline": "node --experimental-strip-types scripts/test-inline-customer-creation.mjs",
+    "test:customer-phone": "node --experimental-strip-types scripts/test-customer-phone.mjs",
+    "test:customer-import": "node --experimental-strip-types scripts/test-customer-import-parser.mjs",
+    "test:customer-import-matching": "node --experimental-strip-types scripts/test-customer-import-matching.mjs",
+    "test:customer-import-contract": "node scripts/test-customer-import-contract.mjs",
     "test:v2": "node scripts/test-v2-baseline.mjs && node scripts/test-v2-work-unit-runtime.mjs && node scripts/test-v2-phase-3-commands-events-tasks.mjs && node scripts/test-v2-phase-4-laundry-custody.mjs",
     "typecheck": "tsc --noEmit"
   },
@@ -36,6 +40,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "libphonenumber-js": "^1.13.10",
     "lucide-react": "^0.479.0",
     "next": "16.2.6",
     "react": "^19.0.0",
