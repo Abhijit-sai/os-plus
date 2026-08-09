@@ -1,22 +1,34 @@
 import "server-only";
 
+import { z } from "zod";
 import { notFound } from "next/navigation";
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 
-export async function getProductionPageData() {
+const productionFiltersSchema = z.object({
+  itemTypeIds: z.array(z.string().uuid()).max(100),
+  workflowIds: z.array(z.string().uuid()).max(100)
+});
+const impossibleId = "00000000-0000-0000-0000-000000000000";
+
+export async function getProductionPageData(filters: { itemTypeIds: string[]; workflowIds: string[] }) {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
+  const parsedFilters = productionFiltersSchema.safeParse(filters);
+  let itemsQuery = supabase.from("order_items").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null);
+
+  if (!parsedFilters.success) {
+    itemsQuery = itemsQuery.eq("id", impossibleId);
+  } else {
+    if (parsedFilters.data.itemTypeIds.length) itemsQuery = itemsQuery.in("item_type_id", parsedFilters.data.itemTypeIds);
+    if (parsedFilters.data.workflowIds.length) itemsQuery = itemsQuery.in("workflow_id", parsedFilters.data.workflowIds);
+  }
+
+  itemsQuery = itemsQuery.order("created_at", { ascending: false }).limit(100);
 
   const [items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
-    supabase
-      .from("order_items")
-      .select("*")
-      .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(100),
+    itemsQuery,
     supabase.from("orders").select("id, order_number, customer_id").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("item_types").select("id, name, icon_emoji").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),

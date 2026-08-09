@@ -125,7 +125,7 @@ export default async function ProductionPage({
   const selectedItemTypeSet = new Set(selectedItemTypeIds);
   const selectedWorkflowItemId = resolvedSearchParams?.workflowItemId;
   const selectedWorkflowData = selectedWorkflowItemId ? await getProductionItemPageData(selectedWorkflowItemId) : null;
-  const { items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData();
+  const { items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
   const orderById = new Map(orders.map((order) => [order.id, order]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
   const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));

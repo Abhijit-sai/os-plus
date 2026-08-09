@@ -12252,3 +12252,10 @@ QA_BLOCKED
 - Attachment upload and external-link saves now close/reset the add dialog after success.
 - Pending saves prevent closing; failed saves stay open with entered data and visible error feedback.
 - Added focused `test:dialog-success` coverage alongside the configuration contract.
+
+### 2026-08-09 — Final review hardening
+
+- Moved Production workflow/garment predicates ahead of the 100-item limit and made malformed filter IDs fail closed.
+- Added accessible disclosure state, popup relationships, labels, and Escape dismissal to both multi-select filters.
+- Extended successful-save closing to workflow, measurement field, standard size, tenant user, location, team, communication template, and communication trigger-rule edit dialogs without nested forms.
+- Added the neutral garment fallback to native order item-type selectors and expanded focused regression contracts.

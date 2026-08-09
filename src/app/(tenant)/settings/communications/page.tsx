@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -352,12 +353,10 @@ export default async function CommunicationsSettingsPage() {
                   <p className="font-medium">{template.name}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant={template.is_active ? "default" : "neutral"}>{template.channel}</Badge>
-                    <Dialog title="Edit template" description="Changes apply to future queued messages only." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                      <form action={updateCommunicationTemplateAction} className="space-y-3" data-unsaved-guard="true">
+                    <AutoCloseActionDialog action={updateCommunicationTemplateAction} title="Edit template" description="Changes apply to future queued messages only." successMessage="Template saved." formClassName="space-y-3" trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
                         <TemplateFields template={template} />
                         <Button type="submit">Save template</Button>
-                      </form>
-                    </Dialog>
+                    </AutoCloseActionDialog>
                     <Dialog title="Archive template?" description="This hides the template and disables trigger rules that use it." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Archive</span>}>
                       <form action={archiveCommunicationTemplateAction} className="space-y-3">
                         <input type="hidden" name="templateId" value={template.id} />
@@ -407,14 +406,12 @@ export default async function CommunicationsSettingsPage() {
                     <p className="font-medium">{formatLabel(rule.trigger_type)}</p>
                     <div className="flex items-center gap-2">
                       <Badge variant={rule.is_enabled ? "default" : "neutral"}>{rule.is_enabled ? "enabled" : "off"}</Badge>
-                      <Dialog title="Edit trigger rule" description="Rules are stored for future automation. Live sends are still blocked." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                        <form action={updateCommunicationTriggerRuleAction} className="space-y-3" data-unsaved-guard="true">
+                      <AutoCloseActionDialog action={updateCommunicationTriggerRuleAction} title="Edit trigger rule" description="Rules are stored for future automation. Live sends are still blocked." successMessage="Trigger rule saved." formClassName="space-y-3" trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
                           <TriggerRuleFields activeTemplates={activeTemplates} rule={rule} />
                           <Button type="submit" disabled={!activeTemplates.length}>
                             Save rule
                           </Button>
-                        </form>
-                      </Dialog>
+                      </AutoCloseActionDialog>
                       <Dialog title="Archive trigger rule?" description="This disables the rule and hides it from the active settings view." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Archive</span>}>
                         <form action={archiveCommunicationTriggerRuleAction} className="space-y-3">
                           <input type="hidden" name="triggerRuleId" value={rule.id} />

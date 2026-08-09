@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import type { TenantLocationType } from "@/types/database";
 
 const locationTypes: Array<{ value: TenantLocationType; label: string }> = [
@@ -130,8 +130,7 @@ export default async function TenantLocationsSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Dialog title="Edit location" description="Existing operational records keep this location reference." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit</span>}>
-                    <form action={updateTenantLocationAction} className="space-y-4" data-unsaved-guard="true">
+                  <AutoCloseActionDialog action={updateTenantLocationAction} title="Edit location" description="Existing operational records keep this location reference." successMessage="Location saved." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit</span>}>
                       <input type="hidden" name="locationId" value={location.id} />
                       <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1"><Label htmlFor={`edit-code-${location.id}`}>Code</Label><Input id={`edit-code-${location.id}`} name="code" defaultValue={location.code} required /></div><div className="space-y-1"><Label htmlFor={`edit-name-${location.id}`}>Name</Label><Input id={`edit-name-${location.id}`} name="name" defaultValue={location.name} required /></div></div>
                       <div className="space-y-1"><Label htmlFor={`edit-type-${location.id}`}>Type</Label><select id={`edit-type-${location.id}`} name="locationType" defaultValue={location.location_type} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{locationTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></div>
@@ -141,8 +140,7 @@ export default async function TenantLocationsSettingsPage() {
                       <div className="grid gap-3 sm:grid-cols-3"><div className="space-y-1"><Label htmlFor={`edit-state-${location.id}`}>State</Label><Input id={`edit-state-${location.id}`} name="state" defaultValue={location.state ?? ""} /></div><div className="space-y-1"><Label htmlFor={`edit-postal-${location.id}`}>Postal code</Label><Input id={`edit-postal-${location.id}`} name="postalCode" defaultValue={location.postal_code ?? ""} /></div><div className="space-y-1"><Label htmlFor={`edit-country-${location.id}`}>Country</Label><Input id={`edit-country-${location.id}`} name="countryCode" defaultValue={location.country_code} maxLength={2} required /></div></div>
                       <label className="flex items-center gap-2 text-sm"><input name="isActive" type="checkbox" defaultChecked={location.is_active} className="h-4 w-4" />Active</label>
                       <Button type="submit">Save location</Button>
-                    </form>
-                  </Dialog>
+                  </AutoCloseActionDialog>
                   <form action={archiveTenantLocationAction}><input type="hidden" name="locationId" value={location.id} /><Button type="submit" variant="outline" size="sm">Archive</Button></form>
                 </div>
               </div>

@@ -13,6 +13,7 @@ type StandardSizeFormProps = {
   fields: ItemTypeMeasurementField[];
   initialItemTypeId?: string;
   standardSize?: ItemTypeStandardSize;
+  bare?: boolean;
 };
 
 function getMeasurementRecord(measurementData: Json | undefined) {
@@ -25,7 +26,7 @@ function getMeasurementRecord(measurementData: Json | undefined) {
   );
 }
 
-export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes, standardSize }: StandardSizeFormProps) {
+export function StandardSizeForm({ action, bare = false, fields, initialItemTypeId, itemTypes, standardSize }: StandardSizeFormProps) {
   const [selectedItemTypeId, setSelectedItemTypeId] = React.useState(standardSize?.item_type_id ?? initialItemTypeId ?? "");
   const valuesByKey = React.useMemo(
     () => getMeasurementRecord(standardSize?.measurement_data_json),
@@ -39,8 +40,8 @@ export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes,
     [fields, selectedItemTypeId]
   );
 
-  return (
-    <form action={action} className="space-y-4" data-unsaved-guard="true">
+  const formFields = (
+    <>
       {standardSize ? <input type="hidden" name="standardSizeId" value={standardSize.id} /> : null}
       {standardSize ? <input type="hidden" name="itemTypeId" value={standardSize.item_type_id} /> : null}
       <div className="grid gap-2">
@@ -134,6 +135,10 @@ export function StandardSizeForm({ action, fields, initialItemTypeId, itemTypes,
       <Button type="submit" disabled={!fieldsForItemType.length}>
         {standardSize ? "Save size" : "Add size"}
       </Button>
-    </form>
+    </>
   );
+
+  if (bare) return formFields;
+
+  return <form action={action} className="space-y-4" data-unsaved-guard="true">{formFields}</form>;
 }

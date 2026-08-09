@@ -5,7 +5,7 @@ import { getWorkflowDetailPageData } from "@/features/workflows/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 
 export default async function WorkflowDetailPage({
@@ -31,8 +31,7 @@ export default async function WorkflowDetailPage({
           <p className="text-muted-foreground">{workflow.description ?? "Sequential item-level workflow"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog title="Edit workflow" description="Existing item workflow instances keep their copied production history." trigger={<span className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium hover:bg-accent">Edit workflow</span>}>
-            <form action={updateWorkflowAction} className="space-y-4" data-unsaved-guard="true">
+          <AutoCloseActionDialog action={updateWorkflowAction} title="Edit workflow" description="Existing item workflow instances keep their copied production history." successMessage="Workflow saved." trigger={<span className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium hover:bg-accent">Edit workflow</span>}>
               <input type="hidden" name="workflowId" value={workflow.id} />
               <div className="grid gap-2"><Label htmlFor="workflow-name">Name</Label><Input id="workflow-name" name="name" defaultValue={workflow.name} required /></div>
               <div className="grid gap-2"><Label htmlFor="workflow-description">Description</Label><Input id="workflow-description" name="description" defaultValue={workflow.description ?? ""} /></div>
@@ -40,8 +39,7 @@ export default async function WorkflowDetailPage({
               <label className="flex items-center gap-2 text-sm"><input name="isDefault" type="checkbox" defaultChecked={workflow.is_default} className="h-4 w-4" />Default for selected item type</label>
               <label className="flex items-center gap-2 text-sm"><input name="isActive" type="checkbox" defaultChecked={workflow.is_active} className="h-4 w-4" />Active</label>
               <Button type="submit">Save workflow</Button>
-            </form>
-          </Dialog>
+          </AutoCloseActionDialog>
           <form action={deleteWorkflowAction}><input type="hidden" name="workflowId" value={workflow.id} /><Button type="submit" variant="destructive">Delete workflow</Button></form>
         </div>
       </div>

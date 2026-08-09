@@ -243,3 +243,6 @@
 
 1. A successful modal save closes the modal and clears its local draft by unmounting it.
 2. Failed or pending modal saves must not close, discard user input, or allow duplicate submission.
+3. Production workflow and garment predicates must be applied before pagination.
+4. Malformed or foreign filter IDs must never broaden a result set.
+5. Filter disclosures must announce expanded state and close with Escape.

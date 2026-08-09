@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, Columns3, GitBranch, List, Search } from "lucide-react";
 
 import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
@@ -60,6 +60,10 @@ export function ProductionFilterBar({
   const [itemTypeOpen, setItemTypeOpen] = useState(false);
   const workflowRef = useRef<HTMLDivElement>(null);
   const itemTypeRef = useRef<HTMLDivElement>(null);
+  const workflowTriggerRef = useRef<HTMLButtonElement>(null);
+  const itemTypeTriggerRef = useRef<HTMLButtonElement>(null);
+  const workflowPopupId = useId();
+  const itemTypePopupId = useId();
   const selectedWorkflowSet = new Set(selectedWorkflowIds);
   const selectedItemTypeSet = new Set(selectedItemTypeIds);
   const hasActiveFilters = Boolean(search) || queueFilter !== "active" || selectedWorkflowIds.length > 0 || selectedItemTypeIds.length > 0;
@@ -77,9 +81,25 @@ export function ProductionFilterBar({
         setItemTypeOpen(false);
       }
     };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (workflowOpen) {
+          workflowTriggerRef.current?.focus();
+        } else if (itemTypeOpen) {
+          itemTypeTriggerRef.current?.focus();
+        }
+        setWorkflowOpen(false);
+        setItemTypeOpen(false);
+      }
+    };
+
 
     document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, [workflowOpen, itemTypeOpen]);
 
   return (
@@ -148,13 +168,13 @@ export function ProductionFilterBar({
           )}
 
           <div ref={workflowRef} className="relative">
-            <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => setWorkflowOpen((open) => !open)}>
+            <Button ref={workflowTriggerRef} type="button" size="sm" variant="outline" className="gap-2" aria-expanded={workflowOpen} aria-controls={workflowPopupId} aria-haspopup="dialog" onClick={() => setWorkflowOpen((open) => !open)}>
               <GitBranch className="h-4 w-4" />
               <span className="max-w-[180px] truncate">{selectedWorkflowLabel}</span>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${workflowOpen ? "rotate-180" : ""}`} />
             </Button>
             {workflowOpen ? (
-              <form className="absolute right-0 z-20 mt-2 w-72 rounded-[12px] border bg-background p-3 shadow-xl">
+              <form id={workflowPopupId} role="dialog" aria-label="Filter by workflow" className="absolute right-0 z-20 mt-2 w-72 rounded-[12px] border bg-background p-3 shadow-xl">
                 {activeView === "board" ? <input type="hidden" name="view" value="board" /> : null}
                 {search ? <input type="hidden" name="q" value={search} /> : null}
                 {queueFilter !== "active" ? <input type="hidden" name="queue" value={queueFilter} /> : null}
@@ -188,13 +208,13 @@ export function ProductionFilterBar({
           </div>
 
           <div ref={itemTypeRef} className="relative">
-            <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => setItemTypeOpen((open) => !open)}>
+            <Button ref={itemTypeTriggerRef} type="button" size="sm" variant="outline" className="gap-2" aria-expanded={itemTypeOpen} aria-controls={itemTypePopupId} aria-haspopup="dialog" onClick={() => setItemTypeOpen((open) => !open)}>
               <ItemTypeIcon emoji={null} />
               <span className="max-w-[180px] truncate">{selectedItemTypeLabel}</span>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${itemTypeOpen ? "rotate-180" : ""}`} />
             </Button>
             {itemTypeOpen ? (
-              <form className="absolute right-0 z-20 mt-2 w-72 rounded-[12px] border bg-background p-3 shadow-xl">
+              <form id={itemTypePopupId} role="dialog" aria-label="Filter by garment type" className="absolute right-0 z-20 mt-2 w-72 rounded-[12px] border bg-background p-3 shadow-xl">
                 {activeView === "board" ? <input type="hidden" name="view" value="board" /> : null}
                 {search ? <input type="hidden" name="q" value={search} /> : null}
                 {queueFilter !== "active" ? <input type="hidden" name="queue" value={queueFilter} /> : null}

@@ -875,3 +875,8 @@ Create `docs/OS_PLUS_QA_Test_Matrix.xlsx` with sheets for:
 
 - Controlled client wrappers await server actions, close/unmount form content only on success, and display a compact success notice near the trigger.
 - Exceptions remain inside the open dialog, preserving uncontrolled field values; pending state prevents dismissal and composes with global action feedback.
+
+### Review hardening
+
+- Apply workflow and garment-type predicates to the tenant-owned order-item query before the 100-row page limit; malformed filter IDs deliberately return no items rather than broadening results.
+- Workflow and garment filter controls expose disclosure state/ownership and support Escape dismissal.

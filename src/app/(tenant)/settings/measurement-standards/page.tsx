@@ -15,6 +15,7 @@ import { StandardSizeForm } from "@/components/settings/standard-size-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ItemType, ItemTypeMeasurementField, ItemTypeStandardSize, Json } from "@/types/database";
@@ -41,15 +42,17 @@ function ActionTrigger({
 
 function FieldForm({
   itemTypes,
-  field
+  field,
+  bare = false
 }: {
   itemTypes: ItemType[];
   field?: ItemTypeMeasurementField;
+  bare?: boolean;
 }) {
   const action = field ? updateMeasurementFieldAction : createMeasurementFieldAction;
 
-  return (
-    <form action={action} className="space-y-4" data-unsaved-guard="true">
+  const fields = (
+    <>
       {field ? <input type="hidden" name="fieldId" value={field.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={field ? `itemTypeId-${field.id}` : "itemTypeId"}>Item type</Label>
@@ -132,8 +135,12 @@ function FieldForm({
         ) : null}
       </div>
       <Button type="submit">{field ? "Save field" : "Add field"}</Button>
-    </form>
+    </>
   );
+
+  if (bare) return fields;
+
+  return <form action={action} className="space-y-4" data-unsaved-guard="true">{fields}</form>;
 }
 
 function getMeasurementEntries(measurementData: Json) {
@@ -268,7 +275,7 @@ export default async function MeasurementStandardsPage() {
                           {field.help_text ? <p className="mt-1 text-sm text-muted-foreground">{field.help_text}</p> : null}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Dialog
+                          <AutoCloseActionDialog action={updateMeasurementFieldAction} successMessage="Measurement field saved."
                             title="Edit measurement field"
                             description="Update this tenant-level field standard."
                             trigger={
@@ -278,8 +285,8 @@ export default async function MeasurementStandardsPage() {
                               </ActionTrigger>
                             }
                           >
-                            <FieldForm itemTypes={itemTypes} field={field} />
-                          </Dialog>
+                            <FieldForm itemTypes={itemTypes} field={field} bare />
+                          </AutoCloseActionDialog>
                           <form action={archiveMeasurementFieldAction}>
                             <input type="hidden" name="fieldId" value={field.id} />
                             <Button type="submit" variant="outline" size="sm">
@@ -346,7 +353,7 @@ export default async function MeasurementStandardsPage() {
                             )}
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            <Dialog
+                            <AutoCloseActionDialog action={updateStandardSizeAction} successMessage="Standard size saved."
                               title="Edit standard size"
                               description="Update this reusable item-type size template."
                               trigger={
@@ -357,8 +364,8 @@ export default async function MeasurementStandardsPage() {
                               }
                               className="max-w-3xl"
                             >
-                              <StandardSizeForm action={updateStandardSizeAction} itemTypes={itemTypes} fields={fields} standardSize={size} />
-                            </Dialog>
+                              <StandardSizeForm action={updateStandardSizeAction} itemTypes={itemTypes} fields={fields} standardSize={size} bare />
+                            </AutoCloseActionDialog>
                             <form action={archiveStandardSizeAction}>
                               <input type="hidden" name="standardSizeId" value={size.id} />
                               <Button type="submit" variant="outline" size="sm">
