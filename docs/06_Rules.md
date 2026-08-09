@@ -234,10 +234,15 @@
 
 ### Item-type presentation rules
 
-1. Item-type emoji is optional, internal presentation metadata and must be exactly one valid emoji when present.
-2. Missing emoji uses a neutral garment icon; it must never invent or infer a garment category.
-3. Item-type filters are ID-based and every option is loaded from the current tenant server-side.
-4. Filter URLs may contain repeated IDs, but unknown/cross-tenant IDs must match no tenant data and must never broaden results.
+1. Item-type icon identity is optional, authenticated-only presentation metadata. It is either one valid Unicode emoji or one valid Lucide icon name with an allowed color token, never both.
+2. Missing identity uses the neutral garment icon; the system must never invent or infer a category without an explicit saved choice.
+3. Existing emoji records remain valid. Emoji skin tone is encoded in the saved grapheme; native emoji cannot receive arbitrary icon colors.
+4. The default picker layer shows name-matched and recent suggestions. Full Emoji and Icons layers must be searchable; custom artwork upload is out of scope.
+5. Picker/catalogue code must load only when opened. Emojibase English files are self-hosted static assets, and unfiltered Lucide results must be batched so the picker does not request the entire icon set at once.
+6. Picker buttons must have descriptive accessible names, visible selected state, keyboard operation, and mobile-sized targets. Selection must notify the unsaved-change guard.
+7. Item-type filters are ID-based and every option is loaded from the current tenant server-side.
+8. Filter URLs may contain repeated IDs, but unknown/cross-tenant IDs must match no tenant data and must never broaden results.
+9. Public tracking must never select, serialize, or render any item-type icon field.
 
 ### Modal action lifecycle
 

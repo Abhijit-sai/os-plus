@@ -1159,12 +1159,16 @@ Hardening requirements:
 - Custom domains
 - Worker self-login
 
-### Internal garment-type identity and production filtering
+### Internal item-type identity and production filtering
 
-- An item type may have one optional emoji chosen by an owner/admin at creation or edit time.
-- The emoji is presentation metadata only: it never changes workflow, pricing, contribution, finance, or reporting behavior.
-- Authenticated internal order and production surfaces show the emoji; a neutral garment icon is used when it is blank.
-- Public tracking never exposes the emoji field.
+- An owner/admin may give an item type one optional visual identity: a Unicode emoji or a Lucide icon with a controlled accessible color token.
+- Create and edit forms open on a Suggested view that combines item-name matching with recent local choices, then provide searchable full Emoji and Icons views. Uploading custom artwork is intentionally excluded.
+- Emoji selection supports the library's built-in skin tones; the final Unicode grapheme is stored directly. Arbitrary emoji recoloring is not supported.
+- Lucide choices persist an explicit kind, valid library icon name, and controlled color token. Invalid icon names, icon types, colors, text, and multi-emoji input are rejected server-side.
+- The picker includes an explicit default option backed by a neutral garment icon. Existing emoji rows remain compatible.
+- Icon metadata is internal presentation data only: it never changes workflow, pricing, contribution, finance, salary, or reporting behavior.
+- Authenticated internal order and production surfaces show the selection. Public tracking never selects or exposes icon metadata.
+- The full picker, search catalogue, and emoji library load only when the popup opens. English Emojibase data is self-hosted as static Vercel-cached assets; normal operational routes load only the selected icon renderer when required.
 - The Production queue supports multi-select garment-type filtering alongside workflow, queue, search, and list/board view.
 - Changing any production filter preserves every other active filter and view parameter.
 

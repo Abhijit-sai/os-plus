@@ -10,6 +10,7 @@ export type TenantUserStatus = "active" | "invited" | "disabled";
 export type WorkerStatus = "active" | "inactive";
 export type WorkerWageType = "hourly" | "daily" | "weekly" | "monthly" | "per_piece" | "hybrid";
 export type CustomerGender = "female" | "male" | "other" | "not_specified";
+export type ItemTypeIconKind = "emoji" | "lucide";
 export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other";
 export type DeliveryType = "store_pickup" | "self_delivery" | "courier";
 export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "refunded";
@@ -304,6 +305,9 @@ export type ItemType = TenantOwnedBase & {
   name: string;
   description: string | null;
   icon_emoji: string | null;
+  icon_kind: ItemTypeIconKind | null;
+  icon_name: string | null;
+  icon_color: string | null;
   default_workflow_id: string | null;
   default_sla_days: number | null;
   is_active: boolean;
@@ -2138,6 +2142,9 @@ export type Database = {
           name: string;
           description?: string | null;
           icon_emoji?: string | null;
+          icon_kind?: ItemTypeIconKind | null;
+          icon_name?: string | null;
+          icon_color?: string | null;
           default_workflow_id?: string | null;
           default_sla_days?: number | null;
           is_active?: boolean;

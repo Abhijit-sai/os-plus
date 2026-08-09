@@ -536,7 +536,12 @@ export default async function OrderDetailPage({
                       <div>
                         <p className="font-medium">{item.name}</p>
                         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <ItemTypeIcon emoji={itemTypeById.get(item.item_type_id)?.icon_emoji} />
+                          <ItemTypeIcon
+                            emoji={itemTypeById.get(item.item_type_id)?.icon_emoji}
+                            kind={itemTypeById.get(item.item_type_id)?.icon_kind}
+                            name={itemTypeById.get(item.item_type_id)?.icon_name}
+                            color={itemTypeById.get(item.item_type_id)?.icon_color}
+                          />
                           {itemTypeById.get(item.item_type_id)?.name ?? "Unknown type"} ·{" "}
                           {workflowById.get(item.workflow_id)?.name ?? "Unknown workflow"}
                         </p>

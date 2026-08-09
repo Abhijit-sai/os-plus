@@ -12259,3 +12259,20 @@ QA_BLOCKED
 - Added accessible disclosure state, popup relationships, labels, and Escape dismissal to both multi-select filters.
 - Extended successful-save closing to workflow, measurement field, standard size, tenant user, location, team, communication template, and communication trigger-rule edit dialogs without nested forms.
 - Added the neutral garment fallback to native order item-type selectors and expanded focused regression contracts.
+
+### 2026-08-09 — Searchable item-type emoji and icon picker
+
+- Replaced the raw item-type emoji input with one reusable Suggested/Emoji/Icons popover on both create and edit forms. Suggested combines broad item-name matching with up to eight recent browser-local choices and is not limited to boutique tenants.
+- Added the virtualized Frimousse emoji library with search and built-in skin tones. Only English Emojibase data is self-hosted under `/emoji-data/en`; no third-party emoji CDN is required at runtime.
+- Added the full searchable pinned Lucide catalogue with 48-result batches and controlled accessible color tokens. Custom icon/image upload remains intentionally excluded.
+- Added migration `20260809150000_item_type_icon_picker.sql`, backfilling existing emoji rows and enforcing coherent default/emoji/Lucide database states through `icon_kind`, `icon_name`, and `icon_color`.
+- Added exact server-side Lucide-name validation from a generated allowlist, single-grapheme emoji validation, controlled color validation, and legacy emoji compatibility.
+- The full picker panel and catalogues load only while the popover is open. Routine surfaces load the selected Lucide renderer only when needed; static emoji data is eligible for Vercel CDN caching.
+- Propagated saved icon kind/name/color through order creation, order detail, Production filtering/list/board, item workflow, and item-type settings while keeping all icon fields outside public tracking.
+- Preserved explicit Default behavior, 44-pixel mobile targets, keyboard/focus behavior, visible selection state, loading feedback, error-safe server actions, and global unsaved-change notification.
+- Made the neutral emoji skin tone explicit and retained a text-safe garment fallback inside native order item-type selectors, where nested SVG/icon markup is invalid HTML.
+- Fixed the picker transparency regression: OS PLUS does not define Tailwind `popover` color tokens, so the portal and sticky emoji headers now use the existing opaque `background`/`foreground` surface tokens. A focused contract prevents `bg-popover` or `text-popover-foreground` from returning at this call site.
+- Expanded `test:item-type-emoji` and QA PR-016 to cover migration shape, exact validation, lazy boundaries, self-hosted assets, searchable libraries, recent suggestions, mobile accessibility, all authenticated consumers, and the public boundary.
+- Migrations must be applied in order: `20260809140000_item_type_emoji.sql`, then `20260809150000_item_type_icon_picker.sql`.
+- Verification passed: all 19 non-destructive `test:*` scripts, `typecheck`, `lint`, `git diff --check`, and the optimized production build (42 pages). Signed-in Phantom browser QA confirmed an opaque Suggested/Emoji/Icons surface, icon search and controlled color selection, selection-close and Escape focus behavior, recent choices, self-hosted emoji rendering, narrow-layout containment, saved icons in Production, the garment filter, order-creation selector fallbacks, and no console errors.
+- The current dependency audit reports 9 existing dependency-tree advisories (1 low, 2 moderate, 6 high), including the pinned Next.js/PostCSS toolchain. None directly names Frimousse, Radix Popover, or Emojibase. Dependency upgrades remain a separate reviewed change; no automatic audit fix was applied.

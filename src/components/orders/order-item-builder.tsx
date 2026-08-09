@@ -13,6 +13,9 @@ type Option = {
   id: string;
   name: string;
   icon_emoji?: string | null;
+  icon_kind?: "emoji" | "lucide" | null;
+  icon_name?: string | null;
+  icon_color?: string | null;
   description?: string | null;
   item_type_id?: string | null;
 };
@@ -483,7 +486,7 @@ export function OrderItemBuilder({
                     <option value="">Select type</option>
                     {itemTypes.map((itemType) => (
                       <option key={itemType.id} value={itemType.id}>
-                        {itemType.icon_emoji ?? "👕"} {itemType.name}
+                        {itemType.icon_kind === "emoji" && itemType.icon_emoji ? itemType.icon_emoji : "👕"} {itemType.name}
                       </option>
                     ))}
                   </select>

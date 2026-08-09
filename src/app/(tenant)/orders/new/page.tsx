@@ -181,6 +181,9 @@ export default async function NewOrderPage({
                 id: itemType.id,
                 name: itemType.name,
                 icon_emoji: itemType.icon_emoji,
+                icon_kind: itemType.icon_kind,
+                icon_name: itemType.icon_name,
+                icon_color: itemType.icon_color,
                 description: itemType.description,
               }))}
               workflows={workflows.map((workflow) => ({

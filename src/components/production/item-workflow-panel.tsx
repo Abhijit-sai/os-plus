@@ -269,7 +269,7 @@ export function ItemWorkflowPanel({
         <div>
           <h2 className={variant === "pane" ? "text-lg font-semibold leading-tight" : "text-2xl font-semibold tracking-tight"}>{item.name}</h2>
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <ItemTypeIcon emoji={itemType?.icon_emoji} />
+            <ItemTypeIcon emoji={itemType?.icon_emoji} kind={itemType?.icon_kind} name={itemType?.icon_name} color={itemType?.icon_color} />
             {order?.order_number ?? "Unknown order"} · {itemType?.name ?? "Unknown type"} · {workflow?.name ?? "Unknown workflow"}
           </p>
         </div>

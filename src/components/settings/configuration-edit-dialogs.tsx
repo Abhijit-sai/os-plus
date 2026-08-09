@@ -1,3 +1,4 @@
+import { ItemTypeIconPicker } from "@/components/item-types/item-type-icon-picker";
 import { Button } from "@/components/ui/button";
 import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,11 @@ export function ItemTypeEditDialog({ action, item }: { action: FormAction; item:
         <input type="hidden" name="itemTypeId" value={item.id} />
         <div className="grid gap-2"><Label htmlFor={`item-name-${item.id}`}>Name</Label><Input id={`item-name-${item.id}`} name="name" defaultValue={item.name} required /></div>
         <div className="grid gap-2"><Label htmlFor={`item-description-${item.id}`}>Description</Label><Input id={`item-description-${item.id}`} name="description" defaultValue={item.description ?? ""} /></div>
-        <div className="grid gap-2"><Label htmlFor={`item-emoji-${item.id}`}>Icon emoji</Label><Input id={`item-emoji-${item.id}`} name="iconEmoji" defaultValue={item.icon_emoji ?? ""} maxLength={16} placeholder="Optional, for example 👔" /></div>
+        <ItemTypeIconPicker
+          id={`item-icon-${item.id}`}
+          itemTypeNameInputId={`item-name-${item.id}`}
+          defaultValue={{ kind: item.icon_kind, emoji: item.icon_emoji, name: item.icon_name, color: item.icon_color }}
+        />
         <div className="grid gap-2"><Label htmlFor={`item-sla-${item.id}`}>Default SLA days</Label><Input id={`item-sla-${item.id}`} name="defaultSlaDays" type="number" min="0" defaultValue={item.default_sla_days ?? ""} /></div>
         <label className="flex items-center gap-2 text-sm"><input name="isActive" type="checkbox" defaultChecked={item.is_active} className="h-4 w-4" />Active</label>
         <Button type="submit">Save item type</Button>

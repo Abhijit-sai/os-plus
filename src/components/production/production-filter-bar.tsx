@@ -18,6 +18,9 @@ type ItemTypeOption = {
   id: string;
   name: string;
   icon_emoji: string | null;
+  icon_kind: "emoji" | "lucide" | null;
+  icon_name: string | null;
+  icon_color: string | null;
 };
 
 type ProductionFilterBarProps = {
@@ -231,7 +234,7 @@ export function ProductionFilterBar({
                         defaultChecked={selectedItemTypeSet.has(itemType.id)}
                         className="h-4 w-4 accent-black"
                       />
-                      <ItemTypeIcon emoji={itemType.icon_emoji} />
+                      <ItemTypeIcon emoji={itemType.icon_emoji} kind={itemType.icon_kind} name={itemType.icon_name} color={itemType.icon_color} />
                       <span className="truncate">{itemType.name}</span>
                     </label>
                   ))}

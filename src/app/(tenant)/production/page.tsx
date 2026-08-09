@@ -568,7 +568,7 @@ export default async function ProductionPage({
                     className={`${gridClassName} px-4 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center`}
                   >
                     <div className="min-w-0">
-                      <p className="flex items-center gap-2 truncate font-medium"><ItemTypeIcon emoji={row.itemType?.icon_emoji} />{row.item.name}</p>
+                      <p className="flex items-center gap-2 truncate font-medium"><ItemTypeIcon emoji={row.itemType?.icon_emoji} kind={row.itemType?.icon_kind} name={row.itemType?.icon_name} color={row.itemType?.icon_color} />{row.item.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {row.itemType?.name ?? "Unknown garment"} · {row.customer?.name ?? "Unknown customer"} · {row.workflow?.name ?? "Unknown workflow"}
                       </p>
@@ -715,7 +715,7 @@ export default async function ProductionPage({
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 {row.isDelayed ? <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Delayed" /> : null}
-                                <ItemTypeIcon emoji={row.itemType?.icon_emoji} />
+                                <ItemTypeIcon emoji={row.itemType?.icon_emoji} kind={row.itemType?.icon_kind} name={row.itemType?.icon_name} color={row.itemType?.icon_color} />
                                 <p className="line-clamp-2 text-sm font-semibold leading-snug">{row.item.name}</p>
                               </div>
                             </div>

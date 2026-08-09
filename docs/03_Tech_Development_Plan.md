@@ -863,13 +863,18 @@ Create `docs/OS_PLUS_QA_Test_Matrix.xlsx` with sheets for:
 - Zoho Books/Tally integration
 - Bank reconciliation
 
-### Item-type emoji and production filtering
+### Item-type icon identity and production filtering
 
-- Persist only a nullable text emoji on the tenant-owned item type; validate one grapheme/emoji in the server action and bound storage in SQL.
+- Preserve nullable `icon_emoji`, then add nullable `icon_kind`, `icon_name`, and `icon_color`. Backfill existing emoji rows to `icon_kind = 'emoji'` and use a SQL selection constraint so default, emoji, and Lucide states cannot be mixed.
+- Normalize the four submitted icon fields through one server function. Emoji must be one valid grapheme; Lucide names must match the generated catalogue from the pinned package; color must be a controlled semantic token.
+- Keep Suggested choices and broad business keywords in the shared feature module. Store up to eight recent choices only in browser local storage because these are non-sensitive convenience data, not tenant records.
+- Dynamically import the picker panel only while its popover is open. Frimousse provides virtualized emoji search and skin tones against self-hosted `/emoji-data/en/data.json` and `messages.json`; the Lucide tab renders at most 48 results per batch.
+- Keep the routine item icon wrapper small and load Lucide's dynamic renderer only when a persisted Lucide icon is actually shown. Emoji and the neutral fallback require no catalogue load.
+- Use Radix Popover for focus, dismissal, collision handling, and portal behavior inside create/edit forms. Every choice remains a 44-pixel target and emits a bubbling input event for the global unsaved-change guard.
 - Query selectable item types by current tenant and filter production rows by validated tenant-derived IDs.
 - Encode repeated filters as repeated URL parameters so list/board links, search, queue cards, workflow panes, and both multi-select controls compose predictably.
-- Keep the icon out of public tracking queries and pages.
-- Migration: `20260809140000_item_type_emoji.sql`.
+- Keep every icon field out of public tracking queries and pages.
+- Migrations: `20260809140000_item_type_emoji.sql`, then `20260809150000_item_type_icon_picker.sql`.
 
 ### Dialog success lifecycle
 

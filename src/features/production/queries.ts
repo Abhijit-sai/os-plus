@@ -31,7 +31,7 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
     itemsQuery,
     supabase.from("orders").select("id, order_number, customer_id").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
-    supabase.from("item_types").select("id, name, icon_emoji").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),
+    supabase.from("item_types").select("id, name, icon_emoji, icon_kind, icon_name, icon_color").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),
     supabase.from("workflows").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase
       .from("workflow_stages")

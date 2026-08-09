@@ -938,6 +938,9 @@
 
 - [x] Add nullable, bounded `item_types.icon_emoji` storage and application-level single-emoji validation.
 - [x] Add emoji create/edit fields and internal fallback garment icon.
+- [x] Replace raw emoji entry with a reusable, labelled, mobile-friendly Suggested/Emoji/Icons popup with search, recent choices, skin tones, an explicit default, and controlled Lucide colors.
+- [x] Add explicit `icon_kind`, `icon_name`, and `icon_color` storage, preserve existing emoji rows, and validate the complete selection server-side and in SQL.
+- [x] Lazy-load the full picker/catalogue, self-host only English Emojibase data as static assets, and batch Lucide results to protect ordinary route and first-open performance.
 - [x] Add tenant-scoped item-type loading to Production.
 - [x] Add multi-select garment-type filter with URL-state preservation across search, workflow, queue, pane, and view changes.
 - [x] Add focused regression coverage and preserve the public-tracking boundary.
