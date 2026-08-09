@@ -439,6 +439,7 @@ export default async function ProductionPage({
       <PageHeader
         title="Production"
         description="Item-level workflow queue. Orders are commercial; these items are production units."
+        actions={<Button asChild variant="outline"><Link href="/worker-contributions">Worker contributions</Link></Button>}
       />
 
       <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">

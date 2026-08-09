@@ -664,12 +664,31 @@ Track actual production work performed by each worker on each item-stage.
 - Resumed at
 - Completed at
 - Duration minutes
+- Credited units in tenth-unit (0.10) increments where the stage tracks pieces
+- Credited effort minutes in ten-minute increments where the stage tracks time
+- Calculated contribution amount for analytics
+- Snapshotted calculation basis and rate context from the stage instance
 - Status
 - Notes
 
 ### Work Log Rules
 
 - One stage can have multiple workers.
+- Every worker contribution selects the eligible workgroup/role actually performed, including when one worker belongs to several allowed workgroups.
+- Stage effort mode is configured as none, units, hours, or units plus hours.
+- Units and hours are operational inputs. Stage elapsed time remains separate from summed worker effort; five workers contributing one hour each is five man-hours even when the stage elapsed time is one hour.
+- Unit-tracked stages accept 0.10-unit credits and must total the order-item quantity before completion.
+- Hour-tracked stages accept ten-minute increments and show total man-hours before completion.
+- Item-type/stage contribution rules are optional and support per-unit, per-hour, or percentage-pool calculation. Percentage uses the item value after item discount and before GST, then distributes one pool by configured credited units or hours.
+- Missing monetary configuration never blocks production; the contribution remains INR 0 with a visible Rate not configured warning.
+- Rules are snapshotted when a stage starts. Later configuration changes apply only to stages that have not started.
+- Workers may be added, edited, or removed before completion. Removing entered effort requires a correction reason and immutable before/after audit history.
+- After completion, only owner/admin may correct worker contributions, and every correction requires a reason. Existing historical completed stages are not backfilled.
+- Contribution values are analytics-only and must not change wages, salary suggestions, order totals, GST, payments, or finance ledgers.
+- The first worker on a unit-tracked stage starts with the full item quantity for fast single-worker entry; additional workers start at zero so the user deliberately reallocates credit.
+- Unit and time inputs provide mobile-friendly increment/decrement controls alongside exact numeric input. A successful completion returns to the workflow view; start and in-progress saves keep the editor open.
+- Stage and contribution-rule configuration saves close the editor on success, refresh the visible saved summary, and retain the entered form with a recoverable error on failure.
+- Worker contribution reporting compares contribution value, credited units, man-hours, and completed stages as separate selectable metrics. It uses completion week, excludes active work, shows rate-configuration coverage, and never presents contribution value as salary or revenue.
 - One worker can work on many items in a day.
 - Duration should be calculated where possible.
 - Manual correction should be allowed by admin/manager.

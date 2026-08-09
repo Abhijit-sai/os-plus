@@ -1,5 +1,7 @@
 import "server-only";
 
+import { notFound } from "next/navigation";
+
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 
@@ -123,6 +125,43 @@ export async function getItemTypes() {
   }
 
   return data ?? [];
+}
+
+export async function getItemTypeContributionSettings(itemTypeId: string) {
+  const { tenant } = await requireTenantContext();
+  const supabase = createSupabaseServiceRoleClient();
+  const [itemType, stages, rules] = await Promise.all([
+    supabase
+      .from("item_types")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("id", itemTypeId)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    supabase
+      .from("stage_master")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .order("name"),
+    supabase
+      .from("item_type_stage_contribution_rules")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("item_type_id", itemTypeId)
+      .eq("is_active", true)
+      .is("deleted_at", null),
+  ]);
+  if (itemType.error) throw new Error(`Unable to load item type: ${itemType.error.message}`);
+  if (!itemType.data) notFound();
+  if (stages.error) throw new Error(`Unable to load contribution stages: ${stages.error.message}`);
+  if (rules.error) throw new Error(`Unable to load contribution rules: ${rules.error.message}`);
+  return {
+    itemType: itemType.data,
+    rules: rules.data ?? [],
+    stages: stages.data ?? [],
+  };
 }
 
 export async function getStages() {

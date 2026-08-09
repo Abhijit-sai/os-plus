@@ -16,6 +16,16 @@ const overview = await workbook.inspect({
 });
 console.log(overview.ndjson);
 
+const productionCases = await workbook.inspect({
+  kind: "table",
+  range: "Production!A1:K20",
+  include: "values,formulas",
+  maxChars: 16000,
+  tableMaxCols: 11,
+  tableMaxRows: 20,
+});
+console.log(productionCases.ndjson);
+
 const errors = await workbook.inspect({
   kind: "match",
   searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -28,7 +38,7 @@ await fs.mkdir(outputDir, { recursive: true });
 for (const sheet of workbook.worksheets.items) {
   const preview = await workbook.render({
     format: "png",
-    range: "A1:K12",
+    range: "A1:K20",
     scale: 0.75,
     sheetName: sheet.name,
   });

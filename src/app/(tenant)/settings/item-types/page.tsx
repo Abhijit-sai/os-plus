@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { createItemTypeAction, updateItemTypeAction } from "@/features/settings/actions";
 import { getItemTypes } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
@@ -6,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemTypeEditDialog } from "@/components/settings/configuration-edit-dialogs";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default async function ItemTypesPage() {
   const itemTypes = await getItemTypes();
@@ -40,7 +43,14 @@ export default async function ItemTypesPage() {
         description="Current tenant item type master."
         items={itemTypes}
         renderMeta={(item) => item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}
-        renderActions={(item) => <ItemTypeEditDialog action={updateItemTypeAction} item={item} />}
+        renderActions={(item) => (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link className={buttonVariants({ size: "sm", variant: "outline" })} href={`/settings/item-types/${item.id}/contributions`}>
+              Contribution rules
+            </Link>
+            <ItemTypeEditDialog action={updateItemTypeAction} item={item} />
+          </div>
+        )}
       />
     </div>
   );

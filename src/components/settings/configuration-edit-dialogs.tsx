@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,37 @@ export function TextMasterEditDialog({ action, idField, item, title }: { action:
         <Button type="submit">Save changes</Button>
       </form>
     </Dialog>
+  );
+}
+
+export function StageEditDialog({ action, item }: { action: FormAction; item: StageMaster }) {
+  return (
+    <AutoCloseActionDialog action={action} title="Edit stage" description="Newly started stages use this effort mode; active and completed stages keep their saved snapshot." successMessage="Stage saved." trigger={<EditTrigger />}>
+        <input type="hidden" name="stageId" value={item.id} />
+        <div className="grid gap-2">
+          <Label htmlFor={`stage-name-${item.id}`}>Name</Label>
+          <Input id={`stage-name-${item.id}`} name="name" defaultValue={item.name} required />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stage-description-${item.id}`}>Description</Label>
+          <Input id={`stage-description-${item.id}`} name="description" defaultValue={item.description ?? ""} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stage-effort-${item.id}`}>Effort tracking</Label>
+          <select id={`stage-effort-${item.id}`} name="effortTrackingMode" defaultValue={item.effort_tracking_mode} className="h-10 rounded-md border bg-background px-3 text-sm">
+            <option value="none">Worker assignment only</option>
+            <option value="units">Credited units</option>
+            <option value="hours">Credited time</option>
+            <option value="hybrid">Units and credited time</option>
+          </select>
+          <p className="text-xs text-muted-foreground">Credited time is manual man-hours, separate from elapsed stage time.</p>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input name="isActive" type="checkbox" defaultChecked={item.is_active} className="h-4 w-4" />
+          Active
+        </label>
+        <Button type="submit">Save stage</Button>
+    </AutoCloseActionDialog>
   );
 }
 

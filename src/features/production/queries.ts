@@ -99,12 +99,15 @@ export async function getProductionItemPageData(itemId: string) {
     itemType,
     workflowInstance,
     stageInstances,
+    workflowStages,
     stages,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
     workLogs,
+    contributionRules,
+    contributionCorrections,
     history,
     linkedMeasurement
   ] =
@@ -151,12 +154,17 @@ export async function getProductionItemPageData(itemId: string) {
         .eq("order_item_id", item.data.id)
         .is("deleted_at", null)
         .order("sequence_number"),
+      supabase
+        .from("workflow_stages")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("workflow_id", item.data.workflow_id)
+        .is("deleted_at", null),
       supabase.from("stage_master").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
       supabase
         .from("workers")
         .select("*")
         .eq("tenant_id", context.tenant.id)
-        .eq("status", "active")
         .is("deleted_at", null)
         .order("name"),
       supabase
@@ -180,6 +188,20 @@ export async function getProductionItemPageData(itemId: string) {
         .eq("order_item_id", item.data.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("item_type_stage_contribution_rules")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("item_type_id", item.data.item_type_id)
+        .eq("is_active", true)
+        .is("deleted_at", null),
+      supabase
+        .from("item_stage_contribution_corrections")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("order_item_id", item.data.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
       supabase
         .from("item_history")
         .select("*")
@@ -205,12 +227,15 @@ export async function getProductionItemPageData(itemId: string) {
     itemType,
     workflowInstance,
     stageInstances,
+    workflowStages,
     stages,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
     workLogs,
+    contributionRules,
+    contributionCorrections,
     history,
     linkedMeasurement
   ]) {
@@ -228,12 +253,16 @@ export async function getProductionItemPageData(itemId: string) {
     itemType: itemType.data,
     workflowInstance: workflowInstance.data,
     stageInstances: stageInstances.data ?? [],
+    workflowStages: workflowStages.data ?? [],
     stages: stages.data ?? [],
     workers: workers.data ?? [],
     workerWorkgroups: workerWorkgroups.data ?? [],
     stageWorkgroups: stageWorkgroups.data ?? [],
     workgroups: workgroups.data ?? [],
     workLogs: workLogs.data ?? [],
+    contributionRules: contributionRules.data ?? [],
+    contributionCorrections: contributionCorrections.data ?? [],
+    canCorrectCompletedContributions: context.membership.role === "owner_admin",
     history: history.data ?? [],
     linkedMeasurement: linkedMeasurement.data
   };

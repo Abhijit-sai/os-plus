@@ -480,6 +480,35 @@
 - Recompute workflow and item status after correction
 - Move the next stage to ready when a corrected stage is completed or skipped
 
+### 7.9 Multi-worker Effort and Contribution Tracking
+
+- Add stage effort configuration: none, units, hours, or units plus hours
+- Add optional item-type/stage monetary rules: per unit, per hour, or percentage pool
+- For percentage pools, choose distribution by credited units or credited hours
+- Snapshot effort mode, calculation method, rate, allocation basis, item post-discount/pre-GST value, and pool value when a stage starts
+- Replace the single-worker start control with an addable worker list
+- Require each assignment to select an allowed workgroup/role the worker belongs to
+- Support the same worker in more than one eligible role when recorded as separate contributions
+- Capture credited units in 0.10 increments and credited effort in ten-minute increments
+- Default the first unit-tracked assignment to the complete item quantity; default later assignments and every time input to zero
+- Provide -1, -0.1, +0.1, and +1 unit controls plus exact numeric entry
+- Provide +10 minutes, +1 hour, and matching decrement controls with visible total man-hours
+- Keep elapsed stage time separate from summed worker effort
+- Require credited unit totals to equal item quantity before completing units/hybrid stages
+- Require positive credited time before completing hours/hybrid stages
+- Calculate contribution values without affecting salary, order totals, GST, payments, or finance
+- Permit managers and owner/admin to add, edit, or remove contributions before completion
+- Require a correction reason when removing entered effort and preserve immutable before/after audit history
+- Restrict completed-stage contribution corrections to owner/admin with mandatory reason
+- Keep historical completed stages unchanged and show INR 0 plus Rate not configured when no rule was snapshotted
+- Save start, contribution replacement, and completion through tenant-scoped atomic RPCs with row locks and idempotent duplicate-submit protection
+- Disable the complete contribution editor while pending, prevent closing, preserve entered rows on failure, and show recoverable errors
+- Revalidate production, order, worker analytics, and relevant dashboard surfaces after success
+- Close successful stage and rule configuration editors and return a completed stage action to the workflow view while preserving failed input
+- Replace always-open contribution-rule forms with saved plain-language summaries and focused edit controls
+- Add tenant-scoped worker contribution leaderboard and weekly trend reporting with independent amount, unit, man-hour, and completed-stage metrics plus rate-configuration coverage
+- Add regression coverage for multi-worker roles, tenant isolation, invalid worker/workgroup IDs, tenth-unit totals, ten-minute effort, first-row defaults, hybrid validation, rate snapshots, pool allocation, no-rate behavior, correction permissions, audit immutability, reporting aggregation, and concurrent duplicate submission
+
 ## 8. Dashboard and Analytics
 
 ### 8.1 Owner Dashboard Foundation

@@ -2,20 +2,19 @@ import Link from "next/link";
 import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 
 import {
-  completeStageAction,
   initializeItemWorkflowAction,
-  startStageAction
 } from "@/features/production/actions";
+import { StageContributionEditor } from "@/components/production/stage-contribution-editor";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ChangeWorkflowDialog, CorrectStageDialog } from "@/components/production/workflow-action-dialogs";
 import type {
   ItemHistory,
   ItemStageInstance,
+  ItemStageContributionCorrection,
   ItemStageWorkLog,
+  ItemTypeStageContributionRule,
   ItemType,
   Json,
   Order,
@@ -26,6 +25,7 @@ import type {
   WorkerWorkgroup,
   Workgroup,
   Workflow,
+  WorkflowStage,
   ItemWorkflowInstance,
   CustomerMeasurement
 } from "@/types/database";
@@ -203,12 +203,16 @@ export function ItemWorkflowPanel({
   itemType,
   workflowInstance,
   stageInstances,
+  workflowStages,
   stages,
   workers,
   workerWorkgroups,
   stageWorkgroups,
   workgroups,
   workLogs,
+  contributionRules,
+  contributionCorrections,
+  canCorrectCompletedContributions,
   history,
   linkedMeasurement,
   variant = "page"
@@ -220,12 +224,16 @@ export function ItemWorkflowPanel({
   itemType: ItemType | null;
   workflowInstance: ItemWorkflowInstance | null;
   stageInstances: ItemStageInstance[];
+  workflowStages: WorkflowStage[];
   stages: StageMaster[];
   workers: Worker[];
   workerWorkgroups: WorkerWorkgroup[];
   stageWorkgroups: StageWorkgroup[];
   workgroups: Workgroup[];
   workLogs: ItemStageWorkLog[];
+  contributionRules: ItemTypeStageContributionRule[];
+  contributionCorrections: ItemStageContributionCorrection[];
+  canCorrectCompletedContributions: boolean;
   history: ItemHistory[];
   linkedMeasurement?: CustomerMeasurement | null;
   variant?: "page" | "pane";
@@ -235,6 +243,8 @@ export function ItemWorkflowPanel({
   const stageInstanceById = new Map(stageInstances.map((stageInstance) => [stageInstance.id, stageInstance]));
   const workgroupById = new Map(workgroups.map((workgroup) => [workgroup.id, workgroup]));
   const activeLogsByStageId = new Map(workLogs.filter((log) => log.status === "in_progress").map((log) => [log.stage_instance_id, log]));
+  const workflowStageById = new Map(workflowStages.map((workflowStage) => [workflowStage.id, workflowStage]));
+  const contributionRuleByStageId = new Map(contributionRules.map((rule) => [rule.stage_master_id, rule]));
   const workerWorkgroupIdsByWorkerId = new Map<string, Set<string>>();
 
   workerWorkgroups.forEach((mapping) => {
@@ -367,8 +377,12 @@ export function ItemWorkflowPanel({
           </CardHeader>
           <CardContent className="space-y-3">
             {stageInstances.map((stageInstance) => {
-              const stage = stageById.get(stageInstance.stage_master_id);
-              const activeLog = activeLogsByStageId.get(stageInstance.id);
+               const stage = stageById.get(stageInstance.stage_master_id);
+               const activeLog = activeLogsByStageId.get(stageInstance.id);
+               const stageLogs = workLogs.filter((log) => log.stage_instance_id === stageInstance.id);
+               const effortMode = stageInstance.status === "ready_to_start"
+                 ? stage?.effort_tracking_mode ?? "none"
+                 : stageInstance.effort_tracking_mode_snapshot ?? "none";
               const allowedWorkgroupIds = stageWorkgroups.filter((mapping) => mapping.stage_master_id === stageInstance.stage_master_id).map((mapping) => mapping.workgroup_id);
               const allowedWorkgroupIdSet = new Set(allowedWorkgroupIds);
               const eligibleWorkers = workers.filter((worker) => {
@@ -394,49 +408,42 @@ export function ItemWorkflowPanel({
                           </p>
                         </div>
                         <div className="flex items-start gap-2">
-                          {stageInstance.status === "in_progress" ? (
-                            <form action={completeStageAction} className="flex flex-col gap-2 sm:flex-row">
-                              <input type="hidden" name="stageInstanceId" value={stageInstance.id} />
-                              <Input name="notes" placeholder="Completion notes" />
-                              <Button type="submit" size="sm">Complete</Button>
-                            </form>
+                          {stageInstance.effort_tracking_mode_snapshot === null && stageInstance.status !== "ready_to_start" ? (
+                            <CorrectStageDialog
+                              stageInstance={stageInstance}
+                              stageName={stage?.name ?? "stage"}
+                              activeLog={activeLog ?? null}
+                              eligibleWorkers={eligibleWorkers}
+                            />
                           ) : null}
-                          <CorrectStageDialog
-                            stageInstance={stageInstance}
-                            stageName={stage?.name ?? "stage"}
-                            activeLog={activeLog ?? null}
-                            eligibleWorkers={eligibleWorkers}
-                          />
                         </div>
                       </div>
-
-                      {stageInstance.status === "ready_to_start" ? (
-                        eligibleWorkers.length ? (
-                          <form action={startStageAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-                            <input type="hidden" name="stageInstanceId" value={stageInstance.id} />
-                            <div className="grid gap-2">
-                              <Label htmlFor={`worker-${stageInstance.id}`}>Worker</Label>
-                              <select id={`worker-${stageInstance.id}`} name="workerId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
-                                <option value="">Select worker</option>
-                                {eligibleWorkers.map((worker) => (
-                                  <option key={worker.id} value={worker.id}>{worker.name}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor={`notes-${stageInstance.id}`}>Notes</Label>
-                              <Input id={`notes-${stageInstance.id}`} name="notes" placeholder="Optional" />
-                            </div>
-                            <Button type="submit">Start</Button>
-                          </form>
-                        ) : (
+                      {(["ready_to_start", "in_progress", "completed"].includes(stageInstance.status)
+                        && (stageInstance.status === "ready_to_start" || stageInstance.effort_tracking_mode_snapshot !== null)) ? (
+                        allowedWorkgroupIds.length && (eligibleWorkers.length || stageLogs.length) ? (
+                          <StageContributionEditor
+                            allowedWorkgroupIds={allowedWorkgroupIds}
+                            canCorrectCompleted={canCorrectCompletedContributions}
+                            configuredRule={contributionRuleByStageId.get(stageInstance.stage_master_id) ?? null}
+                            itemFinalValue={item.final_price}
+                            itemQuantity={item.quantity}
+                            logs={stageLogs}
+                            mode={effortMode}
+                            stage={stageInstance}
+                            stageName={stage?.name ?? "Unknown stage"}
+                            workerWorkgroups={workerWorkgroups}
+                            workers={workers}
+                            workgroups={workgroups}
+                          />
+                        ) : stageInstance.status !== "completed" ? (
                           <div className="rounded-md border p-3 text-sm text-muted-foreground">
                             {allowedWorkgroupIds.length
                               ? `No active workers are mapped to this stage's allowed workgroups: ${allowedWorkgroupNames}.`
                               : "No allowed workgroups are configured for this stage."}
                           </div>
-                        )
+                        ) : null
                       ) : null}
+                      {workflowStageById.get(stageInstance.workflow_stage_id)?.allows_multiple_workers === false ? <p className="text-xs text-muted-foreground">This workflow stage currently allows one worker only.</p> : null}
                     </div>
                   </div>
                 </div>
@@ -454,7 +461,20 @@ export function ItemWorkflowPanel({
             <CardDescription>Timeline of major workflow events for this item.</CardDescription>
           </CardHeader>
           <CardContent>
-            <HistoryTimeline history={history} stageInstanceById={stageInstanceById} stageById={stageById} workerById={workerById} />
+             <HistoryTimeline history={history} stageInstanceById={stageInstanceById} stageById={stageById} workerById={workerById} />
+             {contributionCorrections.length ? (
+               <div className="mt-5 border-t pt-4">
+                 <h3 className="text-sm font-semibold">Contribution correction audit</h3>
+                 <div className="mt-2 space-y-2">
+                   {contributionCorrections.map((correction) => (
+                     <div className="rounded-md border p-3 text-sm" key={correction.id}>
+                       <p className="font-medium">{stageById.get(stageInstanceById.get(correction.stage_instance_id)?.stage_master_id ?? "")?.name ?? "Stage"}</p>
+                       <p className="text-muted-foreground">{correction.reason} · {formatDateTime(correction.created_at)}</p>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             ) : null}
           </CardContent>
         </Card>
         </div>

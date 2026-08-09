@@ -264,6 +264,37 @@ Track item production through configured stages.
 
 Managers can move each item through its production workflow with worker logs.
 
+## Phase 5A: Multi-worker Effort and Contribution Tracking
+
+### Goals
+
+Capture who contributed to each item stage, in which eligible role, how many units or man-hours they contributed, and the analytics-only monetary value of that work.
+
+### Architecture Tasks
+
+- Store stage-level effort mode separately from item-type/stage monetary rules.
+- Snapshot the active rule and order-item post-discount/pre-GST value on stage start so active/completed history does not change when configuration changes.
+- Extend worker stage logs with credited units, credited minutes, and calculated contribution amount while preserving automatic elapsed duration separately.
+- Add immutable contribution-correction audit records.
+- Use service-role-only, tenant-scoped RPCs for stage start with assignments, contribution replacement, and stage completion.
+- Lock stage/workflow/item rows, validate worker and workgroup ownership, and reject stale or duplicate transitions.
+- Keep productivity contribution data outside salary and finance calculations.
+
+### UI Tasks
+
+- Add effort mode to Stage settings.
+- Add a focused contribution-rule page for each item type instead of placing a dense rate matrix inside the basic edit dialog.
+- Add a mobile-first worker contribution editor to ready and in-progress stage cards.
+- Show workgroup role, units, credited time, man-hour total, rule snapshot, calculated total, and Rate not configured state.
+- Use 0.10-unit controls, first-assignment item-quantity defaults, and explicit pending, success, error, disabled, and close-protection states.
+- Close successful configuration actions and completed-stage editors while retaining editable input on server errors.
+- Aggregate only completed tenant-owned work logs by completion week for the worker leaderboard and trend report; keep contribution value, units, hours, and completed stages as separate metrics. Use worker IDs as chart keys so duplicate names remain independent.
+- Expose the report to owner/admin through the dashboard and to managers through a dedicated permission-gated Production link without granting managers unrelated dashboard access.
+
+### Deliverable
+
+Managers can record multi-worker stage effort before completion, while owner/admin can auditably correct completed contributions without rewriting production, salary, or finance history.
+
 ## Phase 6: Production Dashboard
 
 ### Goals

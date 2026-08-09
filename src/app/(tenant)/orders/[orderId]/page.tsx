@@ -99,12 +99,15 @@ export default async function OrderDetailPage({
     paymentModes,
     workflowInstances,
     stageInstances,
+    workflowStages,
     stageMasters,
     workLogs,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
+    contributionRules,
+    contributionCorrections,
     itemHistory,
     customerStatuses,
     customerOrders,
@@ -642,13 +645,17 @@ export default async function OrderDetailPage({
                                 workflows={workflows}
                                 itemType={itemTypeById.get(item.item_type_id) ?? null}
                                 workflowInstance={workflowInstance ?? null}
-                                stageInstances={itemStages}
+                                 stageInstances={itemStages}
+                                 workflowStages={workflowStages.filter((workflowStage) => workflowStage.workflow_id === item.workflow_id)}
                                 stages={stageMasters}
                                 workers={workers}
                                 workerWorkgroups={workerWorkgroups}
                                 stageWorkgroups={stageWorkgroups}
                                 workgroups={workgroups}
-                                workLogs={workLogs.filter((log) => log.order_item_id === item.id)}
+                                 workLogs={workLogs.filter((log) => log.order_item_id === item.id)}
+                                 contributionRules={contributionRules.filter((rule) => rule.item_type_id === item.item_type_id)}
+                                 contributionCorrections={contributionCorrections.filter((correction) => correction.order_item_id === item.id)}
+                                 canCorrectCompletedContributions={context.membership.role === "owner_admin"}
                                 history={itemHistory.filter((event) => event.order_item_id === item.id)}
                                 linkedMeasurement={linkedMeasurement ?? null}
                                 variant="pane"

@@ -132,6 +132,25 @@
 5. Duration should be calculated where possible.
 6. Manual correction should be possible by authorized users.
 7. Work logs power productivity reports and salary suggestions.
+8. Every worker contribution must identify an allowed workgroup that the worker belongs to; no client-supplied worker, workgroup, stage, or item ID is trusted without current-tenant validation.
+9. Stage effort mode is none, units, hours, or hybrid. Hybrid requires both units and credited minutes for analytics.
+10. Credited units use 0.10 increments. Unit and hybrid stages must total the item quantity before completion.
+11. Credited effort uses ten-minute increments. Stage elapsed time and summed man-hours are separate values.
+12. Monetary contribution rules are optional per item-type/stage and support per-unit, per-hour, or one percentage pool distributed by units or hours.
+13. Percentage basis is the item final value after item discount and before GST. It is never the order GST-inclusive total.
+14. Stage start snapshots effort mode, calculation method, rate, allocation basis, item basis value, and pool value. Configuration changes do not rewrite active or completed snapshots.
+15. No configured monetary rule means production proceeds with zero calculated contribution and a visible warning.
+16. Managers and owner/admin may edit contributions before completion. Removing a contribution with entered effort requires a reason and immutable audit history.
+17. Completed contribution correction is owner/admin-only and always requires a reason.
+18. Existing completed stages are not backfilled or estimated.
+19. Contribution amounts are operational analytics only. They must not alter salary suggestions, wage configuration, order totals, GST, payments, expenses, or ledgers.
+20. Stage contribution start, replacement, and completion must be atomic, tenant-scoped, row-locked, and protected against duplicate transition submission.
+21. The first unit-tracked assignment defaults to the full item quantity; added assignments default to zero and require deliberate redistribution.
+22. Contribution reports include only completed work, group it by completion week, and expose value, units, man-hours, and completed stages as separate metrics. Contribution value is not salary, payroll, order revenue, or a universal efficiency score.
+23. Contribution reporting must show rate-configuration coverage so INR 0 caused by a missing rule is distinguishable from configured work.
+24. Percentage-pool allocation uses non-negative largest-remainder distribution in integer paise, with deterministic worker/workgroup ordering. Allocated rows must sum exactly to the snapshotted pool even when the pool is smaller than the number of workers.
+25. Ordinary work-log status movement from in progress to completed is not a contribution correction. Audit rows are created only when worker, role, units, time, or calculated contribution actually changes.
+26. Workflow completion must never infer delivery from editable stage or status names. Only the explicit final customer-status flag may mark the production item delivered in this flow.
 
 ## 10. Salary Rules
 

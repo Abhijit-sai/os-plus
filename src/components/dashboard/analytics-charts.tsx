@@ -66,7 +66,15 @@ export function SalesBarChart({ data, mode }: { data: SalesChartPoint[]; mode: "
   );
 }
 
-export function WorkerLineChart({ data, workers }: { data: WorkerChartPoint[]; workers: string[] }) {
+export function WorkerLineChart({
+  data,
+  valueKind = "count",
+  workers,
+}: {
+  data: WorkerChartPoint[];
+  valueKind?: "count" | "hours" | "money" | "units";
+  workers: Array<string | { key: string; label: string }>;
+}) {
   if (!data.length || !workers.length) {
     return <EmptyChartState label="No worker activity in this range." />;
   }
@@ -77,20 +85,30 @@ export function WorkerLineChart({ data, workers }: { data: WorkerChartPoint[]; w
         <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
-          <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12 }} allowDecimals />
-          <Tooltip />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 12 }}
+            allowDecimals
+            tickFormatter={(value) => valueKind === "money" ? compactMoney(Number(value)) : String(value)}
+          />
+          <Tooltip formatter={(value) => valueKind === "money" ? `₹${compactMoney(Number(value))}` : valueKind === "hours" ? `${Number(value).toFixed(1)}h` : value} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          {workers.map((worker, index) => (
+          {workers.map((worker, index) => {
+            const series = typeof worker === "string" ? { key: worker, label: worker } : worker;
+            return (
             <Line
-              key={worker}
+              key={series.key}
               type="monotone"
-              dataKey={worker}
+              dataKey={series.key}
+              name={series.label}
               stroke={lineColors[index % lineColors.length]}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
             />
-          ))}
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
     </div>
