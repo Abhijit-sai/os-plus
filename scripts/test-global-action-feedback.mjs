@@ -63,13 +63,21 @@ const sourceRoot = path.join(root, "src");
 for (const absolutePath of sourceFiles(sourceRoot)) {
   const relativePath = path.relative(root, absolutePath);
   const source = fs.readFileSync(absolutePath, "utf8");
+  const pendingAwareFragments = [...source.matchAll(/const\s+(\w+)\s*=\s*\(\s*<>[\s\S]*?<\/>(?:\s*)\);/g)]
+    .filter((match) => /<(?:Button|SubmitButton)\b/.test(match[0]))
+    .map((match) => match[1]);
 
   for (const match of source.matchAll(/<form\b[\s\S]*?<\/form>/g)) {
     const form = match[0];
     if (!/action=\{|formAction=/.test(form)) continue;
-    assert.match(
-      form,
-      /<(?:Button|SubmitButton)\b/,
+    const hasPendingAwareSubmit = /<(?:Button|SubmitButton)\b/.test(form)
+      || pendingAwareFragments.some((fragmentName) => form.includes(`{${fragmentName}}`))
+      || (form.includes("{children}")
+        && /React\.useActionState/.test(source)
+        && /preventClose=\{pending\}/.test(source));
+    assert.equal(
+      hasPendingAwareSubmit,
+      true,
       `${relativePath} contains a server-action form without a pending-aware submit control`,
     );
   }

@@ -17,6 +17,8 @@ const financePage = read("src/app/(tenant)/finance/page.tsx");
 const orderActions = read("src/features/orders/actions.ts");
 const configurationMigration = read("supabase/migrations/20260808100000_configuration_editing_and_expense_defaults.sql");
 const paymentSmoke = read("scripts/smoke-payment-integrity.mjs");
+const configurationDialogs = read("src/components/settings/configuration-edit-dialogs.tsx");
+const autoCloseDialog = read("src/components/ui/auto-close-action-dialog.tsx");
 
 for (const actionName of [
   "updateItemTypeAction",
@@ -32,7 +34,10 @@ for (const actionName of [
 }
 
 assert.match(settingsActions, /\.eq\("tenant_id", context\.tenant\.id\)[\s\S]*\.eq\("id", parsed\./);
-assert.match(settingsActions, /rpc\("update_stage_configuration"/);
+assert.match(settingsActions, /rpc\("update_stage_configuration_with_effort"/);
+assert.match(configurationDialogs, /AutoCloseActionDialog/);
+assert.match(autoCloseDialog, /nextState\.ok[\s\S]*?setOpen\(false\)/, "successful configuration saves must close their dialog");
+assert.match(autoCloseDialog, /role="alert"/, "failed configuration saves must stay visible and recoverable");
 assert.match(workerActions, /export async function updateWorkerAction/);
 assert.match(workerActions, /rpc\("update_worker_configuration"/);
 assert.match(workflowActions, /export async function updateWorkflowAction/);

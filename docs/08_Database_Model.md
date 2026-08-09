@@ -670,6 +670,14 @@ started_at
 completed_at
 customer_status_id
 notes
+effort_tracking_mode_snapshot
+contribution_rule_id_snapshot
+contribution_method_snapshot
+contribution_rate_snapshot
+contribution_allocation_basis_snapshot
+contribution_item_value_snapshot
+contribution_pool_snapshot
+contribution_revision
 created_at
 updated_at
 created_by
@@ -703,6 +711,9 @@ paused_at
 resumed_at
 completed_at
 duration_minutes
+credited_units
+credited_minutes
+calculated_contribution_amount
 status
 notes
 created_by
@@ -710,6 +721,61 @@ created_at
 updated_at
 deleted_at
 ```
+
+`duration_minutes` is elapsed work-log time. `credited_minutes` is manually attributed worker effort and may sum above stage elapsed time when several workers contribute concurrently.
+
+`credited_units` uses 0.10 increments. Percentage pools are allocated in integer paise using largest remainder ordered by fractional remainder, then stable worker/workgroup IDs. A tenant/completion/worker partial index supports completed-work reports; active logs remain excluded.
+
+A status-only completion transition is excluded from contribution-correction audit creation. Final item delivery uses the mapped customer status's explicit `is_final_status` flag, never a configurable label match.
+
+## item_type_stage_contribution_rules
+
+```text
+id
+tenant_id
+item_type_id
+stage_master_id
+calculation_method
+rate_value
+percentage_allocation_basis
+is_active
+created_at
+updated_at
+created_by
+updated_by
+deleted_at
+```
+
+Calculation methods:
+
+```text
+per_unit
+per_hour
+percentage
+```
+
+Rules:
+
+- One active rule exists per tenant/item-type/stage.
+- Percentage values are between 0 and 100 and use the item post-discount, pre-GST value.
+- Percentage rules distribute one pool by credited units or credited hours.
+- Rules are configuration only; stage-instance snapshots are the historical source of truth.
+
+## item_stage_contribution_corrections
+
+```text
+id
+tenant_id
+stage_instance_id
+order_item_id
+reason
+old_value_json
+new_value_json
+created_by
+created_at
+```
+
+Correction rows are immutable. They preserve removed effort and all before/after assignment values without changing salary or finance history.
 
 ## item_history
 
@@ -1296,3 +1362,9 @@ communication_message_queue.tenant_id, communication_message_queue.customer_id
 communication_message_queue.tenant_id, communication_message_queue.order_id
 communication_message_logs.tenant_id, communication_message_logs.message_queue_id
 ```
+
+### `item_types.icon_emoji`
+
+- Nullable `text`; optional internal presentation metadata.
+- Database constraint trims and bounds values to 1-16 characters when present.
+- The server action performs the stronger one-grapheme emoji validation.

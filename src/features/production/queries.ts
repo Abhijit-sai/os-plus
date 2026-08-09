@@ -1,24 +1,37 @@
 import "server-only";
 
+import { z } from "zod";
 import { notFound } from "next/navigation";
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 
-export async function getProductionPageData() {
+const productionFiltersSchema = z.object({
+  itemTypeIds: z.array(z.string().uuid()).max(100),
+  workflowIds: z.array(z.string().uuid()).max(100)
+});
+const impossibleId = "00000000-0000-0000-0000-000000000000";
+
+export async function getProductionPageData(filters: { itemTypeIds: string[]; workflowIds: string[] }) {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
+  const parsedFilters = productionFiltersSchema.safeParse(filters);
+  let itemsQuery = supabase.from("order_items").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null);
 
-  const [items, orders, customers, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
-    supabase
-      .from("order_items")
-      .select("*")
-      .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(100),
+  if (!parsedFilters.success) {
+    itemsQuery = itemsQuery.eq("id", impossibleId);
+  } else {
+    if (parsedFilters.data.itemTypeIds.length) itemsQuery = itemsQuery.in("item_type_id", parsedFilters.data.itemTypeIds);
+    if (parsedFilters.data.workflowIds.length) itemsQuery = itemsQuery.in("workflow_id", parsedFilters.data.workflowIds);
+  }
+
+  itemsQuery = itemsQuery.order("created_at", { ascending: false }).limit(100);
+
+  const [items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
+    itemsQuery,
     supabase.from("orders").select("id, order_number, customer_id").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
+    supabase.from("item_types").select("id, name, icon_emoji, icon_kind, icon_name, icon_color").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),
     supabase.from("workflows").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase
       .from("workflow_stages")
@@ -51,7 +64,7 @@ export async function getProductionPageData() {
       .is("deleted_at", null)
   ]);
 
-  for (const result of [items, orders, customers, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers]) {
+  for (const result of [items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers]) {
     if (result.error) {
       throw new Error(`Unable to load production data: ${result.error.message}`);
     }
@@ -62,6 +75,7 @@ export async function getProductionPageData() {
     items: items.data ?? [],
     orders: orders.data ?? [],
     customers: customers.data ?? [],
+    itemTypes: itemTypes.data ?? [],
     workflows: workflows.data ?? [],
     workflowStages: workflowStages.data ?? [],
     workflowInstances: workflowInstances.data ?? [],
@@ -99,12 +113,15 @@ export async function getProductionItemPageData(itemId: string) {
     itemType,
     workflowInstance,
     stageInstances,
+    workflowStages,
     stages,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
     workLogs,
+    contributionRules,
+    contributionCorrections,
     history,
     linkedMeasurement
   ] =
@@ -151,12 +168,17 @@ export async function getProductionItemPageData(itemId: string) {
         .eq("order_item_id", item.data.id)
         .is("deleted_at", null)
         .order("sequence_number"),
+      supabase
+        .from("workflow_stages")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("workflow_id", item.data.workflow_id)
+        .is("deleted_at", null),
       supabase.from("stage_master").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
       supabase
         .from("workers")
         .select("*")
         .eq("tenant_id", context.tenant.id)
-        .eq("status", "active")
         .is("deleted_at", null)
         .order("name"),
       supabase
@@ -180,6 +202,20 @@ export async function getProductionItemPageData(itemId: string) {
         .eq("order_item_id", item.data.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("item_type_stage_contribution_rules")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("item_type_id", item.data.item_type_id)
+        .eq("is_active", true)
+        .is("deleted_at", null),
+      supabase
+        .from("item_stage_contribution_corrections")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .eq("order_item_id", item.data.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
       supabase
         .from("item_history")
         .select("*")
@@ -205,12 +241,15 @@ export async function getProductionItemPageData(itemId: string) {
     itemType,
     workflowInstance,
     stageInstances,
+    workflowStages,
     stages,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
     workLogs,
+    contributionRules,
+    contributionCorrections,
     history,
     linkedMeasurement
   ]) {
@@ -228,12 +267,16 @@ export async function getProductionItemPageData(itemId: string) {
     itemType: itemType.data,
     workflowInstance: workflowInstance.data,
     stageInstances: stageInstances.data ?? [],
+    workflowStages: workflowStages.data ?? [],
     stages: stages.data ?? [],
     workers: workers.data ?? [],
     workerWorkgroups: workerWorkgroups.data ?? [],
     stageWorkgroups: stageWorkgroups.data ?? [],
     workgroups: workgroups.data ?? [],
     workLogs: workLogs.data ?? [],
+    contributionRules: contributionRules.data ?? [],
+    contributionCorrections: contributionCorrections.data ?? [],
+    canCorrectCompletedContributions: context.membership.role === "owner_admin",
     history: history.data ?? [],
     linkedMeasurement: linkedMeasurement.data
   };

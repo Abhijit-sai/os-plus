@@ -1,11 +1,16 @@
+import Link from "next/link";
+
 import { createItemTypeAction, updateItemTypeAction } from "@/features/settings/actions";
 import { getItemTypes } from "@/features/settings/queries";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
+import { ItemTypeIconPicker } from "@/components/item-types/item-type-icon-picker";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemTypeEditDialog } from "@/components/settings/configuration-edit-dialogs";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default async function ItemTypesPage() {
   const itemTypes = await getItemTypes();
@@ -27,6 +32,7 @@ export default async function ItemTypesPage() {
               <Label htmlFor="description">Description</Label>
               <Input id="description" name="description" placeholder="Optional" />
             </div>
+            <ItemTypeIconPicker id="item-icon" itemTypeNameInputId="name" />
             <div className="grid gap-2">
               <Label htmlFor="defaultSlaDays">Default SLA days</Label>
               <Input id="defaultSlaDays" name="defaultSlaDays" type="number" min="0" placeholder="Optional" />
@@ -39,8 +45,15 @@ export default async function ItemTypesPage() {
         title="Item types"
         description="Current tenant item type master."
         items={itemTypes}
-        renderMeta={(item) => item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}
-        renderActions={(item) => <ItemTypeEditDialog action={updateItemTypeAction} item={item} />}
+        renderMeta={(item) => <span className="flex items-center gap-2"><ItemTypeIcon emoji={item.icon_emoji} kind={item.icon_kind} name={item.icon_name} color={item.icon_color} />{item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}</span>}
+        renderActions={(item) => (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link className={buttonVariants({ size: "sm", variant: "outline" })} href={`/settings/item-types/${item.id}/contributions`}>
+              Contribution rules
+            </Link>
+            <ItemTypeEditDialog action={updateItemTypeAction} item={item} />
+          </div>
+        )}
       />
     </div>
   );

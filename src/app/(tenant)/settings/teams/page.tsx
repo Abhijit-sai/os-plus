@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 
 function userLabel(user: { display_name: string | null; email: string | null }) {
   return user.display_name ?? user.email ?? "Unnamed user";
@@ -109,16 +109,14 @@ export default async function TeamsSettingsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">{team.description ?? "No description"}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Dialog title="Edit team" description="Memberships and historical task references remain attached to this team." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit</span>}>
-                      <form action={updateTeamAction} className="space-y-4" data-unsaved-guard="true">
+                    <AutoCloseActionDialog action={updateTeamAction} title="Edit team" description="Memberships and historical task references remain attached to this team." successMessage="Team saved." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit</span>}>
                         <input type="hidden" name="teamId" value={team.id} />
                         <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1"><Label htmlFor={`team-code-${team.id}`}>Code</Label><Input id={`team-code-${team.id}`} name="code" defaultValue={team.code} required /></div><div className="space-y-1"><Label htmlFor={`team-name-${team.id}`}>Name</Label><Input id={`team-name-${team.id}`} name="name" defaultValue={team.name} required /></div></div>
                         <div className="space-y-1"><Label htmlFor={`team-location-${team.id}`}>Location</Label><select id={`team-location-${team.id}`} name="locationId" defaultValue={team.location_id ?? ""} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="">No fixed location</option>{locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></div>
                         <div className="space-y-1"><Label htmlFor={`team-description-${team.id}`}>Description</Label><Input id={`team-description-${team.id}`} name="description" defaultValue={team.description ?? ""} /></div>
                         <label className="flex items-center gap-2 text-sm"><input name="isActive" type="checkbox" defaultChecked={team.is_active} className="h-4 w-4" />Active</label>
                         <Button type="submit">Save team</Button>
-                      </form>
-                    </Dialog>
+                    </AutoCloseActionDialog>
                     <form><input type="hidden" name="teamId" value={team.id} /><Button type="submit" formAction={archiveTeamAction} variant="outline" size="sm">Archive</Button></form>
                   </div>
                 </div>

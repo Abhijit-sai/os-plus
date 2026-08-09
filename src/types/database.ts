@@ -10,6 +10,7 @@ export type TenantUserStatus = "active" | "invited" | "disabled";
 export type WorkerStatus = "active" | "inactive";
 export type WorkerWageType = "hourly" | "daily" | "weekly" | "monthly" | "per_piece" | "hybrid";
 export type CustomerGender = "female" | "male" | "other" | "not_specified";
+export type ItemTypeIconKind = "emoji" | "lucide";
 export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other";
 export type DeliveryType = "store_pickup" | "self_delivery" | "courier";
 export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "refunded";
@@ -94,6 +95,9 @@ export type ItemStageStatus =
   | "skipped"
   | "blocked";
 export type ItemStageWorkLogStatus = "in_progress" | "paused" | "completed" | "cancelled";
+export type StageEffortTrackingMode = "none" | "units" | "hours" | "hybrid";
+export type ItemStageContributionMethod = "per_unit" | "per_hour" | "percentage";
+export type ContributionAllocationBasis = "units" | "hours";
 export type AttendanceStatus = "present" | "absent" | "half_day" | "leave" | "holiday";
 export type WorkerLedgerTransactionType =
   | "advance_given"
@@ -300,6 +304,10 @@ export type CustomerStatus = TenantOwnedBase & {
 export type ItemType = TenantOwnedBase & {
   name: string;
   description: string | null;
+  icon_emoji: string | null;
+  icon_kind: ItemTypeIconKind | null;
+  icon_name: string | null;
+  icon_color: string | null;
   default_workflow_id: string | null;
   default_sla_days: number | null;
   is_active: boolean;
@@ -309,6 +317,7 @@ export type StageMaster = TenantOwnedBase & {
   name: string;
   description: string | null;
   default_customer_status_id: string | null;
+  effort_tracking_mode: StageEffortTrackingMode;
   is_active: boolean;
 };
 
@@ -558,6 +567,14 @@ export type ItemStageInstance = TenantOwnedBase & {
   completed_at: string | null;
   customer_status_id: string | null;
   notes: string | null;
+  effort_tracking_mode_snapshot: StageEffortTrackingMode | null;
+  contribution_rule_id_snapshot: string | null;
+  contribution_method_snapshot: ItemStageContributionMethod | null;
+  contribution_rate_snapshot: number | null;
+  contribution_allocation_basis_snapshot: ContributionAllocationBasis | null;
+  contribution_item_value_snapshot: number | null;
+  contribution_pool_snapshot: number | null;
+  contribution_revision: number;
 };
 
 export type ItemStageWorkLog = {
@@ -572,12 +589,49 @@ export type ItemStageWorkLog = {
   resumed_at: string | null;
   completed_at: string | null;
   duration_minutes: number | null;
+  credited_units: number;
+  credited_minutes: number;
+  calculated_contribution_amount: number;
   status: ItemStageWorkLogStatus;
   notes: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  updated_by: string | null;
   deleted_at: string | null;
+};
+
+export type ItemTypeStageContributionRule = TenantOwnedBase & {
+  item_type_id: string;
+  stage_master_id: string;
+  calculation_method: ItemStageContributionMethod;
+  rate_value: number;
+  percentage_allocation_basis: ContributionAllocationBasis | null;
+  is_active: boolean;
+};
+
+export type ItemStageContributionCorrection = {
+  id: string;
+  tenant_id: string;
+  stage_instance_id: string;
+  order_item_id: string;
+  reason: string;
+  old_value_json: Json;
+  new_value_json: Json;
+  created_by: string;
+  created_at: string;
+};
+
+export type ItemStageContributionOperation = {
+  id: string;
+  tenant_id: string;
+  stage_instance_id: string;
+  operation_type: "start" | "replace" | "complete";
+  idempotency_key: string;
+  request_fingerprint: string;
+  result_json: Json;
+  created_by: string;
+  created_at: string;
 };
 
 export type ItemHistory = {
@@ -1435,6 +1489,14 @@ export type Database = {
           completed_at?: string | null;
           customer_status_id?: string | null;
           notes?: string | null;
+          effort_tracking_mode_snapshot?: StageEffortTrackingMode | null;
+          contribution_rule_id_snapshot?: string | null;
+          contribution_method_snapshot?: ItemStageContributionMethod | null;
+          contribution_rate_snapshot?: number | null;
+          contribution_allocation_basis_snapshot?: ContributionAllocationBasis | null;
+          contribution_item_value_snapshot?: number | null;
+          contribution_pool_snapshot?: number | null;
+          contribution_revision?: number;
         };
         Update: Partial<Omit<ItemStageInstance, "id" | "tenant_id" | "created_at">>;
         Relationships: [TenantRelationship];
@@ -1453,14 +1515,43 @@ export type Database = {
           resumed_at?: string | null;
           completed_at?: string | null;
           duration_minutes?: number | null;
+          credited_units?: number;
+          credited_minutes?: number;
+          calculated_contribution_amount?: number;
           status?: ItemStageWorkLogStatus;
           notes?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          updated_by?: string | null;
           deleted_at?: string | null;
         };
         Update: Partial<Omit<ItemStageWorkLog, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
+      };
+      item_type_stage_contribution_rules: {
+        Row: ItemTypeStageContributionRule;
+        Insert: TenantOwnedInsertBase & {
+          item_type_id: string;
+          stage_master_id: string;
+          calculation_method: ItemStageContributionMethod;
+          rate_value: number;
+          percentage_allocation_basis?: ContributionAllocationBasis | null;
+          is_active?: boolean;
+        };
+        Update: Partial<Omit<ItemTypeStageContributionRule, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
+      };
+      item_stage_contribution_corrections: {
+        Row: ItemStageContributionCorrection;
+        Insert: Omit<ItemStageContributionCorrection, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: never;
+        Relationships: [TenantRelationship];
+      };
+      item_stage_contribution_operations: {
+        Row: ItemStageContributionOperation;
+        Insert: Omit<ItemStageContributionOperation, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: never;
         Relationships: [TenantRelationship];
       };
       item_history: {
@@ -2050,6 +2141,10 @@ export type Database = {
         Insert: TenantOwnedInsertBase & {
           name: string;
           description?: string | null;
+          icon_emoji?: string | null;
+          icon_kind?: ItemTypeIconKind | null;
+          icon_name?: string | null;
+          icon_color?: string | null;
           default_workflow_id?: string | null;
           default_sla_days?: number | null;
           is_active?: boolean;
@@ -2063,6 +2158,7 @@ export type Database = {
           name: string;
           description?: string | null;
           default_customer_status_id?: string | null;
+          effort_tracking_mode?: StageEffortTrackingMode;
           is_active?: boolean;
         };
         Update: Partial<Omit<StageMaster, "id" | "tenant_id" | "created_at">>;
@@ -2173,6 +2269,67 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      update_stage_configuration_with_effort: {
+        Args: {
+          p_tenant_id: string;
+          p_stage_id: string;
+          p_name: string;
+          p_description: string | null;
+          p_is_active: boolean;
+          p_effort_tracking_mode: StageEffortTrackingMode;
+          p_actor_id: string;
+        };
+        Returns: string;
+      };
+      upsert_item_type_stage_contribution_rule: {
+        Args: {
+          p_tenant_id: string;
+          p_item_type_id: string;
+          p_stage_id: string;
+          p_calculation_method: ItemStageContributionMethod | null;
+          p_rate_value: number | null;
+          p_percentage_allocation_basis: ContributionAllocationBasis | null;
+          p_actor_id: string;
+        };
+        Returns: string | null;
+      };
+      start_item_stage_with_contributions: {
+        Args: {
+          p_tenant_id: string;
+          p_stage_instance_id: string;
+          p_assignments: Json;
+          p_notes: string | null;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      replace_item_stage_contributions: {
+        Args: {
+          p_tenant_id: string;
+          p_stage_instance_id: string;
+          p_assignments: Json;
+          p_correction_reason: string | null;
+          p_actor_id: string;
+          p_allow_completed: boolean;
+          p_expected_revision: number;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      complete_item_stage_with_contributions: {
+        Args: {
+          p_tenant_id: string;
+          p_stage_instance_id: string;
+          p_assignments: Json;
+          p_notes: string | null;
+          p_correction_reason: string | null;
+          p_actor_id: string;
+          p_expected_revision: number;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
       import_customer_rows: {
         Args: {
           p_tenant_id: string;

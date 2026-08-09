@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TenantUser, TenantUserRole, TenantUserStatus } from "@/types/database";
@@ -130,12 +131,10 @@ export default async function TenantUsersSettingsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={user.status === "active" ? "default" : "neutral"}>{statusLabel(user.status)}</Badge>
                   <Badge variant="outline">{roleLabel(user.role)}</Badge>
-                  <Dialog title="Edit tenant user" description="Role and status changes apply only inside this tenant." trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
-                    <form action={updateTenantUserAction} className="space-y-3" data-unsaved-guard="true">
+                  <AutoCloseActionDialog action={updateTenantUserAction} title="Edit tenant user" description="Role and status changes apply only inside this tenant." successMessage="Tenant user saved." formClassName="space-y-3" trigger={<span className="inline-flex h-8 items-center rounded-md border px-2 text-xs font-medium hover:bg-accent">Edit</span>}>
                       <UserFields user={user} />
                       <Button type="submit">Save user</Button>
-                    </form>
-                  </Dialog>
+                  </AutoCloseActionDialog>
                 </div>
               </div>
             </div>

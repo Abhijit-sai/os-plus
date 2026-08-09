@@ -264,6 +264,37 @@ Track item production through configured stages.
 
 Managers can move each item through its production workflow with worker logs.
 
+## Phase 5A: Multi-worker Effort and Contribution Tracking
+
+### Goals
+
+Capture who contributed to each item stage, in which eligible role, how many units or man-hours they contributed, and the analytics-only monetary value of that work.
+
+### Architecture Tasks
+
+- Store stage-level effort mode separately from item-type/stage monetary rules.
+- Snapshot the active rule and order-item post-discount/pre-GST value on stage start so active/completed history does not change when configuration changes.
+- Extend worker stage logs with credited units, credited minutes, and calculated contribution amount while preserving automatic elapsed duration separately.
+- Add immutable contribution-correction audit records.
+- Use service-role-only, tenant-scoped RPCs for stage start with assignments, contribution replacement, and stage completion.
+- Lock stage/workflow/item rows, validate worker and workgroup ownership, and reject stale or duplicate transitions.
+- Keep productivity contribution data outside salary and finance calculations.
+
+### UI Tasks
+
+- Add effort mode to Stage settings.
+- Add a focused contribution-rule page for each item type instead of placing a dense rate matrix inside the basic edit dialog.
+- Add a mobile-first worker contribution editor to ready and in-progress stage cards.
+- Show workgroup role, units, credited time, man-hour total, rule snapshot, calculated total, and Rate not configured state.
+- Use 0.10-unit controls, first-assignment item-quantity defaults, and explicit pending, success, error, disabled, and close-protection states.
+- Close successful configuration actions and completed-stage editors while retaining editable input on server errors.
+- Aggregate only completed tenant-owned work logs by completion week for the worker leaderboard and trend report; keep contribution value, units, hours, and completed stages as separate metrics. Use worker IDs as chart keys so duplicate names remain independent.
+- Expose the report to owner/admin through the dashboard and to managers through a dedicated permission-gated Production link without granting managers unrelated dashboard access.
+
+### Deliverable
+
+Managers can record multi-worker stage effort before completion, while owner/admin can auditably correct completed contributions without rewriting production, salary, or finance history.
+
 ## Phase 6: Production Dashboard
 
 ### Goals
@@ -831,3 +862,26 @@ Create `docs/OS_PLUS_QA_Test_Matrix.xlsx` with sheets for:
 - GST invoice integration
 - Zoho Books/Tally integration
 - Bank reconciliation
+
+### Item-type icon identity and production filtering
+
+- Preserve nullable `icon_emoji`, then add nullable `icon_kind`, `icon_name`, and `icon_color`. Backfill existing emoji rows to `icon_kind = 'emoji'` and use a SQL selection constraint so default, emoji, and Lucide states cannot be mixed.
+- Normalize the four submitted icon fields through one server function. Emoji must be one valid grapheme; Lucide names must match the generated catalogue from the pinned package; color must be a controlled semantic token.
+- Keep Suggested choices and broad business keywords in the shared feature module. Store up to eight recent choices only in browser local storage because these are non-sensitive convenience data, not tenant records.
+- Dynamically import the picker panel only while its popover is open. Frimousse provides virtualized emoji search and skin tones against self-hosted `/emoji-data/en/data.json` and `messages.json`; the Lucide tab renders at most 48 results per batch.
+- Keep the routine item icon wrapper small and load Lucide's dynamic renderer only when a persisted Lucide icon is actually shown. Emoji and the neutral fallback require no catalogue load.
+- Use Radix Popover for focus, dismissal, collision handling, and portal behavior inside create/edit forms. Every choice remains a 44-pixel target and emits a bubbling input event for the global unsaved-change guard.
+- Query selectable item types by current tenant and filter production rows by validated tenant-derived IDs.
+- Encode repeated filters as repeated URL parameters so list/board links, search, queue cards, workflow panes, and both multi-select controls compose predictably.
+- Keep every icon field out of public tracking queries and pages.
+- Migrations: `20260809140000_item_type_emoji.sql`, then `20260809150000_item_type_icon_picker.sql`.
+
+### Dialog success lifecycle
+
+- Controlled client wrappers await server actions, close/unmount form content only on success, and display a compact success notice near the trigger.
+- Exceptions remain inside the open dialog, preserving uncontrolled field values; pending state prevents dismissal and composes with global action feedback.
+
+### Review hardening
+
+- Apply workflow and garment-type predicates to the tenant-owned order-item query before the 100-row page limit; malformed filter IDs deliberately return no items rather than broadening results.
+- Workflow and garment filter controls expose disclosure state/ownership and support Escape dismissal.

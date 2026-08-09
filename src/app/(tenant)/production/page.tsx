@@ -12,6 +12,7 @@ import {
 import { getProductionItemPageData, getProductionPageData } from "@/features/production/queries";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { ProductionFilterBar } from "@/components/production/production-filter-bar";
 import { ItemWorkflowPanel } from "@/components/production/item-workflow-panel";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,7 @@ export default async function ProductionPage({
     queue?: string;
     workflowItemId?: string;
     view?: string;
+    itemTypeId?: string | string[];
     workflowId?: string | string[];
   }>;
 }) {
@@ -118,12 +120,15 @@ export default async function ProductionPage({
   const queueFilter = resolvedSearchParams?.queue ?? "active";
   const activeView = resolvedSearchParams?.view === "board" ? "board" : "list";
   const selectedWorkflowIds = normalizeFilterValues(resolvedSearchParams?.workflowId).filter((id) => id !== "all");
+  const selectedItemTypeIds = normalizeFilterValues(resolvedSearchParams?.itemTypeId).filter((id) => id !== "all");
   const selectedWorkflowSet = new Set(selectedWorkflowIds);
+  const selectedItemTypeSet = new Set(selectedItemTypeIds);
   const selectedWorkflowItemId = resolvedSearchParams?.workflowItemId;
   const selectedWorkflowData = selectedWorkflowItemId ? await getProductionItemPageData(selectedWorkflowItemId) : null;
-  const { items, orders, customers, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData();
+  const { items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
   const orderById = new Map(orders.map((order) => [order.id, order]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
+  const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
   const workflowById = new Map(workflows.map((workflow) => [workflow.id, workflow]));
   const workflowInstanceByItemId = new Map(workflowInstances.map((instance) => [instance.order_item_id, instance]));
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
@@ -147,6 +152,7 @@ export default async function ProductionPage({
     const order = orderById.get(item.order_id);
     const customer = order ? customerById.get(order.customer_id) : null;
     const workflow = workflowById.get(item.workflow_id);
+    const itemType = itemTypeById.get(item.item_type_id);
     const workflowInstance = workflowInstanceByItemId.get(item.id);
     const currentStage = workflowInstance ? currentStageByWorkflowInstanceId.get(workflowInstance.id) : null;
     const stage = currentStage ? stageById.get(currentStage.stage_master_id) : null;
@@ -173,6 +179,7 @@ export default async function ProductionPage({
       order,
       customer,
       workflow,
+      itemType,
       workflowInstance,
       currentStage,
       stage,
@@ -237,8 +244,9 @@ export default async function ProductionPage({
         ).includes(searchLower)
       : true;
     const matchesWorkflow = selectedWorkflowIds.length === 0 || selectedWorkflowSet.has(row.item.workflow_id);
+    const matchesItemType = selectedItemTypeIds.length === 0 || selectedItemTypeSet.has(row.item.item_type_id);
 
-    return matchesSearch && matchesQueueFilter(row) && matchesWorkflow;
+    return matchesSearch && matchesQueueFilter(row) && matchesWorkflow && matchesItemType;
   });
   const queueOptions = [
     { value: "active", label: "Active workshop", count: activeRows.length, hint: "Excludes delivered" },
@@ -253,6 +261,9 @@ export default async function ProductionPage({
   const gridClassName = "grid gap-3 lg:grid-cols-[1.2fr_0.9fr_0.9fr_0.85fr_0.85fr_0.75fr_44px]";
   const addWorkflowParams = (params: URLSearchParams, workflowIds = selectedWorkflowIds) => {
     workflowIds.forEach((workflowId) => params.append("workflowId", workflowId));
+  };
+  const addItemTypeParams = (params: URLSearchParams, itemTypeIds = selectedItemTypeIds) => {
+    itemTypeIds.forEach((itemTypeId) => params.append("itemTypeId", itemTypeId));
   };
   const queueHref = (queue: string) => {
     const params = new URLSearchParams();
@@ -271,6 +282,10 @@ export default async function ProductionPage({
 
     if (selectedWorkflowIds.length) {
       addWorkflowParams(params);
+    }
+
+    if (selectedItemTypeIds.length) {
+      addItemTypeParams(params);
     }
 
     const query = params.toString();
@@ -293,6 +308,10 @@ export default async function ProductionPage({
 
     if (selectedWorkflowIds.length) {
       addWorkflowParams(params);
+    }
+
+    if (selectedItemTypeIds.length) {
+      addItemTypeParams(params);
     }
 
     params.set("workflowItemId", itemId);
@@ -318,6 +337,10 @@ export default async function ProductionPage({
       addWorkflowParams(params);
     }
 
+    if (selectedItemTypeIds.length) {
+      addItemTypeParams(params);
+    }
+
     const query = params.toString();
     return query ? `/production?${query}` : "/production";
   };
@@ -339,7 +362,19 @@ export default async function ProductionPage({
     if (workflowIds.length) {
       addWorkflowParams(params, workflowIds);
     }
+    if (selectedItemTypeIds.length) {
+      addItemTypeParams(params);
+    }
 
+    return `/production?${params.toString()}`;
+  };
+  const itemTypeHref = (itemTypeIds: string[]) => {
+    const params = new URLSearchParams();
+    if (activeView === "board") params.set("view", "board");
+    if (search) params.set("q", search);
+    if (queueFilter !== "active") params.set("queue", queueFilter);
+    if (selectedWorkflowIds.length) addWorkflowParams(params);
+    if (itemTypeIds.length) addItemTypeParams(params, itemTypeIds);
     return `/production?${params.toString()}`;
   };
   const clearSearchHref = () => {
@@ -357,6 +392,10 @@ export default async function ProductionPage({
       addWorkflowParams(params);
     }
 
+    if (selectedItemTypeIds.length) {
+      addItemTypeParams(params);
+    }
+
     const query = params.toString();
     return query ? `/production?${query}` : "/production";
   };
@@ -365,6 +404,11 @@ export default async function ProductionPage({
       ? (workflowById.get(selectedWorkflowIds[0])?.name ?? "1 workflow")
       : `${selectedWorkflowIds.length} workflows`
     : "All workflows";
+  const selectedItemTypeLabel = selectedItemTypeIds.length
+    ? selectedItemTypeIds.length === 1
+      ? (itemTypeById.get(selectedItemTypeIds[0])?.name ?? "1 garment type")
+      : `${selectedItemTypeIds.length} garment types`
+    : "All garment types";
   const workflowStageRows = selectedWorkflowIds.length === 0
     ? workflowStages
     : workflowStages.filter((stage) => selectedWorkflowSet.has(stage.workflow_id));
@@ -401,12 +445,13 @@ export default async function ProductionPage({
           ).includes(searchLower)
         : true;
       const matchesWorkflow = selectedWorkflowIds.length === 0 || selectedWorkflowSet.has(row.item.workflow_id);
+      const matchesItemType = selectedItemTypeIds.length === 0 || selectedItemTypeSet.has(row.item.item_type_id);
       const isBoardVisibleState =
         row.isDelivered ||
         !row.workflowInstance ||
         ["ready_to_start", "in_progress", "blocked", "paused"].includes(row.currentStage?.status ?? "");
 
-      return matchesSearch && matchesQueueFilter(row) && matchesWorkflow && isBoardVisibleState;
+      return matchesSearch && matchesQueueFilter(row) && matchesWorkflow && matchesItemType && isBoardVisibleState;
     })
     .sort((a, b) => {
       if (a.isDelayed !== b.isDelayed) {
@@ -439,6 +484,7 @@ export default async function ProductionPage({
       <PageHeader
         title="Production"
         description="Item-level workflow queue. Orders are commercial; these items are production units."
+        actions={<Button asChild variant="outline"><Link href="/worker-contributions">Worker contributions</Link></Button>}
       />
 
       <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
@@ -477,6 +523,7 @@ export default async function ProductionPage({
 
       <ProductionFilterBar
         activeView={activeView}
+        allItemTypesHref={itemTypeHref([])}
         allWorkflowsHref={workflowHref([])}
         boardHref={viewHref("board")}
         clearSearchHref={clearSearchHref()}
@@ -484,6 +531,9 @@ export default async function ProductionPage({
         queueFilter={queueFilter}
         resetHref={activeView === "board" ? "/production?view=board" : "/production"}
         search={search}
+        itemTypes={itemTypes}
+        selectedItemTypeIds={selectedItemTypeIds}
+        selectedItemTypeLabel={selectedItemTypeLabel}
         selectedWorkflowIds={selectedWorkflowIds}
         selectedWorkflowLabel={selectedWorkflowLabel}
         workflows={workflows}
@@ -518,8 +568,11 @@ export default async function ProductionPage({
                     className={`${gridClassName} px-4 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center`}
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{row.item.name}</p>
+                      <p className="flex items-center gap-2 truncate font-medium"><ItemTypeIcon emoji={row.itemType?.icon_emoji} kind={row.itemType?.icon_kind} name={row.itemType?.icon_name} color={row.itemType?.icon_color} />{row.item.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
+                        {row.itemType?.name ?? "Unknown garment"} · {row.customer?.name ?? "Unknown customer"} · {row.workflow?.name ?? "Unknown workflow"}
+                      </p>
+                      <p className="sr-only">
                         {row.customer?.name ?? "Unknown customer"} · {row.workflow?.name ?? "Unknown workflow"}
                       </p>
                     </div>
@@ -662,6 +715,7 @@ export default async function ProductionPage({
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 {row.isDelayed ? <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Delayed" /> : null}
+                                <ItemTypeIcon emoji={row.itemType?.icon_emoji} kind={row.itemType?.icon_kind} name={row.itemType?.icon_name} color={row.itemType?.icon_color} />
                                 <p className="line-clamp-2 text-sm font-semibold leading-snug">{row.item.name}</p>
                               </div>
                             </div>

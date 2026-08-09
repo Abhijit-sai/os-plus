@@ -249,7 +249,7 @@ To be finalized later:
 
 ## 7. Current Build Phase
 
-Current phase: Customer file import and external-identity foundation has passed final implementation review and release gates and is ready for commit and branch publication. The migration is applied in the shared production/QA Supabase environment; authenticated owner/admin, manager-permission, cross-tenant, international-phone, address, atomic-confirmation, and idempotent-retry QA pass on localhost. Direct Shopify webhooks remain later scope. Multi-worker stage contribution tracking is the next separately isolated implementation phase after this branch closes.
+Current phase: Multi-worker production-stage effort and analytics-only contribution tracking is implemented on `codex/stage-worker-contributions` and has passed focused calculation, database/source-contract, UI/permission, TypeScript, lint, QA-workbook, and production-build gates. The new migration is not yet applied to the shared production/QA Supabase environment, so authenticated database-backed and mobile browser QA remain the release dependency. Customer import is already merged to `main`; direct Shopify webhooks and worker-efficiency dashboards remain later phases.
 
 ## 8. Completed
 
@@ -283,6 +283,7 @@ Current phase: Customer file import and external-identity foundation has passed 
 - New order items now automatically get workflow and stage instances
 - Basic production queue and item workflow pages added
 - Stage start/complete actions added with worker workgroup validation and item history logging
+- Multi-worker stage contribution configuration and atomic runtime implementation completed in source, including explicit performed roles, unit/hour/hybrid effort, snapshotted rates, percentage pools, immutable corrections, idempotency, and pending-safe mobile UI
 - Production dashboard queue sections and summary counters added
 - Attendance foundation migration added
 - Daily attendance page added with active worker rows, status marking, check-in/out, hours, and notes
@@ -296,10 +297,15 @@ Current phase: Customer file import and external-identity foundation has passed 
 
 ## 9. In Progress
 
-- Orders and workflow command-center live testing
+- Apply and verify `20260809120000_stage_worker_contributions.sql`, then execute authenticated desktop/mobile contribution QA before branch closure
 
 ## 10. Pending
 
+- Stage contribution release closure:
+  - Apply `20260809120000_stage_worker_contributions.sql` to the approved shared production/QA Supabase environment.
+  - Run CF-008 and PR-004 through PR-014 from the QA matrix with owner/admin and manager accounts.
+  - Confirm atomic rollback, idempotent replay, cross-tenant rejection, completed-stage owner/admin restriction, and salary/finance non-interference with approved test records.
+  - Perform mobile-width interaction QA for multiple worker rows, role selection, 10-minute/1-hour controls, pending close blocking, and recoverable errors.
 - Production hardening phase:
   - Simplify tenant user status UI to `active` and `disabled` only for MVP.
   - Improve `/select-tenant` into a clear business selector for users linked to multiple tenants.
@@ -12116,3 +12122,164 @@ QA_BLOCKED
 - Never commit or use the private `docs_v2/sample_customers_export.csv` as an automated fixture.
 - Use synthetic data for the first confirmation. Preview the real tenant export only from the intended tenant login after the synthetic checks pass.
 - Direct Shopify OAuth/webhooks should reuse `customer_external_identities` and normalized-phone behavior in a separate PRD/WBS phase; this import slice does not create Shopify orders.
+
+### Multi-Worker Stage Contributions Phase - 2026-08-09
+
+#### Confirmed Product Rules
+
+- A production stage may contain multiple worker-role contributions from any workgroup mapped to that stage. When a worker belongs to several eligible workgroups, the performed role is selected explicitly.
+- Stage effort modes are assignment-only, credited units, credited time, or hybrid units plus time. Unit credit uses 0.10 increments; time uses ten-minute increments with +/−10-minute and +/−1-hour controls.
+- Summed man-hours are worker effort and remain separate from elapsed stage duration. Five workers contributing one hour each record five man-hours even if the stage elapsed time is one hour.
+- Optional item-type/stage monetary rules are per unit, per hour, or one percentage pool distributed by credited units or time. Percentage uses the item final value after item discount and before GST.
+- Contributions are analytics-only. They do not change salary, order totals, GST, payments, expenses, worker ledgers, or finance reports.
+- Missing rates produce ₹0 with a visible warning and never block production. Active/completed stages retain snapshotted mode/rate/item-value/pool data when configuration changes.
+- Managers may edit contributions only before completion. Owner/admin may correct completed contributions with a reason. Removing recorded effort requires a reason and immutable old/new audit evidence.
+- Historical completed stages are not backfilled. V2 work-unit parity and any composite or salary-linked efficiency score remain explicitly deferred; contribution value, units, man-hours, and completed-stage reports are available as separate metrics.
+
+#### Implementation
+
+- Added `20260809120000_stage_worker_contributions.sql` with effort/rule enums, stage configuration, contribution-rule storage, stage snapshots, credited work-log fields, immutable correction evidence, immutable idempotency receipts, tenant RLS, and service-role-only atomic start/replace/complete RPCs.
+- RPCs lock stage/workflow/item rows, revalidate tenant-owned worker/workgroup eligibility on every mutation, reject duplicate worker-role pairs, enforce tenth-unit/ten-minute increments, validate completion totals, preserve completed elapsed timestamps during correction, and atomically update workflow/order status and history.
+- Stage contribution revisions reject stale simultaneous editors instead of allowing last-write-wins overwrites. Configuration updates acquire the established workflow-then-stage locks before compatibility checks, preventing contribution-rule/mode races without reversing repository lock order.
+- Added deterministic TypeScript calculation/validation helpers for fixed rules and percentage-pool allocation with exact paise remainder handling.
+- Added stage effort-mode editing and a focused Settings → Item types → Contribution rules page. Incompatible stage-mode changes are blocked while active rules exist.
+- Replaced the public legacy single-worker start/complete controls in both Production and Order Detail with a mobile side-panel editor supporting dynamic worker rows, explicit roles, effort controls, live totals/amounts, missing-rate warning, recoverable errors, idempotency, and pending close/duplicate-submit protection.
+- New snapshotted stages no longer expose the legacy correction dialog, preventing that older single-worker path from bypassing multi-worker invariants. Existing unsnapshotted historical completed stages cannot be contribution-backfilled; their legacy records remain unchanged.
+- Added visible contribution summaries, actual elapsed time, snapshotted rule basis, and correction-audit reasons to workflow detail without exposing any contribution information in public tracking.
+- Successful saves explicitly invalidate both production-item and order-detail routes so status and contribution summaries refresh immediately.
+
+#### Documentation and QA Coverage
+
+- Updated PRD, WBS, Tech Development Plan, Site Map, Rules, Database Model, and added `docs/14_Stage_Worker_Contributions_Implementation_Spec.md`.
+- Added CF-008 and PR-004 through PR-014 to the reproducible QA matrix builder and regenerated `docs/OS_PLUS_QA_Test_Matrix.xlsx`.
+- The QA workbook has no formula errors; all 16 sheets were rendered and visually checked after regeneration.
+- Added focused calculation, atomic database-contract, and UI/permission/tenant-boundary regression scripts plus package commands.
+- Independent standards/spec reviews identified and resolved legacy backfill, eligibility revalidation, stale editor, deterministic paise preview, dynamic-route invalidation, completion-summary, and configuration lock-order gaps before handoff.
+
+#### Automated Verification
+
+| Command | Result |
+|---|---|
+| `npm run test:stage-contributions` | PASS |
+| `npm run test:stage-contribution-contract` | PASS |
+| `npm run test:stage-contribution-ui` | PASS |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS; contribution settings route included and all 41 pages generated |
+
+#### Applied Migration and Authenticated QA - 2026-08-09
+
+- The owner applied `20260809120000_stage_worker_contributions.sql` successfully to the shared production/QA Supabase environment before runtime verification.
+- Authenticated Phantom Threads Test QA covered both owner/admin and manager memberships. Owner/admin could correct completed feature-era contribution snapshots with a mandatory reason; the manager could see the completed summary but had no completed-contribution correction action.
+- Before the approved tenth-unit usability revision, a Shirt Stitching stage was started with two eligible workers in the Tailors role, split at 0.50 units each, saved, completed, and then owner-corrected to 0.75/0.25 under the then-current quarter-unit rule. The INR 400 per-unit pool remained INR 400 after correction and the audit history showed the supplied reason. Existing completed snapshots remain historical and are not rewritten by the new increment rule.
+- A separate Maggam stage persisted 1h 10m for Man 2 through the +1-hour/+10-minute controls. Its missing item-type rate produced a visible INR 0 warning and did not block start or completion, confirming the intended configuration-gap behavior.
+- Live two-tab testing proved contribution revisions reject stale editors. The stale editor preserved its entered values and displayed a recoverable conflict message after the first editor saved a newer revision.
+- Live QA exposed and fixed two release-edge defects: structured Supabase RPC errors now map to specific user-facing conflict messages, and a successful contribution action now rotates its idempotency token so a subsequent save-to-complete action is not misclassified as a replay.
+- Pending-state behavior was observed on start, save, and complete: the dialog and inputs were disabled, close was protected, status text was visible, and duplicate submission was blocked while the request was active.
+- The production workflow was checked at a narrow mobile viewport without document overflow. Completed summaries showed worker-role allocations, effort, contribution amount, actual elapsed duration, and snapshotted rate basis.
+- Historical unsnapshotted completed stages remained without contribution correction controls. The new RPC additionally rejects completed legacy stages, so existing history cannot be backfilled through a direct call.
+
+#### Final Regression Gate
+
+| Command | Result |
+|---|---|
+| `npm run test:roles` | PASS |
+| `npm run test:order-add-items` | PASS |
+| `npm run test:action-feedback` | PASS |
+| `npm run test:client-boundaries` | PASS |
+| `npm run test:configuration-editing` | PASS |
+| `npm run test:expense-defaults` | PASS |
+| `npm run test:attendance-import` | PASS |
+| `npm run test:attendance-import-contract` | PASS |
+| `npm run test:customer-inline` | PASS |
+| `npm run test:customer-phone` | PASS |
+| `npm run test:customer-import` | PASS |
+| `npm run test:customer-import-matching` | PASS |
+| `npm run test:customer-import-contract` | PASS |
+| `npm run test:stage-contributions` | PASS |
+| `npm run test:stage-contribution-contract` | PASS |
+| `npm run test:stage-contribution-ui` | PASS |
+| `npm run test:v2` | PASS |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS; all 41 pages generated |
+
+#### Remaining Release Evidence
+
+- A disposable database is still required for an automated destructive contribution-RPC harness covering forced mid-transaction rollback and concurrent tenant-boundary attempts. Those cases were not manufactured against the shared production/QA environment.
+- The runtime contribution records above were created only in the owner-approved Phantom test tenant. Salary, payment, GST, expense, and public-tracking calculations are not read or mutated by the contribution RPCs.
+- Do not stage, commit, push, or merge this branch until final diff review and owner authorization.
+
+### Contribution Usability and Worker Reporting Follow-up - 2026-08-09
+
+#### Approved Changes
+
+- Credited units now use 0.10 increments. Unit rows provide -1, -0.1, +0.1, and +1 controls plus exact numeric entry.
+- The first assignment on a unit/hybrid stage defaults to the complete item quantity; added assignments and all time inputs default to zero.
+- Successful stage-configuration and contribution-rule saves close their editor, refresh the visible saved value, and show success feedback. Errors keep the editor and entered values available.
+- Contribution rules use saved plain-language summaries with focused editing. Percentage summaries explain that one pool is calculated from the discounted pre-GST item value and split by the configured effort basis.
+- A valid completed-stage action closes only the contribution editor and returns to the workflow view. Start and in-progress save actions remain open.
+- Worker contribution analytics compare contribution value, credited units, man-hours, and completed stages as independent metrics. Active work is excluded, weekly trends use completion week, and rate-configuration coverage explains zero-value gaps. These analytics do not affect salary or finance.
+
+#### Implementation
+
+- Added `20260809130000_stage_contribution_usability_reports.sql` to replace the quarter-step database constraint/function validation with tenth-unit validation and add the completed-work report index.
+- Updated TypeScript/Zod and database validation to the same 0.10 invariant.
+- Added mobile unit steppers, first-row defaults, completed-editor close behavior, success-closing stage configuration, and summary-first item-type contribution rules.
+- Added tenant-scoped completed-work aggregation and the `/dashboard/workers` leaderboard/weekly trend report with metric and date-range controls.
+- Added focused regression coverage for calculations, server/database increment parity, editor defaults and controls, configuration close/error behavior, and report aggregation/query/UI contracts.
+- Independent standards/spec review found and resolved five release-edge defects: tiny percentage pools could over-allocate or create a negative final row; status-only completion could create a false correction; completion summaries omitted unit totals; duplicate worker names collided in chart series; and managers inherited an owner-only dashboard guard. Allocation now uses largest remainder in paise, audit comparison ignores status-only changes, summaries show units versus quantity, chart keys use worker IDs, and managers use a dedicated permission-gated Production route.
+- The review also removed configurable-name fulfillment inference from the contribution completion RPC. Final delivery uses the explicit mapped customer-status final flag.
+
+#### Migration and Runtime Note
+
+- `20260809130000_stage_contribution_usability_reports.sql` must be applied before runtime 0.10-unit entries are accepted by the shared Supabase environment. Existing completed contribution snapshots are not modified.
+
+### 2026-08-09 — Item-type emoji and Production garment filter
+
+- Added optional single-emoji item-type identity with server validation and bounded nullable storage.
+- Added internal fallback garment icon and propagated item-type identity through order creation, order detail, production queue/board, and workflow detail.
+- Added tenant-scoped, multi-select garment-type filtering on Production.
+- Preserved search, queue, workflow, item-type, list/board, and workflow-pane URL state across navigation.
+- Kept emoji outside public tracking.
+- Added migration `20260809140000_item_type_emoji.sql` and focused `test:item-type-emoji` coverage.
+- Migration must be applied before runtime emoji writes are manually tested.
+
+### 2026-08-09 — Configuration and attachment success-close behavior
+
+- Standardized all configuration edit dialogs on the existing awaited server-action wrapper.
+- Successful item type, stage, customer status, workgroup, payment-mode, and expense-category edits now close and show a compact confirmation.
+- Attachment upload and external-link saves now close/reset the add dialog after success.
+- Pending saves prevent closing; failed saves stay open with entered data and visible error feedback.
+- Added focused `test:dialog-success` coverage alongside the configuration contract.
+
+### 2026-08-09 — Final review hardening
+
+- Moved Production workflow/garment predicates ahead of the 100-item limit and made malformed filter IDs fail closed.
+- Added accessible disclosure state, popup relationships, labels, and Escape dismissal to both multi-select filters.
+- Extended successful-save closing to workflow, measurement field, standard size, tenant user, location, team, communication template, and communication trigger-rule edit dialogs without nested forms.
+- Added the neutral garment fallback to native order item-type selectors and expanded focused regression contracts.
+
+### 2026-08-09 — Searchable item-type emoji and icon picker
+
+- Replaced the raw item-type emoji input with one reusable Suggested/Emoji/Icons popover on both create and edit forms. Suggested combines broad item-name matching with up to eight recent browser-local choices and is not limited to boutique tenants.
+- Added the virtualized Frimousse emoji library with search and built-in skin tones. Only English Emojibase data is self-hosted under `/emoji-data/en`; no third-party emoji CDN is required at runtime.
+- Added the full searchable pinned Lucide catalogue with 48-result batches and controlled accessible color tokens. Custom icon/image upload remains intentionally excluded.
+- Added migration `20260809150000_item_type_icon_picker.sql`, backfilling existing emoji rows and enforcing coherent default/emoji/Lucide database states through `icon_kind`, `icon_name`, and `icon_color`.
+- Added exact server-side Lucide-name validation from a generated allowlist, single-grapheme emoji validation, controlled color validation, and legacy emoji compatibility.
+- The full picker panel and catalogues load only while the popover is open. Routine surfaces load the selected Lucide renderer only when needed; static emoji data is eligible for Vercel CDN caching.
+- Propagated saved icon kind/name/color through order creation, order detail, Production filtering/list/board, item workflow, and item-type settings while keeping all icon fields outside public tracking.
+- Preserved explicit Default behavior, 44-pixel mobile targets, keyboard/focus behavior, visible selection state, loading feedback, error-safe server actions, and global unsaved-change notification.
+- Made the neutral emoji skin tone explicit and retained a text-safe garment fallback inside native order item-type selectors, where nested SVG/icon markup is invalid HTML.
+- Fixed the picker transparency regression: OS PLUS does not define Tailwind `popover` color tokens, so the portal and sticky emoji headers now use the existing opaque `background`/`foreground` surface tokens. A focused contract prevents `bg-popover` or `text-popover-foreground` from returning at this call site.
+- Expanded `test:item-type-emoji` and QA PR-016 to cover migration shape, exact validation, lazy boundaries, self-hosted assets, searchable libraries, recent suggestions, mobile accessibility, all authenticated consumers, and the public boundary.
+- Migrations must be applied in order: `20260809140000_item_type_emoji.sql`, then `20260809150000_item_type_icon_picker.sql`.
+- Verification passed: all 19 non-destructive `test:*` scripts, `typecheck`, `lint`, `git diff --check`, and the optimized production build (42 pages). Signed-in Phantom browser QA confirmed an opaque Suggested/Emoji/Icons surface, icon search and controlled color selection, selection-close and Escape focus behavior, recent choices, self-hosted emoji rendering, narrow-layout containment, saved icons in Production, the garment filter, order-creation selector fallbacks, and no console errors.
+- The current dependency audit reports 9 existing dependency-tree advisories (1 low, 2 moderate, 6 high), including the pinned Next.js/PostCSS toolchain. None directly names Frimousse, Radix Popover, or Emojibase. Dependency upgrades remain a separate reviewed change; no automatic audit fix was applied.
+
+### 2026-08-09 — Production selected item-type icon correction
+
+- Fixed the Production garment-type filter trigger, which previously hardcoded the neutral garment icon even when exactly one configured item type was selected.
+- A single selected item type now renders its saved emoji or Lucide icon and color. All-item and multi-item selections intentionally retain the neutral garment icon because no single item-type identity applies.
+- Expanded the focused item-type icon contract to protect single-selection lookup, full icon-field propagation, and the removal of the hardcoded-null trigger.
+- Signed-in Phantom runtime QA confirmed `👖 Pant`, neutral All/multi-select states, unchanged Pant queue-row icons, desktop/narrow layout behavior, and no console errors. The owner confirmed the required migrations are applied.

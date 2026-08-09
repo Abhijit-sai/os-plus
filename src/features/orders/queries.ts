@@ -248,7 +248,7 @@ export async function getOrderDetailPageData(orderId: string) {
   }
 
   const customerOrderIds = (customerOrders.data ?? []).map((customerOrder) => customerOrder.id);
-  const [workflowInstances, stageInstances, stageMasters, workLogs, workers, workerWorkgroups, stageWorkgroups, workgroups, itemHistory, customerStatuses, customerOrderItems] = itemIds.length
+  const [workflowInstances, stageInstances, workflowStages, stageMasters, workLogs, workers, workerWorkgroups, stageWorkgroups, workgroups, contributionRules, contributionCorrections, itemHistory, customerStatuses, customerOrderItems] = itemIds.length
     ? await Promise.all([
         supabase
           .from("item_workflow_instances")
@@ -263,6 +263,7 @@ export async function getOrderDetailPageData(orderId: string) {
           .in("order_item_id", itemIds)
           .is("deleted_at", null)
           .order("sequence_number"),
+        supabase.from("workflow_stages").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
         supabase.from("stage_master").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
         supabase
           .from("item_stage_work_logs")
@@ -275,6 +276,14 @@ export async function getOrderDetailPageData(orderId: string) {
         supabase.from("worker_workgroups").select("*").eq("tenant_id", context.tenant.id),
         supabase.from("stage_workgroups").select("*").eq("tenant_id", context.tenant.id),
         supabase.from("workgroups").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
+        supabase.from("item_type_stage_contribution_rules").select("*").eq("tenant_id", context.tenant.id).eq("is_active", true).is("deleted_at", null),
+        supabase
+          .from("item_stage_contribution_corrections")
+          .select("*")
+          .eq("tenant_id", context.tenant.id)
+          .in("order_item_id", itemIds)
+          .order("created_at", { ascending: false })
+          .limit(100),
         supabase
           .from("item_history")
           .select("*")
@@ -303,10 +312,13 @@ export async function getOrderDetailPageData(orderId: string) {
         { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
         { data: [], error: null }
       ]);
 
-  for (const result of [workflowInstances, stageInstances, stageMasters, workLogs, workers, workerWorkgroups, stageWorkgroups, workgroups, itemHistory, customerStatuses, customerOrderItems]) {
+  for (const result of [workflowInstances, stageInstances, workflowStages, stageMasters, workLogs, workers, workerWorkgroups, stageWorkgroups, workgroups, contributionRules, contributionCorrections, itemHistory, customerStatuses, customerOrderItems]) {
     if (result.error) {
       throw new Error(`Unable to load order production detail: ${result.error.message}`);
     }
@@ -323,12 +335,15 @@ export async function getOrderDetailPageData(orderId: string) {
     paymentModes: paymentModes.data ?? [],
     workflowInstances: workflowInstances.data ?? [],
     stageInstances: stageInstances.data ?? [],
+    workflowStages: workflowStages.data ?? [],
     stageMasters: stageMasters.data ?? [],
     workLogs: workLogs.data ?? [],
     workers: workers.data ?? [],
     workerWorkgroups: workerWorkgroups.data ?? [],
     stageWorkgroups: stageWorkgroups.data ?? [],
     workgroups: workgroups.data ?? [],
+    contributionRules: contributionRules.data ?? [],
+    contributionCorrections: contributionCorrections.data ?? [],
     itemHistory: itemHistory.data ?? [],
     customerStatuses: customerStatuses.data ?? [],
     customerOrders: customerOrders.data ?? [],

@@ -126,9 +126,22 @@ Purpose:
 - Assign worker
 - Pause/resume
 - Complete stage
+- Add, edit, or remove eligible worker contributions
+- Record tenth-unit credits and/or ten-minute effort credits
+- Review summed man-hours and analytics-only contribution value
 - Add notes
 - Add attachments
 - Move to next stage
+
+### Worker Contribution Analytics
+
+`/dashboard/workers` (owner/admin dashboard entry)
+
+`/worker-contributions` (owner/admin or manager, linked from Production)
+
+- Compare contribution value, credited units, man-hours, or completed stages
+- Review a compact leaderboard and weekly trend for completed work
+- Inspect monetary-rule configuration coverage without using contribution data as salary
 
 ## 3.4 Customers
 
@@ -320,6 +333,7 @@ Sections:
 /settings/branding
 /settings/users
 /settings/item-types
+/settings/item-types/:itemTypeId/contributions
 /settings/stages
 /settings/customer-statuses
 /settings/workflows
@@ -353,10 +367,18 @@ Sections:
 - Kurtha
 - Blazer
 - Custom item types
+- Focused stage contribution rules by item type
+
+### Item Type Contribution Rules
+
+- Optional per-unit, per-hour, or percentage-pool rate per internal stage
+- Percentage pool distribution by units or hours
+- Configuration applies only to stages that have not started; active/completed stages retain snapshots
 
 ### Stages
 
 - Master list of internal stages
+- Effort tracking mode: none, units, hours, or units plus hours
 
 ### Customer Statuses
 
@@ -411,3 +433,8 @@ Role-based visibility:
 - Manager: Dashboard, Orders, Production, Customers, Workers, Attendance, limited Reports
 - Finance: Dashboard, Orders read-only, Finance, Salary, Workers ledger, Reports
 - Viewer: Dashboard and permitted reports only
+
+### Production filter refinement
+
+- `/production` includes multi-select Workflow and Garment type controls in both list and board views.
+- `/settings/item-types` owns the optional internal emoji used on authenticated item and production labels.

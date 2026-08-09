@@ -7,6 +7,7 @@ import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { getTenantLogoFile, uploadTenantLogo } from "@/lib/tenant/assets";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { normalizeItemTypeIcon } from "@/features/settings/item-type-icon";
 import {
   defaultCustomerStatuses,
   defaultExpenseCategories,
@@ -16,6 +17,10 @@ import {
   defaultWorkgroups
 } from "@/features/settings/defaults";
 import type { Json } from "@/types/database";
+import type {
+  ContributionAllocationBasis,
+  ItemStageContributionMethod,
+} from "@/types/database";
 
 const optionalText = z
   .string()
@@ -57,6 +62,19 @@ const businessProfileSchema = z.object({
 const itemTypeSchema = z.object({
   name: nameSchema,
   description: optionalText,
+  icon: z.object({
+    kind: z.unknown(),
+    emoji: z.unknown(),
+    name: z.unknown(),
+    color: z.unknown(),
+  }).transform((value, context) => {
+    try {
+      return normalizeItemTypeIcon(value);
+    } catch (error) {
+      context.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Choose a valid item icon." });
+      return z.NEVER;
+    }
+  }),
   defaultSlaDays: z.coerce.number().int().min(0).optional()
 });
 
@@ -64,6 +82,15 @@ const textMasterSchema = z.object({
   name: nameSchema,
   description: optionalText
 });
+
+const stageEffortModeSchema = z.enum(["none", "units", "hours", "hybrid"]);
+const contributionRuleSelectionSchema = z.enum([
+  "none",
+  "per_unit",
+  "per_hour",
+  "percentage_units",
+  "percentage_hours",
+]);
 
 const customerStatusSchema = z.object({
   name: nameSchema,
@@ -316,6 +343,12 @@ export async function createItemTypeAction(formData: FormData) {
   const parsed = itemTypeSchema.parse({
     name: formData.get("name"),
     description: formData.get("description"),
+    icon: {
+      kind: formData.get("iconKind"),
+      emoji: formData.get("iconEmoji"),
+      name: formData.get("iconName"),
+      color: formData.get("iconColor"),
+    },
     defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays"))
   });
 
@@ -324,6 +357,10 @@ export async function createItemTypeAction(formData: FormData) {
     tenant_id: context.tenant.id,
     name: parsed.name,
     description: parsed.description,
+    icon_kind: parsed.icon.kind,
+    icon_emoji: parsed.icon.emoji,
+    icon_name: parsed.icon.name,
+    icon_color: parsed.icon.color,
     default_sla_days: parsed.defaultSlaDays ?? null,
     created_by: context.membership.clerk_user_id,
     updated_by: context.membership.clerk_user_id
@@ -345,9 +382,10 @@ export async function createItemTypeAction(formData: FormData) {
 
 export async function createStageAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.parse({
+  const parsed = textMasterSchema.extend({ effortTrackingMode: stageEffortModeSchema }).parse({
     name: formData.get("name"),
-    description: formData.get("description")
+    description: formData.get("description"),
+    effortTrackingMode: formData.get("effortTrackingMode") || "none",
   });
 
   const supabase = createSupabaseServiceRoleClient();
@@ -355,6 +393,7 @@ export async function createStageAction(formData: FormData) {
     tenant_id: context.tenant.id,
     name: parsed.name,
     description: parsed.description,
+    effort_tracking_mode: parsed.effortTrackingMode,
     created_by: context.membership.clerk_user_id,
     updated_by: context.membership.clerk_user_id
   });
@@ -1079,10 +1118,16 @@ export async function updateItemTypeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
   const parsed = itemTypeSchema.extend({ itemTypeId: z.string().uuid() }).merge(activeFlagSchema).parse({
     itemTypeId: formData.get("itemTypeId"), name: formData.get("name"), description: formData.get("description"),
+    icon: {
+      kind: formData.get("iconKind"),
+      emoji: formData.get("iconEmoji"),
+      name: formData.get("iconName"),
+      color: formData.get("iconColor"),
+    },
     defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays")), isActive: formData.get("isActive") === "on"
   });
   const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase.from("item_types").update({ name: parsed.name, description: parsed.description, default_sla_days: parsed.defaultSlaDays ?? null, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.itemTypeId).is("deleted_at", null).select("id").maybeSingle();
+  const { data, error } = await supabase.from("item_types").update({ name: parsed.name, description: parsed.description, icon_kind: parsed.icon.kind, icon_emoji: parsed.icon.emoji, icon_name: parsed.icon.name, icon_color: parsed.icon.color, default_sla_days: parsed.defaultSlaDays ?? null, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.itemTypeId).is("deleted_at", null).select("id").maybeSingle();
   if (error) throw new Error(isUniqueConstraintError(error) ? "An item type with this name already exists." : `Unable to update item type: ${error.message}`);
   if (!data) throw new Error("Item type does not belong to this tenant.");
   revalidatePath("/settings"); revalidatePath("/settings/item-types"); revalidatePath("/settings/measurement-standards");
@@ -1104,27 +1149,88 @@ async function updateTextMaster(formData: FormData, kind: "workgroup" | "payment
 
 export async function updateStageAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.extend({ stageId: z.string().uuid() }).merge(activeFlagSchema).parse({
-    stageId: formData.get("stageId"), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on"
+  const parsed = textMasterSchema.extend({ stageId: z.string().uuid(), effortTrackingMode: stageEffortModeSchema }).merge(activeFlagSchema).parse({
+    stageId: formData.get("stageId"), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on",
+    effortTrackingMode: formData.get("effortTrackingMode") || "none",
   });
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.rpc("update_stage_configuration", {
+  const { error } = await supabase.rpc("update_stage_configuration_with_effort", {
     p_tenant_id: context.tenant.id,
     p_stage_id: parsed.stageId,
     p_name: parsed.name,
     p_description: parsed.description,
     p_is_active: parsed.isActive,
+    p_effort_tracking_mode: parsed.effortTrackingMode,
     p_actor_id: context.membership.clerk_user_id
   });
   if (error) {
     throw new Error(
       isUniqueConstraintError(error) ? "A stage with this name already exists."
         : error.message.includes("STAGE_REQUIRED_BY_ACTIVE_WORKFLOW") ? "This stage is the last active stage in an active workflow. Replace that workflow sequence before deactivating it."
+          : error.message.includes("STAGE_EFFORT_MODE_HAS_INCOMPATIBLE_RULES") ? "Update this stage's item-type contribution rules before changing its effort mode."
           : error.message.includes("STAGE_NOT_FOUND") ? "Stage does not belong to this tenant."
             : `Unable to update stage: ${error.message}`
     );
   }
   revalidatePath("/settings"); revalidatePath("/settings/stages"); revalidatePath("/settings/workflows");
+}
+
+export async function updateItemTypeStageContributionRuleAction(formData: FormData) {
+  const context = await getAuthorizedSettingsContext();
+  const parsed = z.object({
+    itemTypeId: z.string().uuid(),
+    stageId: z.string().uuid(),
+    ruleSelection: contributionRuleSelectionSchema,
+    rateValue: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() ? value : null),
+      z.coerce.number().positive().max(1000000).nullable(),
+    ),
+  }).superRefine((value, issueContext) => {
+    if (value.ruleSelection !== "none" && value.rateValue === null) {
+      issueContext.addIssue({ code: "custom", message: "Add a contribution rate.", path: ["rateValue"] });
+    }
+    if (value.ruleSelection.startsWith("percentage") && value.rateValue !== null && value.rateValue > 100) {
+      issueContext.addIssue({ code: "custom", message: "Percentage cannot exceed 100.", path: ["rateValue"] });
+    }
+  }).parse({
+    itemTypeId: formData.get("itemTypeId"),
+    stageId: formData.get("stageId"),
+    ruleSelection: formData.get("ruleSelection") || "none",
+    rateValue: formData.get("rateValue"),
+  });
+  const method: ItemStageContributionMethod | null = parsed.ruleSelection === "none"
+    ? null
+    : parsed.ruleSelection === "per_unit" || parsed.ruleSelection === "per_hour"
+      ? parsed.ruleSelection
+      : "percentage";
+  const allocationBasis: ContributionAllocationBasis | null = parsed.ruleSelection.endsWith("units") || parsed.ruleSelection === "per_unit"
+    ? "units"
+    : parsed.ruleSelection.endsWith("hours") || parsed.ruleSelection === "per_hour"
+      ? "hours"
+      : null;
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.rpc("upsert_item_type_stage_contribution_rule", {
+    p_tenant_id: context.tenant.id,
+    p_item_type_id: parsed.itemTypeId,
+    p_stage_id: parsed.stageId,
+    p_calculation_method: method,
+    p_rate_value: method ? parsed.rateValue : null,
+    p_percentage_allocation_basis: method ? allocationBasis : null,
+    p_actor_id: context.membership.clerk_user_id,
+  });
+  if (error) {
+    throw new Error(
+      error.message.includes("ITEM_TYPE_NOT_FOUND") ? "Item type does not belong to this tenant or is inactive."
+        : error.message.includes("STAGE_NOT_FOUND") ? "Stage does not belong to this tenant or is inactive."
+          : error.message.includes("RULE_INCOMPATIBLE_WITH_STAGE_EFFORT_MODE") ? "This calculation does not match the stage effort mode. Update the stage or choose a compatible rule."
+            : error.message.includes("INVALID_CONTRIBUTION_RATE") ? "Add a valid positive rate; percentages cannot exceed 100."
+              : `Unable to save contribution rule: ${error.message}`,
+    );
+  }
+  revalidatePath("/settings");
+  revalidatePath("/settings/item-types");
+  revalidatePath(`/settings/item-types/${parsed.itemTypeId}/contributions`);
+  revalidatePath("/production");
 }
 export async function updateWorkgroupAction(formData: FormData) { await updateTextMaster(formData, "workgroup"); }
 export async function updatePaymentModeAction(formData: FormData) { await updateTextMaster(formData, "paymentMode"); }

@@ -6,6 +6,7 @@ import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
@@ -99,12 +100,15 @@ export default async function OrderDetailPage({
     paymentModes,
     workflowInstances,
     stageInstances,
+    workflowStages,
     stageMasters,
     workLogs,
     workers,
     workerWorkgroups,
     stageWorkgroups,
     workgroups,
+    contributionRules,
+    contributionCorrections,
     itemHistory,
     customerStatuses,
     customerOrders,
@@ -531,7 +535,13 @@ export default async function OrderDetailPage({
                     <div className="flex flex-col justify-between gap-2 md:flex-row md:items-start">
                       <div>
                         <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <ItemTypeIcon
+                            emoji={itemTypeById.get(item.item_type_id)?.icon_emoji}
+                            kind={itemTypeById.get(item.item_type_id)?.icon_kind}
+                            name={itemTypeById.get(item.item_type_id)?.icon_name}
+                            color={itemTypeById.get(item.item_type_id)?.icon_color}
+                          />
                           {itemTypeById.get(item.item_type_id)?.name ?? "Unknown type"} ·{" "}
                           {workflowById.get(item.workflow_id)?.name ?? "Unknown workflow"}
                         </p>
@@ -642,13 +652,17 @@ export default async function OrderDetailPage({
                                 workflows={workflows}
                                 itemType={itemTypeById.get(item.item_type_id) ?? null}
                                 workflowInstance={workflowInstance ?? null}
-                                stageInstances={itemStages}
+                                 stageInstances={itemStages}
+                                 workflowStages={workflowStages.filter((workflowStage) => workflowStage.workflow_id === item.workflow_id)}
                                 stages={stageMasters}
                                 workers={workers}
                                 workerWorkgroups={workerWorkgroups}
                                 stageWorkgroups={stageWorkgroups}
                                 workgroups={workgroups}
-                                workLogs={workLogs.filter((log) => log.order_item_id === item.id)}
+                                 workLogs={workLogs.filter((log) => log.order_item_id === item.id)}
+                                 contributionRules={contributionRules.filter((rule) => rule.item_type_id === item.item_type_id)}
+                                 contributionCorrections={contributionCorrections.filter((correction) => correction.order_item_id === item.id)}
+                                 canCorrectCompletedContributions={context.membership.role === "owner_admin"}
                                 history={itemHistory.filter((event) => event.order_item_id === item.id)}
                                 linkedMeasurement={linkedMeasurement ?? null}
                                 variant="pane"
