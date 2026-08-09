@@ -69,6 +69,9 @@ export function ProductionFilterBar({
   const itemTypePopupId = useId();
   const selectedWorkflowSet = new Set(selectedWorkflowIds);
   const selectedItemTypeSet = new Set(selectedItemTypeIds);
+  const selectedItemType = selectedItemTypeIds.length === 1
+    ? itemTypes.find((itemType) => itemType.id === selectedItemTypeIds[0])
+    : undefined;
   const hasActiveFilters = Boolean(search) || queueFilter !== "active" || selectedWorkflowIds.length > 0 || selectedItemTypeIds.length > 0;
 
   useEffect(() => {
@@ -212,7 +215,12 @@ export function ProductionFilterBar({
 
           <div ref={itemTypeRef} className="relative">
             <Button ref={itemTypeTriggerRef} type="button" size="sm" variant="outline" className="gap-2" aria-expanded={itemTypeOpen} aria-controls={itemTypePopupId} aria-haspopup="dialog" onClick={() => setItemTypeOpen((open) => !open)}>
-              <ItemTypeIcon emoji={null} />
+              <ItemTypeIcon
+                emoji={selectedItemType?.icon_emoji}
+                kind={selectedItemType?.icon_kind}
+                name={selectedItemType?.icon_name}
+                color={selectedItemType?.icon_color}
+              />
               <span className="max-w-[180px] truncate">{selectedItemTypeLabel}</span>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${itemTypeOpen ? "rotate-180" : ""}`} />
             </Button>

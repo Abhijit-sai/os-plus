@@ -91,6 +91,9 @@ assert.ok(query.indexOf('in("workflow_id"') < query.indexOf(".limit(100)"), "wor
 assert.match(query, /Promise\.all\(\[\s*itemsQuery,/);
 assert.match(filters, /name="itemTypeId"/);
 assert.match(filters, /aria-haspopup="dialog"/);
+assert.match(filters, /selectedItemTypeIds\.length === 1[\s\S]*itemTypes\.find/);
+assert.match(filters, /<ItemTypeIcon[\s\S]*selectedItemType\?\.icon_emoji[\s\S]*selectedItemType\?\.icon_kind[\s\S]*selectedItemType\?\.icon_name[\s\S]*selectedItemType\?\.icon_color/);
+assert.doesNotMatch(filters, /<ItemTypeIcon emoji=\{null\} \/>/);
 assert.match(production, /matchesItemType/);
 assert.doesNotMatch(tracking, /icon_emoji|icon_kind|icon_name|icon_color|ItemTypeIcon/);
 assert.match(orderItemBuilder, /itemType\.icon_kind === "emoji" && itemType\.icon_emoji \? itemType\.icon_emoji : "👕"/);

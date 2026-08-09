@@ -12276,3 +12276,10 @@ QA_BLOCKED
 - Migrations must be applied in order: `20260809140000_item_type_emoji.sql`, then `20260809150000_item_type_icon_picker.sql`.
 - Verification passed: all 19 non-destructive `test:*` scripts, `typecheck`, `lint`, `git diff --check`, and the optimized production build (42 pages). Signed-in Phantom browser QA confirmed an opaque Suggested/Emoji/Icons surface, icon search and controlled color selection, selection-close and Escape focus behavior, recent choices, self-hosted emoji rendering, narrow-layout containment, saved icons in Production, the garment filter, order-creation selector fallbacks, and no console errors.
 - The current dependency audit reports 9 existing dependency-tree advisories (1 low, 2 moderate, 6 high), including the pinned Next.js/PostCSS toolchain. None directly names Frimousse, Radix Popover, or Emojibase. Dependency upgrades remain a separate reviewed change; no automatic audit fix was applied.
+
+### 2026-08-09 — Production selected item-type icon correction
+
+- Fixed the Production garment-type filter trigger, which previously hardcoded the neutral garment icon even when exactly one configured item type was selected.
+- A single selected item type now renders its saved emoji or Lucide icon and color. All-item and multi-item selections intentionally retain the neutral garment icon because no single item-type identity applies.
+- Expanded the focused item-type icon contract to protect single-selection lookup, full icon-field propagation, and the removal of the hardcoded-null trigger.
+- Signed-in Phantom runtime QA confirmed `👖 Pant`, neutral All/multi-select states, unchanged Pant queue-row icons, desktop/narrow layout behavior, and no console errors. The owner confirmed the required migrations are applied.
