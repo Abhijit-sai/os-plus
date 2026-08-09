@@ -80,6 +80,7 @@ const sheets = [
       ,["CF-008", "P0", "Owner/Admin", "Phantom Threads", "Active stages and item types exist.", "Configure stage effort modes (assignment-only, units, hours, hybrid), then add compatible per-unit, per-hour, and percentage contribution rules; attempt an incompatible mode change.", "Compatible rules save tenant-safely; the incompatible change is blocked with a recoverable message; active/completed stage snapshots are not rewritten.", "", "Not Run", "Database + Manual + Automated", "Contribution values are analytics-only."]
       ,["CF-009", "P1", "Owner/Admin", "Phantom Threads", "A stage has a saved effort mode.", "Edit its effort mode and save, then reopen the stage.", "The dialog closes on success, visible feedback appears, and reopening shows the persisted mode rather than the prior default. A failed save keeps the editor and entered value open.", "", "Not Run", "Manual + Automated", ""]
       ,["CF-010", "P1", "Owner/Admin", "Phantom Threads", "Blazer stages support per-unit, per-hour, percentage, and no-rate cases.", "Save each rule, review the row summary, reopen one rule, and clear it with No monetary rule.", "Each success exits edit mode and shows a plain-language saved summary; percentage explains the discounted pre-GST pool and allocation basis; clearing hides stale rate input and shows the unconfigured warning.", "", "Not Run", "Manual + Automated", ""]
+      ,["CF-011", "P1", "Owner/Admin", "Phantom Threads", "Item type, stage, customer status, workgroup, payment mode, and expense category records exist.", "Edit each record successfully, then force a validation error in one dialog.", "Every successful dialog closes and shows confirmation; the pending dialog cannot close or double-submit; the failed dialog remains open with entered values and visible error feedback.", "", "Not Run", "Manual + Automated", ""]
     ]
   },
   {
@@ -172,6 +173,7 @@ const sheets = [
       ["AD-001", "P1", "Manager", "Phantom Threads", "Customer exists.", "Upload JPG attachment on customer profile.", "Attachment saves in private bucket and appears as thumbnail/gallery item.", "", "Not Run", "Manual", ""],
       ["AD-002", "P0", "Manager", "Tenant A and Tenant B", "Tenant B attachment ID known.", "Open download URL from Tenant A session.", "No signed URL is issued.", "", "Not Run", "Automated", ""],
       ["AD-003", "P0", "Public customer", "Public", "Customer-visible and internal attachments exist.", "Open public tracking.", "Internal/private attachments do not appear.", "", "Not Run", "Manual + Automated", ""]
+      ,["AD-004", "P1", "Manager", "Phantom Threads", "An attachment-capable internal record is open.", "Save one uploaded file and one external URL; repeat with an invalid submission.", "Each success closes and resets the add dialog and the new card appears; invalid input stays open with data and error feedback; duplicate save is blocked while pending.", "", "Not Run", "Manual + Automated", ""]
     ]
   },
   {

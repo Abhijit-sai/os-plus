@@ -238,3 +238,8 @@
 2. Missing emoji uses a neutral garment icon; it must never invent or infer a garment category.
 3. Item-type filters are ID-based and every option is loaded from the current tenant server-side.
 4. Filter URLs may contain repeated IDs, but unknown/cross-tenant IDs must match no tenant data and must never broaden results.
+
+### Modal action lifecycle
+
+1. A successful modal save closes the modal and clears its local draft by unmounting it.
+2. Failed or pending modal saves must not close, discard user input, or allow duplicate submission.

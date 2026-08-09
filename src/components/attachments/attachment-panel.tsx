@@ -14,6 +14,7 @@ import {
   createAttachmentAction,
 } from "@/features/attachments/actions";
 import { Button } from "@/components/ui/button";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,17 +108,15 @@ export function AttachmentPanel({
           <h3 className="font-medium">{title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
-        <Dialog
+        <AutoCloseActionDialog
+          action={createAttachmentAction}
           title="Add attachment"
           description="Upload the file now. Add context only when it helps staff."
           className="max-w-xl"
+          formClassName="space-y-4"
+          successMessage="Attachment saved."
           trigger={<AddAttachmentTrigger />}
         >
-          <form
-            action={createAttachmentAction}
-            className="space-y-4"
-            data-unsaved-guard="true"
-          >
             <input type="hidden" name="entityType" value={entityType} />
             <input type="hidden" name="entityId" value={entityId} />
             <label
@@ -194,8 +193,7 @@ export function AttachmentPanel({
               <Plus className="h-4 w-4" />
               Save attachment
             </Button>
-          </form>
-        </Dialog>
+        </AutoCloseActionDialog>
       </div>
       <div
         className={

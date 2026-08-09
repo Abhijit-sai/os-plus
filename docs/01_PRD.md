@@ -1167,3 +1167,9 @@ Hardening requirements:
 - Public tracking never exposes the emoji field.
 - The Production queue supports multi-select garment-type filtering alongside workflow, queue, search, and list/board view.
 - Changing any production filter preserves every other active filter and view parameter.
+
+### Successful modal actions
+
+- Configuration edit and attachment-add dialogs close only after the server action succeeds.
+- While saving, the dialog cannot close and duplicate submission remains blocked by the global pending-action layer.
+- A failed save leaves the dialog and entered data visible with recoverable error feedback.

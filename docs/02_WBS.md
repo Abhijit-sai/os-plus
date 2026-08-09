@@ -941,3 +941,9 @@
 - [x] Add tenant-scoped item-type loading to Production.
 - [x] Add multi-select garment-type filter with URL-state preservation across search, workflow, queue, pane, and view changes.
 - [x] Add focused regression coverage and preserve the public-tracking boundary.
+
+### Successful modal completion (completed)
+
+- [x] Reuse the controlled successful-action dialog for all item type, stage, status, workgroup, payment mode, and expense-category edits.
+- [x] Close/reset the attachment add dialog after successful upload or external-link creation.
+- [x] Preserve form state and show errors on failure; prevent closing while pending; add focused contracts.

@@ -12244,3 +12244,11 @@ QA_BLOCKED
 - Kept emoji outside public tracking.
 - Added migration `20260809140000_item_type_emoji.sql` and focused `test:item-type-emoji` coverage.
 - Migration must be applied before runtime emoji writes are manually tested.
+
+### 2026-08-09 — Configuration and attachment success-close behavior
+
+- Standardized all configuration edit dialogs on the existing awaited server-action wrapper.
+- Successful item type, stage, customer status, workgroup, payment-mode, and expense-category edits now close and show a compact confirmation.
+- Attachment upload and external-link saves now close/reset the add dialog after success.
+- Pending saves prevent closing; failed saves stay open with entered data and visible error feedback.
+- Added focused `test:dialog-success` coverage alongside the configuration contract.

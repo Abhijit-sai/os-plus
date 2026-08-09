@@ -870,3 +870,8 @@ Create `docs/OS_PLUS_QA_Test_Matrix.xlsx` with sheets for:
 - Encode repeated filters as repeated URL parameters so list/board links, search, queue cards, workflow panes, and both multi-select controls compose predictably.
 - Keep the icon out of public tracking queries and pages.
 - Migration: `20260809140000_item_type_emoji.sql`.
+
+### Dialog success lifecycle
+
+- Controlled client wrappers await server actions, close/unmount form content only on success, and display a compact success notice near the trigger.
+- Exceptions remain inside the open dialog, preserving uncontrolled field values; pending state prevents dismissal and composes with global action feedback.
