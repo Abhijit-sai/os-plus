@@ -9,7 +9,7 @@ export async function getProductionPageData() {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
 
-  const [items, orders, customers, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
+  const [items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
     supabase
       .from("order_items")
       .select("*")
@@ -19,6 +19,7 @@ export async function getProductionPageData() {
       .limit(100),
     supabase.from("orders").select("id, order_number, customer_id").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
+    supabase.from("item_types").select("id, name, icon_emoji").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),
     supabase.from("workflows").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase
       .from("workflow_stages")
@@ -51,7 +52,7 @@ export async function getProductionPageData() {
       .is("deleted_at", null)
   ]);
 
-  for (const result of [items, orders, customers, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers]) {
+  for (const result of [items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers]) {
     if (result.error) {
       throw new Error(`Unable to load production data: ${result.error.message}`);
     }
@@ -62,6 +63,7 @@ export async function getProductionPageData() {
     items: items.data ?? [],
     orders: orders.data ?? [],
     customers: customers.data ?? [],
+    itemTypes: itemTypes.data ?? [],
     workflows: workflows.data ?? [],
     workflowStages: workflowStages.data ?? [],
     workflowInstances: workflowInstances.data ?? [],

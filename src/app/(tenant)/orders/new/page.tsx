@@ -180,6 +180,7 @@ export default async function NewOrderPage({
               itemTypes={itemTypes.map((itemType) => ({
                 id: itemType.id,
                 name: itemType.name,
+                icon_emoji: itemType.icon_emoji,
                 description: itemType.description,
               }))}
               workflows={workflows.map((workflow) => ({

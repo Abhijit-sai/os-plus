@@ -6,6 +6,7 @@ import {
 } from "@/features/production/actions";
 import { StageContributionEditor } from "@/components/production/stage-contribution-editor";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChangeWorkflowDialog, CorrectStageDialog } from "@/components/production/workflow-action-dialogs";
@@ -267,7 +268,8 @@ export function ItemWorkflowPanel({
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <h2 className={variant === "pane" ? "text-lg font-semibold leading-tight" : "text-2xl font-semibold tracking-tight"}>{item.name}</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <ItemTypeIcon emoji={itemType?.icon_emoji} />
             {order?.order_number ?? "Unknown order"} · {itemType?.name ?? "Unknown type"} · {workflow?.name ?? "Unknown workflow"}
           </p>
         </div>

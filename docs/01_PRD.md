@@ -1158,3 +1158,12 @@ Hardening requirements:
 - Advanced analytics
 - Custom domains
 - Worker self-login
+
+### Internal garment-type identity and production filtering
+
+- An item type may have one optional emoji chosen by an owner/admin at creation or edit time.
+- The emoji is presentation metadata only: it never changes workflow, pricing, contribution, finance, or reporting behavior.
+- Authenticated internal order and production surfaces show the emoji; a neutral garment icon is used when it is blank.
+- Public tracking never exposes the emoji field.
+- The Production queue supports multi-select garment-type filtering alongside workflow, queue, search, and list/board view.
+- Changing any production filter preserves every other active filter and view parameter.

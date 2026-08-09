@@ -1362,3 +1362,9 @@ communication_message_queue.tenant_id, communication_message_queue.customer_id
 communication_message_queue.tenant_id, communication_message_queue.order_id
 communication_message_logs.tenant_id, communication_message_logs.message_queue_id
 ```
+
+### `item_types.icon_emoji`
+
+- Nullable `text`; optional internal presentation metadata.
+- Database constraint trims and bounds values to 1-16 characters when present.
+- The server action performs the stronger one-grapheme emoji validation.

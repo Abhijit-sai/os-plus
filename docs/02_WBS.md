@@ -933,3 +933,11 @@
 - Generate salary suggestion
 - Add expense
 - View tracking page
+
+### Garment-type production navigation (completed)
+
+- [x] Add nullable, bounded `item_types.icon_emoji` storage and application-level single-emoji validation.
+- [x] Add emoji create/edit fields and internal fallback garment icon.
+- [x] Add tenant-scoped item-type loading to Production.
+- [x] Add multi-select garment-type filter with URL-state preservation across search, workflow, queue, pane, and view changes.
+- [x] Add focused regression coverage and preserve the public-tracking boundary.

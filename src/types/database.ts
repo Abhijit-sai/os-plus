@@ -303,6 +303,7 @@ export type CustomerStatus = TenantOwnedBase & {
 export type ItemType = TenantOwnedBase & {
   name: string;
   description: string | null;
+  icon_emoji: string | null;
   default_workflow_id: string | null;
   default_sla_days: number | null;
   is_active: boolean;
@@ -2136,6 +2137,7 @@ export type Database = {
         Insert: TenantOwnedInsertBase & {
           name: string;
           description?: string | null;
+          icon_emoji?: string | null;
           default_workflow_id?: string | null;
           default_sla_days?: number | null;
           is_active?: boolean;

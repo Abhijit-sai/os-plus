@@ -12,6 +12,7 @@ import type { CustomerMeasurement, ItemTypeMeasurementField, ItemTypeStandardSiz
 type Option = {
   id: string;
   name: string;
+  icon_emoji?: string | null;
   description?: string | null;
   item_type_id?: string | null;
 };
@@ -482,7 +483,7 @@ export function OrderItemBuilder({
                     <option value="">Select type</option>
                     {itemTypes.map((itemType) => (
                       <option key={itemType.id} value={itemType.id}>
-                        {itemType.name}
+                        {itemType.icon_emoji ? `${itemType.icon_emoji} ` : ""}{itemType.name}
                       </option>
                     ))}
                   </select>

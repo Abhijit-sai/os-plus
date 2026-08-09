@@ -862,3 +862,11 @@ Create `docs/OS_PLUS_QA_Test_Matrix.xlsx` with sheets for:
 - GST invoice integration
 - Zoho Books/Tally integration
 - Bank reconciliation
+
+### Item-type emoji and production filtering
+
+- Persist only a nullable text emoji on the tenant-owned item type; validate one grapheme/emoji in the server action and bound storage in SQL.
+- Query selectable item types by current tenant and filter production rows by validated tenant-derived IDs.
+- Encode repeated filters as repeated URL parameters so list/board links, search, queue cards, workflow panes, and both multi-select controls compose predictably.
+- Keep the icon out of public tracking queries and pages.
+- Migration: `20260809140000_item_type_emoji.sql`.

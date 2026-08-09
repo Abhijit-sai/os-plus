@@ -31,6 +31,7 @@
     "test:stage-contribution-contract": "node scripts/test-stage-contribution-contract.mjs",
     "test:stage-contribution-ui": "node scripts/test-stage-contribution-ui-contract.mjs",
     "test:worker-contributions": "node --experimental-strip-types scripts/test-worker-contribution-report.mjs",
+    "test:item-type-emoji": "node --experimental-strip-types scripts/test-item-type-emoji.mjs",
     "test:v2": "node scripts/test-v2-baseline.mjs && node scripts/test-v2-work-unit-runtime.mjs && node scripts/test-v2-phase-3-commands-events-tasks.mjs && node scripts/test-v2-phase-4-laundry-custody.mjs",
     "typecheck": "tsc --noEmit"
   },

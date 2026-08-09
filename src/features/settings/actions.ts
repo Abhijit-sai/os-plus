@@ -7,6 +7,7 @@ import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { getTenantLogoFile, uploadTenantLogo } from "@/lib/tenant/assets";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { normalizeItemTypeEmoji } from "@/features/settings/item-type-emoji";
 import {
   defaultCustomerStatuses,
   defaultExpenseCategories,
@@ -61,6 +62,14 @@ const businessProfileSchema = z.object({
 const itemTypeSchema = z.object({
   name: nameSchema,
   description: optionalText,
+  iconEmoji: z.unknown().transform((value, context) => {
+    try {
+      return normalizeItemTypeEmoji(value);
+    } catch (error) {
+      context.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Choose one emoji." });
+      return z.NEVER;
+    }
+  }),
   defaultSlaDays: z.coerce.number().int().min(0).optional()
 });
 
@@ -329,6 +338,7 @@ export async function createItemTypeAction(formData: FormData) {
   const parsed = itemTypeSchema.parse({
     name: formData.get("name"),
     description: formData.get("description"),
+    iconEmoji: formData.get("iconEmoji"),
     defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays"))
   });
 
@@ -337,6 +347,7 @@ export async function createItemTypeAction(formData: FormData) {
     tenant_id: context.tenant.id,
     name: parsed.name,
     description: parsed.description,
+    icon_emoji: parsed.iconEmoji,
     default_sla_days: parsed.defaultSlaDays ?? null,
     created_by: context.membership.clerk_user_id,
     updated_by: context.membership.clerk_user_id
@@ -1093,11 +1104,11 @@ export async function archiveStandardSizeAction(formData: FormData) {
 export async function updateItemTypeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
   const parsed = itemTypeSchema.extend({ itemTypeId: z.string().uuid() }).merge(activeFlagSchema).parse({
-    itemTypeId: formData.get("itemTypeId"), name: formData.get("name"), description: formData.get("description"),
+    itemTypeId: formData.get("itemTypeId"), name: formData.get("name"), description: formData.get("description"), iconEmoji: formData.get("iconEmoji"),
     defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays")), isActive: formData.get("isActive") === "on"
   });
   const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase.from("item_types").update({ name: parsed.name, description: parsed.description, default_sla_days: parsed.defaultSlaDays ?? null, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.itemTypeId).is("deleted_at", null).select("id").maybeSingle();
+  const { data, error } = await supabase.from("item_types").update({ name: parsed.name, description: parsed.description, icon_emoji: parsed.iconEmoji, default_sla_days: parsed.defaultSlaDays ?? null, is_active: parsed.isActive, updated_by: context.membership.clerk_user_id }).eq("tenant_id", context.tenant.id).eq("id", parsed.itemTypeId).is("deleted_at", null).select("id").maybeSingle();
   if (error) throw new Error(isUniqueConstraintError(error) ? "An item type with this name already exists." : `Unable to update item type: ${error.message}`);
   if (!data) throw new Error("Item type does not belong to this tenant.");
   revalidatePath("/settings"); revalidatePath("/settings/item-types"); revalidatePath("/settings/measurement-standards");

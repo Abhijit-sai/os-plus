@@ -231,3 +231,10 @@
 6. At-risk items should be visually prominent.
 7. Avoid cluttering dashboards with too many charts in MVP.
 8. Customer tracking page should be clean and simple.
+
+### Item-type presentation rules
+
+1. Item-type emoji is optional, internal presentation metadata and must be exactly one valid emoji when present.
+2. Missing emoji uses a neutral garment icon; it must never invent or infer a garment category.
+3. Item-type filters are ID-based and every option is loaded from the current tenant server-side.
+4. Filter URLs may contain repeated IDs, but unknown/cross-tenant IDs must match no tenant data and must never broaden results.

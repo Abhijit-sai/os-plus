@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Columns3, GitBranch, List, Search } from "lucide-react";
 
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +14,14 @@ type WorkflowOption = {
   name: string;
 };
 
+type ItemTypeOption = {
+  id: string;
+  name: string;
+  icon_emoji: string | null;
+};
+
 type ProductionFilterBarProps = {
+  allItemTypesHref: string;
   activeView: "list" | "board";
   allWorkflowsHref: string;
   boardHref: string;
@@ -21,7 +29,10 @@ type ProductionFilterBarProps = {
   listHref: string;
   queueFilter: string;
   resetHref: string;
+  itemTypes: ItemTypeOption[];
   search: string;
+  selectedItemTypeIds: string[];
+  selectedItemTypeLabel: string;
   selectedWorkflowIds: string[];
   selectedWorkflowLabel: string;
   workflows: WorkflowOption[];
@@ -29,12 +40,16 @@ type ProductionFilterBarProps = {
 
 export function ProductionFilterBar({
   activeView,
+  allItemTypesHref,
   allWorkflowsHref,
   boardHref,
   clearSearchHref,
   listHref,
   queueFilter,
   resetHref,
+  itemTypes,
+  selectedItemTypeIds,
+  selectedItemTypeLabel,
   search,
   selectedWorkflowIds,
   selectedWorkflowLabel,
@@ -42,12 +57,15 @@ export function ProductionFilterBar({
 }: ProductionFilterBarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [itemTypeOpen, setItemTypeOpen] = useState(false);
   const workflowRef = useRef<HTMLDivElement>(null);
+  const itemTypeRef = useRef<HTMLDivElement>(null);
   const selectedWorkflowSet = new Set(selectedWorkflowIds);
-  const hasActiveFilters = Boolean(search) || queueFilter !== "active" || selectedWorkflowIds.length > 0;
+  const selectedItemTypeSet = new Set(selectedItemTypeIds);
+  const hasActiveFilters = Boolean(search) || queueFilter !== "active" || selectedWorkflowIds.length > 0 || selectedItemTypeIds.length > 0;
 
   useEffect(() => {
-    if (!workflowOpen) {
+    if (!workflowOpen && !itemTypeOpen) {
       return;
     }
 
@@ -55,11 +73,14 @@ export function ProductionFilterBar({
       if (!workflowRef.current?.contains(event.target as Node)) {
         setWorkflowOpen(false);
       }
+      if (!itemTypeRef.current?.contains(event.target as Node)) {
+        setItemTypeOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", closeOnOutsideClick);
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, [workflowOpen]);
+  }, [workflowOpen, itemTypeOpen]);
 
   return (
     <div className="rounded-[14px] border bg-card p-2 shadow-sm">
@@ -101,6 +122,9 @@ export function ProductionFilterBar({
               {selectedWorkflowIds.map((workflowId) => (
                 <input key={workflowId} type="hidden" name="workflowId" value={workflowId} />
               ))}
+              {selectedItemTypeIds.map((itemTypeId) => (
+                <input key={itemTypeId} type="hidden" name="itemTypeId" value={itemTypeId} />
+              ))}
               <Button type="submit" size="sm">
                 Apply
               </Button>
@@ -134,6 +158,9 @@ export function ProductionFilterBar({
                 {activeView === "board" ? <input type="hidden" name="view" value="board" /> : null}
                 {search ? <input type="hidden" name="q" value={search} /> : null}
                 {queueFilter !== "active" ? <input type="hidden" name="queue" value={queueFilter} /> : null}
+                {selectedItemTypeIds.map((itemTypeId) => (
+                  <input key={itemTypeId} type="hidden" name="itemTypeId" value={itemTypeId} />
+                ))}
                 <div className="space-y-2">
                   {workflows.map((workflow) => (
                     <label key={workflow.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50">
@@ -155,6 +182,45 @@ export function ProductionFilterBar({
                   <Button type="submit" size="sm">
                     Apply
                   </Button>
+                </div>
+              </form>
+            ) : null}
+          </div>
+
+          <div ref={itemTypeRef} className="relative">
+            <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => setItemTypeOpen((open) => !open)}>
+              <ItemTypeIcon emoji={null} />
+              <span className="max-w-[180px] truncate">{selectedItemTypeLabel}</span>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${itemTypeOpen ? "rotate-180" : ""}`} />
+            </Button>
+            {itemTypeOpen ? (
+              <form className="absolute right-0 z-20 mt-2 w-72 rounded-[12px] border bg-background p-3 shadow-xl">
+                {activeView === "board" ? <input type="hidden" name="view" value="board" /> : null}
+                {search ? <input type="hidden" name="q" value={search} /> : null}
+                {queueFilter !== "active" ? <input type="hidden" name="queue" value={queueFilter} /> : null}
+                {selectedWorkflowIds.map((workflowId) => (
+                  <input key={workflowId} type="hidden" name="workflowId" value={workflowId} />
+                ))}
+                <div className="space-y-2">
+                  {itemTypes.map((itemType) => (
+                    <label key={itemType.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50">
+                      <input
+                        type="checkbox"
+                        name="itemTypeId"
+                        value={itemType.id}
+                        defaultChecked={selectedItemTypeSet.has(itemType.id)}
+                        className="h-4 w-4 accent-black"
+                      />
+                      <ItemTypeIcon emoji={itemType.icon_emoji} />
+                      <span className="truncate">{itemType.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+                  <Button asChild size="sm" variant={selectedItemTypeIds.length ? "ghost" : "default"}>
+                    <Link href={allItemTypesHref}>All</Link>
+                  </Button>
+                  <Button type="submit" size="sm">Apply</Button>
                 </div>
               </form>
             ) : null}

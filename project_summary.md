@@ -12234,3 +12234,13 @@ QA_BLOCKED
 #### Migration and Runtime Note
 
 - `20260809130000_stage_contribution_usability_reports.sql` must be applied before runtime 0.10-unit entries are accepted by the shared Supabase environment. Existing completed contribution snapshots are not modified.
+
+### 2026-08-09 — Item-type emoji and Production garment filter
+
+- Added optional single-emoji item-type identity with server validation and bounded nullable storage.
+- Added internal fallback garment icon and propagated item-type identity through order creation, order detail, production queue/board, and workflow detail.
+- Added tenant-scoped, multi-select garment-type filtering on Production.
+- Preserved search, queue, workflow, item-type, list/board, and workflow-pane URL state across navigation.
+- Kept emoji outside public tracking.
+- Added migration `20260809140000_item_type_emoji.sql` and focused `test:item-type-emoji` coverage.
+- Migration must be applied before runtime emoji writes are manually tested.

@@ -433,3 +433,8 @@ Role-based visibility:
 - Manager: Dashboard, Orders, Production, Customers, Workers, Attendance, limited Reports
 - Finance: Dashboard, Orders read-only, Finance, Salary, Workers ledger, Reports
 - Viewer: Dashboard and permitted reports only
+
+### Production filter refinement
+
+- `/production` includes multi-select Workflow and Garment type controls in both list and board views.
+- `/settings/item-types` owns the optional internal emoji used on authenticated item and production labels.

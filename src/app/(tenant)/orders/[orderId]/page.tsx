@@ -6,6 +6,7 @@ import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
@@ -534,7 +535,8 @@ export default async function OrderDetailPage({
                     <div className="flex flex-col justify-between gap-2 md:flex-row md:items-start">
                       <div>
                         <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <ItemTypeIcon emoji={itemTypeById.get(item.item_type_id)?.icon_emoji} />
                           {itemTypeById.get(item.item_type_id)?.name ?? "Unknown type"} ·{" "}
                           {workflowById.get(item.workflow_id)?.name ?? "Unknown workflow"}
                         </p>

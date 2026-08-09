@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { createItemTypeAction, updateItemTypeAction } from "@/features/settings/actions";
 import { getItemTypes } from "@/features/settings/queries";
+import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,11 @@ export default async function ItemTypesPage() {
               <Input id="description" name="description" placeholder="Optional" />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="iconEmoji">Icon emoji</Label>
+              <Input id="iconEmoji" name="iconEmoji" placeholder="Optional, for example 👔" maxLength={16} />
+              <p className="text-xs text-muted-foreground">One emoji used on internal order and production screens.</p>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="defaultSlaDays">Default SLA days</Label>
               <Input id="defaultSlaDays" name="defaultSlaDays" type="number" min="0" placeholder="Optional" />
             </div>
@@ -42,7 +48,7 @@ export default async function ItemTypesPage() {
         title="Item types"
         description="Current tenant item type master."
         items={itemTypes}
-        renderMeta={(item) => item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}
+        renderMeta={(item) => <span className="flex items-center gap-2"><ItemTypeIcon emoji={item.icon_emoji} />{item.default_sla_days ? `${item.default_sla_days} day SLA` : item.description ?? "No SLA"}</span>}
         renderActions={(item) => (
           <div className="flex flex-wrap items-center gap-2">
             <Link className={buttonVariants({ size: "sm", variant: "outline" })} href={`/settings/item-types/${item.id}/contributions`}>
