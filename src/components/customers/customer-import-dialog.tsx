@@ -22,8 +22,14 @@ function MatchLabel({ state }: { state: CustomerImportPreview["rows"][number]["m
     reuse_external_id: "Reuse by Shopify ID",
     reuse_phone: "Reuse by phone",
     review_email: "Review email",
+    review_phone: "Review phone",
   } as const;
-  return <span className={state === "invalid" || state === "review_email" ? "font-medium text-amber-700" : "font-medium text-emerald-700"}>{labels[state]}</span>;
+  return <span className={state === "invalid" || state === "review_email" || state === "review_phone" ? "font-medium text-amber-700" : "font-medium text-emerald-700"}>{labels[state]}</span>;
+}
+
+function WarningList({ warnings }: { warnings: string[] }) {
+  if (!warnings.length) return null;
+  return <div className="space-y-1 text-xs text-amber-800">{warnings.map((warning) => <p key={warning}>{warning}</p>)}</div>;
 }
 
 function ConflictList({ conflicts }: { conflicts: CustomerImportPreview["rows"][number]["conflicts"] }) {
@@ -51,13 +57,13 @@ export function CustomerImportDialog() {
 
   const preview = state?.status === "preview" ? state.preview : lastPreview;
   const unresolvedReviews = useMemo(
-    () => preview?.rows.filter((row) => row.matchState === "review_email" && !reviewDecisions[String(row.rowNumber)]).length ?? 0,
+    () => preview?.rows.filter((row) => (row.matchState === "review_email" || row.matchState === "review_phone") && !reviewDecisions[String(row.rowNumber)]).length ?? 0,
     [preview, reviewDecisions],
   );
   const visibleRows = useMemo(() => {
     if (!preview) return [];
-    const reviewRows = preview.rows.filter((row) => row.matchState === "review_email");
-    const otherRows = preview.rows.filter((row) => row.matchState !== "review_email").slice(0, 200);
+    const reviewRows = preview.rows.filter((row) => row.matchState === "review_email" || row.matchState === "review_phone");
+    const otherRows = preview.rows.filter((row) => row.matchState !== "review_email" && row.matchState !== "review_phone").slice(0, 200);
     return [...reviewRows, ...otherRows].sort((left, right) => left.rowNumber - right.rowNumber);
   }, [preview]);
 
@@ -116,7 +122,7 @@ export function CustomerImportDialog() {
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
             <p className="font-semibold">Nothing is written until you confirm.</p>
             <p className="mt-1 max-w-[72ch] text-blue-900">
-              Shopify ID is checked first, then normalized phone. Existing profile fields are never overwritten. Email-only matches wait for your decision, and source marketing flags do not enable messaging.
+              Shopify ID is checked first, then verified normalized phone. Existing profile fields are never overwritten. Email-only and unverified-phone rows wait for your decision, and source marketing flags do not enable messaging.
             </p>
           </div>
 
@@ -176,7 +182,7 @@ export function CustomerImportDialog() {
 
               {unresolvedReviews > 0 ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" role="status">
-                  Choose Create, Reuse, or Skip for {unresolvedReviews} email-only {unresolvedReviews === 1 ? "match" : "matches"} before confirming.
+                  Resolve {unresolvedReviews} customer {unresolvedReviews === 1 ? "row" : "rows"} that cannot be matched automatically before confirming.
                 </div>
               ) : null}
 
@@ -198,7 +204,7 @@ export function CustomerImportDialog() {
                       </div>
                       <MatchLabel state={row.matchState} />
                       <div className="min-w-0">
-                        {row.matchState === "review_email" ? (
+                        {row.matchState === "review_email" || row.matchState === "review_phone" ? (
                           <div className="space-y-1">
                             <label className="sr-only" htmlFor={`review-${row.rowNumber}`}>Decision for row {row.rowNumber}</label>
                             <select
@@ -209,17 +215,22 @@ export function CustomerImportDialog() {
                               value={reviewDecisions[String(row.rowNumber)] ?? ""}
                             >
                               <option value="">Choose action</option>
-                              <option value="reuse">Reuse {row.existingCustomerName ?? "existing customer"}</option>
-                              <option value="create">Create separate customer</option>
+                              {row.matchState === "review_email" ? <option value="reuse">Reuse {row.existingCustomerName ?? "existing customer"}</option> : null}
+                              <option value="create">{row.matchState === "review_phone" ? "Create without verified phone" : "Create separate customer"}</option>
                               <option value="skip">Skip this row</option>
                             </select>
-                            <p className="truncate text-xs text-muted-foreground">Matches {row.existingCustomerEmail}</p>
+                            {row.matchState === "review_email" ? <p className="truncate text-xs text-muted-foreground">Matches {row.existingCustomerEmail}</p> : null}
+                            <WarningList warnings={row.warnings} />
+                            {row.matchState === "review_phone" ? <p className="text-xs text-muted-foreground">Create saves this customer without a verified phone. Correct the source and re-import if a verified phone is required.</p> : null}
                             <ConflictList conflicts={row.conflicts} />
                           </div>
                         ) : row.invalidReasons.length ? (
                           <p className="text-xs text-amber-800">{row.invalidReasons.join(" ")}</p>
-                        ) : row.conflicts.length ? (
-                          <ConflictList conflicts={row.conflicts} />
+                        ) : row.conflicts.length || row.warnings.length ? (
+                          <div className="space-y-2">
+                            <WarningList warnings={row.warnings} />
+                            <ConflictList conflicts={row.conflicts} />
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">Ready</span>
                         )}
@@ -228,7 +239,7 @@ export function CustomerImportDialog() {
                   ))}
                 </div>
               </div>
-              {preview.rows.length > visibleRows.length ? <p className="text-xs text-muted-foreground">Showing every email decision plus the first 200 other rows. All {preview.rows.length} rows are validated and included in the counts.</p> : null}
+              {preview.rows.length > visibleRows.length ? <p className="text-xs text-muted-foreground">Showing every review decision plus the first 200 other rows. All {preview.rows.length} rows are validated and included in the counts.</p> : null}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed p-8 text-center">

@@ -50,11 +50,15 @@ assert.equal(hasPermission("manager", "dashboard:view"), false);
 assert.equal(hasPermission("manager", "finance:view"), false);
 assert.equal(hasPermission("finance", "finance:view"), true);
 assert.equal(hasPermission("finance", "salary:view"), true);
+assert.equal(hasPermission("finance", "workers:view"), true);
+assert.equal(hasPermission("finance", "settings:manage"), false);
 assert.equal(hasPermission("finance", "orders:view"), false);
 assert.equal(hasPermission("finance", "dashboard:view"), false);
 assert.equal(hasPermission("viewer", "reports:view"), true);
 assert.equal(hasPermission("viewer", "orders:view"), false);
 assert.equal(hasPermission("viewer", "dashboard:view"), false);
+assert.equal(hasPermission("manager", "salary:view"), false);
+assert.equal(hasPermission("manager", "workers:view"), false);
 
 for (const [role, permissions] of Object.entries(rolePermissions)) {
   assert.equal(

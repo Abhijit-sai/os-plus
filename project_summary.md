@@ -249,7 +249,7 @@ To be finalized later:
 
 ## 7. Current Build Phase
 
-Current phase: Multi-worker production-stage effort and analytics-only contribution tracking is implemented on `codex/stage-worker-contributions` and has passed focused calculation, database/source-contract, UI/permission, TypeScript, lint, QA-workbook, and production-build gates. The new migration is not yet applied to the shared production/QA Supabase environment, so authenticated database-backed and mobile browser QA remain the release dependency. Customer import is already merged to `main`; direct Shopify webhooks and worker-efficiency dashboards remain later phases.
+Current phase: The salary lifecycle, worker-money ledger, Worker detail, and Finance visibility hardening is implemented on `codex/salary-worker-ledger-ux`. All three forward migrations are applied to the shared production/QA Supabase environment. Focused behavior, source-contract, role-policy, disposable-database, authenticated owner/admin and manager browser QA, TypeScript, lint, and the optimized production build pass. The branch is ready for an intentional commit/review; direct Shopify webhooks remain a later phase.
 
 ## 8. Completed
 
@@ -297,15 +297,10 @@ Current phase: Multi-worker production-stage effort and analytics-only contribut
 
 ## 9. In Progress
 
-- Apply and verify `20260809120000_stage_worker_contributions.sql`, then execute authenticated desktop/mobile contribution QA before branch closure
+- Review and commit the verified `codex/salary-worker-ledger-ux` branch when authorized.
 
 ## 10. Pending
 
-- Stage contribution release closure:
-  - Apply `20260809120000_stage_worker_contributions.sql` to the approved shared production/QA Supabase environment.
-  - Run CF-008 and PR-004 through PR-014 from the QA matrix with owner/admin and manager accounts.
-  - Confirm atomic rollback, idempotent replay, cross-tenant rejection, completed-stage owner/admin restriction, and salary/finance non-interference with approved test records.
-  - Perform mobile-width interaction QA for multiple worker rows, role selection, 10-minute/1-hour controls, pending close blocking, and recoverable errors.
 - Production hardening phase:
   - Simplify tenant user status UI to `active` and `disabled` only for MVP.
   - Improve `/select-tenant` into a clear business selector for users linked to multiple tenants.
@@ -12283,3 +12278,203 @@ QA_BLOCKED
 - A single selected item type now renders its saved emoji or Lucide icon and color. All-item and multi-item selections intentionally retain the neutral garment icon because no single item-type identity applies.
 - Expanded the focused item-type icon contract to protect single-selection lookup, full icon-field propagation, and the removal of the hardcoded-null trigger.
 - Signed-in Phantom runtime QA confirmed `👖 Pant`, neutral All/multi-select states, unchanged Pant queue-row icons, desktop/narrow layout behavior, and no console errors. The owner confirmed the required migrations are applied.
+
+### 2026-08-10 — Durable Git and production release workflow
+
+- Documented the established OS PLUS release sequence in `docs/06_Rules.md`: verify and commit the scoped feature branch, push it with standard Git, merge it into `main` through an owner-authorized pull request, and let the configured Vercel production deployment run from `main`.
+- Clarified that GitHub CLI is optional automation only. It is not required for `git commit`, `git push`, or an owner completing the pull request through GitHub's web UI.
+- Future sessions must distinguish a successful feature-branch push from a production deployment, verify the synchronized branch after pushing, and never push directly to `main` or report production live without explicit authorization and deployment evidence.
+
+### 2026-08-12 — Salary and Worker Money UX Hardening
+
+#### Product Decisions
+
+- Salary is organized into Overview, Pay periods, and Worker ledger. Recording a salary payment returns to the same period with the same worker expanded instead of moving the user to Overview.
+- Worker-money events have explicit meanings: advances/loans and salary payments are cash out; cash repayment is cash in; salary deduction and salary credit are non-cash.
+- Advances and loans are never automatically deducted from salary. A deduction or credit affects a suggestion only when the user generates or regenerates a period containing the entry date. Existing founder-finalized payable values are never silently rewritten.
+- Corrections and reversals preserve the original entry, require a reason, and keep replacement/reversal evidence. Worker-money data remains unavailable to managers.
+
+#### Implementation
+
+- Added `20260810100000_worker_money_ledger.sql` with explicit balance accounts, tenant-scoped idempotency, correction linkage, reversal evidence, tenant/reference validation, over-balance and salary-overpayment guards, salary-payment refresh, and service-role-only commands.
+- Hardened concurrent correction retry behavior: a second request waiting on the original row resolves the one replacement created by the first request, and unique-index races recover the tenant-scoped result.
+- Added service-only `worker_money_summaries(tenant_id)` so worker details and directory signals use complete active history without loading the whole tenant ledger.
+- Worker detail now validates the requested worker inside the current tenant, paginates complete worker-scoped ledger history 50 rows at a time, clamps malformed/out-of-range pages, and keeps inactive worker history identifiable.
+- Worker queries explicitly assert both `workers:view` and `salary:view` before service-role reads. This prevents a direct Workers URL from exposing wages or worker money to a manager if role mappings change later.
+- Reworked Worker ledger entry/correction/reversal forms onto recoverable action state: inputs remain available after validation/RPC errors, errors are announced inline, pending fieldsets block conflicting interaction, and idempotency keys rotate only after success.
+- Salary reads now retain inactive worker profiles for historical rows while the new-entry selector remains limited to active workers.
+- Finance includes worker-money history and counts each true cash movement once; salary deductions/credits remain visible but do not change cash totals or salary expense until salary is paid.
+- Assignment-only contribution-rule guidance now explains the missing prerequisite and links directly to Settings → Stages.
+
+#### Review Findings Resolved
+
+- Closed the service-role permission gap on Worker details.
+- Replaced the misleading 200-row tenant sample / 20-row worker display with aggregate balances plus worker-scoped pagination.
+- Preserved inactive worker names in ledger history.
+- Added strict UUID and calendar-date validation for worker-money references and dates.
+- Converted record/correction/reversal failures from thrown page errors to recoverable local feedback.
+- Documented and enforced deferred salary-suggestion semantics instead of silently changing existing finalized payables.
+- Added correction concurrency recovery and disposable-database verification.
+
+#### Documentation and QA
+
+- Updated `docs/01_PRD.md`, `docs/02_WBS.md`, `docs/06_Rules.md`, and `docs/08_Database_Model.md`.
+- Expanded Salary QA cases SA-006 and SA-011 and added SA-012 for recoverable validation, pending behavior, concurrent correction retry, and fresh idempotency keys.
+- Regenerated `docs/OS_PLUS_QA_Test_Matrix.xlsx` from `scripts/build-qa-matrix.mjs`. All 17 sheets rendered successfully; Salary and Finance were visually inspected; the formula-error scan returned no matches.
+
+#### Disposable Database Evidence
+
+- Docker Desktop and Supabase CLI were used to create a local isolated Supabase stack. Every repository migration, including `20260810100000_worker_money_ledger.sql`, applied cleanly from an empty database.
+- `npm run test:worker-money-db` passed against that disposable stack and cleaned its fixtures. It covered concurrent record and correction retries, tenant-isolated worker/payment-mode validation, atomic failure behavior, over-balance rollback, aggregate balance reconciliation, salary overpayment rejection, salary-payment refresh, and idempotent reversal.
+- The disposable Supabase project was stopped without backup and its generated repository metadata was removed after testing. No shared production/QA financial records were created or changed.
+
+#### Final Automated Gate
+
+- Every `test:*` package script passed, including legacy V2, order, configuration, attendance, customer import, contributions, icon/filter, modal-success, salary/worker-money, and disposable database suites.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `git diff --check` passed; line-ending notices are repository working-copy normalization only.
+- `npm run build` passed; Next.js compiled and generated all 42 routes.
+
+#### Remaining Release Evidence
+
+- The owner applied `supabase/migrations/20260810100000_worker_money_ledger.sql` to the shared production/QA Supabase environment.
+- Authenticated localhost browser mutation QA remains pending for the follow-up hardening migration. The signed-in Salary route correctly reported that `salary_calculation_revisions` is absent from the shared database; no form was submitted and no shared financial data was mutated.
+- Apply `supabase/migrations/20260812120000_salary_workflow_hardening.sql`, then manually verify owner/admin and finance create/edit/regenerate/finalize/payment/correction/reversal flows, period/worker context retention, Finance cash classification, worker history, and manager denial before commit/push authorization.
+
+#### Manual QA Follow-up
+
+- Authenticated manual QA exposed a missing `idempotencyKey` field in the salary-payment form. The server correctly rejected the incomplete submission before writing any payment, but Zod surfaced the defect as a runtime page error.
+- Added the required UUID retry key to each salary-payment form. Duplicate retries now reach the tenant-scoped database idempotency guard as designed.
+- Tightened `test:salary-worker-money-ui` to isolate the exact `recordSalaryPaymentAction` form. The previous broad regex crossed a form boundary and incorrectly accepted the key from the preceding payable-finalization form.
+- The narrowed contract failed before the fix and passed afterward. Focused worker-money tests, `typecheck`, `lint`, and the optimized 42-route production build also passed.
+- A second authenticated QA attempt correctly reached the database guard but exposed that the page enabled `Record payment` before the worker calculation was finalized. Payment controls now remain disabled until the persisted final payable exists, with explicit Step 1 guidance.
+- The salary-payment action now independently returns recoverable inline action state for stale/unfinalized and database failures while the client preserves the same period and expanded worker. The database finalization guard remains independent.
+- Added focused UI and action-contract coverage for the finalization prerequisite and recoverable local feedback. Worker-money behavior, global action feedback, `typecheck`, `lint`, and the optimized 42-route production build passed in that earlier checkpoint.
+
+### 2026-08-12 — Salary Lifecycle Transaction and UX Hardening Follow-up
+
+#### Why the earlier verification was insufficient
+
+- The first salary QA relied too heavily on source-contract regular expressions and happy-path compilation. It did not execute the full create → finalize → partial/full payment lifecycle against a real database, so a missing payment retry field and an incorrectly unlocked payment form escaped.
+- The follow-up treats this as a test-design defect. Raw server-action forms were replaced and the database suite now owns rollback, concurrency, status-transition, correction, and reversal evidence.
+
+#### Implementation
+
+- Added `20260812120000_salary_workflow_hardening.sql` with tenant-scoped workflow receipts, immutable payable revisions, and service-role-only atomic commands for period create, draft date edit, regeneration, and finalization.
+- Period range commands lock the tenant before overlap validation, preventing concurrent different overlapping ranges from both committing.
+- Create/date-edit/regeneration insert the complete active-worker suggestion payload in the same database transaction. Invalid/empty/foreign-worker payloads roll back the period or preserve the prior draft suggestions.
+- Draft dates can be changed only before any finalized/paid worker row; date and suggestion replacement commit together.
+- Final payable cannot be lower than active salary payments. A changed payable requires a decision note, and every successful confirmation/update records before/after amount and note plus actor/time evidence.
+- A finalized zero payable is stored and displayed as paid with `No payment due`; a period becomes paid only when every active worker calculation is finalized and settled.
+- Period create, date edit, regeneration, finalization, and payment now use recoverable client action state. Inputs and retry keys survive errors, pending fieldsets block conflicting actions, and success preserves the selected period and worker.
+- Salary-payment correction/reversal controls and payable decision history are available inside the worker's period row. Finance/Salary/Workers revalidation remains centralized through the audited worker-ledger commands.
+- Finance received explicit worker-repayment cash-in wording. Finance users have `workers:view` for the documented read path but cannot add/edit workers because those controls remain gated by `settings:manage`; managers remain denied both worker and salary reads.
+
+#### Verification evidence
+
+- A fresh isolated Supabase reset applied every migration through `20260812120000_salary_workflow_hardening.sql` successfully.
+- The expanded disposable database test passed period create/regenerate/date-edit idempotency, rollback preservation, concurrent overlap serialization, zero-payable status, immutable audit count, payable-below-paid rejection, partial/full payment, salary-payment correction, salary-payment reversal, replacement payment, tenant isolation, payment-mode ownership, balance limits, and cleanup.
+- Focused role, salary UI, worker-money behavior, and SQL contract suites passed together with TypeScript.
+- The QA matrix now includes SA-013 through SA-018. The workbook was regenerated with the bundled spreadsheet runtime, Salary and Finance were rendered and visually inspected, and the workbook-wide formula-error scan returned zero matches.
+
+#### Shared-environment migration status
+
+- The user applied `20260812120000_salary_workflow_hardening.sql` on 12 Aug 2026. Authenticated Salary and Finance lifecycle QA then loaded and completed successfully.
+- That QA exposed a separate applied-migration drift on `/workers`; the forward repair and remaining shared-environment gate are documented in the authenticated follow-up below.
+
+#### Final hardening after lifecycle review
+
+- Salary period creation now uses a no-write Preview → Confirm flow. Preview reports active workers, attendance rows/workers, workers with no attendance input, and suggested payable total from the same authoritative inputs used for creation.
+- Confirmation is bound to a canonical server fingerprint covering dates, worker-sorted calculation rows, and normalized attendance coverage. Date edits invalidate the visible preview; live worker/attendance/work-log/ledger drift returns a refreshed preview instead of committing stale information.
+- Salary workflow receipts separate stable user intent from the exact generated payload audit fingerprint. Actions recover a committed receipt before reloading live inputs, so a lost response can be retried without rewriting calculations or being misclassified after attendance/ledger changes.
+- Worker create and status-edit commands now share the tenant lock with salary period commands, closing the active-worker-set race while retaining atomic workgroup mapping.
+- Finalization locks parent period before calculation. Salary-payment record/correction/reversal wrappers also lock the parent period before refreshing worker and aggregate status, preventing concurrent different-worker payments from leaving a stale period.
+- Period lists and workspaces now show derived `Draft`, `Ready to pay`, `Partially paid`, and `Paid` labels. Period history is no longer silently truncated to eight rows.
+- Saved salary and correction forms clear their dirty marker only after success; failed requests retain input. Partial-payment workflows remount from refreshed amount-paid state so the second payment defaults to the actual remaining due.
+- Payable and payment/correction/reversal history now displays actor and timestamp evidence. Generated database types were corrected so worker-ledger fields no longer appear on order-payment inserts.
+- The final disposable DB suite additionally passed finalize-vs-regenerate/date-edit races, cross-worker concurrent final payments and reopening, exact active-worker coverage, receipt conflict/replay behavior, helper least privilege, and immutable audit triggers.
+- Final verification after all lifecycle-review corrections passed: the disposable database was reset cleanly through `20260812120000_salary_workflow_hardening.sql`; `npm run test:worker-money-db` passed; all 23 non-database `test:*` scripts passed; `npm run typecheck`, `npm run lint`, and the optimized 42-route production build passed. Authenticated shared-environment QA remains gated only by applying that migration there.
+
+#### Authenticated shared-environment QA after salary hardening migration
+
+- Owner/admin Salary and Finance lifecycle checks passed on Phantom Threads Test: payable finalization displayed a pending lock, the first ₹50 partial payment refreshed the same open period with ₹150 remaining, the second ₹150 payment marked the worker paid, and reversing both entries reopened the payable at the original ₹200 without affecting Finance cash movement. Both reversed entries and their actor, timestamps, and QA reason remain visible in the audit ledger by design.
+- The Man 1 payable for 02 Aug 2026 - 07 Aug 2026 was finalized at its unchanged ₹200 suggestion as part of this test. No net salary payment remains from the QA run.
+- Existing advances, deductions, salary payments, reversed entries, and worker balances rendered correctly in Finance → Worker money. Reversed test payments were excluded from active cash-out totals.
+- The signed-in Phantom manager was redirected from direct `/salary`, `/finance`, and `/workers` requests to the permitted Orders workspace, with no salary or worker-money data exposed.
+- Authenticated `/workers` testing found an applied-migration drift defect: the shared database had the worker-ledger tables and command RPCs but PostgREST could not resolve `worker_money_summaries(uuid)`. The function had been added to the already-applied `20260810100000` file later, so replaying that historical migration was not a safe repair.
+- Added forward-only `20260812152000_restore_worker_money_summaries.sql`. It recreates the tenant-scoped summary function, excludes deleted/reversed ledger rows, revokes public/anon/authenticated/service-role defaults, grants only the explicit service-role execution required by the server, and requests a PostgREST schema reload.
+- The user applied `20260812152000_restore_worker_money_summaries.sql` to the shared Supabase environment. Authenticated `/workers` then loaded without a PostgREST/schema error and displayed active workers, balances, and complete worker-ledger audit rows.
+- Authenticated worker editing passed: the form displayed a disabled pending state, closed only after success, retained the selected worker context, persisted changes, and successfully cleared an optional Notes value back to `No notes`. The temporary QA note was removed, leaving no worker-profile test residue.
+- Final regression verification passed after the repair: focused behavior, migration contract, Salary/Worker UI, and role-policy suites; a clean disposable stack through `20260812152000`; the complete worker-money database suite including service-only summary privilege, concurrency, lifecycle, correction, reversal, tenant isolation, and idempotency checks; TypeScript; lint; and the optimized 42-route production build.
+- No known release blocker remains. Commit/review is the next authorized action.
+
+### 2026-08-12 — Full-Period Bulk Salary Workspace
+
+#### Product decision
+
+- A salary period is now the primary work context. Clicking a period opens a dedicated full-width route with every worker visible together instead of expanding repeated worker forms underneath the period list.
+- The workflow is explicitly sequenced as `1. Review payables` and `2. Record payments`.
+- Owners/admins and finance users can filter workers, select eligible rows, accept unchanged suggestions together, edit individual final payables with worker-specific notes, and record multiple worker payments using one date and one tenant-owned payment mode.
+- Bulk payment still creates one independent audited `salary_paid` ledger entry per worker. Corrections and reversals remain worker-specific and are available inside the same period page's audit section.
+
+#### Implementation
+
+- Added the dedicated `/salary/periods/[periodId]` workspace and changed salary-period list/create navigation to open it.
+- Removed the obsolete embedded period workspace from the Salary periods list. Period date changes and suggestion regeneration remain available inside the full-period route only while no payable or payment decision exists.
+- Added a responsive all-worker table with review/payment modes, status and warning filters, select-all eligibility, worker-level amounts and notes, shared payment controls, selected totals, atomic-save guidance, pending locks, preserved recoverable errors, and refreshed in-place success state. Review-mode select-all targets only workers still needing review, preventing redundant audit revisions for already-finalized rows while leaving explicit finalized-row corrections available.
+- Ineligible payment rows are read-only and cannot block a selected submission. Currency due values are rounded to paise before becoming input defaults, preventing floating-point artifacts such as `333.329999...`.
+- Added `20260812170000_salary_period_bulk_workspace.sql` with service-role-only `finalize_salary_calculations_bulk` and `record_salary_payments_bulk` commands. Both lock and revalidate the complete selected set before writing, reject duplicate/foreign/stale/invalid rows, use tenant-scoped idempotency receipts, and commit all selected changes or none.
+- Bulk payable finalization preserves one immutable decision revision per worker. Bulk payment preserves one independently correctable/reversible worker-ledger entry per worker and refreshes salary-period status atomically.
+
+#### Documentation and QA
+
+- Updated `docs/01_PRD.md`, `docs/02_WBS.md`, `docs/06_Rules.md`, and `docs/08_Database_Model.md` with the full-period workflow, atomicity, audit, and mobile requirements.
+- Added Salary QA cases SA-019 and SA-020 and regenerated `docs/OS_PLUS_QA_Test_Matrix.xlsx`. The Salary sheet was rendered and visually inspected, and the workbook formula-error scan returned no matches.
+- Extended the focused UI contract to protect dedicated-route navigation, bulk modes, selection, pending/error behavior, period settings, worker-specific correction/reversal access, and non-eligible payment inputs.
+- Extended the disposable database suite with atomic-invalid and idempotent-success cases for two-row bulk payable finalization and bulk salary payment, separate worker ledger entries, tenant/reference validation, privilege denial, and final period status.
+
+#### Verification evidence
+
+- A clean disposable Supabase database applied every migration through `20260812170000_salary_period_bulk_workspace.sql`; `npm run test:worker-money-db` passed and cleaned its fixtures.
+- All 23 non-database `test:*` package scripts passed, including roles, order/configuration, attendance/customer import, contribution/icon/dialog, worker-money, Salary UI, and V2 regression suites.
+- `npm run typecheck`, `npm run lint`, and the optimized 42-route `npm run build` passed.
+- Authenticated localhost read-only QA passed on Phantom Threads Test: period-list navigation opened the full route, all five workers rendered together, review/payment modes and filters remained in context, ineligible payment rows were disabled, the rounded remaining amount displayed correctly, and the layout was visually inspected at desktop width. No shared salary mutation was submitted.
+
+#### Remaining release dependency
+
+- Apply `supabase/migrations/20260812170000_salary_period_bulk_workspace.sql` to the shared production/QA Supabase environment before authenticated bulk-mutation QA or release. The earlier salary migrations remain applied.
+- After migration, manually verify one two-worker bulk finalization and one two-worker partial/full bulk payment in the test tenant, confirm same-page refresh and Finance/Worker ledger roll-up, then correct or reverse one payment from the period audit. Do not use real production salary records for this check.
+
+### 2026-08-31 — International Customer Phone Import Hardening
+
+#### Diagnosis and product decision
+
+- The international parser was not rejecting the screenshot's `+19376547117` US number. `libphonenumber-js` validated that number correctly; the row was rejected because Shopify `Phone` and `Default Address Phone` resolved to two different valid numbers.
+- Shopify `Phone` is now the primary contact. A different address phone is retained as alternate Shopify source metadata and produces a visible warning instead of invalidating an otherwise usable row.
+- Only country-validated E.164 numbers participate in tenant-scoped matching and active-customer uniqueness. Plausible unresolved values must contain 7 to 15 digits, remain unverified metadata, and are never guessed into a country or used as duplicate keys.
+- An unverified phone with an authoritative Shopify customer ID can proceed with a warning. Without a Shopify ID or another authoritative match, owner/admin must explicitly choose Create without verified phone or Skip.
+- Repeated verified phones remain blocked from automatic duplicate creation. They require source cleanup or a separately audited customer-merge workflow.
+- Blank-name customer-file rows remain skipped. This file-import phase creates customer profiles only and does not create Shopify orders. A later Shopify order-sync phase must use shipping/billing identity or an explicit Shopify guest profile so an order is never silently dropped for a blank customer name.
+
+#### Implementation
+
+- Extended customer-import rows with non-blocking warnings plus primary, address, and unverified source-phone metadata.
+- Changed differing valid Shopify phone columns from an invalid row to a warning while retaining the primary canonical E.164 phone.
+- Added the 7-to-15-digit unverified fallback without weakening E.164 validation, matching precedence, database uniqueness, or tenant isolation.
+- Added an explicit `review_phone` preview state. Rows without authoritative identity cannot be auto-created or auto-matched; the UI offers Create without verified phone or Skip and blocks confirmation until every review is resolved.
+- Preview fingerprints now include warnings and source-phone interpretation so an older preview cannot be confirmed after the interpretation changes.
+- No database migration was required. Verified phones continue using `customers.normalized_phone_e164`; alternate/unverified Shopify values use existing `customer_external_identities.source_metadata_json`.
+
+#### Documentation and QA
+
+- Updated the PRD, WBS, Rules, Database Model, and customer-import implementation spec with the verified-versus-unverified phone contract.
+- Updated customer QA cases and added CU-008 for US/Australian/Indian normalization, differing phone columns, unverified review, metadata-only handling, and minimum-length rejection.
+- Updated the Customers QA sheet through the bundled spreadsheet workflow, scanned for formula errors, rendered every workbook sheet, and visually verified the updated Customers rows.
+- The ignored private sample export was parsed read-only without printing personal data: 13 source rows, 7 verified Indian phones, 2 blank-name skips, and no new warning/unverified cases. Synthetic regression rows cover the international conflict and unverified paths absent from that sample.
+
+#### Verification status
+
+- Focused phone normalization, customer parser, matching, UI/schema/RPC contract, TypeScript, ESLint, and the optimized 42-route production build pass.
+- Authenticated confirmation against the tenant's larger private export remains a manual release check; no customer records were written during this implementation session.
+- The existing salary/worker-money work on `codex/salary-worker-ledger-ux` remains uncommitted and was preserved. This patch must not be committed as though it were an isolated branch until that branch scope is resolved.

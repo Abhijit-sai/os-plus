@@ -1,18 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { calculateWorkerLedgerSalaryEffect } from "@/features/salary/worker-money";
 import type {
   Attendance,
   SalaryPeriod,
   Worker,
   WorkerLedger,
-  WorkerLedgerTransactionType,
   Database
 } from "@/types/database";
 
@@ -23,45 +23,151 @@ const optionalText = z
   .transform((value) => value.trim())
   .transform((value) => (value.length ? value : null));
 
-const ledgerTransactionTypeSchema = z.enum([
+const optionalUuid = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? null : value),
+  z.string().uuid().nullable(),
+);
+
+const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date.")
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Enter a valid date.");
+
+export type WorkerMoneyActionState = {
+  idempotencyKey?: string | null;
+  message: string | null;
+  ok: boolean;
+};
+
+export type SalaryWorkflowActionState = WorkerMoneyActionState & {
+  processedCount?: number | null;
+  preview?: {
+    attendanceEntryCount: number;
+    attendanceWorkerCount: number;
+    missingAttendanceWorkerCount: number;
+    suggestedPayable: number;
+    workerCount: number;
+    fingerprint: string;
+  } | null;
+  periodId?: string | null;
+  workerId?: string | null;
+};
+
+const workerMoneyEntryTypeSchema = z.enum([
   "advance_given",
   "loan_given",
   "deduction",
   "repayment",
-  "adjustment",
-  "salary_paid"
+  "adjustment"
 ]);
 
 const createSalaryPeriodSchema = z.object({
-  periodStart: z.string().min(1, "Period start is required."),
-  periodEnd: z.string().min(1, "Period end is required.")
+  periodStart: isoDateSchema,
+  periodEnd: isoDateSchema,
+  idempotencyKey: z.string().uuid(),
+});
+
+const createSalaryPeriodIntentSchema = z.enum(["preview", "create"]);
+const previewFingerprintSchema = z.string().regex(/^[a-f0-9]{64}$/).optional();
+
+const updateSalaryPeriodSchema = createSalaryPeriodSchema.extend({
+  salaryPeriodId: z.string().uuid(),
 });
 
 const generateSalarySuggestionsSchema = z.object({
-  salaryPeriodId: z.string().uuid()
+  salaryPeriodId: z.string().uuid(),
+  idempotencyKey: z.string().uuid(),
 });
 
 const finalizeSalaryCalculationSchema = z.object({
   salaryCalculationId: z.string().uuid(),
   finalizedPayableAmount: z.coerce.number().nonnegative("Final payable cannot be negative."),
-  finalizationNote: optionalText
+  finalizationNote: optionalText,
+  idempotencyKey: z.string().uuid(),
 });
 
 const recordSalaryPaymentSchema = z.object({
   salaryCalculationId: z.string().uuid(),
   amount: z.coerce.number().positive("Payment amount must be greater than zero."),
-  paymentDate: z.string().min(1, "Payment date is required."),
-  paymentModeId: optionalText,
+  paymentDate: isoDateSchema,
+  paymentModeId: z.string().uuid("Select a payment mode."),
+  idempotencyKey: z.string().uuid(),
   description: optionalText
+});
+
+const serializedRows = <T extends z.ZodTypeAny>(rowSchema: T) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      return JSON.parse(value);
+    },
+    z.array(rowSchema).min(1, "Select at least one worker."),
+  );
+
+const bulkFinalizeSalarySchema = z.object({
+  salaryPeriodId: z.string().uuid(),
+  idempotencyKey: z.string().uuid(),
+  rows: serializedRows(
+    z.object({
+      calculationId: z.string().uuid(),
+      expectedUpdatedAt: z.string().datetime({ offset: true }),
+      finalizedPayableAmount: z.coerce.number().nonnegative("Final payable cannot be negative."),
+      finalizationNote: z.string().trim().nullable(),
+    }),
+  ),
+});
+
+const bulkSalaryPaymentSchema = z.object({
+  salaryPeriodId: z.string().uuid(),
+  idempotencyKey: z.string().uuid(),
+  paymentDate: isoDateSchema,
+  paymentModeId: z.string().uuid("Select a payment mode."),
+  description: optionalText,
+  rows: serializedRows(
+    z.object({
+      calculationId: z.string().uuid(),
+      expectedUpdatedAt: z.string().datetime({ offset: true }),
+      amount: z.coerce.number().positive("Payment amount must be greater than zero."),
+    }),
+  ),
 });
 
 const addLedgerEntrySchema = z.object({
   workerId: z.string().uuid(),
-  transactionType: ledgerTransactionTypeSchema,
+  transactionType: workerMoneyEntryTypeSchema,
   amount: z.coerce.number().positive("Amount must be greater than zero."),
-  transactionDate: z.string().min(1, "Transaction date is required."),
-  linkedSalaryPeriodId: optionalText,
+  transactionDate: isoDateSchema,
+  balanceAccount: z.preprocess(
+    (value) => (value === "" || value === null ? null : value),
+    z.enum(["advance", "loan"]).nullable(),
+  ),
+  paymentModeId: optionalUuid,
+  idempotencyKey: z.string().uuid(),
   description: optionalText
+});
+
+const correctWorkerMoneyEntrySchema = z.object({
+  entryId: z.string().uuid(),
+  amount: z.coerce.number().positive("Amount must be greater than zero."),
+  transactionDate: isoDateSchema,
+  balanceAccount: z.preprocess(
+    (value) => (value === "" || value === null ? null : value),
+    z.enum(["advance", "loan"]).nullable(),
+  ),
+  paymentModeId: optionalUuid,
+  description: optionalText,
+  correctionReason: z.string().trim().min(3, "Explain why this entry is being corrected."),
+  idempotencyKey: z.string().uuid(),
+  returnTo: z.enum(["finance", "salary"]),
+});
+
+const reverseWorkerMoneyEntrySchema = z.object({
+  entryId: z.string().uuid(),
+  correctionReason: z.string().trim().min(3, "Explain why this entry is being reversed."),
+  returnTo: z.enum(["finance", "salary"]),
 });
 
 type SalaryInputBundle = {
@@ -74,23 +180,87 @@ type SalaryInputBundle = {
   ledger: WorkerLedger[];
 };
 
-function salaryNoticeRedirect(message: string, type: "success" | "warning" = "warning", periodId?: string) {
-  const params = new URLSearchParams({
-    salaryNotice: message,
-    salaryNoticeType: type
-  });
-
-  if (periodId) {
-    params.set("periodId", periodId);
-  }
-
-  redirect(`/salary?${params.toString()}`);
-}
-
 async function getAuthorizedSalaryContext() {
   const context = await requireTenantContext();
+  assertPermission(context.membership.role, "workers:view");
+  assertPermission(context.membership.role, "salary:view");
   assertPermission(context.membership.role, "salary:manage");
   return context;
+}
+
+function workerMoneyErrorMessage(message: string) {
+  if (message.includes("SALARY_BULK_STALE_ROW")) return "A selected worker changed after this period was opened. Refresh the period and review the latest values before saving.";
+  if (message.includes("SALARY_BULK_DUPLICATE_CALCULATION")) return "A worker was selected more than once. Refresh the period and try again.";
+  if (message.includes("SALARY_BULK_ROWS_EMPTY")) return "Select at least one worker.";
+  if (message.includes("WORKER_MONEY_IDEMPOTENCY_CONFLICT")) return "This retry no longer matches the original worker-money request. Refresh and submit the edited change again.";
+  if (message.includes("WORKER_MONEY_PAYMENT_MODE_REQUIRED")) return "Select a payment mode for this cash movement.";
+  if (message.includes("WORKER_MONEY_PAYMENT_MODE_INVALID")) return "The selected payment mode is unavailable for this business.";
+  if (message.includes("WORKER_MONEY_BALANCE_ACCOUNT_REQUIRED")) return "Choose whether this reduces the advance or loan balance.";
+  if (message.includes("WORKER_MONEY_BALANCE_EXCEEDED")) return "This amount is greater than the selected worker balance.";
+  if (message.includes("WORKER_MONEY_SALARY_OVERPAY")) return "This payment is higher than the remaining finalized salary due.";
+  if (message.includes("WORKER_MONEY_SALARY_NOT_FINALIZED")) return "Finalize this worker's salary before recording payment.";
+  if (message.includes("WORKER_MONEY_SALARY_CALCULATION_INVALID")) return "The salary calculation is unavailable for this worker and period.";
+  if (message.includes("WORKER_MONEY_WORKER_INVALID")) return "The worker is unavailable or belongs to another business.";
+  if (message.includes("WORKER_MONEY_ENTRY_INVALID")) return "This ledger entry is unavailable, already corrected, or belongs to another business.";
+  return "Unable to save this worker-money change. Review the fields and try again.";
+}
+
+function workerMoneyActionError(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message ?? "Review the entered worker-money details.";
+  }
+
+  return workerMoneyErrorMessage(
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : "Unable to save this worker-money change. Review the fields and try again.",
+  );
+}
+
+function salaryWorkflowErrorMessage(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message ?? "Review the salary details and try again.";
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("SALARY_PERIOD_OVERLAP")) {
+    return "This date range overlaps an existing salary period. Open that period or choose a different range.";
+  }
+  if (message.includes("SALARY_PERIOD_RANGE_INVALID")) {
+    return "Salary period end date cannot be before the start date.";
+  }
+  if (message.includes("SALARY_PERIOD_NOT_DRAFT") || message.includes("SALARY_PERIOD_HAS_DECISIONS")) {
+    return "This period already has finalized or paid salary rows. Edit the existing decisions instead of regenerating them.";
+  }
+  if (message.includes("SALARY_PAYABLE_BELOW_PAID")) {
+    return "Final payable cannot be lower than the amount already paid. Correct or reverse the payment first.";
+  }
+  if (message.includes("SALARY_FINALIZATION_NOTE_REQUIRED")) {
+    return "Add a decision note when the final payable differs from the system suggestion.";
+  }
+  if (message.includes("SALARY_CALCULATIONS_WORKER_INVALID")) {
+    return "A worker changed while suggestions were being prepared. Refresh and regenerate the period.";
+  }
+  if (message.includes("SALARY_CALCULATIONS_INCOMPLETE")) {
+    return "The active worker list changed while suggestions were being prepared. Refresh and try again.";
+  }
+  if (message.includes("SALARY_WORKFLOW_IDEMPOTENCY_CONFLICT")) {
+    return "This saved request no longer matches the current salary change. Refresh and try again.";
+  }
+  if (message.includes("SALARY_CALCULATIONS_EMPTY")) {
+    return "Add or reactivate at least one worker before creating a salary period.";
+  }
+  if (message.includes("SALARY_BULK_STALE_ROW")) {
+    return "A selected worker changed after this period was opened. Refresh the period and review the latest values before saving.";
+  }
+  if (message.includes("SALARY_BULK_DUPLICATE_CALCULATION")) {
+    return "A worker was selected more than once. Refresh the period and try again.";
+  }
+  if (message.includes("SALARY_BULK_ROWS_EMPTY")) {
+    return "Select at least one worker.";
+  }
+
+  return "Unable to save the salary change. Review the details and try again.";
 }
 
 function nextIsoDate(date: string) {
@@ -115,18 +285,6 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function paymentStatus(amountPaid: number, payableAmount: number) {
-  if (amountPaid <= 0) {
-    return "unpaid";
-  }
-
-  if (amountPaid >= payableAmount) {
-    return "paid";
-  }
-
-  return "partially_paid";
-}
-
 function calculateGross(worker: Worker, attendanceDays: number, attendanceHours: number, productiveMinutes: number) {
   const productiveHours = productiveMinutes / 60;
   const effectiveHours = attendanceHours || productiveHours;
@@ -148,7 +306,11 @@ function calculateGross(worker: Worker, attendanceDays: number, attendanceHours:
   }
 }
 
-function buildCalculationRows(period: SalaryPeriod, inputs: SalaryInputBundle, actorId: string): SalaryCalculationInsert[] {
+function buildCalculationRows(
+  period: Pick<SalaryPeriod, "id" | "tenant_id">,
+  inputs: SalaryInputBundle,
+  actorId: string,
+): SalaryCalculationInsert[] {
   return inputs.workers.map((worker) => {
     const workerAttendance = inputs.attendance.filter((record) => record.worker_id === worker.id);
     const workerLogs = inputs.workLogs.filter((record) => record.worker_id === worker.id);
@@ -159,22 +321,37 @@ function buildCalculationRows(period: SalaryPeriod, inputs: SalaryInputBundle, a
     const productiveMinutes = workerLogs.reduce((total, record) => total + (record.duration_minutes ?? 0), 0);
     const grossSuggestedAmount = roundMoney(calculateGross(worker, attendanceDays, attendanceHours, productiveMinutes));
     const advanceDeduction = roundMoney(
-      workerLedger.filter((entry) => entry.transaction_type === "advance_given").reduce((total, entry) => total + entry.amount, 0)
+      workerLedger
+        .filter(
+          (entry) =>
+            entry.transaction_type === "deduction" &&
+            entry.balance_account === "advance",
+        )
+        .reduce((total, entry) => total + entry.amount, 0),
     );
     const loanDeduction = roundMoney(
-      workerLedger.filter((entry) => entry.transaction_type === "loan_given").reduce((total, entry) => total + entry.amount, 0)
+      workerLedger
+        .filter(
+          (entry) =>
+            entry.transaction_type === "deduction" &&
+            entry.balance_account === "loan",
+        )
+        .reduce((total, entry) => total + entry.amount, 0),
     );
     const otherDeduction = roundMoney(
-      workerLedger.filter((entry) => entry.transaction_type === "deduction").reduce((total, entry) => total + entry.amount, 0)
+      workerLedger
+        .filter(
+          (entry) =>
+            entry.transaction_type === "deduction" &&
+            !entry.balance_account,
+        )
+        .reduce((total, entry) => total + entry.amount, 0),
     );
-    const repaymentCredit = roundMoney(
-      workerLedger.filter((entry) => entry.transaction_type === "repayment").reduce((total, entry) => total + entry.amount, 0)
-    );
-    const manualAdjustment = roundMoney(
-      workerLedger.filter((entry) => entry.transaction_type === "adjustment").reduce((total, entry) => total + entry.amount, 0)
-    );
+    const repaymentCredit = 0;
+    const salaryEffect = calculateWorkerLedgerSalaryEffect(workerLedger);
+    const manualAdjustment = salaryEffect.credit;
     const finalPayable = roundMoney(
-      Math.max(0, grossSuggestedAmount - advanceDeduction - loanDeduction - otherDeduction + repaymentCredit + manualAdjustment)
+      Math.max(0, grossSuggestedAmount + salaryEffect.net)
     );
 
     return {
@@ -205,7 +382,10 @@ function buildCalculationRows(period: SalaryPeriod, inputs: SalaryInputBundle, a
   });
 }
 
-async function loadSalaryInputs(tenantId: string, period: SalaryPeriod): Promise<SalaryInputBundle> {
+async function loadSalaryInputs(
+  tenantId: string,
+  period: Pick<SalaryPeriod, "period_end" | "period_start">,
+): Promise<SalaryInputBundle> {
   const supabase = createSupabaseServiceRoleClient();
   const nextDay = nextIsoDate(period.period_end);
 
@@ -239,6 +419,7 @@ async function loadSalaryInputs(tenantId: string, period: SalaryPeriod): Promise
       .gte("transaction_date", period.period_start)
       .lte("transaction_date", period.period_end)
       .is("deleted_at", null)
+      .is("reversed_at", null)
   ]);
 
   for (const result of [workers, attendance, workLogs, ledger]) {
@@ -255,55 +436,23 @@ async function loadSalaryInputs(tenantId: string, period: SalaryPeriod): Promise
   };
 }
 
-async function generateSalarySuggestions(tenantId: string, period: SalaryPeriod, actorId: string) {
-  const supabase = createSupabaseServiceRoleClient();
-  const inputs = await loadSalaryInputs(tenantId, period);
-  const rows = buildCalculationRows(period, inputs, actorId);
-
-  const existing = await supabase
-    .from("salary_calculations")
-    .select("id, finalized_payable_amount, amount_paid")
-    .eq("tenant_id", tenantId)
-    .eq("salary_period_id", period.id)
-    .is("deleted_at", null);
-
-  if (existing.error) {
-    throw new Error(`Unable to check existing salary suggestions: ${existing.error.message}`);
-  }
-
-  if (existing.data?.some((calculation) => calculation.finalized_payable_amount !== null || calculation.amount_paid > 0)) {
-    salaryNoticeRedirect(
-      "This period already has finalized or paid salary rows. Edit the existing period instead of regenerating it.",
-      "warning",
-      period.id
-    );
-  }
-
-  if (existing.data?.length) {
-    const { error } = await supabase
-      .from("salary_calculations")
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_by: actorId
-      })
-      .eq("tenant_id", tenantId)
-      .eq("salary_period_id", period.id)
-      .is("deleted_at", null);
-
-    if (error) {
-      throw new Error(`Unable to replace old salary suggestions: ${error.message}`);
-    }
-  }
-
-  if (!rows.length) {
-    return;
-  }
-
-  const { error } = await supabase.from("salary_calculations").insert(rows);
-
-  if (error) {
-    throw new Error(`Unable to generate salary suggestions: ${error.message}`);
-  }
+function calculationPayload(rows: SalaryCalculationInsert[]) {
+  return rows.map((row) => ({
+    advance_deduction: row.advance_deduction ?? 0,
+    attendance_days: row.attendance_days ?? 0,
+    attendance_hours: row.attendance_hours ?? 0,
+    final_payable: row.final_payable ?? 0,
+    gross_suggested_amount: row.gross_suggested_amount ?? 0,
+    loan_deduction: row.loan_deduction ?? 0,
+    manual_adjustment: row.manual_adjustment ?? 0,
+    notes: row.notes ?? null,
+    other_deduction: row.other_deduction ?? 0,
+    productive_minutes: row.productive_minutes ?? 0,
+    repayment_credit: row.repayment_credit ?? 0,
+    wage_amount: row.wage_amount ?? 0,
+    wage_type: row.wage_type,
+    worker_id: row.worker_id,
+  }));
 }
 
 async function validateSalaryPeriod(tenantId: string, salaryPeriodId: string) {
@@ -391,278 +540,634 @@ async function findOverlappingSalaryPeriod(tenantId: string, periodStart: string
   return data?.[0] ?? null;
 }
 
-async function refreshSalaryPeriodStatus(tenantId: string, salaryPeriodId: string, actorId: string) {
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from("salary_calculations")
-    .select("finalized_payable_amount, amount_paid, final_payable")
-    .eq("tenant_id", tenantId)
-    .eq("salary_period_id", salaryPeriodId)
-    .is("deleted_at", null);
-
-  if (error) {
-    throw new Error(`Unable to refresh salary period status: ${error.message}`);
-  }
-
-  if (!data?.length) {
-    return;
-  }
-
-  const allFinalized = data.every((calculation) => calculation.finalized_payable_amount !== null);
-  const allPaid = data.every((calculation) => {
-    const payable = calculation.finalized_payable_amount ?? calculation.final_payable;
-    return calculation.amount_paid >= payable;
-  });
-  const nextStatus = allPaid ? "paid" : allFinalized ? "finalized" : "draft";
-
-  const { error: updateError } = await supabase
-    .from("salary_periods")
-    .update({
-      status: nextStatus,
-      updated_by: actorId
-    })
-    .eq("tenant_id", tenantId)
-    .eq("id", salaryPeriodId)
-    .is("deleted_at", null);
-
-  if (updateError) {
-    throw new Error(`Unable to update salary period status: ${updateError.message}`);
-  }
+function salaryWorkflowFingerprint(value: string) {
+  return createHash("md5").update(value).digest("hex");
 }
 
-export async function createSalaryPeriodAction(formData: FormData) {
-  const context = await getAuthorizedSalaryContext();
-  const parsed = createSalaryPeriodSchema.parse({
-    periodStart: formData.get("periodStart"),
-    periodEnd: formData.get("periodEnd")
-  });
-
-  if (parsed.periodEnd < parsed.periodStart) {
-    salaryNoticeRedirect("Salary period end date cannot be before the start date.");
-  }
-
+async function getSalaryWorkflowResult({
+  fingerprint,
+  idempotencyKey,
+  operationType,
+  targetKey,
+  tenantId,
+}: {
+  fingerprint: string;
+  idempotencyKey: string;
+  operationType: "create_period" | "update_period" | "regenerate_period" | "finalize_calculation";
+  targetKey: string;
+  tenantId: string;
+}) {
   const supabase = createSupabaseServiceRoleClient();
-  const overlappingPeriod = await findOverlappingSalaryPeriod(context.tenant.id, parsed.periodStart, parsed.periodEnd);
+  const { data, error } = await supabase.rpc("get_salary_workflow_result", {
+    p_idempotency_key: idempotencyKey,
+    p_operation_type: operationType,
+    p_request_fingerprint: fingerprint,
+    p_target_key: targetKey,
+    p_tenant_id: tenantId,
+  });
+  if (error) throw new Error(error.message);
+  return typeof data === "object" && data && !Array.isArray(data) ? data : null;
+}
 
-  if (overlappingPeriod) {
-    salaryNoticeRedirect(
-      "This date range overlaps an existing salary period. Open that period or choose a different range.",
-      "warning",
-      overlappingPeriod.id
+export async function createSalaryPeriodAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
+
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = createSalaryPeriodSchema.parse({
+      periodStart: formData.get("periodStart"),
+      periodEnd: formData.get("periodEnd"),
+      idempotencyKey: formData.get("idempotencyKey"),
+    });
+    const intent = createSalaryPeriodIntentSchema.parse(formData.get("intent"));
+    const submittedPreviewFingerprint = previewFingerprintSchema.parse(
+      formData.get("previewFingerprint") || undefined,
     );
-  }
 
-  const { data: period, error } = await supabase
-    .from("salary_periods")
-    .insert({
-      tenant_id: context.tenant.id,
-      period_start: parsed.periodStart,
+    if (parsed.periodEnd < parsed.periodStart) {
+      return { idempotencyKey: retryKey, message: "Salary period end date cannot be before the start date.", ok: false };
+    }
+
+    if (intent === "create") {
+      const priorResult = await getSalaryWorkflowResult({
+        fingerprint: salaryWorkflowFingerprint(`create_period:${parsed.periodStart}:${parsed.periodEnd}`),
+        idempotencyKey: parsed.idempotencyKey,
+        operationType: "create_period",
+        targetKey: `${parsed.periodStart}:${parsed.periodEnd}`,
+        tenantId: context.tenant.id,
+      });
+      const priorPeriodId = priorResult ? String(priorResult.periodId ?? "") : "";
+      if (z.string().uuid().safeParse(priorPeriodId).success) {
+        revalidatePath("/salary");
+        return { idempotencyKey: crypto.randomUUID(), message: "Salary period created. Review each worker suggestion before confirming payable amounts.", ok: true, periodId: priorPeriodId };
+      }
+    }
+
+    const overlappingPeriod = await findOverlappingSalaryPeriod(
+      context.tenant.id,
+      parsed.periodStart,
+      parsed.periodEnd,
+    );
+    if (overlappingPeriod) {
+      return {
+        idempotencyKey: retryKey,
+        message: "This date range overlaps an existing salary period. Open that period or choose a different range.",
+        ok: false,
+        periodId: overlappingPeriod.id,
+      };
+    }
+
+    const periodInput = {
+      id: crypto.randomUUID(),
       period_end: parsed.periodEnd,
-      status: "draft",
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id
-    })
-    .select("*")
-    .single();
+      period_start: parsed.periodStart,
+      tenant_id: context.tenant.id,
+    };
+    const inputs = await loadSalaryInputs(context.tenant.id, periodInput);
+    const rows = buildCalculationRows(periodInput, inputs, context.membership.clerk_user_id);
+    const payload = calculationPayload(rows).sort((a, b) => a.worker_id.localeCompare(b.worker_id));
+    const attendanceWorkerCount = new Set(inputs.attendance.map((record) => record.worker_id)).size;
+    const preview = {
+      attendanceEntryCount: inputs.attendance.length,
+      attendanceWorkerCount,
+      missingAttendanceWorkerCount: Math.max(0, inputs.workers.length - attendanceWorkerCount),
+      suggestedPayable: roundMoney(rows.reduce((total, row) => total + (row.final_payable ?? 0), 0)),
+      workerCount: rows.length,
+      fingerprint: "",
+    };
+    const previewFingerprint = createHash("sha256")
+      .update(JSON.stringify({
+        attendance: inputs.attendance
+          .map((record) => ({
+            attendanceDate: record.attendance_date,
+            status: record.status,
+            totalHours: record.total_hours ?? 0,
+            workerId: record.worker_id,
+          }))
+          .sort((a, b) => a.workerId.localeCompare(b.workerId) || a.attendanceDate.localeCompare(b.attendanceDate) || a.status.localeCompare(b.status)),
+        periodEnd: parsed.periodEnd,
+        periodStart: parsed.periodStart,
+        rows: payload,
+        summary: {
+          attendanceEntryCount: preview.attendanceEntryCount,
+          attendanceWorkerCount: preview.attendanceWorkerCount,
+          missingAttendanceWorkerCount: preview.missingAttendanceWorkerCount,
+          suggestedPayable: preview.suggestedPayable,
+          workerCount: preview.workerCount,
+        },
+      }))
+      .digest("hex");
+    preview.fingerprint = previewFingerprint;
+    if (intent === "preview") {
+      return {
+        idempotencyKey: retryKey,
+        message: "Preview ready. Review the coverage summary, then confirm creation.",
+        ok: true,
+        preview,
+      };
+    }
+    if (!submittedPreviewFingerprint || submittedPreviewFingerprint !== previewFingerprint) {
+      return {
+        idempotencyKey: retryKey,
+        message: "Salary inputs changed after the preview. Review the refreshed coverage and confirm again.",
+        ok: false,
+        preview,
+      };
+    }
+    const supabase = createSupabaseServiceRoleClient();
+    const { data, error } = await supabase.rpc("create_salary_period_with_calculations", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_calculations: payload,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_period_end: parsed.periodEnd,
+      p_period_start: parsed.periodStart,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
 
-  if (error) {
-    throw new Error(`Unable to create salary period: ${error.message}`);
+    const periodId = typeof data === "object" && data && !Array.isArray(data)
+      ? String(data.periodId ?? "")
+      : "";
+    if (!z.string().uuid().safeParse(periodId).success) {
+      throw new Error("Salary period was created, but its result could not be confirmed.");
+    }
+
+    revalidatePath("/salary");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: "Salary period created. Review each worker suggestion before confirming payable amounts.",
+      ok: true,
+      periodId,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: salaryWorkflowErrorMessage(error), ok: false };
   }
-
-  await generateSalarySuggestions(context.tenant.id, period, context.membership.clerk_user_id);
-  revalidatePath("/salary");
-  salaryNoticeRedirect("Salary period created. Review the worker suggestions when you are ready.", "success", period.id);
 }
 
-export async function generateSalarySuggestionsAction(formData: FormData) {
-  const context = await getAuthorizedSalaryContext();
-  const parsed = generateSalarySuggestionsSchema.parse({
-    salaryPeriodId: formData.get("salaryPeriodId")
-  });
-  const period = await validateSalaryPeriod(context.tenant.id, parsed.salaryPeriodId);
+export async function generateSalarySuggestionsAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
 
-  if (period.status !== "draft") {
-    throw new Error("Only draft salary periods can be regenerated.");
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = generateSalarySuggestionsSchema.parse({
+      salaryPeriodId: formData.get("salaryPeriodId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+    });
+    const priorResult = await getSalaryWorkflowResult({
+      fingerprint: salaryWorkflowFingerprint(`regenerate_period:${parsed.salaryPeriodId}`),
+      idempotencyKey: parsed.idempotencyKey,
+      operationType: "regenerate_period",
+      targetKey: parsed.salaryPeriodId,
+      tenantId: context.tenant.id,
+    });
+    if (priorResult) {
+      revalidatePath("/salary");
+      return { idempotencyKey: crypto.randomUUID(), message: "Draft suggestions regenerated from the latest attendance and worker-money entries.", ok: true, periodId: parsed.salaryPeriodId };
+    }
+    const period = await validateSalaryPeriod(context.tenant.id, parsed.salaryPeriodId);
+    const inputs = await loadSalaryInputs(context.tenant.id, period);
+    const rows = buildCalculationRows(period, inputs, context.membership.clerk_user_id);
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("regenerate_salary_period_calculations", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_calculations: calculationPayload(rows),
+      p_idempotency_key: parsed.idempotencyKey,
+      p_salary_period_id: period.id,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: "Draft suggestions regenerated from the latest attendance and worker-money entries.",
+      ok: true,
+      periodId: period.id,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: salaryWorkflowErrorMessage(error), ok: false };
   }
-
-  await generateSalarySuggestions(context.tenant.id, period, context.membership.clerk_user_id);
-  revalidatePath("/salary");
 }
 
-export async function finalizeSalaryCalculationAction(formData: FormData) {
-  const context = await getAuthorizedSalaryContext();
-  const parsed = finalizeSalaryCalculationSchema.parse({
-    salaryCalculationId: formData.get("salaryCalculationId"),
-    finalizedPayableAmount: formData.get("finalizedPayableAmount"),
-    finalizationNote: formData.get("finalizationNote")
-  });
-  const calculation = await validateSalaryCalculation(context.tenant.id, parsed.salaryCalculationId);
-  const roundedFinalPayable = roundMoney(parsed.finalizedPayableAmount);
-  const existingPaid = calculation.amount_paid ?? 0;
-  const now = new Date().toISOString();
-  const supabase = createSupabaseServiceRoleClient();
+export async function updateSalaryPeriodAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
 
-  const { error } = await supabase
-    .from("salary_calculations")
-    .update({
-      finalized_payable_amount: roundedFinalPayable,
-      finalized_at: now,
-      finalized_by: context.membership.clerk_user_id,
-      finalization_note: parsed.finalizationNote,
-      payment_status: paymentStatus(existingPaid, roundedFinalPayable),
-      updated_by: context.membership.clerk_user_id
-    })
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", calculation.id)
-    .is("deleted_at", null);
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = updateSalaryPeriodSchema.parse({
+      salaryPeriodId: formData.get("salaryPeriodId"),
+      periodStart: formData.get("periodStart"),
+      periodEnd: formData.get("periodEnd"),
+      idempotencyKey: formData.get("idempotencyKey"),
+    });
+    if (parsed.periodEnd < parsed.periodStart) {
+      return { idempotencyKey: retryKey, message: "Salary period end date cannot be before the start date.", ok: false };
+    }
 
-  if (error) {
-    throw new Error(`Unable to finalize salary: ${error.message}`);
+    const priorResult = await getSalaryWorkflowResult({
+      fingerprint: salaryWorkflowFingerprint(`update_period:${parsed.salaryPeriodId}:${parsed.periodStart}:${parsed.periodEnd}`),
+      idempotencyKey: parsed.idempotencyKey,
+      operationType: "update_period",
+      targetKey: parsed.salaryPeriodId,
+      tenantId: context.tenant.id,
+    });
+    if (priorResult) {
+      revalidatePath("/salary");
+      return { idempotencyKey: crypto.randomUUID(), message: "Period dates and draft suggestions updated together.", ok: true, periodId: parsed.salaryPeriodId };
+    }
+
+    const period = await validateSalaryPeriod(context.tenant.id, parsed.salaryPeriodId);
+    const proposedPeriod = {
+      id: period.id,
+      period_end: parsed.periodEnd,
+      period_start: parsed.periodStart,
+      tenant_id: context.tenant.id,
+    };
+    const inputs = await loadSalaryInputs(context.tenant.id, proposedPeriod);
+    const rows = buildCalculationRows(proposedPeriod, inputs, context.membership.clerk_user_id);
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("update_salary_period_with_calculations", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_calculations: calculationPayload(rows),
+      p_idempotency_key: parsed.idempotencyKey,
+      p_period_end: parsed.periodEnd,
+      p_period_start: parsed.periodStart,
+      p_salary_period_id: period.id,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: "Period dates and draft suggestions updated together.",
+      ok: true,
+      periodId: period.id,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: salaryWorkflowErrorMessage(error), ok: false };
   }
-
-  await refreshSalaryPeriodStatus(context.tenant.id, calculation.salary_period_id, context.membership.clerk_user_id);
-  revalidatePath("/salary");
 }
 
-export async function recordSalaryPaymentAction(formData: FormData) {
-  const context = await getAuthorizedSalaryContext();
-  const parsed = recordSalaryPaymentSchema.parse({
-    salaryCalculationId: formData.get("salaryCalculationId"),
-    amount: formData.get("amount"),
-    paymentDate: formData.get("paymentDate"),
-    paymentModeId: formData.get("paymentModeId"),
-    description: formData.get("description")
-  });
-  const calculation = await validateSalaryCalculation(context.tenant.id, parsed.salaryCalculationId);
-  await validateSalaryPeriod(context.tenant.id, calculation.salary_period_id);
-  const paymentModeId = await validatePaymentMode(context.tenant.id, parsed.paymentModeId);
-  const roundedAmount = roundMoney(parsed.amount);
-  const nextAmountPaid = roundMoney((calculation.amount_paid ?? 0) + roundedAmount);
-  const payableAmount = calculation.finalized_payable_amount ?? calculation.final_payable;
-  const supabase = createSupabaseServiceRoleClient();
+export async function finalizeSalaryCalculationAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
 
-  if (roundedAmount > Math.max(0, payableAmount - (calculation.amount_paid ?? 0))) {
-    salaryNoticeRedirect(
-      "This payment is higher than the salary due. Edit the payable amount first, then record the payment.",
-      "warning",
-      calculation.salary_period_id
-    );
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = finalizeSalaryCalculationSchema.parse({
+      salaryCalculationId: formData.get("salaryCalculationId"),
+      finalizedPayableAmount: formData.get("finalizedPayableAmount"),
+      finalizationNote: formData.get("finalizationNote"),
+      idempotencyKey: formData.get("idempotencyKey"),
+    });
+    const finalizedAmount = roundMoney(parsed.finalizedPayableAmount);
+    const priorResult = await getSalaryWorkflowResult({
+      fingerprint: salaryWorkflowFingerprint(`finalize_calculation:${parsed.salaryCalculationId}:${finalizedAmount}:${parsed.finalizationNote ?? ""}`),
+      idempotencyKey: parsed.idempotencyKey,
+      operationType: "finalize_calculation",
+      targetKey: parsed.salaryCalculationId,
+      tenantId: context.tenant.id,
+    });
+    if (priorResult) {
+      revalidatePath("/salary");
+      return {
+        idempotencyKey: crypto.randomUUID(),
+        message: "Payable saved. Payment recording is now available for this worker.",
+        ok: true,
+        periodId: String(priorResult.periodId ?? ""),
+        workerId: String(priorResult.workerId ?? ""),
+      };
+    }
+    const calculation = await validateSalaryCalculation(context.tenant.id, parsed.salaryCalculationId);
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("finalize_salary_calculation", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_finalization_note: parsed.finalizationNote,
+      p_finalized_payable_amount: finalizedAmount,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_salary_calculation_id: calculation.id,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: "Payable saved. Payment recording is now available for this worker.",
+      ok: true,
+      periodId: calculation.salary_period_id,
+      workerId: calculation.worker_id,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: salaryWorkflowErrorMessage(error), ok: false };
   }
+}
 
-  let duplicatePaymentQuery = supabase
-    .from("worker_ledger")
-    .select("id")
-    .eq("tenant_id", context.tenant.id)
-    .eq("worker_id", calculation.worker_id)
-    .eq("transaction_type", "salary_paid")
-    .eq("amount", roundedAmount)
-    .eq("transaction_date", parsed.paymentDate)
-    .eq("linked_salary_period_id", calculation.salary_period_id)
-    .is("deleted_at", null)
-    .limit(1);
+export async function recordSalaryPaymentAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
 
-  duplicatePaymentQuery = paymentModeId
-    ? duplicatePaymentQuery.eq("payment_mode_id", paymentModeId)
-    : duplicatePaymentQuery.is("payment_mode_id", null);
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = recordSalaryPaymentSchema.parse({
+      salaryCalculationId: formData.get("salaryCalculationId"),
+      amount: formData.get("amount"),
+      paymentDate: formData.get("paymentDate"),
+      paymentModeId: formData.get("paymentModeId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      description: formData.get("description"),
+    });
+    const calculation = await validateSalaryCalculation(context.tenant.id, parsed.salaryCalculationId);
+    await validateSalaryPeriod(context.tenant.id, calculation.salary_period_id);
+    if (calculation.finalized_payable_amount === null) {
+      return {
+        idempotencyKey: retryKey,
+        message: "Save this worker's payable amount before recording payment.",
+        ok: false,
+        periodId: calculation.salary_period_id,
+        workerId: calculation.worker_id,
+      };
+    }
 
-  const duplicatePayment = await duplicatePaymentQuery;
+    const paymentModeId = await validatePaymentMode(context.tenant.id, parsed.paymentModeId);
+    const roundedAmount = roundMoney(parsed.amount);
+    const outstanding = Math.max(0, calculation.finalized_payable_amount - (calculation.amount_paid ?? 0));
+    if (roundedAmount > outstanding) {
+      return {
+        idempotencyKey: retryKey,
+        message: "This payment is higher than the remaining finalized salary due.",
+        ok: false,
+        periodId: calculation.salary_period_id,
+        workerId: calculation.worker_id,
+      };
+    }
 
-  if (duplicatePayment.error) {
-    throw new Error(`Unable to check duplicate salary payment: ${duplicatePayment.error.message}`);
-  }
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("record_worker_money_entry", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_amount: roundedAmount,
+      p_balance_account: null,
+      p_description: parsed.description,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_linked_salary_period_id: calculation.salary_period_id,
+      p_payment_mode_id: paymentModeId,
+      p_tenant_id: context.tenant.id,
+      p_transaction_date: parsed.paymentDate,
+      p_transaction_type: "salary_paid",
+      p_worker_id: calculation.worker_id,
+    });
+    if (error) throw new Error(error.message);
 
-  if (duplicatePayment.data?.length) {
     revalidatePath("/salary");
     revalidatePath("/finance");
-    salaryNoticeRedirect("This salary payment already appears to be recorded.", "success", calculation.salary_period_id);
-    return;
+    revalidatePath("/workers");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: "Payment recorded. Salary, Worker details, and Finance have been refreshed.",
+      ok: true,
+      periodId: calculation.salary_period_id,
+      workerId: calculation.worker_id,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: workerMoneyActionError(error), ok: false };
   }
-
-  const { error: ledgerError } = await supabase.from("worker_ledger").insert({
-    tenant_id: context.tenant.id,
-    worker_id: calculation.worker_id,
-    transaction_type: "salary_paid",
-    amount: roundedAmount,
-    transaction_date: parsed.paymentDate,
-    linked_salary_period_id: calculation.salary_period_id,
-    payment_mode_id: paymentModeId,
-    description: parsed.description,
-    created_by: context.membership.clerk_user_id
-  });
-
-  if (ledgerError) {
-    throw new Error(`Unable to record salary payment ledger entry: ${ledgerError.message}`);
-  }
-
-  const { error: calculationError } = await supabase
-    .from("salary_calculations")
-    .update({
-      amount_paid: nextAmountPaid,
-      payment_date: parsed.paymentDate,
-      payment_mode_id: paymentModeId,
-      payment_status: paymentStatus(nextAmountPaid, payableAmount),
-      updated_by: context.membership.clerk_user_id
-    })
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", calculation.id)
-    .is("deleted_at", null);
-
-  if (calculationError) {
-    throw new Error(`Unable to update salary payment: ${calculationError.message}`);
-  }
-
-  await refreshSalaryPeriodStatus(context.tenant.id, calculation.salary_period_id, context.membership.clerk_user_id);
-  revalidatePath("/salary");
-  revalidatePath("/finance");
-  salaryNoticeRedirect("Salary payment recorded and rolled into Finance.", "success", calculation.salary_period_id);
 }
 
-export async function addWorkerLedgerEntryAction(formData: FormData) {
-  const context = await getAuthorizedSalaryContext();
-  const parsed = addLedgerEntrySchema.parse({
-    workerId: formData.get("workerId"),
-    transactionType: formData.get("transactionType"),
-    amount: formData.get("amount"),
-    transactionDate: formData.get("transactionDate"),
-    linkedSalaryPeriodId: formData.get("linkedSalaryPeriodId"),
-    description: formData.get("description")
-  });
+export async function finalizeSalaryCalculationsBulkAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
 
-  const supabase = createSupabaseServiceRoleClient();
-  const worker = await supabase
-    .from("workers")
-    .select("id")
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", parsed.workerId)
-    .is("deleted_at", null)
-    .maybeSingle();
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = bulkFinalizeSalarySchema.parse({
+      salaryPeriodId: formData.get("salaryPeriodId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      rows: formData.get("rows"),
+    });
+    await validateSalaryPeriod(context.tenant.id, parsed.salaryPeriodId);
 
-  if (worker.error) {
-    throw new Error(`Unable to validate worker: ${worker.error.message}`);
+    const rows = parsed.rows.map((row) => ({
+      calculationId: row.calculationId,
+      expectedUpdatedAt: row.expectedUpdatedAt,
+      finalizationNote: row.finalizationNote?.trim() || null,
+      finalizedPayableAmount: roundMoney(row.finalizedPayableAmount),
+    }));
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("finalize_salary_calculations_bulk", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_rows: rows,
+      p_salary_period_id: parsed.salaryPeriodId,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    revalidatePath(`/salary/periods/${parsed.salaryPeriodId}`);
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: `${rows.length} ${rows.length === 1 ? "payable" : "payables"} finalized.`,
+      ok: true,
+      periodId: parsed.salaryPeriodId,
+      processedCount: rows.length,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: salaryWorkflowErrorMessage(error), ok: false };
   }
+}
 
-  if (!worker.data) {
-    throw new Error("Worker does not belong to this tenant.");
+export async function recordSalaryPaymentsBulkAction(
+  previousState: SalaryWorkflowActionState,
+  formData: FormData,
+): Promise<SalaryWorkflowActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
+
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = bulkSalaryPaymentSchema.parse({
+      salaryPeriodId: formData.get("salaryPeriodId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      paymentDate: formData.get("paymentDate"),
+      paymentModeId: formData.get("paymentModeId"),
+      description: formData.get("description"),
+      rows: formData.get("rows"),
+    });
+    const period = await validateSalaryPeriod(context.tenant.id, parsed.salaryPeriodId);
+    const paymentModeId = await validatePaymentMode(context.tenant.id, parsed.paymentModeId);
+    if (!paymentModeId) throw new Error("WORKER_MONEY_PAYMENT_MODE_REQUIRED");
+
+    const rows = parsed.rows.map((row) => ({
+      amount: roundMoney(row.amount),
+      calculationId: row.calculationId,
+      expectedUpdatedAt: row.expectedUpdatedAt,
+    }));
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("record_salary_payments_bulk", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_description: parsed.description ?? `Salary paid for ${period.period_start} to ${period.period_end}`,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_payment_date: parsed.paymentDate,
+      p_payment_mode_id: paymentModeId,
+      p_rows: rows,
+      p_salary_period_id: parsed.salaryPeriodId,
+      p_tenant_id: context.tenant.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    revalidatePath(`/salary/periods/${parsed.salaryPeriodId}`);
+    revalidatePath("/finance");
+    revalidatePath("/workers");
+    return {
+      idempotencyKey: crypto.randomUUID(),
+      message: `${rows.length} ${rows.length === 1 ? "payment" : "payments"} recorded. Salary, Worker details, and Finance have been refreshed.`,
+      ok: true,
+      periodId: parsed.salaryPeriodId,
+      processedCount: rows.length,
+    };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: workerMoneyActionError(error), ok: false };
   }
+}
 
-  if (parsed.linkedSalaryPeriodId) {
-    await validateSalaryPeriod(context.tenant.id, parsed.linkedSalaryPeriodId);
+export async function addWorkerLedgerEntryAction(
+  previousState: WorkerMoneyActionState,
+  formData: FormData,
+): Promise<WorkerMoneyActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = addLedgerEntrySchema.parse({
+      workerId: formData.get("workerId"),
+      transactionType: formData.get("transactionType"),
+      amount: formData.get("amount"),
+      transactionDate: formData.get("transactionDate"),
+      balanceAccount: formData.get("balanceAccount"),
+      paymentModeId: formData.get("paymentModeId"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      description: formData.get("description")
+    });
+
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("record_worker_money_entry", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_amount: roundMoney(parsed.amount),
+      p_balance_account: parsed.balanceAccount,
+      p_description: parsed.description,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_linked_salary_period_id: null,
+      p_payment_mode_id: parsed.paymentModeId,
+      p_tenant_id: context.tenant.id,
+      p_transaction_date: parsed.transactionDate,
+      p_transaction_type: parsed.transactionType,
+      p_worker_id: parsed.workerId,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    revalidatePath("/finance");
+    revalidatePath("/workers");
+    return { idempotencyKey: crypto.randomUUID(), message: "Worker ledger entry recorded.", ok: true };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: workerMoneyActionError(error), ok: false };
   }
+}
 
-  const { error } = await supabase.from("worker_ledger").insert({
-    tenant_id: context.tenant.id,
-    worker_id: parsed.workerId,
-    transaction_type: parsed.transactionType as WorkerLedgerTransactionType,
-    amount: parsed.amount,
-    transaction_date: parsed.transactionDate,
-    linked_salary_period_id: parsed.linkedSalaryPeriodId,
-    description: parsed.description,
-    created_by: context.membership.clerk_user_id
-  });
+export async function correctWorkerMoneyEntryAction(
+  previousState: WorkerMoneyActionState,
+  formData: FormData,
+): Promise<WorkerMoneyActionState> {
+  const submittedKey = formData.get("idempotencyKey");
+  const retryKey = typeof submittedKey === "string" ? submittedKey : previousState.idempotencyKey;
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = correctWorkerMoneyEntrySchema.parse({
+      entryId: formData.get("entryId"),
+      amount: formData.get("amount"),
+      transactionDate: formData.get("transactionDate"),
+      balanceAccount: formData.get("balanceAccount"),
+      paymentModeId: formData.get("paymentModeId"),
+      description: formData.get("description"),
+      correctionReason: formData.get("correctionReason"),
+      idempotencyKey: formData.get("idempotencyKey"),
+      returnTo: formData.get("returnTo"),
+    });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("correct_worker_money_entry", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_amount: roundMoney(parsed.amount),
+      p_balance_account: parsed.balanceAccount,
+      p_description: parsed.description,
+      p_entry_id: parsed.entryId,
+      p_idempotency_key: parsed.idempotencyKey,
+      p_payment_mode_id: parsed.paymentModeId,
+      p_reason: parsed.correctionReason,
+      p_tenant_id: context.tenant.id,
+      p_transaction_date: parsed.transactionDate,
+    });
 
-  if (error) {
-    throw new Error(`Unable to add worker ledger entry: ${error.message}`);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    revalidatePath("/finance");
+    revalidatePath("/workers");
+    return { idempotencyKey: crypto.randomUUID(), message: "Worker ledger correction saved with its audit history.", ok: true };
+  } catch (error) {
+    return { idempotencyKey: retryKey, message: workerMoneyActionError(error), ok: false };
   }
+}
 
-  revalidatePath("/salary");
+export async function reverseWorkerMoneyEntryAction(
+  _previousState: WorkerMoneyActionState,
+  formData: FormData,
+): Promise<WorkerMoneyActionState> {
+  try {
+    const context = await getAuthorizedSalaryContext();
+    const parsed = reverseWorkerMoneyEntrySchema.parse({
+      entryId: formData.get("entryId"),
+      correctionReason: formData.get("correctionReason"),
+      returnTo: formData.get("returnTo"),
+    });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("reverse_worker_money_entry", {
+      p_actor_id: context.membership.clerk_user_id,
+      p_entry_id: parsed.entryId,
+      p_reason: parsed.correctionReason,
+      p_tenant_id: context.tenant.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/salary");
+    revalidatePath("/finance");
+    revalidatePath("/workers");
+    return { message: "Worker ledger entry reversed. Its history is preserved.", ok: true };
+  } catch (error) {
+    return { message: workerMoneyActionError(error), ok: false };
+  }
 }

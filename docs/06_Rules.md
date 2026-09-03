@@ -56,6 +56,10 @@
 16. Import reuse priority is tenant-scoped Shopify customer ID, then normalized E.164 phone. Email-only matches require explicit review.
 17. Reused customers may receive values only in blank profile fields; populated-field conflicts must be shown and never overwritten automatically.
 18. Shopify historical and marketing fields are source metadata only. They do not create historical orders, affect reports, or grant messaging consent.
+19. During Shopify-style file import, `Phone` is primary. A differing `Default Address Phone` is retained as alternate source metadata and shown as a warning; it does not invalidate an otherwise usable row.
+20. Only a country-validated E.164 phone may be used for matching or tenant-level uniqueness. A plausible unverified value must contain 7 to 15 digits, is metadata-only, and must not be guessed into a country.
+21. An unverified phone may proceed automatically only when an authoritative Shopify customer ID is present. Otherwise the owner/admin must explicitly create the customer without a verified phone or skip the row.
+22. A repeated verified phone must never create multiple active tenant customers automatically; source cleanup or a separately audited merge flow is required.
 
 ## 4. Order Rules
 
@@ -168,6 +172,27 @@
 12. Salary suggestions must not silently overwrite founder-finalized payable values.
 13. Salary amounts, notes, periods, and payments must be editable with tenant validation and audit fields.
 14. Detailed calculation rows should live in focused drilldowns or period workspaces, not overwhelm the default salary dashboard.
+15. Salary navigation must use Overview, Pay periods, and Worker ledger. A successful payment remains in the selected period and worker context.
+16. Advances and loans are balances and cash movements, not automatic salary deductions.
+17. Cash repayment reduces a selected advance/loan balance and is cash in. Salary deduction reduces a selected balance and salary payable but is not cash movement.
+18. Manual adjustment is a salary credit. Use an explicit deduction for negative salary impact.
+19. New advance, loan, repayment, and salary-payment entries require an active tenant-owned payment mode.
+20. Ledger correction/reversal preserves the original row, requires a reason, and records actor/time plus replacement linkage where applicable.
+21. A deduction or salary credit affects a system suggestion only when the user generates or regenerates a period containing its transaction date. It must not silently rewrite a founder-finalized payable.
+22. Worker-money record and correction commands are idempotent under retry and concurrency. A failed tenant, payment-mode, balance, or salary validation must leave no partial financial row.
+23. Worker detail balances must come from complete active ledger history through a service-only aggregate, while detailed history is worker-scoped and paginated without claiming a truncated sample is complete.
+24. Service-role worker queries must assert both worker and salary permissions before reading wages or worker-money data. Managers must not gain worker-money access through a direct Workers URL.
+25. Worker-money forms must preserve input on recoverable error, announce the error inline, disable conflicting controls while pending, and rotate the idempotency key only after success.
+26. Period create, date edit, and regeneration must atomically write the period and its complete active-worker suggestion set. Failure must preserve the previous draft.
+27. All period range commands must serialize on the current tenant and reject overlaps inside the database transaction.
+28. Period dates may change only before any worker row is finalized or paid. The new range and recalculated suggestions commit together.
+29. Final payable decisions require immutable before/after audit history. The final payable must never be lower than active salary payments already recorded.
+30. A finalized payable of zero is paid with no cash due. It must not appear as an unpaid worker.
+31. Salary workflow forms must return recoverable action state for schema, ownership, stale-state, and RPC failures. They must never throw a user-correctable runtime error page.
+32. A salary period opens as a dedicated full-width worker workspace. The primary workflow is bulk review, then bulk payment; worker audit/correction remains individually reachable.
+33. Bulk payable finalization and bulk payment are atomic and tenant-scoped. One invalid, stale, duplicated, foreign, unfinalized, or overpaying selected row rejects the complete batch without partial writes.
+34. Bulk finalization writes an immutable revision for every selected worker. Bulk payment writes a separate `salary_paid` ledger entry for every selected worker so later correction/reversal remains worker-specific.
+35. A bulk payment may share payment date and payment mode, but each worker amount remains explicit and may be a valid partial amount not exceeding that worker's outstanding finalized payable.
 
 ## 11. Finance Rules
 
@@ -185,6 +210,9 @@
 12. Cash payment mode and GST treatment are separate; cash collections must still be recorded and must not be treated as automatically non-reportable.
 13. New order payments and payment corrections must lock the order, validate the tenant and payment mode, reject overpayment, write the payment change, and recalculate the summary in one transaction.
 14. Payment corrections must retain an immutable before/after snapshot, actor, and required reason; payment history must never be silently overwritten.
+15. Finance cash out includes salary payments, advances, and loans exactly once. Finance cash in includes worker cash repayments.
+16. Non-cash salary deductions and credits remain visible in Worker money but do not change cash-flow totals.
+17. Finance and worker detail must derive advance and loan balances from active worker-ledger history and must not guess the account for legacy unallocated deductions or repayments.
 
 ## 12. Dashboard Rules
 
@@ -221,6 +249,17 @@
 11. Do not update `docs/05_Project_Summary.md`; it is archived historical context. New sessions should read the root `project_summary.md` plus the relevant product/tech docs instead.
 12. Tasks is Laundry-only in the current phase. Navigation, route queries, and mutations must all assert that the current tenant has the Laundry vertical enabled.
 
+### Git and Production Release Workflow
+
+1. Treat commit, branch push, pull-request merge, and production deployment as separate steps. Never report a production deployment merely because a feature branch was pushed.
+2. Before committing, confirm the intended file scope with `git status`, inspect the staged diff, run `git diff --cached --check`, and complete the risk-appropriate automated and browser verification recorded for the change.
+3. Create an intentional commit on the current `codex/*` feature branch only after owner authorization. Do not stage unrelated user changes.
+4. Push an existing branch with standard Git (`git push`). GitHub CLI is not required for committing or pushing and must not be presented as a release dependency.
+5. OS PLUS production releases normally use a pull request from the pushed feature branch into `main`. The owner may create and merge that pull request through the GitHub web UI; GitHub CLI is only an optional automation convenience.
+6. Vercel production deployment begins from the configured production branch (`main`) after the pull request is merged. A feature-branch push may create a preview deployment but is not, by itself, a production release.
+7. Do not push directly to `main`, merge a pull request, or claim that production is live unless the owner explicitly authorized that exact action and the remote/deployment evidence confirms it succeeded.
+8. After a push, confirm that the local branch is clean and synchronized with its upstream. Report the branch, commit hash, checks completed, and the remaining merge/deployment step.
+
 ## 15. UX Rules
 
 1. Internal production update screens should be mobile-first.
@@ -251,3 +290,12 @@
 3. Production workflow and garment predicates must be applied before pagination.
 4. Malformed or foreign filter IDs must never broaden a result set.
 5. Filter disclosures must announce expanded state and close with Escape.
+
+### Salary action lifecycle
+
+1. Salary-period creation must preview active-worker and attendance coverage without writing, then require explicit confirmation.
+2. A preview is valid only for the dates and generated salary inputs it represents. Date edits invalidate it immediately; server input drift returns a refreshed preview instead of creating from stale information.
+3. Pending salary actions disable conflicting controls and duplicate submissions. Failures stay inline and retain user input; success clears dirty-form state and preserves the selected period and worker context.
+4. Worker create/status changes and salary-period suggestion commands share the tenant lock when validating the complete active-worker set.
+5. Salary payment, correction, reversal, and finalization use parent-period-first locking before worker calculation changes and aggregate status refresh.
+6. Display period state as Draft, Ready to pay, Partially paid, or Paid. Do not expose raw persistence status when it misrepresents payment progress.

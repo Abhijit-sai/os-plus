@@ -33,11 +33,16 @@ export type ParsedCustomerImportRow = {
     acceptsEmailMarketing: boolean | null;
     acceptsSmsMarketing: boolean | null;
     acceptsWhatsAppMarketing: boolean | null;
+    addressPhone: string | null;
+    phoneWarnings: string[];
+    primaryPhone: string | null;
     tags: string[];
     taxExempt: boolean | null;
     totalOrders: number | null;
     totalSpent: number | null;
+    unverifiedPhoneValues: string[];
   };
+  warnings: string[];
 };
 
 export type ParsedCustomerImport = {
@@ -77,6 +82,11 @@ function emailValue(value: CellValue) {
   return email || null;
 }
 
+function isPlausibleUnverifiedPhone(value: string) {
+  const digitCount = value.replace(/\D/g, "").length;
+  return value.length <= 40 && digitCount >= 7 && digitCount <= 15;
+}
+
 function valueFrom(row: CellValue[], headers: Map<string, number>, ...keys: string[]) {
   for (const key of keys) {
     const index = headers.get(key);
@@ -93,10 +103,13 @@ function parseRow(row: CellValue[], headers: Map<string, number>, rowNumber: num
   const countryCode = cleanCell(valueFrom(row, headers, "defaultaddresscountrycode", "countrycode")).toUpperCase();
   const primaryPhone = cleanCell(valueFrom(row, headers, "phone", "mobile", "mobilenumber"));
   const addressPhone = cleanCell(valueFrom(row, headers, "defaultaddressphone"));
-  const phoneInput = primaryPhone || addressPhone;
   const primaryNormalizedPhone = primaryPhone ? normalizeCustomerPhone(primaryPhone, countryCode || undefined) : null;
   const addressNormalizedPhone = addressPhone ? normalizeCustomerPhone(addressPhone, countryCode || undefined) : null;
   const phone = primaryNormalizedPhone ?? addressNormalizedPhone;
+  const unverifiedPhoneValues = [
+    primaryPhone && !primaryNormalizedPhone ? primaryPhone : null,
+    addressPhone && !addressNormalizedPhone ? addressPhone : null,
+  ].filter((value): value is string => Boolean(value));
   const addressLine1 = cleanCell(valueFrom(row, headers, "defaultaddressaddress1", "addressline1", "address1"));
   const addressLine2 = nullable(valueFrom(row, headers, "defaultaddressaddress2", "addressline2", "address2"));
   const city = nullable(valueFrom(row, headers, "defaultaddresscity", "city"));
@@ -105,16 +118,23 @@ function parseRow(row: CellValue[], headers: Map<string, number>, rowNumber: num
   const addressParts = [addressLine1, addressLine2, city, state, postalCode, countryCode].filter(Boolean);
   const email = emailValue(valueFrom(row, headers, "email"));
   const invalidReasons: string[] = [];
+  const warnings: string[] = [];
 
   if (!name) invalidReasons.push("Customer name is required.");
-  if ((primaryPhone && !primaryNormalizedPhone) || (addressPhone && !addressNormalizedPhone)) {
-    invalidReasons.push("Phone number is invalid or missing reliable country context.");
+  if (!phone && unverifiedPhoneValues.some((value) => !isPlausibleUnverifiedPhone(value))) {
+    invalidReasons.push("Phone number must contain 7 to 15 digits or be valid for its supplied country.");
+  } else if (unverifiedPhoneValues.length) {
+    if (!primaryNormalizedPhone && addressNormalizedPhone) {
+      warnings.push("Shopify Phone could not be verified; the verified address phone was used. The original value remains visible as source data and is not used for matching.");
+    } else {
+      warnings.push("One or more phone values could not be verified. They remain visible as source data and are not used for matching.");
+    }
   }
   if (countryCode && !/^[A-Z]{2}$/.test(countryCode)) {
     invalidReasons.push("Country code must use two ISO letters, such as IN or US.");
   }
   if (primaryNormalizedPhone && addressNormalizedPhone && primaryNormalizedPhone.e164 !== addressNormalizedPhone.e164) {
-    invalidReasons.push("The phone columns resolve to different numbers.");
+    warnings.push("Shopify Phone and Default Address Phone contain different phone numbers. Phone was used as primary; the address phone remains visible as alternate source data.");
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) invalidReasons.push("Email address is invalid.");
 
@@ -143,11 +163,16 @@ function parseRow(row: CellValue[], headers: Map<string, number>, rowNumber: num
       acceptsEmailMarketing: booleanValue(valueFrom(row, headers, "acceptsemailmarketing")),
       acceptsSmsMarketing: booleanValue(valueFrom(row, headers, "acceptssmsmarketing")),
       acceptsWhatsAppMarketing: booleanValue(valueFrom(row, headers, "acceptswhatsappmarketing")),
+      addressPhone: addressPhone || null,
+      phoneWarnings: warnings,
+      primaryPhone: primaryPhone || null,
       tags: cleanCell(valueFrom(row, headers, "tags")).split(",").map((tag) => tag.trim()).filter(Boolean),
       taxExempt: booleanValue(valueFrom(row, headers, "taxexempt")),
       totalOrders: numberValue(valueFrom(row, headers, "totalorders")),
       totalSpent: numberValue(valueFrom(row, headers, "totalspent")),
+      unverifiedPhoneValues,
     },
+    warnings,
   };
 }
 

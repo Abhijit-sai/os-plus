@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { CalendarDays, Plus, RefreshCw, WalletCards } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 
 import {
   addWorkerLedgerEntryAction,
+  correctWorkerMoneyEntryAction,
   createSalaryPeriodAction,
-  finalizeSalaryCalculationAction,
-  generateSalarySuggestionsAction,
-  recordSalaryPaymentAction,
+  reverseWorkerMoneyEntryAction,
 } from "@/features/salary/actions";
-import { getSalaryPageData } from "@/features/salary/queries";
+import { getSalaryPageData, type SalaryPeriodSummary } from "@/features/salary/queries";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,6 +15,9 @@ import {
   SalaryPaidTrendChart,
   WorkerSalaryBarChart,
 } from "@/components/salary/salary-charts";
+import { SalaryPeriodCreateForm } from "@/components/salary/salary-workflow-forms";
+import { WorkerMoneyEntryForm } from "@/components/salary/worker-money-entry-form";
+import { WorkerMoneyLedger } from "@/components/salary/worker-money-ledger";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,21 +30,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hasPermission } from "@/lib/permissions/roles";
 import type {
-  SalaryCalculation,
   SalaryPeriod,
-  WorkerLedgerTransactionType,
 } from "@/types/database";
-
-const ledgerTransactionTypes: Array<{
-  value: WorkerLedgerTransactionType;
-  label: string;
-}> = [
-  { value: "advance_given", label: "Advance given" },
-  { value: "loan_given", label: "Loan given" },
-  { value: "deduction", label: "Deduct from salary" },
-  { value: "repayment", label: "Cash repayment received" },
-  { value: "adjustment", label: "Manual adjustment" },
-];
 
 const rangeOptions = [
   { label: "7 days", value: "7d" },
@@ -92,29 +81,15 @@ function formatStatus(value: string) {
   return value.replaceAll("_", " ");
 }
 
+function salaryPeriodDisplayStatus(summary: SalaryPeriodSummary) {
+  if (summary.workerCount > 0 && summary.paidCount === summary.workerCount) return "Paid";
+  if (summary.paid > 0) return "Partially paid";
+  if (summary.workerCount > 0 && summary.finalizedCount === summary.workerCount) return "Ready to pay";
+  return "Draft";
+}
+
 function periodLabel(period: SalaryPeriod) {
   return `${formatDate(period.period_start)} - ${formatDate(period.period_end)}`;
-}
-
-function effectivePayable(calculation: SalaryCalculation) {
-  return calculation.finalized_payable_amount ?? calculation.final_payable;
-}
-
-function calculationWarnings(calculation: SalaryCalculation) {
-  const payable = effectivePayable(calculation);
-
-  return [
-    calculation.wage_type === "per_piece" || calculation.wage_type === "hybrid"
-      ? "Manual wage review"
-      : null,
-    calculation.attendance_days === 0 && calculation.attendance_hours === 0
-      ? "No attendance input"
-      : null,
-    calculation.final_payable === 0 && calculation.gross_suggested_amount > 0
-      ? "Fully deducted"
-      : null,
-    calculation.amount_paid > payable ? "Paid exceeds payable" : null,
-  ].filter(Boolean) as string[];
 }
 
 function salaryHref({
@@ -124,6 +99,7 @@ function salaryHref({
   range,
   start,
   view,
+  workerId,
 }: {
   end?: string;
   group?: string;
@@ -131,6 +107,7 @@ function salaryHref({
   range?: string;
   start?: string;
   view?: string;
+  workerId?: string;
 }) {
   const params = new URLSearchParams();
 
@@ -158,6 +135,10 @@ function salaryHref({
     params.set("view", view);
   }
 
+  if (workerId) {
+    params.set("workerId", workerId);
+  }
+
   const query = params.toString();
   return query ? `/salary?${query}` : "/salary";
 }
@@ -174,10 +155,12 @@ export default async function SalaryPage({
     salaryNoticeType?: string;
     start?: string;
     view?: string;
+    workerId?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const {
+    activeWorkers,
     attentionItems,
     calculations,
     context,
@@ -187,6 +170,7 @@ export default async function SalaryPage({
     periods,
     range,
     recentSalaryPayments,
+    revisions,
     salaryGroup,
     summary,
     trend,
@@ -204,48 +188,26 @@ export default async function SalaryPage({
     "salary:manage",
   );
   const activeView =
-    resolvedSearchParams?.view === "periods" ||
-    resolvedSearchParams?.view === "adjustments"
-      ? resolvedSearchParams.view
-      : "overview";
+    resolvedSearchParams?.view === "periods"
+      ? "periods"
+      : resolvedSearchParams?.view === "worker-ledger" ||
+          resolvedSearchParams?.view === "adjustments"
+        ? "worker-ledger"
+        : "overview";
   const workerById = new Map(workers.map((worker) => [worker.id, worker]));
   const selectedPeriod =
     periods.find((period) => period.id === resolvedSearchParams?.periodId) ??
     periodSummaries.find((periodSummary) => periodSummary.due > 0)?.period ??
     periods[0] ??
     null;
-  const selectedPeriodSummary = selectedPeriod
-    ? (periodSummaries.find(
-        (periodSummary) => periodSummary.period.id === selectedPeriod.id,
-      ) ?? null)
-    : null;
-  const selectedCalculations = selectedPeriod
-    ? calculations
-        .filter(
-          (calculation) => calculation.salary_period_id === selectedPeriod.id,
-        )
-        .map((calculation) => ({
-          calculation,
-          warnings: calculationWarnings(calculation),
-          worker: workerById.get(calculation.worker_id),
-        }))
-        .sort(
-          (a, b) =>
-            Math.max(
-              0,
-              effectivePayable(b.calculation) - b.calculation.amount_paid,
-            ) -
-            Math.max(
-              0,
-              effectivePayable(a.calculation) - a.calculation.amount_paid,
-            ),
-        )
-    : [];
-  const selectedLedger = selectedPeriod
-    ? ledger.filter(
-        (entry) => entry.linked_salary_period_id === selectedPeriod.id,
-      )
-    : [];
+  const ledgerWorkerId = workers.some(
+    (worker) => worker.id === resolvedSearchParams?.workerId,
+  )
+    ? resolvedSearchParams?.workerId
+    : undefined;
+  const visibleWorkerLedger = ledgerWorkerId
+    ? ledger.filter((entry) => entry.worker_id === ledgerWorkerId)
+    : ledger;
 
   return (
     <div className="space-y-5">
@@ -307,7 +269,7 @@ export default async function SalaryPage({
           <Button
             asChild
             size="sm"
-            variant={activeView === "adjustments" ? "default" : "outline"}
+            variant={activeView === "worker-ledger" ? "default" : "outline"}
           >
             <Link
               href={salaryHref({
@@ -315,10 +277,10 @@ export default async function SalaryPage({
                 group: salaryGroup,
                 range: range.range,
                 start: range.start,
-                view: "adjustments",
+                view: "worker-ledger",
               })}
             >
-              Adjustments
+              Worker ledger
             </Link>
           </Button>
         </div>
@@ -632,7 +594,7 @@ export default async function SalaryPage({
       ) : null}
 
       {activeView === "periods" ? (
-        <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid gap-5">
           <div className="space-y-5">
             <Card id="add-salary-period">
               <CardHeader>
@@ -647,34 +609,11 @@ export default async function SalaryPage({
               </CardHeader>
               <CardContent>
                 {canManageSalary ? (
-                  <form
+                  <SalaryPeriodCreateForm
                     action={createSalaryPeriodAction}
-                    className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-                    data-unsaved-guard="true"
-                  >
-                    <div className="grid gap-2">
-                      <Label htmlFor="periodStart">Start</Label>
-                      <Input
-                        id="periodStart"
-                        name="periodStart"
-                        type="date"
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="periodEnd">End</Label>
-                      <Input
-                        id="periodEnd"
-                        name="periodEnd"
-                        type="date"
-                        required
-                      />
-                    </div>
-                    <Button type="submit">
-                      <Plus className="h-4 w-4" />
-                      Create
-                    </Button>
-                  </form>
+                    activeWorkerCount={activeWorkers.length}
+                    idempotencyKey={crypto.randomUUID()}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     You can view salary history, but only salary managers can
@@ -692,16 +631,10 @@ export default async function SalaryPage({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {periodSummaries.slice(0, 8).map((periodSummary) => (
+                {periodSummaries.map((periodSummary) => (
                   <Link
                     key={periodSummary.period.id}
-                    href={salaryHref({
-                      end: range.end,
-                      periodId: periodSummary.period.id,
-                      range: range.range,
-                      start: range.start,
-                      view: "periods",
-                    })}
+                    href={`/salary/periods/${periodSummary.period.id}`}
                     className={`block rounded-md border p-3 text-sm transition hover:bg-muted/50 ${
                       selectedPeriod?.id === periodSummary.period.id
                         ? "border-neutral-950 bg-muted/40"
@@ -714,13 +647,13 @@ export default async function SalaryPage({
                           {periodLabel(periodSummary.period)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatStatus(periodSummary.period.status)} ·{" "}
+                          {salaryPeriodDisplayStatus(periodSummary)} ·{" "}
                           {periodSummary.paidCount}/{periodSummary.workerCount}{" "}
                           paid
                         </p>
                       </div>
                       <span className="rounded-full bg-neutral-950 px-2 py-1 text-xs text-white">
-                        {formatStatus(periodSummary.period.status)}
+                        {salaryPeriodDisplayStatus(periodSummary)}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -755,419 +688,60 @@ export default async function SalaryPage({
             </Card>
           </div>
 
+        </div>
+      ) : null}
+
+      {activeView === "worker-ledger" ? (
+        <div className="space-y-5">
           <Card>
             <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle>Period workspace</CardTitle>
-                  <CardDescription>
-                    {selectedPeriod
-                      ? `${periodLabel(selectedPeriod)} · focused review and payment`
-                      : "Create a salary period to start."}
-                  </CardDescription>
-                </div>
-                {canManageSalary && selectedPeriod?.status === "draft" ? (
-                  <form action={generateSalarySuggestionsAction}>
-                    <input
-                      type="hidden"
-                      name="salaryPeriodId"
-                      value={selectedPeriod.id}
-                    />
-                    <Button type="submit" size="sm" variant="outline">
-                      <RefreshCw className="h-4 w-4" />
-                      Regenerate
-                    </Button>
-                  </form>
-                ) : null}
-              </div>
+              <CardTitle>Record worker money</CardTitle>
+              <CardDescription>Choose the real-world event. OS PLUS will show whether it moves cash, changes salary, or reduces an advance or loan balance.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedPeriod && selectedPeriodSummary ? (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-4">
-                    <MiniStat
-                      label="Suggested"
-                      value={formatMoney(selectedPeriodSummary.suggested)}
-                    />
-                    <MiniStat
-                      label="Payable"
-                      value={formatMoney(selectedPeriodSummary.payable)}
-                    />
-                    <MiniStat
-                      label="Paid"
-                      value={formatMoney(selectedPeriodSummary.paid)}
-                    />
-                    <MiniStat
-                      label="Due"
-                      value={formatMoney(selectedPeriodSummary.due)}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    {selectedCalculations.map(
-                      ({ calculation, warnings, worker }) => {
-                        const payable = effectivePayable(calculation);
-                        const due = Math.max(
-                          0,
-                          payable - calculation.amount_paid,
-                        );
-                        const workerLedger = selectedLedger.filter(
-                          (entry) => entry.worker_id === calculation.worker_id,
-                        );
-
-                        return (
-                          <details
-                            key={calculation.id}
-                            className="rounded-md border"
-                          >
-                            <summary className="grid cursor-pointer gap-3 px-4 py-3 text-sm marker:text-muted-foreground md:grid-cols-[1.2fr_1fr_1fr_1fr_120px] md:items-center">
-                              <span className="min-w-0">
-                                <span className="block truncate font-medium">
-                                  {worker?.name ?? "Unknown worker"}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatStatus(calculation.wage_type)} ·{" "}
-                                  {formatMoney(calculation.wage_amount)}
-                                </span>
-                              </span>
-                              <span>
-                                <span className="block font-medium">
-                                  {formatMoney(calculation.final_payable)}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  Suggested
-                                </span>
-                              </span>
-                              <span>
-                                <span className="block font-medium">
-                                  {formatMoney(payable)}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  Final
-                                </span>
-                              </span>
-                              <span>
-                                <span
-                                  className={
-                                    due > 0
-                                      ? "block font-medium text-destructive"
-                                      : "block font-medium"
-                                  }
-                                >
-                                  {formatMoney(due)}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  Due
-                                </span>
-                              </span>
-                              <span className="rounded-full bg-neutral-950 px-2 py-1 text-center text-xs text-white">
-                                {formatStatus(calculation.payment_status)}
-                              </span>
-                            </summary>
-                            <div className="border-t bg-muted/20 p-4">
-                              <div className="grid gap-3 text-sm md:grid-cols-3">
-                                <MiniStat
-                                  label="Attendance"
-                                  value={`${formatNumber(calculation.attendance_days)} days`}
-                                  hint={`${formatNumber(calculation.attendance_hours)} hours`}
-                                />
-                                <MiniStat
-                                  label="Production"
-                                  value={`${formatNumber(calculation.productive_minutes / 60)} hrs`}
-                                  hint="Separate from attendance"
-                                />
-                                <MiniStat
-                                  label="Ledger impact"
-                                  value={formatMoney(
-                                    calculation.repayment_credit +
-                                      calculation.manual_adjustment -
-                                      calculation.advance_deduction -
-                                      calculation.loan_deduction -
-                                      calculation.other_deduction,
-                                  )}
-                                  hint={
-                                    warnings.length
-                                      ? warnings.join(", ")
-                                      : "No review signal"
-                                  }
-                                />
-                              </div>
-                              {canManageSalary ? (
-                                <div className="mt-4 space-y-3">
-                                  <div className="rounded-md border bg-background p-3">
-                                    <div className="mb-3">
-                                      <p className="text-sm font-medium">
-                                        1. Confirm payable
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Edit the final payable amount for this
-                                        worker in this period. The suggested
-                                        amount remains visible for reference.
-                                      </p>
-                                    </div>
-                                    <form
-                                      action={finalizeSalaryCalculationAction}
-                                      className="grid gap-2 sm:grid-cols-[160px_1fr_auto] sm:items-end"
-                                      data-unsaved-guard="true"
-                                    >
-                                      <input
-                                        type="hidden"
-                                        name="salaryCalculationId"
-                                        value={calculation.id}
-                                      />
-                                      <div className="grid gap-1">
-                                        <Label
-                                          htmlFor={`finalizedPayableAmount-${calculation.id}`}
-                                          className="text-xs"
-                                        >
-                                          Payable amount
-                                        </Label>
-                                        <Input
-                                          id={`finalizedPayableAmount-${calculation.id}`}
-                                          name="finalizedPayableAmount"
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
-                                          defaultValue={payable}
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid gap-1">
-                                        <Label
-                                          htmlFor={`finalizationNote-${calculation.id}`}
-                                          className="text-xs"
-                                        >
-                                          Edit note
-                                        </Label>
-                                        <Input
-                                          id={`finalizationNote-${calculation.id}`}
-                                          name="finalizationNote"
-                                          defaultValue={
-                                            calculation.finalization_note ?? ""
-                                          }
-                                          placeholder="Optional reason"
-                                        />
-                                      </div>
-                                      <Button type="submit" size="sm">
-                                        Save payable
-                                      </Button>
-                                    </form>
-                                  </div>
-
-                                  <div className="rounded-md border bg-background p-3">
-                                    <div className="mb-3">
-                                      <p className="text-sm font-medium">
-                                        2. Record payment
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Record money actually paid. The amount
-                                        defaults to the current due and will
-                                        roll up to Finance as Salary expense.
-                                      </p>
-                                    </div>
-                                    <form
-                                      action={recordSalaryPaymentAction}
-                                      className="grid gap-2 sm:grid-cols-[140px_150px_1fr_auto] sm:items-end"
-                                      data-unsaved-guard="true"
-                                    >
-                                      <input
-                                        type="hidden"
-                                        name="salaryCalculationId"
-                                        value={calculation.id}
-                                      />
-                                      <div className="grid gap-1">
-                                        <Label
-                                          htmlFor={`paymentAmount-${calculation.id}`}
-                                          className="text-xs"
-                                        >
-                                          Payment amount
-                                        </Label>
-                                        <Input
-                                          id={`paymentAmount-${calculation.id}`}
-                                          name="amount"
-                                          type="number"
-                                          min="0.01"
-                                          step="0.01"
-                                          defaultValue={due}
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid gap-1">
-                                        <Label
-                                          htmlFor={`paymentDate-${calculation.id}`}
-                                          className="text-xs"
-                                        >
-                                          Date
-                                        </Label>
-                                        <Input
-                                          id={`paymentDate-${calculation.id}`}
-                                          name="paymentDate"
-                                          type="date"
-                                          defaultValue={todayIsoDate()}
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid gap-1">
-                                        <Label
-                                          htmlFor={`paymentModeId-${calculation.id}`}
-                                          className="text-xs"
-                                        >
-                                          Mode
-                                        </Label>
-                                        <select
-                                          id={`paymentModeId-${calculation.id}`}
-                                          name="paymentModeId"
-                                          className="h-10 rounded-md border bg-background px-3 text-sm"
-                                        >
-                                          <option value="">No mode</option>
-                                          {paymentModes.map((mode) => (
-                                            <option
-                                              key={mode.id}
-                                              value={mode.id}
-                                            >
-                                              {mode.name}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <input
-                                        type="hidden"
-                                        name="description"
-                                        value={`Salary paid for ${periodLabel(selectedPeriod)}`}
-                                      />
-                                      <Button
-                                        type="submit"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={due <= 0}
-                                      >
-                                        Record payment
-                                      </Button>
-                                    </form>
-                                  </div>
-                                </div>
-                              ) : null}
-                              <div className="mt-4 space-y-2">
-                                {workerLedger.map((entry) => (
-                                  <div
-                                    key={entry.id}
-                                    className="flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm"
-                                  >
-                                    <span className="text-muted-foreground">
-                                      {formatStatus(entry.transaction_type)} ·{" "}
-                                      {formatDate(entry.transaction_date)}
-                                    </span>
-                                    <span className="font-medium">
-                                      {formatMoney(entry.amount)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </details>
-                        );
-                      },
-                    )}
-                    {!selectedCalculations.length ? (
-                      <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                        No worker suggestions in this period yet.
-                      </p>
-                    ) : null}
-                  </div>
-                </>
+            <CardContent>
+              {canManageSalary && activeWorkers.length ? (
+                <WorkerMoneyEntryForm
+                  action={addWorkerLedgerEntryAction}
+                  defaultDate={todayIsoDate()}
+                  idempotencyKey={crypto.randomUUID()}
+                  paymentModes={paymentModes}
+                  workers={activeWorkers}
+                />
               ) : (
-                <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                  No salary period selected.
+                <p className="text-sm text-muted-foreground">
+                  {canManageSalary
+                    ? "Add or reactivate a worker before recording a new worker-money entry. Historical ledger rows remain visible below."
+                    : "You can review worker money, but only owner/admin or finance can record it."}
                 </p>
               )}
             </CardContent>
           </Card>
-        </div>
-      ) : null}
 
-      {activeView === "adjustments" && canManageSalary ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <WalletCards className="h-4 w-4" />
-              Other worker ledger adjustment
-            </CardTitle>
-            <CardDescription>
-              Use this for advances, loans, deductions, repayments, or
-              adjustments. Salary payments should be recorded from a period.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={addWorkerLedgerEntryAction}
-              className="grid gap-3 md:grid-cols-[1fr_1fr_140px_150px_1fr_auto] md:items-end"
-              data-unsaved-guard="true"
-            >
-              <div className="grid gap-2">
-                <Label htmlFor="workerId">Worker</Label>
-                <select
-                  id="workerId"
-                  name="workerId"
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
-                  required
-                >
-                  <option value="">Select worker</option>
-                  {workers.map((worker) => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </option>
-                  ))}
+          <CommandBar className="justify-between">
+            <form action="/salary" className="flex flex-wrap items-end gap-2">
+              <input name="view" type="hidden" value="worker-ledger" />
+              <div className="grid gap-1">
+                <Label htmlFor="ledgerWorkerFilter" className="text-xs">Worker</Label>
+                <select className="h-9 min-w-[220px] rounded-md border bg-background px-3 text-sm" defaultValue={ledgerWorkerId ?? ""} id="ledgerWorkerFilter" name="workerId">
+                  <option value="">All workers</option>
+                  {workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.name}</option>)}
                 </select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="transactionType">Type</Label>
-                <select
-                  id="transactionType"
-                  name="transactionType"
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
-                  required
-                >
-                  {ledgerTransactionTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="transactionDate">Date</Label>
-                <Input
-                  id="transactionDate"
-                  name="transactionDate"
-                  type="date"
-                  defaultValue={todayIsoDate()}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Note</Label>
-                <Input
-                  id="description"
-                  name="description"
-                  placeholder="Optional note"
-                />
-              </div>
-              <Button type="submit" variant="outline">
-                Add
-              </Button>
+              <Button size="sm" type="submit" variant="outline">Apply</Button>
             </form>
-          </CardContent>
-        </Card>
+            {ledgerWorkerId ? <Button asChild size="sm" variant="ghost"><Link href={salaryHref({ view: "worker-ledger" })}>Clear worker</Link></Button> : null}
+          </CommandBar>
+
+          <WorkerMoneyLedger
+            canManage={canManageSalary}
+            correctAction={correctWorkerMoneyEntryAction}
+            entries={visibleWorkerLedger}
+            paymentModes={paymentModes}
+            reverseAction={reverseWorkerMoneyEntryAction}
+            returnTo="salary"
+            workers={workers}
+          />
+        </div>
       ) : null}
     </div>
   );

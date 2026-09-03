@@ -34,6 +34,7 @@ export type CustomerImportPreviewRow = {
   phone: string | null;
   rowNumber: number;
   shopifyCustomerId: string | null;
+  warnings: string[];
 };
 
 export type CustomerImportPreview = {
@@ -94,6 +95,12 @@ function previewFingerprint(
     normalizedPhoneE164: row.normalizedPhoneE164,
     rowNumber: row.rowNumber,
     shopifyCustomerId: row.shopifyCustomerId,
+    sourcePhoneMetadata: {
+      addressPhone: row.sourceMetadata.addressPhone,
+      primaryPhone: row.sourceMetadata.primaryPhone,
+      unverifiedPhoneValues: row.sourceMetadata.unverifiedPhoneValues,
+    },
+    warnings: row.warnings,
   }));
   return createHash("sha256").update(JSON.stringify(contract)).digest("hex");
 }
@@ -170,9 +177,10 @@ async function buildCustomerImportPreview(tenantId: string, bytes: Buffer, fileN
       invalidReasons: row.invalidReasons,
       matchState: row.matchState,
       name: row.name || "Blank name",
-      phone: row.displayPhone,
+      phone: row.displayPhone ?? row.sourceMetadata.primaryPhone ?? row.sourceMetadata.addressPhone,
       rowNumber: row.rowNumber,
       shopifyCustomerId: row.shopifyCustomerId,
+      warnings: row.warnings,
     };
   });
   const skippedCount = matched.filter((row) => row.invalidReasons.includes("Customer name is required.")).length;
@@ -186,7 +194,7 @@ async function buildCustomerImportPreview(tenantId: string, bytes: Buffer, fileN
       invalidCount,
       previewFingerprint: previewFingerprint(matched, customerReferencesById),
       reuseCount: matched.filter((row) => row.matchState === "reuse_external_id" || row.matchState === "reuse_phone").length,
-      reviewCount: matched.filter((row) => row.matchState === "review_email").length,
+      reviewCount: matched.filter((row) => row.matchState === "review_email" || row.matchState === "review_phone").length,
       rows,
       skippedCount,
       sourceRowCount: parsed.sourceRowCount,
@@ -258,7 +266,7 @@ export async function customerImportAction(formData: FormData): Promise<Customer
     );
     if (intent === "preview") {
       return {
-        message: "Preview ready. Resolve email-only matches and review conflicts before importing.",
+        message: "Preview ready. Resolve review rows and inspect warnings or conflicts before importing.",
         preview,
         status: "preview",
       };
@@ -270,12 +278,15 @@ export async function customerImportAction(formData: FormData): Promise<Customer
     let reviewSkippedCount = 0;
     const rows = matched.flatMap((row) => {
       if (row.matchState === "invalid") return [];
-      if (row.matchState === "review_email") {
+      if (row.matchState === "review_email" || row.matchState === "review_phone") {
         const decision = confirmation.reviewDecisions[String(row.rowNumber)];
-        if (!decision) throw new Error(`Choose Create, Reuse, or Skip for row ${row.rowNumber}.`);
+        if (!decision) throw new Error(`Choose an import action for row ${row.rowNumber}.`);
         if (decision === "skip") {
           reviewSkippedCount += 1;
           return [];
+        }
+        if (row.matchState === "review_phone" && decision === "reuse") {
+          throw new Error(`Row ${row.rowNumber} has no verified customer match to reuse.`);
         }
         return [toRpcRow(row, decision)];
       }

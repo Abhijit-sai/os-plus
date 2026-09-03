@@ -9,6 +9,7 @@ import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import {
   Card,
   CardContent,
@@ -16,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Worker, Workgroup } from "@/types/database";
@@ -68,12 +68,16 @@ function normalizeSearch(value: string) {
 }
 
 function workerFilterHref({
+  moneyPage,
   q,
   status,
+  workerId,
   workgroup,
 }: {
+  moneyPage?: number;
   q?: string;
   status?: string;
+  workerId?: string;
   workgroup?: string;
 }) {
   const params = new URLSearchParams();
@@ -90,6 +94,14 @@ function workerFilterHref({
     params.set("workgroup", workgroup);
   }
 
+  if (workerId) {
+    params.set("workerId", workerId);
+  }
+
+  if (moneyPage && moneyPage > 1) {
+    params.set("moneyPage", String(moneyPage));
+  }
+
   const query = params.toString();
   return query ? `/workers?${query}` : "/workers";
 }
@@ -97,11 +109,7 @@ function workerFilterHref({
 function WorkerForm({ selectedWorkgroupIds = [], worker, workgroups }: { selectedWorkgroupIds?: string[]; worker?: Worker; workgroups: Workgroup[] }) {
   const suffix = worker ? `-${worker.id}` : "";
   return (
-    <form
-      action={worker ? updateWorkerAction : createWorkerAction}
-      className="space-y-4"
-      data-unsaved-guard="true"
-    >
+    <>
       {worker ? <input type="hidden" name="workerId" value={worker.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor={`name${suffix}`}>Name</Label>
@@ -190,8 +198,8 @@ function WorkerForm({ selectedWorkgroupIds = [], worker, workgroups }: { selecte
         <Input id={`notes${suffix}`} name="notes" defaultValue={worker?.notes ?? ""} placeholder="Optional" />
       </div>
       {worker ? <div className="grid gap-2"><Label htmlFor={`status${suffix}`}>Status</Label><select id={`status${suffix}`} name="status" defaultValue={worker.status} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="active">Active</option><option value="inactive">Inactive</option></select></div> : null}
-      <Button type="submit">{worker ? "Save worker" : "Add worker"}</Button>
-    </form>
+      <Button pendingLabel={worker ? "Saving worker…" : "Adding worker…"} type="submit">{worker ? "Save worker" : "Add worker"}</Button>
+    </>
   );
 }
 
@@ -203,22 +211,33 @@ export default async function WorkersPage({
     status?: string;
     workgroup?: string;
     workerId?: string;
+    moneyPage?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const search = resolvedSearchParams?.q?.trim() ?? "";
   const statusFilter = resolvedSearchParams?.status ?? "all";
   const workgroupFilter = resolvedSearchParams?.workgroup ?? "all";
-  const selectedWorkerId = resolvedSearchParams?.workerId;
+  const requestedMoneyPage = Number(resolvedSearchParams?.moneyPage ?? "1");
   const {
+    canManageWorkers,
+    canViewSalary,
     workers,
     workgroups,
     workerWorkgroups,
     attendance,
     workLogs,
     ledger,
+    ledgerCount,
+    selectedWorkerId,
     today,
-  } = await getWorkersPageData();
+    workerMoneyPage,
+    workerMoneyPageSize,
+    workerMoneySummaries,
+  } = await getWorkersPageData({
+    workerId: resolvedSearchParams?.workerId,
+    workerMoneyPage: requestedMoneyPage,
+  });
   const workgroupById = new Map(
     workgroups.map((workgroup) => [workgroup.id, workgroup]),
   );
@@ -227,7 +246,9 @@ export default async function WorkersPage({
   );
   const workgroupsByWorkerId = new Map<string, string[]>();
   const workLogsByWorkerId = new Map<string, typeof workLogs>();
-  const ledgerByWorkerId = new Map<string, typeof ledger>();
+  const moneySummaryByWorkerId = new Map(
+    workerMoneySummaries.map((summary) => [summary.worker_id, summary]),
+  );
 
   workerWorkgroups.forEach((mapping) => {
     const existing = workgroupsByWorkerId.get(mapping.worker_id) ?? [];
@@ -239,12 +260,6 @@ export default async function WorkersPage({
     const existing = workLogsByWorkerId.get(log.worker_id) ?? [];
     existing.push(log);
     workLogsByWorkerId.set(log.worker_id, existing);
-  });
-
-  ledger.forEach((entry) => {
-    const existing = ledgerByWorkerId.get(entry.worker_id) ?? [];
-    existing.push(entry);
-    ledgerByWorkerId.set(entry.worker_id, existing);
   });
 
   const activeWorkers = workers.filter((worker) => worker.status === "active");
@@ -262,21 +277,11 @@ export default async function WorkersPage({
     (record) => record.status === "present",
   ).length;
   const activeWorkLogs = workLogs.filter((log) => log.status === "in_progress");
-  const advanceExposure = ledger.reduce((total, entry) => {
-    if (
-      ["advance_given", "loan_given", "deduction"].includes(
-        entry.transaction_type,
-      )
-    ) {
-      return total + entry.amount;
-    }
-
-    if (entry.transaction_type === "repayment") {
-      return total - entry.amount;
-    }
-
-    return total;
-  }, 0);
+  const advanceExposure = workerMoneySummaries.reduce(
+    (total, summary) =>
+      total + Number(summary.advance_balance) + Number(summary.loan_balance),
+    0,
+  );
   const searchLower = normalizeSearch(search);
   const filteredWorkers = workers.filter((worker) => {
     const mappedWorkgroupIds = workgroupsByWorkerId.get(worker.id) ?? [];
@@ -304,24 +309,13 @@ export default async function WorkersPage({
   const selectedWorker = selectedWorkerId
     ? workers.find((worker) => worker.id === selectedWorkerId)
     : null;
-  const hrefForWorker = (workerId: string) => {
-    const params = new URLSearchParams();
-
-    if (search) {
-      params.set("q", search);
-    }
-
-    if (statusFilter !== "all") {
-      params.set("status", statusFilter);
-    }
-
-    if (workgroupFilter !== "all") {
-      params.set("workgroup", workgroupFilter);
-    }
-
-    params.set("workerId", workerId);
-    return `/workers?${params.toString()}`;
-  };
+  const hrefForWorker = (workerId: string) =>
+    workerFilterHref({
+      q: search,
+      status: statusFilter,
+      workerId,
+      workgroup: workgroupFilter,
+    });
   const closePaneHref = workerFilterHref({
     q: search,
     status: statusFilter,
@@ -333,15 +327,17 @@ export default async function WorkersPage({
       <PageHeader
         title="Workers"
         description="Operational workers are not login users. Managers log attendance and production work on their behalf."
-        actions={
-          <Dialog
+        actions={canManageWorkers ? (
+          <AutoCloseActionDialog
+            action={createWorkerAction}
             title="Add worker"
             description="Set wage basics and workgroup access for production assignment."
+            successMessage="Worker added."
             trigger={<span className={buttonVariants()}>Add worker</span>}
           >
             <WorkerForm workgroups={workgroups} />
-          </Dialog>
-        }
+          </AutoCloseActionDialog>
+        ) : undefined}
       />
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -370,11 +366,13 @@ export default async function WorkersPage({
           value={missingWageWorkers.length}
           hint="Zero wage amount"
         />
-        <MetricCard
-          label="Advances/loans"
-          value={formatMoney(Math.max(advanceExposure, 0))}
-          hint="Ledger signal"
-        />
+        {canViewSalary ? (
+          <MetricCard
+            label="Advances/loans"
+            value={formatMoney(Math.max(advanceExposure, 0))}
+            hint="Current outstanding balance"
+          />
+        ) : null}
       </div>
 
       <CommandBar className="items-center justify-between">
@@ -492,27 +490,13 @@ export default async function WorkersPage({
                 : null;
               const workerAttendance = attendanceByWorkerId.get(worker.id);
               const workerWorkLogs = workLogsByWorkerId.get(worker.id) ?? [];
-              const workerLedger = ledgerByWorkerId.get(worker.id) ?? [];
               const activeLogCount = workerWorkLogs.filter(
                 (log) => log.status === "in_progress",
               ).length;
-              const ledgerSignal = workerLedger
-                .slice(0, 12)
-                .reduce((total, entry) => {
-                  if (
-                    ["advance_given", "loan_given", "deduction"].includes(
-                      entry.transaction_type,
-                    )
-                  ) {
-                    return total + entry.amount;
-                  }
-
-                  if (entry.transaction_type === "repayment") {
-                    return total - entry.amount;
-                  }
-
-                  return total;
-                }, 0);
+              const moneySummary = moneySummaryByWorkerId.get(worker.id);
+              const ledgerSignal = moneySummary
+                ? Number(moneySummary.advance_balance) + Number(moneySummary.loan_balance)
+                : 0;
 
               return (
                 <Link
@@ -627,8 +611,23 @@ export default async function WorkersPage({
               );
               const workerWorkLogs =
                 workLogsByWorkerId.get(selectedWorker.id) ?? [];
-              const workerLedger =
-                ledgerByWorkerId.get(selectedWorker.id) ?? [];
+              const workerLedger = ledger;
+              const workerMoneySummary = moneySummaryByWorkerId.get(selectedWorker.id);
+              const advanceBalance = Number(workerMoneySummary?.advance_balance ?? 0);
+              const loanBalance = Number(workerMoneySummary?.loan_balance ?? 0);
+              const salaryPaid = Number(workerMoneySummary?.salary_paid ?? 0);
+              const totalMoneyPages = Math.max(
+                1,
+                Math.ceil(ledgerCount / workerMoneyPageSize),
+              );
+              const moneyPageHref = (page: number) =>
+                workerFilterHref({
+                  moneyPage: page,
+                  q: search,
+                  status: statusFilter,
+                  workerId: selectedWorker.id,
+                  workgroup: workgroupFilter,
+                });
 
               return (
                 <div className="space-y-5">
@@ -660,7 +659,7 @@ export default async function WorkersPage({
 
                   <Card>
                     <CardHeader>
-                      <div className="flex items-start justify-between gap-3"><div><CardTitle>Worker setup</CardTitle><CardDescription>Assignment and salary configuration.</CardDescription></div><Dialog title="Edit worker" description="Updates preserve attendance, work logs, salary, and ledger history." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit worker</span>}><WorkerForm worker={selectedWorker} workgroups={workgroups} selectedWorkgroupIds={mappedWorkgroupIds} /></Dialog></div>
+                      <div className="flex items-start justify-between gap-3"><div><CardTitle>Worker setup</CardTitle><CardDescription>Assignment and salary configuration.</CardDescription></div>{canManageWorkers ? <AutoCloseActionDialog action={updateWorkerAction} title="Edit worker" description="Updates preserve attendance, work logs, salary, and ledger history." successMessage="Worker saved." trigger={<span className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent">Edit worker</span>}><WorkerForm worker={selectedWorker} workgroups={workgroups} selectedWorkgroupIds={mappedWorkgroupIds} /></AutoCloseActionDialog> : null}</div>
                     </CardHeader>
                     <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
                       <div>
@@ -739,16 +738,20 @@ export default async function WorkersPage({
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    {canViewSalary ? <Card>
                       <CardHeader>
-                        <CardTitle>Recent ledger</CardTitle>
+                        <CardTitle>Worker money</CardTitle>
                         <CardDescription>
-                          Advances, loans, deductions, repayments, and salary
-                          payments.
+                          Current balances and complete history, shown {workerMoneyPageSize} entries at a time.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {workerLedger.slice(0, 6).map((entry) => (
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="rounded-md bg-muted/50 p-2"><p className="text-xs text-muted-foreground">Advance</p><p className="font-medium">{formatMoney(advanceBalance)}</p></div>
+                          <div className="rounded-md bg-muted/50 p-2"><p className="text-xs text-muted-foreground">Loan</p><p className="font-medium">{formatMoney(loanBalance)}</p></div>
+                          <div className="rounded-md bg-muted/50 p-2"><p className="text-xs text-muted-foreground">Salary paid</p><p className="font-medium">{formatMoney(salaryPaid)}</p></div>
+                        </div>
+                        {workerLedger.map((entry) => (
                           <div
                             key={entry.id}
                             className="rounded-md border p-3 text-sm"
@@ -757,6 +760,7 @@ export default async function WorkersPage({
                               <p className="font-medium">
                                 {formatMoney(entry.amount)}
                               </p>
+                              {entry.reversed_at ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Reversed</span> : null}
                               <p className="text-xs text-muted-foreground">
                                 {formatDate(entry.transaction_date)}
                               </p>
@@ -776,8 +780,23 @@ export default async function WorkersPage({
                             No ledger entries.
                           </p>
                         ) : null}
+                        {ledgerCount > workerMoneyPageSize ? (
+                          <div className="flex items-center justify-between gap-3 border-t pt-3">
+                            <p className="text-xs text-muted-foreground">
+                              Page {workerMoneyPage} of {totalMoneyPages} · {ledgerCount} entries
+                            </p>
+                            <div className="flex gap-2">
+                              <Button asChild={workerMoneyPage > 1} disabled={workerMoneyPage <= 1} size="sm" variant="outline">
+                                {workerMoneyPage > 1 ? <Link href={moneyPageHref(workerMoneyPage - 1)}>Previous</Link> : <span>Previous</span>}
+                              </Button>
+                              <Button asChild={workerMoneyPage < totalMoneyPages} disabled={workerMoneyPage >= totalMoneyPages} size="sm" variant="outline">
+                                {workerMoneyPage < totalMoneyPages ? <Link href={moneyPageHref(workerMoneyPage + 1)}>Next</Link> : <span>Next</span>}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
                       </CardContent>
-                    </Card>
+                    </Card> : null}
                   </div>
                 </div>
               );
