@@ -12,7 +12,7 @@ Included:
 - CSV and XLSX files up to 5 MB and 5,000 data rows.
 - Shopify export headers and generic OS PLUS customer headers.
 - Conservative Indian and international phone normalization to E.164.
-- Write-free preview with counts, row results, conflicts, and email-only decisions.
+- Write-free preview with counts, row results, warnings, conflicts, email-only decisions, and unverified-phone decisions.
 - Matching by Shopify customer ID, then normalized phone, then advisory exact email.
 - Blank-field enrichment for authoritative matches.
 - Structured default addresses when address line 1 exists; legacy text for incomplete addresses.
@@ -34,9 +34,13 @@ Excluded:
 3. A normalized-phone match always reuses the active tenant customer.
 4. Exact email alone requires an explicit per-row decision: reuse, create separate, or skip.
 5. Reused customers may receive only blank phone, email, legacy address, or notes fields. Existing name and populated fields remain unchanged; conflicts stay visible in preview.
-6. Indian national formats default to `+91`. Explicit `+` or `00` international numbers are accepted. Foreign national format requires a reliable ISO country code. Ambiguous foreign numbers are invalid.
+6. Indian national formats default to `+91`. Explicit `+` or `00` international numbers are accepted. Foreign national format requires a reliable ISO country code and must never be guessed.
 7. Complete addresses create a structured address if an equivalent address does not already exist. It becomes default only when the customer has no active default address.
 8. Shopify source metadata is inert and private. It does not affect finance, reports, orders, tracking, or communications.
+9. Shopify `Phone` is primary. A different `Default Address Phone` is retained as alternate source metadata and produces a warning instead of invalidating the row.
+10. A value with 7 to 15 digits that cannot be country-validated is retained only as unverified Shopify metadata when an external identity exists and never participates in matching or uniqueness. Without that identity, Create without verified phone saves the profile without the raw number. Shorter or oversized unresolved values are invalid.
+11. An unverified phone with a Shopify customer ID can proceed with a warning. Without an authoritative identity, the row requires an explicit Create without verified phone or Skip decision.
+12. Repeated verified phones remain invalid for automatic duplicate creation and require source cleanup or a separately audited merge workflow.
 
 ## 4. Data and Transaction Design
 
@@ -52,8 +56,8 @@ Excluded:
 1. The owner/admin selects a CSV or XLSX file.
 2. Server validates size, extension/signature, XLSX archive safety, sheet/row/column limits, headers, field formats, and duplicate keys inside the source file.
 3. Server loads only active customers and Shopify identities for the selected tenant.
-4. Preview classifies each row as create, reuse by Shopify ID, reuse by phone, email review, invalid, or skipped.
-5. The user resolves every email-only row.
+4. Preview classifies each row as create, reuse by Shopify ID, reuse by phone, email review, unverified-phone review, invalid, or skipped, with non-blocking warnings shown separately.
+5. The user resolves every email-only and unverified-phone review row.
 6. Confirmation re-reads the same file, repeats matching, verifies file and preview fingerprints, excludes invalid/skipped rows, and sends only approved normalized rows to the RPC.
 7. The RPC commits every customer, enrichment, address, identity, metadata record, and receipt, or rolls back all of them.
 
@@ -68,8 +72,8 @@ Excluded:
 
 ## 7. Test Plan
 
-- Parser behavior: Shopify CSV, generic XLSX, Indian/US/other international phones, incomplete addresses, invalid emails, conflicting phone columns, malformed files, 5,000-row limit, and XLSX archive preflight.
-- Matching behavior: precedence, tenant-local matches, key disagreement, source duplicate keys, exact-email review, conflict reporting, and create path.
+- Parser behavior: Shopify CSV, generic XLSX, Indian/US/Australian/other international phones, incomplete addresses, invalid emails, differing phone columns, unverified 7-to-15-digit values, short/oversized phone rejection, malformed files, 5,000-row limit, and XLSX archive preflight.
+- Matching behavior: precedence, tenant-local matches, key disagreement, source duplicate keys, exact-email review, unverified-phone review, conflict/warning reporting, and create path.
 - Contract behavior: owner-only permission, pending/close protection, normalized-phone unique index, RLS tables, immutable receipt, service-role-only RPC, tenant revalidation, idempotency, and stale-preview rejection.
 - Database QA after migration: backfill count, zero unresolved phones, atomic rollback, replay, tenant isolation, address defaults, metadata isolation, and concurrent duplicate attempts.
 - Manual UI QA: desktop and mobile preview, conflict legibility, email decisions, recoverable error, double-click protection, success counts, and customer list refresh.
@@ -90,6 +94,13 @@ Excluded:
 - Preview freshness includes matched customer/profile and conflict state, so relevant profile changes require a new preview.
 - Parser, matching, UI/permission, source-contract, and authenticated database flows are covered. Forced-failure rollback and concurrency remain candidates for an opt-in integration harness only when a disposable QA database is available; they must not be run destructively against the shared production/QA environment.
 5. Import the real tenant file only after the owner verifies the preview counts and email-only decisions.
+
+### International phone import hardening (2026-08-31)
+
+- Valid explicit US, Australian, UK, Indian, and other country-resolved numbers continue to normalize to E.164.
+- A differing Shopify address phone is retained in identity metadata while Shopify `Phone` remains the canonical primary value.
+- Plausible but unverified 7-to-15-digit values are preserved as metadata, excluded from phone matching, and require review when no Shopify identity is available.
+- The stale-preview fingerprint includes warnings and phone-source metadata so a changed interpretation cannot be confirmed through an older preview.
 
 ## 9. Authenticated QA Evidence
 

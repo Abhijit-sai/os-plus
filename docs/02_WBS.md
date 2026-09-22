@@ -315,8 +315,11 @@
 - Enforce 5 MB and 5,000 data-row limits before preview
 - Recognize Shopify customer-export headers and the OS PLUS import template
 - Normalize Indian and international phone numbers conservatively to E.164
-- Preview create, Shopify-ID reuse, phone reuse, exact-email review, conflict, invalid, and skipped outcomes without writes
-- Require an explicit decision for exact-email-only candidates
+- Treat Shopify `Phone` as primary and retain a differing `Default Address Phone` as alternate source metadata with a visible warning
+- Retain plausible 7-to-15-digit values that cannot be country-validated in Shopify source metadata when an external identity exists; otherwise require Create without verified phone or Skip; never use them for matching or uniqueness
+- Preview create, Shopify-ID reuse, phone reuse, exact-email review, unverified-phone review, warning, conflict, invalid, and skipped outcomes without writes
+- Require an explicit decision for exact-email-only candidates and unverified-phone rows without an authoritative Shopify identity
+- Keep repeated verified phone identities out of automatic duplicate creation
 - Fill only blank fields on reused customers and show every populated-field conflict
 - Create structured default addresses only when address line 1 is present; preserve incomplete address text otherwise
 - Retain Shopify totals, order counts, tags, tax flags, and marketing flags as source metadata only
@@ -950,3 +953,55 @@
 - [x] Reuse the controlled successful-action dialog for all item type, stage, status, workgroup, payment mode, and expense-category edits.
 - [x] Close/reset the attachment add dialog after successful upload or external-link creation.
 - [x] Preserve form state and show errors on failure; prevent closing while pending; add focused contracts.
+
+## Salary and Worker Money UX Hardening
+
+### Product and data contract
+
+- [x] Add explicit advance/loan balance allocation to worker-ledger entries.
+- [x] Add idempotency and audited correction/reversal metadata without deleting original history.
+- [x] Stop treating advance/loan issuance or cash repayment as automatic salary adjustments.
+- [x] Require tenant-owned payment modes for new cash movements.
+- [x] Add tenant-safe database commands for recording, correcting, and reversing worker money.
+- [x] Add service-only per-worker aggregate summaries and worker-scoped paginated history so balances remain complete without loading the tenant ledger into the browser.
+
+### Salary UX
+
+- [x] Simplify navigation to Overview, Pay periods, and Worker ledger.
+- [x] Keep payment success inside the selected period and worker context.
+- [x] Show saved worker-ledger entries immediately with clear cash/salary/balance effects.
+- [x] Add compact filters, balances, empty states, pending states, success states, and recoverable errors.
+- [x] Include deductions/credits only when a salary suggestion is generated or regenerated for the entry date; never rewrite a founder-finalized payable silently.
+- [x] Replace raw salary period/finalization/payment forms with recoverable action-state forms that preserve input, announce local errors, block duplicate interaction, and retain the selected period/worker after success.
+- [x] Make create, draft date edit, regeneration, and finalization atomic and tenant-locked, including concurrent overlap rejection and rollback-safe replacement of suggestions.
+- [x] Allow date edits only before any finalized/paid row; recalculate draft suggestions in the same transaction.
+- [x] Treat zero finalized payable as `No payment due`, prevent payable below amount paid, and record immutable before/after payable revisions.
+- [x] Expose salary-payment correction/reversal and payable decision history inside the selected worker's period workspace.
+- [x] Add a no-write salary-period preview with date-specific worker/attendance coverage and suggested total, then require a server-verified unchanged preview before atomic creation.
+- [x] Invalidate preview confirmation when dates change and refresh it when live worker, attendance, work-log, or ledger inputs change.
+- [x] Show derived Draft, Ready to pay, Partially paid, and Paid states consistently in period lists and the focused workspace.
+- [x] Make each period open a dedicated full-width worker workspace rather than embedding repeated worker forms below the period list.
+- [x] Add compact table review with worker selection, select-all eligible rows, state filters, inline final payable, worker-specific decision notes, and expandable calculation/audit context.
+- [x] Add atomic bulk payable finalization with stale-row rejection and one immutable worker decision revision per selected calculation.
+- [x] Add atomic bulk salary payment with one shared date/payment mode, worker-specific partial amounts, one ledger entry per worker, and period/Finance/Worker refresh.
+- [x] Adapt the period table into stacked mobile rows with pending locks and a sticky selected-count/total action bar.
+- [x] Serialize cross-worker payment/correction/reversal status refresh on the parent period and cover concurrent final payments plus reopening.
+
+### Finance and worker detail
+
+- [x] Add Worker money to Finance with cash movements included exactly once in cash totals.
+- [x] Keep salary deductions and credits visible but excluded from cash totals.
+- [x] Add separate advance/loan balances and paginated full ledger history to worker details.
+- [x] Preserve legacy/unallocated entries without inferred reclassification.
+- [x] Enforce `workers:view` and `salary:view` before service-role worker/wage/ledger reads; managers remain denied.
+
+### Configuration guidance
+
+- [x] Explain assignment-only stage prerequisites on item-type contribution rules and link directly to stage effort configuration.
+
+### Verification
+
+- [x] Cover ledger classification, balance allocation, over-repayment, concurrent idempotency, correction/reversal history, tenant isolation, payment-mode ownership, salary overpayment/payment refresh, Finance classification, persistent period navigation, and role restrictions.
+- [x] Apply every repository migration to a fresh disposable local Supabase stack and run rollback/concurrency worker-money RPC tests there.
+- [x] Run the final complete repository test set, TypeScript, lint, diff checks, and optimized build.
+- [ ] After the owner applies `20260812120000_salary_workflow_hardening.sql` to the shared environment, complete authenticated owner/admin plus finance mutation QA there.

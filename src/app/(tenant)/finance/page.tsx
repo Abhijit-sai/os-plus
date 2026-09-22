@@ -10,11 +10,17 @@ import {
   updateReceivablePayableAction,
 } from "@/features/finance/actions";
 import { getFinancePageData } from "@/features/finance/queries";
+import {
+  correctWorkerMoneyEntryAction,
+  reverseWorkerMoneyEntryAction,
+} from "@/features/salary/actions";
+import { getWorkerMoneyCashDirection } from "@/features/salary/worker-money";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { ExpenseGstFields } from "@/components/finance/expense-gst-fields";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
+import { WorkerMoneyLedger } from "@/components/salary/worker-money-ledger";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,6 +49,7 @@ import type {
 type FinanceTab =
   | "dashboard"
   | "cashflow"
+  | "worker-money"
   | "receivables"
   | "payables"
   | "pl"
@@ -71,6 +78,7 @@ type FinanceOrder = {
 const financeTabs: Array<{ value: FinanceTab; label: string }> = [
   { value: "dashboard", label: "Dashboard" },
   { value: "cashflow", label: "Cashflow" },
+  { value: "worker-money", label: "Worker money" },
   { value: "receivables", label: "Receivables" },
   { value: "payables", label: "Payables" },
   { value: "pl", label: "P&L" },
@@ -818,7 +826,7 @@ function CashMovementList({
   defaultExpenseGstTreatment: GstTreatment;
   events: Array<{
     id: string;
-    source: "order_payment" | "expense" | "manual_due" | "salary_payment";
+    source: "order_payment" | "expense" | "manual_due" | "worker_money";
     type: string;
     date: string;
     title: string;
@@ -837,8 +845,8 @@ function CashMovementList({
       <CardHeader>
         <CardTitle>Cash Movement</CardTitle>
         <CardDescription>
-          Actual money movement only: order payments, salary payments, manual
-          settlements, expenses, and payable settlements.
+          Actual money movement only: order collections, expenses, worker salary,
+          advances, loans, repayments, and manual settlements.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -1601,6 +1609,7 @@ export default async function FinancePage({
     start?: string;
     end?: string;
     gstIncludeNonGst?: string;
+    workerMoneyNotice?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
@@ -1629,6 +1638,8 @@ export default async function FinancePage({
     orderPayments,
     orders,
     salaryPayments,
+    workerLedger,
+    workers,
     gstReport,
   } = await getFinancePageData({
     gstEndDate,
@@ -1649,6 +1660,7 @@ export default async function FinancePage({
     expenseCategories.map((category) => [category.id, category]),
   );
   const paymentModeById = new Map(paymentModes.map((mode) => [mode.id, mode]));
+  const workerById = new Map(workers.map((worker) => [worker.id, worker]));
   const orderById = new Map(orders.map((order) => [order.id, order]));
   const manualReceivablesPayables = receivablesPayables.filter(
     (entry) => !(entry.type === "receivable" && entry.linked_order_id),
@@ -1664,6 +1676,10 @@ export default async function FinancePage({
   );
   const visibleSalaryPayments = salaryPayments.filter((payment) =>
     isInRange(payment.transaction_date, range),
+  );
+  const activeWorkerLedger = workerLedger.filter((entry) => !entry.reversed_at);
+  const visibleWorkerMoney = activeWorkerLedger.filter((entry) =>
+    isInRange(entry.transaction_date, range),
   );
   const visibleOrders = orders.filter((order) =>
     isInRange(order.order_date, range),
@@ -1691,14 +1707,20 @@ export default async function FinancePage({
     (total, payment) => total + payment.amount,
     0,
   );
+  const workerCashIn = visibleWorkerMoney
+    .filter((entry) => getWorkerMoneyCashDirection(entry.transaction_type) === "in")
+    .reduce((total, entry) => total + entry.amount, 0);
+  const workerCashOut = visibleWorkerMoney
+    .filter((entry) => getWorkerMoneyCashDirection(entry.transaction_type) === "out")
+    .reduce((total, entry) => total + entry.amount, 0);
   const manualReceivableSettled = visibleSettledManualDues
     .filter((entry) => entry.type === "receivable")
     .reduce((total, entry) => total + Number(entry.amount_settled ?? 0), 0);
   const manualPayableSettled = visibleSettledManualDues
     .filter((entry) => entry.type === "payable")
     .reduce((total, entry) => total + Number(entry.amount_settled ?? 0), 0);
-  const cashIn = collected + manualReceivableSettled;
-  const cashOut = expensesTotal + salaryPaidTotal + manualPayableSettled;
+  const cashIn = collected + workerCashIn + manualReceivableSettled;
+  const cashOut = expensesTotal + workerCashOut + manualPayableSettled;
   const netCash = cashIn - cashOut;
   const openManualReceivables = activeManualDues
     .filter((entry) => entry.type === "receivable")
@@ -1766,16 +1788,18 @@ export default async function FinancePage({
         : "No payment mode",
       amount: -expense.amount,
     })),
-    ...visibleSalaryPayments.map((payment: WorkerLedger) => ({
-      id: payment.id,
-      source: "salary_payment" as const,
-      type: "salary",
-      date: payment.transaction_date,
-      title: "Salary paid",
-      detail: payment.payment_mode_id
-        ? (paymentModeById.get(payment.payment_mode_id)?.name ?? "Unknown mode")
+    ...visibleWorkerMoney
+      .filter((entry) => getWorkerMoneyCashDirection(entry.transaction_type) !== "none")
+      .map((entry: WorkerLedger) => ({
+      id: entry.id,
+      source: "worker_money" as const,
+      type: entry.transaction_type.replaceAll("_", " "),
+      date: entry.transaction_date,
+      title: `${workerById.get(entry.worker_id)?.name ?? "Worker"} · ${entry.transaction_type.replaceAll("_", " ")}`,
+      detail: entry.payment_mode_id
+        ? (paymentModeById.get(entry.payment_mode_id)?.name ?? "Unknown mode")
         : "No payment mode",
-      amount: -payment.amount,
+      amount: getWorkerMoneyCashDirection(entry.transaction_type) === "in" ? entry.amount : -entry.amount,
     })),
     ...visibleSettledManualDues.map((entry) => ({
       id: entry.id,
@@ -1844,6 +1868,12 @@ export default async function FinancePage({
         title="Finance"
         description="Operational cash, receivables, payables, GST capture, and owner snapshots."
       />
+
+      {resolvedSearchParams?.workerMoneyNotice ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status">
+          {resolvedSearchParams.workerMoneyNotice}
+        </div>
+      ) : null}
 
       <CommandBar className="justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -1941,12 +1971,12 @@ export default async function FinancePage({
         <MetricCard
           label="Cash in"
           value={formatMoney(cashIn)}
-          hint={`${visiblePayments.length} order payments + manual receipts`}
+          hint={`${visiblePayments.length} order payments + ${visibleWorkerMoney.filter((entry) => getWorkerMoneyCashDirection(entry.transaction_type) === "in").length} worker repayments + manual receipts`}
         />
         <MetricCard
           label="Cash out"
           value={formatMoney(cashOut)}
-          hint={`${visibleExpenses.length} expenses + ${visibleSalaryPayments.length} salary payments`}
+          hint={`${visibleExpenses.length} expenses + ${visibleWorkerMoney.filter((entry) => getWorkerMoneyCashDirection(entry.transaction_type) === "out").length} worker payments`}
         />
         <MetricCard
           label="Net cash"
@@ -2111,6 +2141,18 @@ export default async function FinancePage({
           gstRegistered={gstRegistered}
           paymentModes={paymentModes}
           canManageFinance={canManageFinance}
+        />
+      ) : null}
+
+      {activeTab === "worker-money" ? (
+        <WorkerMoneyLedger
+          canManage={canManageFinance}
+          correctAction={correctWorkerMoneyEntryAction}
+          entries={workerLedger}
+          paymentModes={paymentModes}
+          reverseAction={reverseWorkerMoneyEntryAction}
+          returnTo="finance"
+          workers={workers}
         />
       ) : null}
 

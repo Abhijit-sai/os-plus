@@ -25,7 +25,7 @@ export type CustomerImportConflict = {
 export type MatchedCustomerImportRow = ParsedCustomerImportRow & {
   conflicts: CustomerImportConflict[];
   customerId: string | null;
-  matchState: "create" | "invalid" | "reuse_external_id" | "reuse_phone" | "review_email";
+  matchState: "create" | "invalid" | "reuse_external_id" | "reuse_phone" | "review_email" | "review_phone";
 };
 
 function normalizeEmail(value: string | null) {
@@ -137,6 +137,10 @@ export function matchCustomerImportRows(
         invalidReasons,
         matchState: "review_email",
       };
+    }
+
+    if (!row.shopifyCustomerId && row.sourceMetadata.unverifiedPhoneValues.length > 0) {
+      return { ...row, conflicts: [], customerId: null, invalidReasons, matchState: "review_phone" };
     }
 
     return { ...row, conflicts: [], customerId: null, invalidReasons, matchState: "create" };

@@ -35,11 +35,16 @@ assert.deepEqual(parsed.rows[0], {
     acceptsEmailMarketing: true,
     acceptsSmsMarketing: false,
     acceptsWhatsAppMarketing: false,
+    addressPhone: "09876543210",
+    phoneWarnings: [],
+    primaryPhone: null,
     tags: ["VIP"],
     taxExempt: false,
     totalOrders: 3,
     totalSpent: 1200.5,
+    unverifiedPhoneValues: [],
   },
+  warnings: [],
 });
 
 const edgeWorkbook = XLSX.utils.book_new();
@@ -57,10 +62,36 @@ const edgeParsed = parseCustomerImportFile(edgeBytes, "edge-customers.xlsx");
 assert.equal(edgeParsed.sourceRowCount, 6);
 assert.equal(edgeParsed.rows[0].normalizedPhoneE164, "+14155552671");
 assert.match(edgeParsed.rows[1].invalidReasons.join(" "), /name is required/i);
-assert.match(edgeParsed.rows[2].invalidReasons.join(" "), /phone columns resolve to different numbers/i);
+assert.equal(edgeParsed.rows[2].invalidReasons.length, 0);
+assert.equal(edgeParsed.rows[2].normalizedPhoneE164, "+14155552671");
+assert.match(edgeParsed.rows[2].warnings.join(" "), /different phone numbers/i);
+assert.equal(edgeParsed.rows[2].sourceMetadata.addressPhone, "+44 20 7946 0958");
 assert.equal(edgeParsed.rows[3].legacyAddressText, "Suite 4, London, GB");
-assert.match(edgeParsed.rows[4].invalidReasons.join(" "), /country context/i);
+assert.equal(edgeParsed.rows[4].invalidReasons.length, 0);
+assert.equal(edgeParsed.rows[4].normalizedPhoneE164, null);
+assert.match(edgeParsed.rows[4].warnings.join(" "), /could not be verified/i);
 assert.match(edgeParsed.rows[5].invalidReasons.join(" "), /two ISO letters/i);
+
+const internationalFallback = parseCustomerImportFile(Buffer.from([
+  "Customer ID,Name,Phone,Default Address Phone,Country Code",
+  "shop-raw,Shopify raw phone,+999 123 456 78,,",
+  ",Review raw phone,+999 765 432 10,,",
+  "shop-short,Too short,12345,,",
+  "shop-au,Australian customer,+61 412 345 678,,AU",
+  "shop-address,Fallback to address,+999 123 456 78,+61 412 345 678,AU",
+].join("\n")), "international-fallback.csv");
+assert.equal(internationalFallback.rows[0].invalidReasons.length, 0);
+assert.equal(internationalFallback.rows[0].normalizedPhoneE164, null);
+assert.deepEqual(internationalFallback.rows[0].sourceMetadata.unverifiedPhoneValues, ["+999 123 456 78"]);
+assert.match(internationalFallback.rows[0].warnings.join(" "), /could not be verified/i);
+assert.equal(internationalFallback.rows[1].invalidReasons.length, 0);
+assert.match(internationalFallback.rows[2].invalidReasons.join(" "), /7 to 15 digits/i);
+assert.equal(internationalFallback.rows[3].normalizedPhoneE164, "+61412345678");
+assert.equal(internationalFallback.rows[4].normalizedPhoneE164, "+61412345678");
+assert.deepEqual(internationalFallback.rows[4].sourceMetadata.unverifiedPhoneValues, ["+999 123 456 78"]);
+assert.match(internationalFallback.rows[4].warnings.join(" "), /address phone was used/i);
+const oversizedPhone = parseCustomerImportFile(Buffer.from(`Name,Phone\nOversized,${"1".padEnd(80, "-")}234567`), "oversized-phone.csv");
+assert.match(oversizedPhone.rows[0].invalidReasons.join(" "), /7 to 15 digits/i);
 
 const tooManyRows = Buffer.from(["Name", ...Array.from({ length: 5001 }, (_, index) => `Customer ${index + 1}`)].join("\n"));
 assert.throws(() => parseCustomerImportFile(tooManyRows, "too-many.csv"), /5,000 data rows/i);

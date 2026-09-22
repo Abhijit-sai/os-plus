@@ -82,10 +82,12 @@ export async function getGstReportData({
 export async function getFinancePageData(options: FinancePageDataOptions = {}) {
   const context = await requireTenantContext();
   assertPermission(context.membership.role, "finance:view");
+  assertPermission(context.membership.role, "workers:view");
+  assertPermission(context.membership.role, "salary:view");
 
   const supabase = createSupabaseServiceRoleClient();
 
-  const [expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments, gstReport] = await Promise.all([
+  const [expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, workerLedger, workers, gstReport] = await Promise.all([
     supabase
       .from("expenses")
       .select("*")
@@ -132,10 +134,14 @@ export async function getFinancePageData(options: FinancePageDataOptions = {}) {
       .from("worker_ledger")
       .select("*")
       .eq("tenant_id", context.tenant.id)
-      .eq("transaction_type", "salary_paid")
       .is("deleted_at", null)
-      .order("transaction_date", { ascending: false })
-      .limit(50),
+      .order("transaction_date", { ascending: false }),
+    supabase
+      .from("workers")
+      .select("*")
+      .eq("tenant_id", context.tenant.id)
+      .is("deleted_at", null)
+      .order("name"),
     options.gstStartDate && options.gstEndDate
       ? getGstReportData({
           endDate: options.gstEndDate,
@@ -145,7 +151,7 @@ export async function getFinancePageData(options: FinancePageDataOptions = {}) {
       : Promise.resolve(null)
   ]);
 
-  for (const result of [expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, salaryPayments]) {
+  for (const result of [expenses, receivablesPayables, expenseCategories, paymentModes, orderPayments, orders, workerLedger, workers]) {
     if (result.error) {
       throw new Error(`Unable to load finance data: ${result.error.message}`);
     }
@@ -159,7 +165,11 @@ export async function getFinancePageData(options: FinancePageDataOptions = {}) {
     paymentModes: paymentModes.data ?? [],
     orderPayments: orderPayments.data ?? [],
     orders: orders.data ?? [],
-    salaryPayments: salaryPayments.data ?? [],
+    salaryPayments: (workerLedger.data ?? []).filter(
+      (entry) => entry.transaction_type === "salary_paid" && !entry.reversed_at,
+    ),
+    workerLedger: workerLedger.data ?? [],
+    workers: workers.data ?? [],
     gstReport
   };
 }

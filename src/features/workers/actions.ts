@@ -79,40 +79,21 @@ export async function createWorkerAction(formData: FormData) {
     }
   }
 
-  const { data: worker, error: workerError } = await supabase
-    .from("workers")
-    .insert({
-      tenant_id: context.tenant.id,
-      name: parsed.name,
-      phone: parsed.phone,
-      joining_date: parsed.joiningDate,
-      primary_workgroup_id: parsed.primaryWorkgroupId,
-      wage_type: parsed.wageType as WorkerWageType,
-      wage_amount: parsed.wageAmount,
-      notes: parsed.notes,
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id
-    })
-    .select("*")
-    .single();
+  const { error: workerError } = await supabase.rpc("create_worker_configuration", {
+    p_tenant_id: context.tenant.id,
+    p_name: parsed.name,
+    p_phone: parsed.phone,
+    p_joining_date: parsed.joiningDate,
+    p_primary_workgroup_id: parsed.primaryWorkgroupId,
+    p_wage_type: parsed.wageType as WorkerWageType,
+    p_wage_amount: parsed.wageAmount,
+    p_notes: parsed.notes,
+    p_workgroup_ids: allWorkgroupIds,
+    p_actor_id: context.membership.clerk_user_id
+  });
 
   if (workerError) {
     throw new Error(`Unable to create worker: ${workerError.message}`);
-  }
-
-  if (allWorkgroupIds.length) {
-    const { error: membershipError } = await supabase.from("worker_workgroups").insert(
-      allWorkgroupIds.map((workgroupId) => ({
-        tenant_id: context.tenant.id,
-        worker_id: worker.id,
-        workgroup_id: workgroupId,
-        created_by: context.membership.clerk_user_id
-      }))
-    );
-
-    if (membershipError) {
-      throw new Error(`Worker created, but workgroup mapping failed: ${membershipError.message}`);
-    }
   }
 
   revalidatePath("/workers");

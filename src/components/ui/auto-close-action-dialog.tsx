@@ -38,6 +38,7 @@ export function AutoCloseActionDialog({
   title: string;
   trigger: React.ReactNode;
 }) {
+  const formRef = React.useRef<HTMLFormElement>(null);
   const [open, setOpen] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [showState, setShowState] = React.useState(false);
@@ -53,6 +54,7 @@ export function AutoCloseActionDialog({
     }
 
     if (nextState.ok) {
+      if (formRef.current) delete formRef.current.dataset.unsavedDirty;
       setOpen(false);
       setNotice(nextState.message);
       setShowState(false);
@@ -78,8 +80,10 @@ export function AutoCloseActionDialog({
         title={title}
         trigger={trigger}
       >
-        <form action={formAction} className={formClassName} data-unsaved-guard="true">
-          {children}
+        <form action={formAction} className={formClassName} data-preserve-dirty-on-submit="true" data-unsaved-guard="true" ref={formRef}>
+          <fieldset className="contents" disabled={pending}>
+            {children}
+          </fieldset>
           {showState && state.message && !state.ok ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
               {state.message}

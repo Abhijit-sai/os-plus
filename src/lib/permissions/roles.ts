@@ -68,7 +68,7 @@ export const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "attendance:manage",
     "worker_contributions:view",
   ],
-  finance: ["tasks:view", "tasks:manage", "salary:view", "salary:manage", "finance:view", "finance:manage"],
+  finance: ["tasks:view", "tasks:manage", "workers:view", "salary:view", "salary:manage", "finance:view", "finance:manage"],
   viewer: ["reports:view"],
 };
 

@@ -348,6 +348,7 @@ Rules:
 - Active `(tenant_id, provider, external_customer_id)` is unique.
 - Customer and identity must share the same tenant through a composite foreign key.
 - Shopify totals, order counts, tags, tax flags, and marketing flags may be retained in `source_metadata_json`, but reports and messaging must not consume them yet.
+- Shopify primary/address phone source values, phone warnings, and plausible unverified 7-to-15-digit values may be retained in `source_metadata_json`. Only `customers.normalized_phone_e164` is a verified phone match/uniqueness key; metadata phone values must not participate in automatic matching.
 - External identity matching never crosses tenant boundaries.
 
 ## customer_imports
@@ -1164,6 +1165,12 @@ amount
 transaction_date
 description
 linked_salary_period_id
+balance_account
+idempotency_key
+corrected_from_entry_id
+reversed_at
+reversed_by
+reversal_reason
 created_by
 created_at
 updated_at
@@ -1180,6 +1187,61 @@ repayment
 adjustment
 salary_paid
 ```
+
+Worker-money rules:
+
+- `balance_account` is `advance` or `loan`. It is required for new `repayment` and `deduction` commands; issuance rows use their intrinsic account.
+- `advance_given`, `loan_given`, and `salary_paid` are cash out. `repayment` is cash in. `deduction` and `adjustment` are non-cash salary effects.
+- New cash movements require a current-tenant active `payment_mode_id` at the command boundary.
+- `idempotency_key` prevents a retried command from creating a second entry.
+- Correction/reversal never deletes the original. Reversal fields preserve actor, time, and reason; a corrected replacement links back through `corrected_from_entry_id`.
+- Active balance and Finance calculations exclude reversed and soft-deleted entries but history views retain them.
+- Historical deductions/repayments with no safe account classification remain `balance_account = null` and are shown as unallocated.
+- New deduction/repayment commands cannot reduce the selected advance/loan balance below zero.
+- `worker_money_summaries(tenant_id)` is service-role-only and returns complete active advance, loan, and salary-paid totals per tenant worker. Worker detail history is queried separately by validated tenant and worker with pagination.
+- New deductions and adjustments remain dated ledger facts. Salary generation/regeneration includes those inside the selected period; existing founder-finalized payable snapshots are not rewritten automatically.
+- Record and correction RPCs recover the one tenant-scoped row created by a concurrent retry with the same idempotency key. Cross-tenant or invalid-reference failures roll back without partial entries.
+
+## salary_workflow_operations
+
+```text
+id
+tenant_id
+operation_type
+target_key
+request_fingerprint
+payload_fingerprint
+idempotency_key
+result_json
+created_by
+created_at
+```
+
+- Stores service-command retry receipts for `create_period`, `update_period`, `regenerate_period`, and `finalize_calculation`.
+- `(tenant_id, idempotency_key)` is unique. A retry returns the original result only when its operation type, target, and stable user-intent fingerprint match; mismatched reuse fails closed. A separate payload fingerprint records the exact generated calculation data without breaking a lost-response retry after live attendance or ledger inputs change.
+- Rows are immutable audit receipts. Internal payload/receipt helpers are not executable through the service API.
+
+## salary_calculation_revisions
+
+```text
+id
+tenant_id
+salary_calculation_id
+salary_period_id
+worker_id
+previous_finalized_payable_amount
+new_finalized_payable_amount
+previous_finalization_note
+new_finalization_note
+reason
+created_by
+created_at
+```
+
+- Append-only audit history for payable confirmation and later correction.
+- Period create/date edit/regeneration/finalization are service-role-only RPCs. They validate the current tenant and active worker set, lock tenant/period rows, reject overlaps or stale decisions, and commit all period/calculation changes atomically.
+- A failed replacement payload rolls back the prior suggestion soft-delete. A finalized payable cannot be lower than active salary payments already linked to the worker and period.
+- Payment refresh marks a finalized zero payable as paid/`No payment due`; a period becomes paid only when every active calculation is finalized and fully settled.
 
 ## salary_periods
 
@@ -1368,3 +1430,11 @@ communication_message_logs.tenant_id, communication_message_logs.message_queue_i
 - Nullable `text`; optional internal presentation metadata.
 - Database constraint trims and bounds values to 1-16 characters when present.
 - The server action performs the stronger one-grapheme emoji validation.
+## Salary Period Bulk Workspace Commands (2026-08-12)
+
+Migration `20260812170000_salary_period_bulk_workspace.sql` adds two service-role-only transactional commands:
+
+- `finalize_salary_calculations_bulk(tenant_id, salary_period_id, rows, actor_id, idempotency_key)`
+- `record_salary_payments_bulk(tenant_id, salary_period_id, rows, payment_date, payment_mode_id, description, actor_id, idempotency_key)`
+
+Both commands lock the tenant-owned parent salary period, canonicalize and bind the selected payload to an immutable workflow receipt, reject duplicate or stale calculation rows, and commit all selected worker changes or none. Bulk finalization delegates to the existing finalization invariant so each worker receives a normal immutable `salary_calculation_revisions` row. Bulk payment validates the shared active tenant payment mode and every worker's finalized outstanding due before creating separate `salary_paid` ledger entries. Separate ledger rows preserve worker-level Finance classification, correction, reversal, and audit behavior.

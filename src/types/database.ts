@@ -106,6 +106,7 @@ export type WorkerLedgerTransactionType =
   | "repayment"
   | "adjustment"
   | "salary_paid";
+export type WorkerLedgerBalanceAccount = "advance" | "loan";
 export type SalaryPeriodStatus = "draft" | "reviewed" | "finalized" | "paid";
 export type SalaryPaymentStatus = "unpaid" | "partially_paid" | "paid";
 export type ReceivablePayableType = "receivable" | "payable";
@@ -926,6 +927,13 @@ export type WorkerLedger = {
   description: string | null;
   linked_salary_period_id: string | null;
   payment_mode_id: string | null;
+  balance_account: WorkerLedgerBalanceAccount | null;
+  idempotency_key: string | null;
+  request_fingerprint: string | null;
+  corrected_from_entry_id: string | null;
+  reversed_at: string | null;
+  reversed_by: string | null;
+  reversal_reason: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -956,6 +964,34 @@ export type SalaryCalculation = TenantOwnedBase & {
   payment_date: string | null;
   payment_mode_id: string | null;
   notes: string | null;
+};
+
+export type SalaryWorkflowOperation = {
+  id: string;
+  tenant_id: string;
+  operation_type: "create_period" | "update_period" | "regenerate_period" | "finalize_calculation";
+  target_key: string;
+  request_fingerprint: string;
+  payload_fingerprint: string;
+  idempotency_key: string;
+  result_json: Json;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type SalaryCalculationRevision = {
+  id: string;
+  tenant_id: string;
+  salary_calculation_id: string;
+  salary_period_id: string;
+  worker_id: string;
+  previous_finalized_payable_amount: number | null;
+  new_finalized_payable_amount: number;
+  previous_finalization_note: string | null;
+  new_finalization_note: string | null;
+  reason: string;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type Expense = {
@@ -1928,6 +1964,13 @@ export type Database = {
           description?: string | null;
           linked_salary_period_id?: string | null;
           payment_mode_id?: string | null;
+          balance_account?: WorkerLedgerBalanceAccount | null;
+          idempotency_key?: string | null;
+          request_fingerprint?: string | null;
+          corrected_from_entry_id?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          reversal_reason?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1964,6 +2007,42 @@ export type Database = {
           notes?: string | null;
         };
         Update: Partial<Omit<SalaryCalculation, "id" | "tenant_id" | "created_at">>;
+        Relationships: [TenantRelationship];
+      };
+      salary_workflow_operations: {
+        Row: SalaryWorkflowOperation;
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          operation_type: SalaryWorkflowOperation["operation_type"];
+          target_key: string;
+          request_fingerprint: string;
+          payload_fingerprint: string;
+          idempotency_key: string;
+          result_json?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [TenantRelationship];
+      };
+      salary_calculation_revisions: {
+        Row: SalaryCalculationRevision;
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          salary_calculation_id: string;
+          salary_period_id: string;
+          worker_id: string;
+          previous_finalized_payable_amount?: number | null;
+          new_finalized_payable_amount: number;
+          previous_finalization_note?: string | null;
+          new_finalization_note?: string | null;
+          reason: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: never;
         Relationships: [TenantRelationship];
       };
       expenses: {
@@ -2269,6 +2348,143 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_salary_period_with_calculations: {
+        Args: {
+          p_tenant_id: string;
+          p_period_start: string;
+          p_period_end: string;
+          p_calculations: Json;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      get_salary_workflow_result: {
+        Args: {
+          p_tenant_id: string;
+          p_idempotency_key: string;
+          p_operation_type: SalaryWorkflowOperation["operation_type"];
+          p_target_key: string;
+          p_request_fingerprint: string;
+        };
+        Returns: Json;
+      };
+      regenerate_salary_period_calculations: {
+        Args: {
+          p_tenant_id: string;
+          p_salary_period_id: string;
+          p_calculations: Json;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      update_salary_period_with_calculations: {
+        Args: {
+          p_tenant_id: string;
+          p_salary_period_id: string;
+          p_period_start: string;
+          p_period_end: string;
+          p_calculations: Json;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      finalize_salary_calculation: {
+        Args: {
+          p_tenant_id: string;
+          p_salary_calculation_id: string;
+          p_finalized_payable_amount: number;
+          p_finalization_note: string | null;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      finalize_salary_calculations_bulk: {
+        Args: {
+          p_tenant_id: string;
+          p_salary_period_id: string;
+          p_rows: Json;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      record_salary_payments_bulk: {
+        Args: {
+          p_tenant_id: string;
+          p_salary_period_id: string;
+          p_rows: Json;
+          p_payment_date: string;
+          p_payment_mode_id: string;
+          p_description: string | null;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      record_worker_money_entry: {
+        Args: {
+          p_tenant_id: string;
+          p_worker_id: string;
+          p_transaction_type: WorkerLedgerTransactionType;
+          p_amount: number;
+          p_transaction_date: string;
+          p_balance_account: WorkerLedgerBalanceAccount | null;
+          p_payment_mode_id: string | null;
+          p_linked_salary_period_id: string | null;
+          p_description: string | null;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: WorkerLedger;
+      };
+      correct_worker_money_entry: {
+        Args: {
+          p_tenant_id: string;
+          p_entry_id: string;
+          p_amount: number;
+          p_transaction_date: string;
+          p_balance_account: WorkerLedgerBalanceAccount | null;
+          p_payment_mode_id: string | null;
+          p_description: string | null;
+          p_reason: string;
+          p_actor_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: WorkerLedger;
+      };
+      reverse_worker_money_entry: {
+        Args: {
+          p_tenant_id: string;
+          p_entry_id: string;
+          p_reason: string;
+          p_actor_id: string;
+        };
+        Returns: WorkerLedger;
+      };
+      worker_money_balance: {
+        Args: {
+          p_tenant_id: string;
+          p_worker_id: string;
+          p_balance_account: WorkerLedgerBalanceAccount;
+          p_exclude_entry_id?: string | null;
+        };
+        Returns: number;
+      };
+      worker_money_summaries: {
+        Args: {
+          p_tenant_id: string;
+        };
+        Returns: Array<{
+          worker_id: string;
+          advance_balance: number;
+          loan_balance: number;
+          salary_paid: number;
+        }>;
+      };
       update_stage_configuration_with_effort: {
         Args: {
           p_tenant_id: string;
@@ -2411,6 +2627,14 @@ export type Database = {
           p_workgroup_ids: string[]; p_actor_id: string;
         };
         Returns: string;
+      };
+      create_worker_configuration: {
+        Args: {
+          p_tenant_id: string; p_name: string; p_phone: string | null; p_joining_date: string | null;
+          p_primary_workgroup_id: string | null; p_wage_type: WorkerWageType; p_wage_amount: number;
+          p_notes: string | null; p_workgroup_ids: string[]; p_actor_id: string;
+        };
+        Returns: Worker;
       };
       seed_default_expense_categories_for_tenant: {
         Args: { p_tenant_id: string; p_actor_id?: string | null };

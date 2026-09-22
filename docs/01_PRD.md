@@ -338,9 +338,13 @@ Maintain reusable customer profiles with contact details, order history, and mea
 ### Customer File Import
 
 - Owner/admin users can preview and confirm customer imports from CSV or XLSX files up to 5 MB and 5,000 data rows.
-- Preview never writes data. It reports valid creates, authoritative reuses, exact-email review candidates, conflicts, invalid rows, and skipped rows before confirmation.
+- Preview never writes data. It reports valid creates, authoritative reuses, exact-email and unverified-phone review candidates, warnings, conflicts, invalid rows, and skipped rows before confirmation.
 - Rows without a customer name are skipped. Email addresses must never be substituted as customer names.
 - Reuse precedence is Shopify customer ID, then normalized E.164 phone. An exact email match is advisory only and requires an explicit choice to reuse the existing customer or create a separate profile.
+- Shopify `Phone` is the primary imported phone. When `Default Address Phone` differs, it is retained in Shopify source metadata and shown as a warning rather than invalidating an otherwise usable row.
+- A country-validated phone is stored canonically in E.164 and may participate in tenant-scoped matching. A 7-to-15-digit value that cannot be country-validated may be retained only as unverified source metadata and must never become a match or uniqueness key.
+- An unverified phone with an authoritative Shopify customer ID may proceed with a warning. Without a Shopify ID or another authoritative match, the row requires an explicit Create without verified phone or Skip decision.
+- Repeated verified phone identities remain blocked from automatic duplicate creation and require source cleanup or an explicit customer-merge workflow outside import confirmation.
 - When a matched customer is reused, import may fill blank profile fields but must never overwrite populated fields automatically. Conflicting source values remain visible in preview.
 - Complete addresses create structured default customer-address rows. Incomplete addresses remain available as legacy address text and source metadata.
 - Shopify historical totals, order counts, tags, tax flags, and marketing flags are retained as read-only source metadata. They do not create OS PLUS orders or finance entries, do not affect reports, and do not activate email, SMS, or WhatsApp messaging.
@@ -1177,3 +1181,66 @@ Hardening requirements:
 - Configuration edit and attachment-add dialogs close only after the server action succeeds.
 - While saving, the dialog cannot close and duplicate submission remains blocked by the global pending-action layer.
 - A failed save leaves the dialog and entered data visible with recoverable error feedback.
+
+## Salary and Worker Money UX Hardening — 2026-08-10
+
+### Product outcome
+
+Salary must be organized around three tasks: understand the current position, finish one pay period, and maintain an auditable worker ledger. The default view must not expose every calculation and write form at once.
+
+### Information architecture
+
+- **Overview** shows paid, due, workers paid, pending periods, trends, recent payments, and items needing attention.
+- **Pay periods** lists periods and opens one focused period workspace. Recording a payment keeps the user in the same period and same worker context so they can continue paying other workers.
+- **Worker ledger** replaces the ambiguous Adjustments view. It shows saved entries immediately and explains their cash, salary, and balance effects.
+
+### Worker money semantics
+
+- `advance_given` is cash out and increases the worker's advance balance.
+- `loan_given` is cash out and increases the worker's loan balance.
+- `repayment` is actual cash returned by the worker, is cash in, and reduces one explicitly selected advance or loan balance.
+- `deduction` is a non-cash salary deduction and reduces both salary payable and one explicitly selected advance or loan balance.
+- `adjustment` is a non-cash salary credit and increases salary payable.
+- `salary_paid` is cash out and remains the only entry that settles a salary calculation.
+- Giving an advance or loan never automatically deducts the full amount from salary. Only an explicit salary deduction changes salary payable.
+- A new deduction or adjustment is included by transaction date only when the user generates or regenerates a salary suggestion for a period containing that date. It never silently rewrites an already founder-finalized payable.
+- Cash entries require an active tenant-owned payment mode. Legacy rows without one remain visible as `Not recorded`.
+
+### Finance and worker details
+
+- Finance includes a Worker money view containing all active and reversed ledger history.
+- Only actual cash movements affect cash-in/cash-out totals. Salary deductions and credits remain visible but never change cash totals until salary is paid.
+- Worker details use database-calculated separate advance and loan balances and salary-paid totals. Full ledger history is worker-scoped and paginated rather than silently truncated.
+- Existing ledger rows are preserved. Historical rows that cannot be allocated safely remain visibly unallocated rather than being guessed or rewritten.
+
+### Correction and access rules
+
+- Ledger corrections and reversals are append-only/audited: preserve the original row, require a reason, record actor/time, and link any replacement row.
+- Owner/admin and finance may manage worker money. Managers cannot read or mutate salary/worker-money records.
+- Because Worker details include wage and worker-money data, the Workers route must fail closed unless the current role has both worker and salary access.
+- Every mutation validates tenant ownership for worker, payment mode, salary period, original entry, and replacement references.
+- Failed record, correction, and reversal commands keep the entered form available and show a recoverable inline error; pending requests disable conflicting input and duplicate submission.
+
+### Configuration prerequisite guidance
+
+- Item-type contribution rules remain compatible with the selected stage effort mode.
+- Assignment-only stages do not expose monetary rules, but must show why and provide a direct path to configure stage effort tracking.
+
+### Salary lifecycle safety and feedback
+
+- Period create, date edit, and regeneration must update the period plus all draft worker suggestions in one tenant-locked database transaction. A failed worker/reference/payload check must leave the previous period and suggestions intact.
+- Creating a period is a two-step preview and confirmation flow. Preview shows the selected range's active-worker count, attendance-entry/worker coverage, workers with no attendance input, and total suggested payable without writing data.
+- Confirmation is bound to the previewed dates and generated inputs. Changing dates invalidates the visible preview; attendance, worker, work-log, or ledger changes require a refreshed preview before creation.
+- Concurrent overlapping date-range requests must serialize per tenant so exactly one can succeed.
+- Period dates remain editable only before any worker payable has been finalized or paid. Editing dates recalculates draft suggestions for the new range atomically.
+- Final payable changes are immutable audited decisions with before/after amount, note/reason, actor, and time. A payable can never be saved below money already paid; payment correction/reversal comes first.
+- A finalized zero payable is a completed `No payment due` state, not an unpaid worker.
+- Period creation, regeneration, finalization, payment, correction, and reversal must use recoverable action-state UI. Validation/database failures remain inline, preserve entered data and retry identity, and never surface as an unhandled runtime page.
+- Payment history, corrections, reversals, and payable decision history must be reachable from the same worker row in the selected period.
+- User-facing period states are `Draft`, `Ready to pay`, `Partially paid`, and `Paid`, derived consistently from worker finalization and payment progress rather than exposing raw database enum labels.
+- Clicking a salary period opens a dedicated full-width workspace containing every worker in a compact editable table. The period, not an individual worker form, is the primary task context.
+- The workspace separates bulk payable review from bulk payment. Users may accept unchanged system suggestions together, edit individual payable amounts with worker-specific reasons, then record selected payments using one shared date and payment mode with individually adjustable payment amounts.
+- Bulk finalization and bulk payment are atomic. Every selected row is revalidated for tenant, period, current version, finalized state, amount paid, outstanding due, and payment-mode ownership before any selected row changes.
+- Each bulk operation preserves worker-level truth: payable finalization writes one immutable decision revision per worker, and payment writes one independently correctable/reversible `salary_paid` ledger entry per worker.
+- Period filters include All, Needs review, Ready to pay, Partially paid, Paid, and Warnings. Desktop uses an editable table; narrow screens use the same rows in a stacked, touch-friendly layout with a sticky batch summary/action.
+- Salary payment, correction, and reversal commands serialize on the parent period before recomputing its aggregate state so concurrent worker payments cannot leave a stale period status.

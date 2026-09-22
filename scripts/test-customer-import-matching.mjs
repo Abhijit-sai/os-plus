@@ -18,11 +18,16 @@ const baseRow = {
     acceptsEmailMarketing: null,
     acceptsSmsMarketing: null,
     acceptsWhatsAppMarketing: null,
+    addressPhone: null,
+    phoneWarnings: [],
+    primaryPhone: null,
     tags: [],
     taxExempt: null,
     totalOrders: null,
     totalSpent: null,
+    unverifiedPhoneValues: [],
   },
+  warnings: [],
 };
 
 const customers = [
@@ -64,6 +69,29 @@ assert.equal(emailReview.customerId, "customer-a");
 const [create] = matchCustomerImportRows([{ ...baseRow, rowNumber: 5 }], customers, identities);
 assert.equal(create.matchState, "create");
 assert.equal(create.customerId, null);
+
+const unverifiedPhoneMetadata = {
+  ...baseRow.sourceMetadata,
+  phoneWarnings: ["Phone could not be verified."],
+  primaryPhone: "+999 123 456 78",
+  unverifiedPhoneValues: ["+999 123 456 78"],
+};
+const [shopifyUnverified] = matchCustomerImportRows([{
+  ...baseRow,
+  rowNumber: 50,
+  shopifyCustomerId: "shop-new",
+  sourceMetadata: unverifiedPhoneMetadata,
+  warnings: ["Phone could not be verified."],
+}], customers, identities);
+assert.equal(shopifyUnverified.matchState, "create");
+const [reviewUnverified] = matchCustomerImportRows([{
+  ...baseRow,
+  rowNumber: 51,
+  sourceMetadata: unverifiedPhoneMetadata,
+  warnings: ["Phone could not be verified."],
+}], customers, identities);
+assert.equal(reviewUnverified.matchState, "review_phone");
+assert.equal(reviewUnverified.customerId, null);
 
 const [authoritativeConflict] = matchCustomerImportRows([
   { ...baseRow, normalizedPhoneE164: "+14155552671", rowNumber: 6, shopifyCustomerId: "shop-1" },

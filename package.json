@@ -34,6 +34,10 @@
     "test:worker-contributions": "node --experimental-strip-types scripts/test-worker-contribution-report.mjs",
     "test:item-type-emoji": "node --experimental-strip-types scripts/test-item-type-emoji.mjs",
     "test:dialog-success": "node scripts/test-dialog-success-close.mjs",
+    "test:worker-money": "node --experimental-strip-types scripts/test-worker-money.mjs",
+    "test:worker-money-contract": "node scripts/test-worker-money-contract.mjs",
+    "test:worker-money-db": "node scripts/test-worker-money-db.mjs",
+    "test:salary-worker-money-ui": "node scripts/test-salary-worker-money-ui.mjs",
     "test:v2": "node scripts/test-v2-baseline.mjs && node scripts/test-v2-work-unit-runtime.mjs && node scripts/test-v2-phase-3-commands-events-tasks.mjs && node scripts/test-v2-phase-4-laundry-custody.mjs",
     "typecheck": "tsc --noEmit"
   },

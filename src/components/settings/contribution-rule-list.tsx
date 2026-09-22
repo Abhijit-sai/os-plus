@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +131,15 @@ function RuleRow({
           >
             {editing ? "Cancel" : effectiveSaved.selection === "none" ? "Configure" : "Edit rule"}
           </Button>
-        ) : null}
+        ) : (
+          <div className="max-w-sm rounded-md border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">Effort tracking is required first</p>
+            <p className="mt-1 text-xs text-muted-foreground">Assignment-only stages cannot calculate units, hours, or a percentage pool.</p>
+            <Button asChild className="mt-3" size="sm" variant="outline">
+              <Link href="/settings/stages">Configure stage effort</Link>
+            </Button>
+          </div>
+        )}
       </div>
 
       {editing ? (

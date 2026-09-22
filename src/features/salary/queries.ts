@@ -3,6 +3,7 @@ import "server-only";
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { summarizeWorkerMoney } from "@/features/salary/worker-money";
 import type { SalaryCalculation, SalaryPeriod, Worker, WorkerLedger } from "@/types/database";
 
 export type SalaryRangeKey = "7d" | "30d" | "mtd" | "custom";
@@ -55,6 +56,32 @@ export type SalaryOverviewSummary = {
 };
 
 export type SalaryPageData = Awaited<ReturnType<typeof getSalaryPageData>>;
+
+export async function getSalaryPeriodWorkspaceData(salaryPeriodId: string) {
+  const data = await getSalaryPageData();
+  const periodSummary = data.periodSummaries.find(
+    (summary) => summary.period.id === salaryPeriodId,
+  );
+
+  if (!periodSummary) {
+    throw new Error("Salary period is unavailable for this business.");
+  }
+
+  const workerById = new Map(data.workers.map((worker) => [worker.id, worker]));
+  return {
+    ...data,
+    calculations: data.calculations
+      .filter((calculation) => calculation.salary_period_id === salaryPeriodId)
+      .map((calculation) => ({
+        calculation,
+        worker: workerById.get(calculation.worker_id) ?? null,
+      }))
+      .sort((a, b) => (a.worker?.name ?? "").localeCompare(b.worker?.name ?? "")),
+    ledger: data.ledger.filter((entry) => entry.linked_salary_period_id === salaryPeriodId),
+    periodSummary,
+    revisions: data.revisions.filter((revision) => revision.salary_period_id === salaryPeriodId),
+  };
+}
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -254,10 +281,8 @@ function buildAttentionItems({
 
   const advanceLoanItems = workerHistoryRows.flatMap((row) => {
     const workerLedger = ledgerByWorker.get(row.worker.id) ?? [];
-    const advances = workerLedger.filter((entry) => entry.transaction_type === "advance_given").reduce((total, entry) => total + entry.amount, 0);
-    const loans = workerLedger.filter((entry) => entry.transaction_type === "loan_given").reduce((total, entry) => total + entry.amount, 0);
-    const deductions = workerLedger.filter((entry) => entry.transaction_type === "deduction" || entry.transaction_type === "repayment").reduce((total, entry) => total + entry.amount, 0);
-    const outstanding = Math.max(0, advances + loans - deductions);
+    const workerMoney = summarizeWorkerMoney(workerLedger);
+    const outstanding = workerMoney.advanceBalance + workerMoney.loanBalance;
 
     if (!outstanding) {
       return [];
@@ -269,7 +294,7 @@ function buildAttentionItems({
         detail: "Advance/loan balance should be adjusted through deduction or repayment entries.",
         priority: outstanding,
         title: row.worker.name,
-        type: advances >= loans ? "advance" : "loan"
+        type: workerMoney.advanceBalance >= workerMoney.loanBalance ? "advance" : "loan"
       } satisfies SalaryAttentionItem
     ];
   });
@@ -309,13 +334,20 @@ export async function getSalaryPageData({
   start?: string;
 } = {}) {
   const context = await requireTenantContext();
+  assertPermission(context.membership.role, "workers:view");
   assertPermission(context.membership.role, "salary:view");
 
   const resolvedRange = resolveRange({ end, range, start });
   const resolvedGroup = resolveGroup(group);
   const supabase = createSupabaseServiceRoleClient();
 
-  const [workers, periods, calculations, ledger, paymentModes] = await Promise.all([
+  const [workers, activeWorkers, periods, calculations, ledger, paymentModes] = await Promise.all([
+    supabase
+      .from("workers")
+      .select("*")
+      .eq("tenant_id", context.tenant.id)
+      .is("deleted_at", null)
+      .order("name"),
     supabase
       .from("workers")
       .select("*")
@@ -341,24 +373,38 @@ export async function getSalaryPageData({
       .select("*")
       .eq("tenant_id", context.tenant.id)
       .is("deleted_at", null)
-      .order("transaction_date", { ascending: false })
-      .limit(250),
+      .order("transaction_date", { ascending: false }),
     supabase
       .from("payment_modes")
       .select("*")
       .eq("tenant_id", context.tenant.id)
       .eq("is_active", true)
       .is("deleted_at", null)
-      .order("name")
+      .order("name"),
   ]);
 
-  for (const result of [workers, periods, calculations, ledger, paymentModes]) {
+  for (const result of [workers, activeWorkers, periods, calculations, ledger, paymentModes]) {
     if (result.error) {
       throw new Error(`Unable to load salary data: ${result.error.message}`);
     }
   }
 
-  const salaryPayments = (ledger.data ?? []).filter((entry) => entry.transaction_type === "salary_paid");
+  const visiblePeriodIds = (periods.data ?? []).map((period) => period.id);
+  const revisions = visiblePeriodIds.length
+    ? await supabase
+        .from("salary_calculation_revisions")
+        .select("*")
+        .eq("tenant_id", context.tenant.id)
+        .in("salary_period_id", visiblePeriodIds)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
+  if (revisions.error) {
+    throw new Error(`Unable to load salary decision history: ${revisions.error.message}`);
+  }
+
+  const activeLedger = (ledger.data ?? []).filter((entry) => !entry.reversed_at);
+  const salaryPayments = activeLedger.filter((entry) => entry.transaction_type === "salary_paid");
   const rangeSalaryPayments = salaryPayments.filter(
     (entry) => entry.transaction_date >= resolvedRange.start && entry.transaction_date <= resolvedRange.end
   );
@@ -370,8 +416,9 @@ export async function getSalaryPageData({
   const workerSalaryChart = buildWorkerSalaryChart(workerHistoryRows);
 
   return {
+    activeWorkers: activeWorkers.data ?? [],
     attentionItems: buildAttentionItems({
-      ledger: ledger.data ?? [],
+      ledger: activeLedger,
       periodSummaries,
       workerHistoryRows
     }),
@@ -382,6 +429,7 @@ export async function getSalaryPageData({
     periodSummaries,
     periods: periods.data ?? [],
     range: resolvedRange,
+    revisions: revisions.data ?? [],
     salaryGroup: resolvedGroup,
     recentSalaryPayments: salaryPayments.slice(0, 8),
     salaryPayments,
