@@ -8,7 +8,7 @@ export default async function PaymentModesPage() {
   const paymentModes = await getPaymentModes();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <div className="space-y-5">
       <TextMasterForm
         title="Add payment mode"
         description="Payment modes are used later for order payments and expenses."

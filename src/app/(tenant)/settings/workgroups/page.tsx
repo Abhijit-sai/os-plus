@@ -8,7 +8,7 @@ export default async function WorkgroupsPage() {
   const workgroups = await getWorkgroups();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <div className="space-y-5">
       <TextMasterForm
         title="Add workgroup"
         description="Workgroups define which workers can be assigned to future workflow stages."

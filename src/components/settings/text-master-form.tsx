@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
+import type { AutoCloseDialogAction } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -11,17 +12,11 @@ export function TextMasterForm({
 }: {
   title: string;
   description: string;
-  action: (formData: FormData) => void | Promise<void>;
+  action: AutoCloseDialogAction;
   namePlaceholder: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={action} className="space-y-4" data-unsaved-guard="true">
+    <SettingsCreateDialog title={title} description={description} action={action}>
           <div className="grid gap-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" placeholder={namePlaceholder} required />
@@ -31,8 +26,6 @@ export function TextMasterForm({
             <Input id="description" name="description" placeholder="Optional" />
           </div>
           <Button type="submit">Add</Button>
-        </form>
-      </CardContent>
-    </Card>
+    </SettingsCreateDialog>
   );
 }

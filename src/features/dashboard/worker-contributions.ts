@@ -1,14 +1,47 @@
 export type WorkerContributionMetric = "contribution" | "hours" | "stages" | "units";
 
+export function normalizeContributionFilterIds(value: string | string[] | undefined) {
+  const ids = [...new Set((Array.isArray(value) ? value : [value ?? ""]).flatMap((entry) => entry.split(",")).map((entry) => entry.trim()).filter(Boolean))];
+  return ids.includes("__none__") ? ["__none__"] : ids;
+}
+
 export type WorkerContributionLog = {
   calculatedContributionAmount: number;
   completedAt: string;
   creditedMinutes: number;
   creditedUnits: number;
+  effortMode: "none" | "units" | "hours" | "hybrid";
+  itemTypeId: string;
+  stageId: string;
   rateConfigured: boolean;
   stageInstanceId: string;
+  workgroupId: string | null;
   workerId: string;
 };
+
+export type WorkerContributionCategorySummary = {
+  completedStages: number;
+  contributionAmount: number;
+  creditedMinutes: number;
+  creditedUnits: number;
+  effortMode: WorkerContributionLog["effortMode"];
+  itemTypeId: string;
+  stageId: string;
+  workerCount: number;
+};
+
+export function filterWorkerContributionLogs(
+  logs: WorkerContributionLog[],
+  filters: { itemTypeId?: string; stageId?: string; workerIds?: string[]; workgroupId?: string; itemTypeIds?: string[]; stageIds?: string[]; workgroupIds?: string[] },
+) {
+  return logs.filter((log) => (!filters.itemTypeId || log.itemTypeId === filters.itemTypeId)
+    && (!filters.stageId || log.stageId === filters.stageId)
+    && (!filters.workgroupId || log.workgroupId === filters.workgroupId)
+    && (!filters.itemTypeIds?.length || filters.itemTypeIds.includes(log.itemTypeId))
+    && (!filters.stageIds?.length || filters.stageIds.includes(log.stageId))
+    && (!filters.workgroupIds?.length || (log.workgroupId !== null && filters.workgroupIds.includes(log.workgroupId)))
+    && (!filters.workerIds?.length || filters.workerIds.includes(log.workerId)));
+}
 
 export type WorkerContributionSummary = {
   completedStages: number;
@@ -58,6 +91,38 @@ export function aggregateWorkerContributions(logs: WorkerContributionLog[]) {
   return [...summaries.values()]
     .map(({ stageIds, ...summary }) => ({ ...summary, completedStages: stageIds.size }))
     .sort((first, second) => first.workerId.localeCompare(second.workerId));
+}
+
+export function aggregateContributionCategories(logs: WorkerContributionLog[]) {
+  const summaries = new Map<string, WorkerContributionCategorySummary & { stageIds: Set<string>; workerIds: Set<string> }>();
+
+  for (const log of logs) {
+    const key = `${log.itemTypeId}:${log.stageId}:${log.effortMode}`;
+    const summary = summaries.get(key) ?? {
+      completedStages: 0,
+      contributionAmount: 0,
+      creditedMinutes: 0,
+      creditedUnits: 0,
+      effortMode: log.effortMode,
+      itemTypeId: log.itemTypeId,
+      stageId: log.stageId,
+      stageIds: new Set<string>(),
+      workerCount: 0,
+      workerIds: new Set<string>(),
+    };
+    summary.contributionAmount = rounded(summary.contributionAmount + log.calculatedContributionAmount);
+    summary.creditedMinutes += log.creditedMinutes;
+    summary.creditedUnits = rounded(summary.creditedUnits + log.creditedUnits);
+    summary.stageIds.add(log.stageInstanceId);
+    summary.workerIds.add(log.workerId);
+    summaries.set(key, summary);
+  }
+
+  return [...summaries.values()].map(({ stageIds, workerIds, ...summary }) => ({
+    ...summary,
+    completedStages: stageIds.size,
+    workerCount: workerIds.size,
+  }));
 }
 
 function logMetricValue(log: WorkerContributionLog, metric: WorkerContributionMetric) {

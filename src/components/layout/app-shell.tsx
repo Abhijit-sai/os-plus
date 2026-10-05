@@ -15,6 +15,7 @@ import {
   LineChart,
   ListChecks,
   LogOut,
+  Menu,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -33,6 +34,7 @@ import {
   type Permission,
 } from "@/lib/permissions/roles";
 import { UnsavedChangesProvider } from "@/components/layout/unsaved-changes-provider";
+import { Dialog } from "@/components/ui/dialog";
 import type { TenantVerticalKey } from "@/types/database";
 
 const navItems: Array<{
@@ -59,6 +61,12 @@ const navItems: Array<{
     label: "Production",
     icon: Factory,
     permission: "production:view",
+  },
+  {
+    href: "/worker-contributions",
+    label: "Worker contributions",
+    icon: UserRound,
+    permission: "worker_contributions:view",
   },
   {
     href: "/tasks",
@@ -143,8 +151,8 @@ export function AppShell({
   );
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const sidebarWidthClass = isCollapsed ? "md:w-16" : "md:w-64";
-  const contentPaddingClass = isCollapsed ? "md:pl-16" : "md:pl-64";
+  const sidebarWidthClass = isCollapsed ? "lg:w-16" : "lg:w-64";
+  const contentPaddingClass = isCollapsed ? "lg:pl-16" : "lg:pl-64";
   const defaultWorkspaceHref = getDefaultTenantRoute(context.membership.role);
   const defaultWorkspaceLabel = getDefaultTenantRouteLabel(
     context.membership.role,
@@ -155,7 +163,7 @@ export function AppShell({
       <div className="min-h-screen bg-muted/40">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 hidden border-r bg-background transition-all md:flex md:flex-col",
+            "fixed inset-y-0 left-0 hidden border-r bg-background lg:flex lg:flex-col",
             sidebarWidthClass,
           )}
         >
@@ -238,14 +246,19 @@ export function AppShell({
             })}
           </nav>
         </aside>
-        <div className={cn("transition-all", contentPaddingClass)}>
+        <div className={cn("min-w-0", contentPaddingClass)}>
           <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur md:px-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="lg:hidden">
+                <Dialog key={pathname} title="Navigation" className="max-w-sm" trigger={<span className="inline-flex h-11 w-11 items-center justify-center rounded-md border"><Menu className="h-5 w-5" /><span className="sr-only">Open navigation</span></span>}>
+                  {({ close }) => <nav aria-label="Mobile navigation" className="grid gap-1">{visibleNavItems.map((item) => <Link key={item.href} href={item.href} onClick={close} aria-current={pathname.startsWith(item.href) ? "page" : undefined} className={cn("flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm", pathname.startsWith(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-accent")}><item.icon className="h-4 w-4" />{item.label}</Link>)}</nav>}
+                </Dialog>
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-muted-foreground">
                   OS PLUS
                 </p>
-                <h1 className="text-lg font-semibold">{context.tenant.name}</h1>
+                <h1 className="truncate text-base font-semibold sm:text-lg">{context.tenant.name}</h1>
                 <p className="text-xs text-muted-foreground">
                   {formatRole(context.membership.role)} · Default:{" "}
                   <Link
@@ -257,7 +270,7 @@ export function AppShell({
                 </p>
               </div>
               <details className="group relative">
-                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring">
+                <summary aria-label="Account menu" className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring">
                   <UserRound className="h-4 w-4 text-muted-foreground" />
                   <span className="hidden max-w-40 truncate sm:inline">
                     {context.user.fullName ??
@@ -266,7 +279,7 @@ export function AppShell({
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
-                <div className="absolute right-0 mt-2 w-80 rounded-md border bg-background p-2 shadow-lg">
+                <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-md border bg-background p-2 shadow-lg">
                   <div className="border-b px-3 py-2">
                     <p className="truncate text-sm font-semibold">
                       {context.user.fullName ?? "Signed in user"}
@@ -322,7 +335,7 @@ export function AppShell({
               </details>
             </div>
           </header>
-          <main className="p-4 md:p-6">{children}</main>
+          <main className="min-w-0 p-3 sm:p-4 lg:p-6">{children}</main>
         </div>
       </div>
     </UnsavedChangesProvider>

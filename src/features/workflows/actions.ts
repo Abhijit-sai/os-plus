@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { settingsDialogFailure } from "@/features/settings/dialog-feedback";
 
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
@@ -94,85 +95,94 @@ function assertUniqueStageSequence(stageIds: string[]) {
 
 export async function createWorkflowAction(formData: FormData) {
   const context = await getAuthorizedWorkflowContext();
-  const parsed = createWorkflowSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    itemTypeId: formData.get("itemTypeId"),
-    isDefault: formData.get("isDefault") === "on",
-    stageIds: getSelectedStageIds(formData)
-  });
-  assertUniqueStageSequence(parsed.stageIds);
+  try {
+    const parsed = createWorkflowSchema.parse({
+      name: formData.get("name"),
+      description: formData.get("description"),
+      itemTypeId: formData.get("itemTypeId"),
+      isDefault: formData.get("isDefault") === "on",
+      stageIds: getSelectedStageIds(formData)
+    });
+    assertUniqueStageSequence(parsed.stageIds);
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { data: workflowId, error } = await supabase.rpc("create_workflow_configuration", {
-    p_tenant_id: context.tenant.id,
-    p_name: parsed.name,
-    p_description: parsed.description,
-    p_item_type_id: parsed.itemTypeId,
-    p_is_default: parsed.isDefault,
-    p_stage_ids: parsed.stageIds,
-    p_actor_id: context.membership.clerk_user_id
-  });
-  if (error || !workflowId) {
-    const message = error?.message ?? "Workflow was not created.";
-    throw new Error(
-      message.includes("ITEM_TYPE_NOT_FOUND") ? "Selected item type does not belong to this tenant."
-        : message.includes("STAGE_NOT_FOUND") ? "One or more selected stages are inactive or do not belong to this tenant."
-          : message.includes("DEFAULT_WORKFLOW_REQUIRES_ITEM_TYPE") ? "Choose an item type before making this the default workflow."
-            : `Unable to create workflow: ${message}`
-    );
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: workflowId, error } = await supabase.rpc("create_workflow_configuration", {
+      p_tenant_id: context.tenant.id,
+      p_name: parsed.name,
+      p_description: parsed.description,
+      p_item_type_id: parsed.itemTypeId,
+      p_is_default: parsed.isDefault,
+      p_stage_ids: parsed.stageIds,
+      p_actor_id: context.membership.clerk_user_id
+    });
+    if (error?.code === "23505") return { ok: false, message: "A workflow with this name already exists." };
+    if (error || !workflowId) {
+      const message = error?.message ?? "Workflow was not created.";
+      throw new Error(
+        message.includes("ITEM_TYPE_NOT_FOUND") ? "Selected item type does not belong to this tenant."
+          : message.includes("STAGE_NOT_FOUND") ? "One or more selected stages are inactive or do not belong to this tenant."
+            : message.includes("DEFAULT_WORKFLOW_REQUIRES_ITEM_TYPE") ? "Choose an item type before making this the default workflow."
+              : `Unable to create workflow: ${message}`
+      );
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/settings/workflows");
+    redirect(`/settings/workflows/${workflowId}`);
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/workflows");
-  redirect(`/settings/workflows/${workflowId}`);
 }
 
 export async function addStageWorkgroupAction(formData: FormData) {
   const context = await getAuthorizedWorkflowContext();
-  const parsed = mapStageWorkgroupSchema.parse({
-    stageMasterId: formData.get("stageMasterId"),
-    workgroupId: formData.get("workgroupId")
-  });
+  try {
+    const parsed = mapStageWorkgroupSchema.parse({
+      stageMasterId: formData.get("stageMasterId"),
+      workgroupId: formData.get("workgroupId")
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const [stage, workgroup] = await Promise.all([
-    supabase
-      .from("stage_master")
-      .select("id")
-      .eq("tenant_id", context.tenant.id)
-      .eq("id", parsed.stageMasterId)
-      .is("deleted_at", null)
-      .maybeSingle(),
-    supabase
-      .from("workgroups")
-      .select("id")
-      .eq("tenant_id", context.tenant.id)
-      .eq("id", parsed.workgroupId)
-      .is("deleted_at", null)
-      .maybeSingle()
-  ]);
+    const supabase = createSupabaseServiceRoleClient();
+    const [stage, workgroup] = await Promise.all([
+      supabase
+        .from("stage_master")
+        .select("id")
+        .eq("tenant_id", context.tenant.id)
+        .eq("id", parsed.stageMasterId)
+        .is("deleted_at", null)
+        .maybeSingle(),
+      supabase
+        .from("workgroups")
+        .select("id")
+        .eq("tenant_id", context.tenant.id)
+        .eq("id", parsed.workgroupId)
+        .is("deleted_at", null)
+        .maybeSingle()
+    ]);
 
-  if (stage.error || workgroup.error) {
-    throw new Error(stage.error?.message ?? workgroup.error?.message ?? "Unable to validate mapping.");
+    if (stage.error || workgroup.error) {
+      throw new Error(stage.error?.message ?? workgroup.error?.message ?? "Unable to validate mapping.");
+    }
+
+    if (!stage.data || !workgroup.data) {
+      throw new Error("Selected stage or workgroup does not belong to this tenant.");
+    }
+
+    const { error } = await supabase.from("stage_workgroups").insert({
+      tenant_id: context.tenant.id,
+      stage_master_id: parsed.stageMasterId,
+      workgroup_id: parsed.workgroupId,
+      created_by: context.membership.clerk_user_id
+    });
+
+    if (error && error.code !== "23505") {
+      throw new Error(`Unable to map stage workgroup: ${error.message}`);
+    }
+
+    revalidatePath("/settings/workflows");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  if (!stage.data || !workgroup.data) {
-    throw new Error("Selected stage or workgroup does not belong to this tenant.");
-  }
-
-  const { error } = await supabase.from("stage_workgroups").insert({
-    tenant_id: context.tenant.id,
-    stage_master_id: parsed.stageMasterId,
-    workgroup_id: parsed.workgroupId,
-    created_by: context.membership.clerk_user_id
-  });
-
-  if (error && error.code !== "23505") {
-    throw new Error(`Unable to map stage workgroup: ${error.message}`);
-  }
-
-  revalidatePath("/settings/workflows");
 }
 
 export async function removeStageWorkgroupAction(formData: FormData) {

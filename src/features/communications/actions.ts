@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { settingsDialogFailure } from "@/features/settings/dialog-feedback";
 
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
@@ -184,38 +185,43 @@ export async function upsertCommunicationChannelSettingAction(formData: FormData
 
 export async function createCommunicationTemplateAction(formData: FormData) {
   const context = await getSettingsManageContext();
-  const parsed = templateSchema.parse({
-    channel: formData.get("channel"),
-    purpose: formData.get("purpose"),
-    name: formData.get("name"),
-    subject: formData.get("subject"),
-    bodyText: formData.get("bodyText"),
-    providerTemplateName: formData.get("providerTemplateName"),
-    isActive: formData.get("isActive") === "on"
-  });
-  const safeVariables = normalizeTemplateVariables(`${parsed.subject ?? ""} ${parsed.bodyText}`);
+  try {
+    const parsed = templateSchema.parse({
+      channel: formData.get("channel"),
+      purpose: formData.get("purpose"),
+      name: formData.get("name"),
+      subject: formData.get("subject"),
+      bodyText: formData.get("bodyText"),
+      providerTemplateName: formData.get("providerTemplateName"),
+      isActive: formData.get("isActive") === "on"
+    });
+    const safeVariables = normalizeTemplateVariables(`${parsed.subject ?? ""} ${parsed.bodyText}`);
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("communication_templates").insert({
-    tenant_id: context.tenant.id,
-    channel: parsed.channel,
-    purpose: parsed.purpose,
-    name: parsed.name,
-    subject: parsed.subject,
-    body_text: parsed.bodyText,
-    provider_template_name: parsed.providerTemplateName,
-    safe_variables: safeVariables as Json,
-    is_active: parsed.isActive,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("communication_templates").insert({
+      tenant_id: context.tenant.id,
+      channel: parsed.channel,
+      purpose: parsed.purpose,
+      name: parsed.name,
+      subject: parsed.subject,
+      body_text: parsed.bodyText,
+      provider_template_name: parsed.providerTemplateName,
+      safe_variables: safeVariables as Json,
+      is_active: parsed.isActive,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    throw new Error(`Unable to create communication template: ${error.message}`);
+    if (error?.code === "23505") return { ok: false, message: "A template with this name already exists." };
+    if (error) {
+      throw new Error(`Unable to create communication template: ${error.message}`);
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/settings/communications");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/communications");
 }
 
 export async function updateCommunicationTemplateAction(formData: FormData) {
@@ -294,49 +300,54 @@ export async function archiveCommunicationTemplateAction(formData: FormData) {
 
 export async function createCommunicationTriggerRuleAction(formData: FormData) {
   const context = await getSettingsManageContext();
-  const parsed = triggerRuleSchema.parse({
-    triggerType: formData.get("triggerType"),
-    channel: formData.get("channel"),
-    templateId: formData.get("templateId"),
-    delayMinutes: formData.get("delayMinutes") || 0,
-    isEnabled: formData.get("isEnabled") === "on"
-  });
-  const supabase = createSupabaseServiceRoleClient();
+  try {
+    const parsed = triggerRuleSchema.parse({
+      triggerType: formData.get("triggerType"),
+      channel: formData.get("channel"),
+      templateId: formData.get("templateId"),
+      delayMinutes: formData.get("delayMinutes") || 0,
+      isEnabled: formData.get("isEnabled") === "on"
+    });
+    const supabase = createSupabaseServiceRoleClient();
 
-  const template = await supabase
-    .from("communication_templates")
-    .select("id, channel")
-    .eq("tenant_id", context.tenant.id)
-    .eq("id", parsed.templateId)
-    .eq("channel", parsed.channel)
-    .is("deleted_at", null)
-    .maybeSingle();
+    const template = await supabase
+      .from("communication_templates")
+      .select("id, channel")
+      .eq("tenant_id", context.tenant.id)
+      .eq("id", parsed.templateId)
+      .eq("channel", parsed.channel)
+      .is("deleted_at", null)
+      .maybeSingle();
 
-  if (template.error) {
-    throw new Error(`Unable to validate template: ${template.error.message}`);
+    if (template.error) {
+      throw new Error(`Unable to validate template: ${template.error.message}`);
+    }
+
+    if (!template.data) {
+      throw new Error("Template does not belong to this tenant or channel.");
+    }
+
+    const { error } = await supabase.from("communication_trigger_rules").insert({
+      tenant_id: context.tenant.id,
+      trigger_type: parsed.triggerType,
+      channel: parsed.channel,
+      template_id: parsed.templateId,
+      delay_minutes: parsed.delayMinutes,
+      is_enabled: parsed.isEnabled,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
+
+    if (error?.code === "23505") return { ok: false, message: "A trigger rule for this channel already exists." };
+    if (error) {
+      throw new Error(`Unable to create communication trigger: ${error.message}`);
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/settings/communications");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  if (!template.data) {
-    throw new Error("Template does not belong to this tenant or channel.");
-  }
-
-  const { error } = await supabase.from("communication_trigger_rules").insert({
-    tenant_id: context.tenant.id,
-    trigger_type: parsed.triggerType,
-    channel: parsed.channel,
-    template_id: parsed.templateId,
-    delay_minutes: parsed.delayMinutes,
-    is_enabled: parsed.isEnabled,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
-
-  if (error) {
-    throw new Error(`Unable to create communication trigger: ${error.message}`);
-  }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/communications");
 }
 
 export async function updateCommunicationTriggerRuleAction(formData: FormData) {

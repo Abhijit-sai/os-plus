@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import {
   archiveMeasurementFieldAction,
@@ -14,7 +13,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StandardSizeForm } from "@/components/settings/standard-size-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
 import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,14 +40,12 @@ function ActionTrigger({
 
 function FieldForm({
   itemTypes,
-  field,
-  bare = false
+  field
 }: {
   itemTypes: ItemType[];
   field?: ItemTypeMeasurementField;
-  bare?: boolean;
+  bare: true;
 }) {
-  const action = field ? updateMeasurementFieldAction : createMeasurementFieldAction;
 
   const fields = (
     <>
@@ -138,9 +134,7 @@ function FieldForm({
     </>
   );
 
-  if (bare) return fields;
-
-  return <form action={action} className="space-y-4" data-unsaved-guard="true">{fields}</form>;
+  return fields;
 }
 
 function getMeasurementEntries(measurementData: Json) {
@@ -202,27 +196,18 @@ export default async function MeasurementStandardsPage() {
         description="Tenant-level default fields for each garment or item type."
         actions={
           <>
-            <Button asChild variant="outline">
-              <Link href="/settings">
-                <ArrowLeft className="h-4 w-4" />
-                Settings
-              </Link>
-            </Button>
-            <Dialog
+
+            <AutoCloseActionDialog action={createMeasurementFieldAction}
               title="Add measurement field"
               description="Create a standard field for one item type."
               trigger={<ActionTrigger>Add field</ActionTrigger>}
-            >
-              <FieldForm itemTypes={itemTypes} />
-            </Dialog>
-            <Dialog
+            ><FieldForm itemTypes={itemTypes} bare /></AutoCloseActionDialog>
+            <AutoCloseActionDialog action={createStandardSizeAction}
               title="Add standard size"
               description="Create a size template such as S, M, L, or 38 for one item type."
               trigger={<ActionTrigger>Add size</ActionTrigger>}
               className="max-w-3xl"
-            >
-              <StandardSizeForm action={createStandardSizeAction} itemTypes={itemTypes} fields={fields} />
-            </Dialog>
+            ><StandardSizeForm action={createStandardSizeAction} itemTypes={itemTypes} fields={fields} bare /></AutoCloseActionDialog>
           </>
         }
       />
@@ -310,19 +295,17 @@ export default async function MeasurementStandardsPage() {
                       <h3 className="text-sm font-medium">Standard sizes</h3>
                       <p className="text-sm text-muted-foreground">Size templates such as S, M, L, or numeric sizes for this item type.</p>
                     </div>
-                    <Dialog
+                    <AutoCloseActionDialog action={createStandardSizeAction}
                       title={`Add ${itemType.name} size`}
                       description="Save a reusable standard measurement set for this item type."
                       trigger={<ActionTrigger variant="outline">Add size</ActionTrigger>}
                       className="max-w-3xl"
-                    >
-                      <StandardSizeForm
+                    ><StandardSizeForm
                         action={createStandardSizeAction}
                         itemTypes={itemTypes}
                         fields={fields}
                         initialItemTypeId={itemType.id}
-                      />
-                    </Dialog>
+                       bare /></AutoCloseActionDialog>
                   </div>
                   {itemSizes.map((size) => {
                     const preview = getSizePreview(size, itemFields);

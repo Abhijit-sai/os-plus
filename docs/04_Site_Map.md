@@ -128,7 +128,7 @@ Purpose:
 - Complete stage
 - Add, edit, or remove eligible worker contributions
 - Record tenth-unit credits and/or ten-minute effort credits
-- Review summed man-hours and analytics-only contribution value
+- Review summed man-hours; analytics-only contribution value is owner/admin-only
 - Add notes
 - Add attachments
 - Move to next stage
@@ -137,7 +137,7 @@ Purpose:
 
 `/dashboard/workers` (owner/admin dashboard entry)
 
-`/worker-contributions` (owner/admin or manager, linked from Production)
+`/worker-contributions` (owner/admin only, linked from Production)
 
 - Compare contribution value, credited units, man-hours, or completed stages
 - Review a compact leaderboard and weekly trend for completed work
@@ -430,7 +430,7 @@ Settings
 Role-based visibility:
 
 - Owner/Admin: all modules
-- Manager: Dashboard, Orders, Production, Customers, Workers, Attendance, limited Reports
+- Manager: Orders, Production, Customers, and existing tenant-enabled Tasks/Laundry surfaces. No Attendance, Workers, contribution reports, salary, finance, or owner Dashboard access.
 - Finance: Dashboard, Orders read-only, Finance, Salary, Workers ledger, Reports
 - Viewer: Dashboard and permitted reports only
 

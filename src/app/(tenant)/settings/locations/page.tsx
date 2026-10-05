@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 
 import {
   archiveTenantLocationAction,
@@ -36,16 +36,8 @@ export default async function TenantLocationsSettingsPage() {
   const locations = await getTenantLocations();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add location</CardTitle>
-          <CardDescription>
-            Stores, workshops, warehouses, and offices used by V2 operations.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createTenantLocationAction} className="space-y-4" data-unsaved-guard="true">
+    <div className="space-y-5">
+      <SettingsCreateDialog title="Add location" description="Stores, workshops, warehouses, and offices used by V2 operations." action={createTenantLocationAction}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="code">Code</Label>
@@ -99,9 +91,7 @@ export default async function TenantLocationsSettingsPage() {
               </div>
             </div>
             <Button type="submit">Add location</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SettingsCreateDialog>
 
       <Card>
         <CardHeader>
@@ -110,9 +100,7 @@ export default async function TenantLocationsSettingsPage() {
               <CardTitle>Locations</CardTitle>
               <CardDescription>{locations.length} tenant locations configured.</CardDescription>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/settings">Back to settings</Link>
-            </Button>
+
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
