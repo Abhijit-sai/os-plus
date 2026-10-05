@@ -1,11 +1,9 @@
-import Link from "next/link";
 
 import { createTenantUserAction, updateTenantUserAction } from "@/features/tenant-users/actions";
 import { getTenantUsersSettingsPageData } from "@/features/tenant-users/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
 import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +11,7 @@ import type { TenantUser, TenantUserRole, TenantUserStatus } from "@/types/datab
 
 const roles: Array<{ value: TenantUserRole; label: string; description: string }> = [
   { value: "owner_admin", label: "Owner/admin", description: "All modules, settings, and internal users." },
-  { value: "manager", label: "Project manager", description: "Orders, production, customers, and attendance." },
+  { value: "manager", label: "Project manager", description: "Orders, production, and customers. No attendance, salary, or contribution reports." },
   { value: "finance", label: "Finance", description: "Salary and finance only." },
   { value: "viewer", label: "Viewer", description: "Read-only dashboard/report access." }
 ];
@@ -81,19 +79,15 @@ export default async function TenantUsersSettingsPage() {
           <p className="text-muted-foreground">Internal profiles for {context.tenant.store_name}. Clerk verifies sign-in; OS PLUS controls tenant access.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/settings">Back to settings</Link>
-          </Button>
-          <Dialog
+
+          <AutoCloseActionDialog action={createTenantUserAction}
             title="Add tenant user"
             description="Add an email and role. Access starts only after the person signs in with this verified email and the profile is active."
             trigger={<span className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Add user</span>}
           >
-            <form action={createTenantUserAction} className="space-y-3" data-unsaved-guard="true">
               <UserFields />
               <Button type="submit">Add user</Button>
-            </form>
-          </Dialog>
+            </AutoCloseActionDialog>
         </div>
       </div>
 

@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import {
   archiveCommunicationTemplateAction,
@@ -227,9 +226,7 @@ export default async function CommunicationsSettingsPage() {
             Tenant-safe WhatsApp and email transaction alerts for {context.tenant.store_name}.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/settings">Back to settings</Link>
-        </Button>
+
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -338,12 +335,10 @@ export default async function CommunicationsSettingsPage() {
                 <CardTitle>Templates</CardTitle>
                 <CardDescription>Reusable customer-safe message bodies.</CardDescription>
               </div>
-              <Dialog title="Add template" description="Create a tenant-owned dry-run template." trigger={<span className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Add template</span>}>
-                <form action={createCommunicationTemplateAction} className="space-y-3" data-unsaved-guard="true">
+              <AutoCloseActionDialog action={createCommunicationTemplateAction} title="Add template" description="Create a tenant-owned dry-run template." trigger={<span className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Add template</span>}>
                   <TemplateFields />
                   <Button type="submit">Create template</Button>
-                </form>
-              </Dialog>
+                </AutoCloseActionDialog>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -387,14 +382,12 @@ export default async function CommunicationsSettingsPage() {
                 <CardTitle>Trigger rules</CardTitle>
                 <CardDescription>Opt-in rules for future automated queueing.</CardDescription>
               </div>
-              <Dialog title="Add trigger rule" description="Rules are stored now; live automation comes after job runner setup." trigger={<span className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm font-medium">Add rule</span>}>
-                <form action={createCommunicationTriggerRuleAction} className="space-y-3" data-unsaved-guard="true">
+              <AutoCloseActionDialog action={createCommunicationTriggerRuleAction} title="Add trigger rule" description="Rules are stored now; live automation comes after job runner setup." trigger={<span className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm font-medium">Add rule</span>}>
                   <TriggerRuleFields activeTemplates={activeTemplates} />
                   <Button type="submit" disabled={!activeTemplates.length}>
                     Create rule
                   </Button>
-                </form>
-              </Dialog>
+                </AutoCloseActionDialog>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">

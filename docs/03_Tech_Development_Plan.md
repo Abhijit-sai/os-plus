@@ -289,7 +289,7 @@ Capture who contributed to each item stage, in which eligible role, how many uni
 - Use 0.10-unit controls, first-assignment item-quantity defaults, and explicit pending, success, error, disabled, and close-protection states.
 - Close successful configuration actions and completed-stage editors while retaining editable input on server errors.
 - Aggregate only completed tenant-owned work logs by completion week for the worker leaderboard and trend report; keep contribution value, units, hours, and completed stages as separate metrics. Use worker IDs as chart keys so duplicate names remain independent.
-- Expose the report to owner/admin through the dashboard and to managers through a dedicated permission-gated Production link without granting managers unrelated dashboard access.
+- Expose contribution reporting to owner/admin only. Deny managers both report routes and server queries; production assignment and units/hours entry remain available without monetary projections.
 
 ### Deliverable
 
@@ -406,7 +406,7 @@ Attendance should be implemented as a daily sheet. The sheet can contain draft r
 
 ### Deliverable
 
-Owner/manager can see attendance and production output for each worker.
+Owner/admin can see attendance and production output for each worker. Managers can see production assignments, not Attendance or contribution reporting.
 
 ## Phase 8: Salary and Worker Ledger
 

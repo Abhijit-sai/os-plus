@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { settingsDialogFailure } from "@/features/settings/dialog-feedback";
 
 import {
   assertPermission,
@@ -106,35 +107,39 @@ export async function selectTenantAction(formData: FormData) {
 
 export async function createTenantUserAction(formData: FormData) {
   const context = await getAuthorizedTenantUsersContext();
-  const parsed = tenantUserSchema.parse({
-    displayName: formData.get("displayName"),
-    email: formData.get("email"),
-    role: formData.get("role"),
-    status: formData.get("status") ?? "active",
-  });
-  const supabase = createSupabaseServiceRoleClient();
-  const actor = context.membership.clerk_user_id ?? context.membership.email;
-  const { error } = await supabase.from("tenant_users").insert({
-    tenant_id: context.tenant.id,
-    clerk_user_id: null,
-    display_name: parsed.displayName,
-    email: parsed.email,
-    role: parsed.role,
-    status: parsed.status,
-    invited_by: actor,
-    updated_by: actor,
-  });
+  try {
+    const parsed = tenantUserSchema.parse({
+      displayName: formData.get("displayName"),
+      email: formData.get("email"),
+      role: formData.get("role"),
+      status: formData.get("status") ?? "active",
+    });
+    const supabase = createSupabaseServiceRoleClient();
+    const actor = context.membership.clerk_user_id ?? context.membership.email;
+    const { error } = await supabase.from("tenant_users").insert({
+      tenant_id: context.tenant.id,
+      clerk_user_id: null,
+      display_name: parsed.displayName,
+      email: parsed.email,
+      role: parsed.role,
+      status: parsed.status,
+      invited_by: actor,
+      updated_by: actor,
+    });
 
-  if (error) {
-    if (error.code === "23505") {
-      throw new Error("This email is already mapped to this tenant.");
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("This email is already mapped to this tenant.");
+      }
+
+      throw new Error(`Unable to add tenant user: ${error.message}`);
     }
 
-    throw new Error(`Unable to add tenant user: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/users");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/users");
 }
 
 export async function updateTenantUserAction(formData: FormData) {

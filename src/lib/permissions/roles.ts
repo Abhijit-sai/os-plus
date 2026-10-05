@@ -15,6 +15,7 @@ export type Permission =
   | "customer_imports:manage"
   | "workers:view"
   | "worker_contributions:view"
+  | "worker_contribution_amounts:view"
   | "attendance:view"
   | "attendance:manage"
   | "salary:view"
@@ -42,6 +43,7 @@ export const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "customer_imports:manage",
     "workers:view",
     "worker_contributions:view",
+    "worker_contribution_amounts:view",
     "attendance:view",
     "attendance:manage",
     "salary:view",
@@ -64,9 +66,6 @@ export const rolePermissions: Record<TenantUserRole, Permission[]> = {
     "laundry:manage",
     "customers:view",
     "customers:manage",
-    "attendance:view",
-    "attendance:manage",
-    "worker_contributions:view",
   ],
   finance: ["tasks:view", "tasks:manage", "workers:view", "salary:view", "salary:manage", "finance:view", "finance:manage"],
   viewer: ["reports:view"],

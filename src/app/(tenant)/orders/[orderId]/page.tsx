@@ -663,6 +663,7 @@ export default async function OrderDetailPage({
                                  contributionRules={contributionRules.filter((rule) => rule.item_type_id === item.item_type_id)}
                                  contributionCorrections={contributionCorrections.filter((correction) => correction.order_item_id === item.id)}
                                  canCorrectCompletedContributions={context.membership.role === "owner_admin"}
+                                 canViewContributionAmounts={context.membership.role === "owner_admin"}
                                 history={itemHistory.filter((event) => event.order_item_id === item.id)}
                                 linkedMeasurement={linkedMeasurement ?? null}
                                 variant="pane"

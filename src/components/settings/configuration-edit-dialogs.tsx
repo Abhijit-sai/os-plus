@@ -1,11 +1,11 @@
 import { ItemTypeIconPicker } from "@/components/item-types/item-type-icon-picker";
 import { Button } from "@/components/ui/button";
-import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog";
+import { AutoCloseActionDialog, type AutoCloseDialogAction } from "@/components/ui/auto-close-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CustomerStatus, ExpenseCategory, ItemType, PaymentMode, StageMaster, Workgroup } from "@/types/database";
 
-type FormAction = (formData: FormData) => void | Promise<void>;
+type FormAction = AutoCloseDialogAction;
 type TextRecord = StageMaster | Workgroup | PaymentMode;
 
 function EditTrigger() {

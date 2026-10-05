@@ -214,6 +214,7 @@ export function ItemWorkflowPanel({
   contributionRules,
   contributionCorrections,
   canCorrectCompletedContributions,
+  canViewContributionAmounts,
   history,
   linkedMeasurement,
   variant = "page"
@@ -233,8 +234,9 @@ export function ItemWorkflowPanel({
   workgroups: Workgroup[];
   workLogs: ItemStageWorkLog[];
   contributionRules: ItemTypeStageContributionRule[];
-  contributionCorrections: ItemStageContributionCorrection[];
+  contributionCorrections: Array<Pick<ItemStageContributionCorrection, "created_at" | "id" | "order_item_id" | "reason" | "stage_instance_id">>;
   canCorrectCompletedContributions: boolean;
+  canViewContributionAmounts: boolean;
   history: ItemHistory[];
   linkedMeasurement?: CustomerMeasurement | null;
   variant?: "page" | "pane";
@@ -426,12 +428,21 @@ export function ItemWorkflowPanel({
                           <StageContributionEditor
                             allowedWorkgroupIds={allowedWorkgroupIds}
                             canCorrectCompleted={canCorrectCompletedContributions}
-                            configuredRule={contributionRuleByStageId.get(stageInstance.stage_master_id) ?? null}
-                            itemFinalValue={item.final_price}
+                            canViewContributionAmounts={canViewContributionAmounts}
+                            configuredRule={canViewContributionAmounts ? contributionRuleByStageId.get(stageInstance.stage_master_id) ?? null : null}
+                            itemFinalValue={canViewContributionAmounts ? item.final_price : 0}
                             itemQuantity={item.quantity}
-                            logs={stageLogs}
+                            logs={canViewContributionAmounts ? stageLogs : stageLogs.map((log) => ({ ...log, calculated_contribution_amount: 0 }))}
                             mode={effortMode}
-                            stage={stageInstance}
+                            stage={canViewContributionAmounts ? stageInstance : {
+                              ...stageInstance,
+                              contribution_allocation_basis_snapshot: null,
+                              contribution_item_value_snapshot: null,
+                              contribution_method_snapshot: null,
+                              contribution_pool_snapshot: null,
+                              contribution_rate_snapshot: null,
+                              contribution_rule_id_snapshot: null,
+                            }}
                             stageName={stage?.name ?? "Unknown stage"}
                             workerWorkgroups={workerWorkgroups}
                             workers={workers}

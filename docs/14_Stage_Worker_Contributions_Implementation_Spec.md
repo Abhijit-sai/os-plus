@@ -16,7 +16,7 @@ Allow an item stage to record several workers, the eligible workgroup/role each 
 6. Hybrid stages require both units and time for analytics.
 7. Item-type/stage monetary configuration is optional and uses `per_unit`, `per_hour`, or `percentage`.
 8. Percentage uses `order_items.final_price`, the item value after item discount and before GST, to create one pool. The rule selects distribution by units or hours.
-9. A missing rule produces INR 0 and Rate not configured but never blocks production.
+9. A missing applicable rule produces INR 0 and an owner-only Rate not configured warning but never blocks production. Assignment-only work has no monetary value, units, hours, or rate warning.
 10. Configuration is snapshotted when the stage starts. Later changes apply only to not-started stages.
 11. Workers may be added, edited, or removed before completion. Removing entered effort requires a correction reason and preserved audit record.
 12. After completion, only owner/admin may edit contributions and every edit requires a correction reason.
@@ -39,7 +39,7 @@ Compatibility is enforced: unit calculations require units/hybrid stages; hour c
 
 ## 4. Runtime UX
 
-Ready and in-progress stage cards expose a focused contribution editor. Each assignment row contains worker, eligible workgroup/role, units when required, time when required, and calculated contribution. The same worker may appear more than once only with a different eligible role.
+Ready and in-progress stage cards expose a focused contribution editor. Each assignment row contains worker, eligible workgroup/role, units when required, and time when required. Calculated contribution and monetary rule details are owner/admin-only; managers receive no monetary fields in client payloads. The same worker may appear more than once only with a different eligible role.
 
 The first assignment on a unit or hybrid stage defaults to the complete item quantity. Additional assignments default to zero, and users redistribute credit with -1, -0.1, +0.1, and +1 controls or exact numeric entry. Time starts at zero and uses ten-minute/one-hour controls. Completing a valid stage closes this focused editor and returns to the workflow view; start and save actions keep it open.
 
@@ -48,9 +48,9 @@ Completion summary shows:
 - credited units versus item quantity;
 - total man-hours;
 - actual stage elapsed time;
-- snapshotted rule;
-- calculated contribution pool/total;
-- configuration warning where applicable.
+- snapshotted rule (owner/admin only);
+- calculated contribution pool/total (owner/admin only, applicable modes only);
+- configuration warning where applicable (owner/admin only, never assignment-only).
 
 The editor is disabled while saving, cannot close while pending, blocks duplicate submission, preserves entered rows after errors, and shows visible recoverable feedback.
 
@@ -77,10 +77,12 @@ Every RPC locks the tenant-owned stage and related workflow/item rows; revalidat
 ## 7. Authorization
 
 - Owner/admin and manager may manage ready/in-progress stage assignments under `production:manage`.
-- Owner/admin and manager may view the report through `worker_contributions:view`; managers use the dedicated Production-linked route so unrelated owner dashboard access is not broadened.
+- Only owner/admin may view the report through `worker_contributions:view` or monetary analytics through `worker_contribution_amounts:view`. Managers cannot access either report route, including a direct URL.
 - Only owner/admin may replace contributions after stage completion.
 - Settings contribution rules require `settings:manage`.
 - All referenced IDs are current-tenant validated server-side and inside the RPC.
+
+The owner report uses searchable multiselect dropdowns for workers, item categories, stages, and workgroups. The category-first overview starts compact, with worker comparison and completion-week trends beneath it. All filters affect all totals, categories, comparison, and trends; malformed or foreign selections fail closed.
 
 ## 8. Audit and Historical Safety
 

@@ -116,7 +116,7 @@
 ## 8. Attendance Rules
 
 1. Attendance is separate from work logs.
-2. Attendance can be manually marked or imported by admin/manager in MVP.
+2. Attendance viewing, manual marking, and imports are owner/admin-only. Managers, finance, and viewers must be denied before any service-role read or write.
 3. Attendance status values should include present, absent, half day, leave, and holiday.
 4. Attendance should support check-in and check-out times.
 5. Attendance should not automatically equal productive work time.
@@ -143,7 +143,7 @@
 12. Monetary contribution rules are optional per item-type/stage and support per-unit, per-hour, or one percentage pool distributed by units or hours.
 13. Percentage basis is the item final value after item discount and before GST. It is never the order GST-inclusive total.
 14. Stage start snapshots effort mode, calculation method, rate, allocation basis, item basis value, and pool value. Configuration changes do not rewrite active or completed snapshots.
-15. No configured monetary rule means production proceeds with zero calculated contribution and a visible warning.
+15. No configured monetary rule means production proceeds with zero calculated contribution and an owner-only warning. Assignment-only stages have no monetary value or rate warning.
 16. Managers and owner/admin may edit contributions before completion. Removing a contribution with entered effort requires a reason and immutable audit history.
 17. Completed contribution correction is owner/admin-only and always requires a reason.
 18. Existing completed stages are not backfilled or estimated.
@@ -155,6 +155,9 @@
 24. Percentage-pool allocation uses non-negative largest-remainder distribution in integer paise, with deterministic worker/workgroup ordering. Allocated rows must sum exactly to the snapshotted pool even when the pool is smaller than the number of workers.
 25. Ordinary work-log status movement from in progress to completed is not a contribution correction. Audit rows are created only when worker, role, units, time, or calculated contribution actually changes.
 26. Workflow completion must never infer delivery from editable stage or status names. Only the explicit final customer-status flag may mark the production item delivered in this flow.
+27. Worker contribution reporting is owner/admin-only, including direct routes and server queries. Managers retain permitted production assignment and units/hours entry, not reporting access.
+28. Managers must never receive contribution amounts, rates, monetary snapshots, or correction before/after JSON in workflow client payloads. Monetary privacy is enforced by server projections, not just hidden UI.
+29. Reports separate assignment-only, credited-unit, credited-hour, and hybrid work. Worker, item category, stage, and workgroup filters are searchable multiselects and affect every report section.
 
 ## 10. Salary Rules
 

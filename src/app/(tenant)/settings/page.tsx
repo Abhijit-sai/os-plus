@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 import { seedConfigurationDefaultsAction } from "@/features/settings/actions";
 import { getSettingsOverview } from "@/features/settings/queries";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 
 export default async function SettingsPage() {
@@ -78,32 +78,16 @@ export default async function SettingsPage() {
           </form>
         </Dialog>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{tenant.store_name}</CardTitle>
-          <CardDescription>
-            Tenant slug: {tenant.slug} · Role: {membership.role.replace("_", " ")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <span className="h-6 w-6 rounded-md border" style={{ backgroundColor: tenant.brand_color ?? "#2563eb" }} />
-            <span className="text-sm text-muted-foreground">{tenant.brand_color ?? "Default blue"}</span>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <p className="text-sm text-muted-foreground">Changes apply to this business only. Your role: {membership.role === "owner_admin" ? "Owner/Admin" : membership.role}.</p>
+      <div className="grid gap-2 md:grid-cols-2">
         {settingsCards.map((card) => (
-          <Link key={card.href} href={card.href}>
-            <Card className="h-full transition-colors hover:bg-accent">
-              <CardHeader>
-                <CardTitle className="text-lg">{card.title}</CardTitle>
-                <CardDescription>{card.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{card.count}</p>
-              </CardContent>
-            </Card>
+          <Link key={card.href} href={card.href} className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold">{card.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{card.description}</p>
+            </div>
+            {typeof card.count === "number" ? <span className="text-sm tabular-nums text-muted-foreground">{card.count}</span> : null}
+            <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
           </Link>
         ))}
       </div>

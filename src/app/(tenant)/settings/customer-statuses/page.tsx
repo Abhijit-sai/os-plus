@@ -1,8 +1,8 @@
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 import { createCustomerStatusAction, updateCustomerStatusAction } from "@/features/settings/actions";
 import { getCustomerStatuses } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CustomerStatusEditDialog } from "@/components/settings/configuration-edit-dialogs";
@@ -11,14 +11,8 @@ export default async function CustomerStatusesPage() {
   const statuses = await getCustomerStatuses();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add customer status</CardTitle>
-          <CardDescription>Only safe customer-facing labels should live here.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createCustomerStatusAction} className="space-y-4" data-unsaved-guard="true">
+    <div className="space-y-5">
+      <SettingsCreateDialog title="Add customer status" description="Only safe customer-facing labels should live here." action={createCustomerStatusAction}>
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="Ready for pickup" required />
@@ -36,9 +30,7 @@ export default async function CustomerStatusesPage() {
               Final status
             </label>
             <Button type="submit">Add customer status</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SettingsCreateDialog>
       <SettingsList
         title="Customer statuses"
         description="Customer-safe status labels."

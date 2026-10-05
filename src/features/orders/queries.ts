@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { getAttachmentsForEntities } from "@/features/attachments/queries";
+import type { ItemHistory, ItemStageInstance, ItemStageWorkLog } from "@/types/database";
 
 export async function getOrdersPageData(search?: string | null) {
   const context = await requireTenantContext();
@@ -148,6 +149,7 @@ export async function getNewOrderPageData() {
 export async function getOrderDetailPageData(orderId: string) {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
+  const canViewContributionAmounts = context.membership.role === "owner_admin";
 
   const order = await supabase
     .from("orders")
@@ -248,6 +250,22 @@ export async function getOrderDetailPageData(orderId: string) {
   }
 
   const customerOrderIds = (customerOrders.data ?? []).map((customerOrder) => customerOrder.id);
+  const stageInstancesPromise = canViewContributionAmounts
+    ? supabase.from("item_stage_instances").select("*").eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).is("deleted_at", null).order("sequence_number")
+    : supabase.from("item_stage_instances")
+      .select("id, tenant_id, workflow_instance_id, order_item_id, workflow_stage_id, stage_master_id, sequence_number, status, planned_start_at, planned_end_at, started_at, completed_at, customer_status_id, notes, effort_tracking_mode_snapshot, contribution_revision, created_at, updated_at, created_by, updated_by, deleted_at")
+      .eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).is("deleted_at", null).order("sequence_number");
+  const workLogsPromise = canViewContributionAmounts
+    ? supabase.from("item_stage_work_logs").select("*").eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).is("deleted_at", null).order("created_at", { ascending: false })
+    : supabase.from("item_stage_work_logs")
+      .select("id, tenant_id, stage_instance_id, order_item_id, worker_id, workgroup_id, started_at, paused_at, resumed_at, completed_at, duration_minutes, credited_units, credited_minutes, status, notes, created_by, created_at, updated_at, updated_by, deleted_at")
+      .eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).is("deleted_at", null).order("created_at", { ascending: false });
+  const contributionRulesPromise = canViewContributionAmounts
+    ? supabase.from("item_type_stage_contribution_rules").select("*").eq("tenant_id", context.tenant.id).eq("is_active", true).is("deleted_at", null)
+    : Promise.resolve({ data: [], error: null });
+  const itemHistoryPromise = canViewContributionAmounts
+    ? supabase.from("item_history").select("*").eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).order("created_at", { ascending: false }).limit(80)
+    : supabase.from("item_history").select("id, tenant_id, order_item_id, event_type, notes, created_by, created_at").eq("tenant_id", context.tenant.id).in("order_item_id", itemIds).order("created_at", { ascending: false }).limit(80);
   const [workflowInstances, stageInstances, workflowStages, stageMasters, workLogs, workers, workerWorkgroups, stageWorkgroups, workgroups, contributionRules, contributionCorrections, itemHistory, customerStatuses, customerOrderItems] = itemIds.length
     ? await Promise.all([
         supabase
@@ -256,41 +274,23 @@ export async function getOrderDetailPageData(orderId: string) {
           .eq("tenant_id", context.tenant.id)
           .in("order_item_id", itemIds)
           .is("deleted_at", null),
-        supabase
-          .from("item_stage_instances")
-          .select("*")
-          .eq("tenant_id", context.tenant.id)
-          .in("order_item_id", itemIds)
-          .is("deleted_at", null)
-          .order("sequence_number"),
+        stageInstancesPromise,
         supabase.from("workflow_stages").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
         supabase.from("stage_master").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
-        supabase
-          .from("item_stage_work_logs")
-          .select("*")
-          .eq("tenant_id", context.tenant.id)
-          .in("order_item_id", itemIds)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false }),
+        workLogsPromise,
         supabase.from("workers").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
         supabase.from("worker_workgroups").select("*").eq("tenant_id", context.tenant.id),
         supabase.from("stage_workgroups").select("*").eq("tenant_id", context.tenant.id),
         supabase.from("workgroups").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
-        supabase.from("item_type_stage_contribution_rules").select("*").eq("tenant_id", context.tenant.id).eq("is_active", true).is("deleted_at", null),
+        contributionRulesPromise,
         supabase
           .from("item_stage_contribution_corrections")
-          .select("*")
+          .select("id, tenant_id, stage_instance_id, order_item_id, reason, created_by, created_at")
           .eq("tenant_id", context.tenant.id)
           .in("order_item_id", itemIds)
           .order("created_at", { ascending: false })
           .limit(100),
-        supabase
-          .from("item_history")
-          .select("*")
-          .eq("tenant_id", context.tenant.id)
-          .in("order_item_id", itemIds)
-          .order("created_at", { ascending: false })
-          .limit(80),
+        itemHistoryPromise,
         supabase.from("customer_statuses").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
         customerOrderIds.length
           ? supabase
@@ -334,17 +334,25 @@ export async function getOrderDetailPageData(orderId: string) {
     workflows: workflows.data ?? [],
     paymentModes: paymentModes.data ?? [],
     workflowInstances: workflowInstances.data ?? [],
-    stageInstances: stageInstances.data ?? [],
+    stageInstances: canViewContributionAmounts ? (stageInstances.data ?? []) as ItemStageInstance[] : (stageInstances.data ?? []).map((stage): ItemStageInstance => ({
+      ...stage,
+      contribution_rule_id_snapshot: null,
+      contribution_method_snapshot: null,
+      contribution_rate_snapshot: null,
+      contribution_allocation_basis_snapshot: null,
+      contribution_item_value_snapshot: null,
+      contribution_pool_snapshot: null,
+    })),
     workflowStages: workflowStages.data ?? [],
     stageMasters: stageMasters.data ?? [],
-    workLogs: workLogs.data ?? [],
+    workLogs: canViewContributionAmounts ? (workLogs.data ?? []) as ItemStageWorkLog[] : (workLogs.data ?? []).map((log): ItemStageWorkLog => ({ ...log, calculated_contribution_amount: 0 })),
     workers: workers.data ?? [],
     workerWorkgroups: workerWorkgroups.data ?? [],
     stageWorkgroups: stageWorkgroups.data ?? [],
     workgroups: workgroups.data ?? [],
     contributionRules: contributionRules.data ?? [],
     contributionCorrections: contributionCorrections.data ?? [],
-    itemHistory: itemHistory.data ?? [],
+    itemHistory: canViewContributionAmounts ? (itemHistory.data ?? []) as ItemHistory[] : (itemHistory.data ?? []).map((event): ItemHistory => ({ ...event, new_value_json: null, old_value_json: null })),
     customerStatuses: customerStatuses.data ?? [],
     customerOrders: customerOrders.data ?? [],
     customerOrderItems: customerOrderItems.data ?? [],

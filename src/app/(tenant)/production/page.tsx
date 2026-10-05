@@ -125,7 +125,7 @@ export default async function ProductionPage({
   const selectedItemTypeSet = new Set(selectedItemTypeIds);
   const selectedWorkflowItemId = resolvedSearchParams?.workflowItemId;
   const selectedWorkflowData = selectedWorkflowItemId ? await getProductionItemPageData(selectedWorkflowItemId) : null;
-  const { items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
+  const { context, items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
   const orderById = new Map(orders.map((order) => [order.id, order]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
   const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
@@ -484,7 +484,7 @@ export default async function ProductionPage({
       <PageHeader
         title="Production"
         description="Item-level workflow queue. Orders are commercial; these items are production units."
-        actions={<Button asChild variant="outline"><Link href="/worker-contributions">Worker contributions</Link></Button>}
+        actions={context.membership.role === "owner_admin" ? <Button asChild variant="outline"><Link href="/worker-contributions">Worker contributions</Link></Button> : undefined}
       />
 
       <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">

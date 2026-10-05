@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export function Dialog({
     const frame = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
       const focusableElements = dialog
-        ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => !element.hidden)
+        ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => element.getClientRects().length > 0)
         : [];
       (focusableElements[0] ?? dialog)?.focus();
     });
@@ -90,6 +91,8 @@ export function Dialog({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== dialogRef.current) return;
       if (event.key === "Escape") {
         event.preventDefault();
         close();
@@ -99,7 +102,7 @@ export function Dialog({
       if (event.key === "Tab" && dialogRef.current) {
         const focusableElements = Array.from(
           dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector),
-        ).filter((element) => !element.hidden);
+        ).filter((element) => element.getClientRects().length > 0);
         if (!focusableElements.length) {
           event.preventDefault();
           dialogRef.current.focus();
@@ -136,9 +139,9 @@ export function Dialog({
           {trigger}
         </button>
       ) : null}
-      {isOpen ? (
+      {isOpen ? createPortal(
         <div
-          className={`fixed inset-0 z-50 flex p-4 ${placement === "side" ? "items-stretch justify-end" : "items-center justify-center"}`}
+          className={`fixed inset-0 z-50 flex p-2 sm:p-4 ${placement === "side" ? "items-stretch justify-end" : "items-center justify-center"}`}
         >
           <button
             type="button"
@@ -157,8 +160,8 @@ export function Dialog({
             tabIndex={-1}
             className={cn(
               placement === "side"
-                ? "relative z-10 h-full w-full max-w-5xl overflow-y-auto rounded-[14px] border bg-background p-5 shadow-2xl"
-                : "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[14px] border bg-background p-5 shadow-2xl",
+                ? "relative z-10 h-full min-w-0 w-full max-w-5xl overflow-y-auto overscroll-contain rounded-xl border bg-background p-4 sm:p-5 shadow-2xl"
+                : "relative z-10 max-h-[calc(100dvh-1rem)] min-w-0 w-full max-w-lg overflow-y-auto overscroll-contain rounded-xl border bg-background p-4 sm:p-5 shadow-2xl",
               className,
             )}
           >
@@ -184,7 +187,7 @@ export function Dialog({
             </div>
             {typeof children === "function" ? children({ close }) : children}
           </div>
-        </div>
+        </div>, document.body
       ) : null}
     </>
   );

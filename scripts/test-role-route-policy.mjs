@@ -59,8 +59,13 @@ assert.equal(hasPermission("viewer", "orders:view"), false);
 assert.equal(hasPermission("viewer", "dashboard:view"), false);
 assert.equal(hasPermission("manager", "salary:view"), false);
 assert.equal(hasPermission("manager", "workers:view"), false);
+assert.equal(hasPermission("owner_admin", "worker_contribution_amounts:view"), true);
+assert.equal(hasPermission("manager", "worker_contribution_amounts:view"), false);
 
 for (const [role, permissions] of Object.entries(rolePermissions)) {
+  for (const permission of ["attendance:view", "attendance:manage", "worker_contributions:view", "worker_contribution_amounts:view"]) {
+    assert.equal(hasPermission(role, permission), role === "owner_admin", `${role}: ${permission} must be owner/admin-only`);
+  }
   assert.equal(
     permissions.includes("dashboard:view"),
     role === "owner_admin",

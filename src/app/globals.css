@@ -47,4 +47,31 @@
   textarea {
     @apply font-sans;
   }
+
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :where(button, a, summary, select, textarea):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 639px) {
+    select,
+    textarea {
+      font-size: 1rem;
+      min-height: 2.75rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

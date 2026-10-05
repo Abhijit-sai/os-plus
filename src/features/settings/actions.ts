@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { settingsDialogFailure } from "@/features/settings/dialog-feedback";
 
 import { assertPermission } from "@/lib/permissions/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
@@ -340,184 +341,196 @@ export async function seedConfigurationDefaultsAction() {
 
 export async function createItemTypeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = itemTypeSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    icon: {
-      kind: formData.get("iconKind"),
-      emoji: formData.get("iconEmoji"),
-      name: formData.get("iconName"),
-      color: formData.get("iconColor"),
-    },
-    defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays"))
-  });
+  try {
+    const parsed = itemTypeSchema.parse({
+      name: formData.get("name"),
+      description: formData.get("description"),
+      icon: {
+        kind: formData.get("iconKind"),
+        emoji: formData.get("iconEmoji"),
+        name: formData.get("iconName"),
+        color: formData.get("iconColor"),
+      },
+      defaultSlaDays: getOptionalNumber(formData.get("defaultSlaDays"))
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("item_types").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    description: parsed.description,
-    icon_kind: parsed.icon.kind,
-    icon_emoji: parsed.icon.emoji,
-    icon_name: parsed.icon.name,
-    icon_color: parsed.icon.color,
-    default_sla_days: parsed.defaultSlaDays ?? null,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("item_types").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      description: parsed.description,
+      icon_kind: parsed.icon.kind,
+      icon_emoji: parsed.icon.emoji,
+      icon_name: parsed.icon.name,
+      icon_color: parsed.icon.color,
+      default_sla_days: parsed.defaultSlaDays ?? null,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/item-types");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "An item type with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create item type: ${error.message}`);
     }
 
-    throw new Error(`Unable to create item type: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/item-types");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/item-types");
 }
 
 export async function createStageAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.extend({ effortTrackingMode: stageEffortModeSchema }).parse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    effortTrackingMode: formData.get("effortTrackingMode") || "none",
-  });
+  try {
+    const parsed = textMasterSchema.extend({ effortTrackingMode: stageEffortModeSchema }).parse({
+      name: formData.get("name"),
+      description: formData.get("description"),
+      effortTrackingMode: formData.get("effortTrackingMode") || "none",
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("stage_master").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    description: parsed.description,
-    effort_tracking_mode: parsed.effortTrackingMode,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("stage_master").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      description: parsed.description,
+      effort_tracking_mode: parsed.effortTrackingMode,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/stages");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "A stage with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create stage: ${error.message}`);
     }
 
-    throw new Error(`Unable to create stage: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/stages");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/stages");
 }
 
 export async function createCustomerStatusAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = customerStatusSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    sortOrder: formData.get("sortOrder") || 0,
-    isFinalStatus: formData.get("isFinalStatus") === "on"
-  });
+  try {
+    const parsed = customerStatusSchema.parse({
+      name: formData.get("name"),
+      description: formData.get("description"),
+      sortOrder: formData.get("sortOrder") || 0,
+      isFinalStatus: formData.get("isFinalStatus") === "on"
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("customer_statuses").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    description: parsed.description,
-    sort_order: parsed.sortOrder,
-    is_final_status: parsed.isFinalStatus,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("customer_statuses").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      description: parsed.description,
+      sort_order: parsed.sortOrder,
+      is_final_status: parsed.isFinalStatus,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/customer-statuses");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "A customer status with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create customer status: ${error.message}`);
     }
 
-    throw new Error(`Unable to create customer status: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/customer-statuses");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/customer-statuses");
 }
 
 export async function createWorkgroupAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description")
-  });
+  try {
+    const parsed = textMasterSchema.parse({
+      name: formData.get("name"),
+      description: formData.get("description")
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("workgroups").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    description: parsed.description,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("workgroups").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      description: parsed.description,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/workgroups");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "A workgroup with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create workgroup: ${error.message}`);
     }
 
-    throw new Error(`Unable to create workgroup: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/workgroups");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/workgroups");
 }
 
 export async function createTenantLocationAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = tenantLocationSchema.parse({
-    code: formData.get("code"),
-    name: formData.get("name"),
-    locationType: formData.get("locationType") || "store",
-    addressLine1: formData.get("addressLine1"),
-    addressLine2: formData.get("addressLine2"),
-    area: formData.get("area"),
-    city: formData.get("city"),
-    state: formData.get("state"),
-    postalCode: formData.get("postalCode"),
-    countryCode: formData.get("countryCode") || "IN"
-  });
+  try {
+    const parsed = tenantLocationSchema.parse({
+      code: formData.get("code"),
+      name: formData.get("name"),
+      locationType: formData.get("locationType") || "store",
+      addressLine1: formData.get("addressLine1"),
+      addressLine2: formData.get("addressLine2"),
+      area: formData.get("area"),
+      city: formData.get("city"),
+      state: formData.get("state"),
+      postalCode: formData.get("postalCode"),
+      countryCode: formData.get("countryCode") || "IN"
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("tenant_locations").insert({
-    tenant_id: context.tenant.id,
-    code: parsed.code,
-    name: parsed.name,
-    location_type: parsed.locationType,
-    address_line_1: parsed.addressLine1,
-    address_line_2: parsed.addressLine2,
-    area: parsed.area,
-    city: parsed.city,
-    state: parsed.state,
-    postal_code: parsed.postalCode,
-    country_code: parsed.countryCode,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("tenant_locations").insert({
+      tenant_id: context.tenant.id,
+      code: parsed.code,
+      name: parsed.name,
+      location_type: parsed.locationType,
+      address_line_1: parsed.addressLine1,
+      address_line_2: parsed.addressLine2,
+      area: parsed.area,
+      city: parsed.city,
+      state: parsed.state,
+      postal_code: parsed.postalCode,
+      country_code: parsed.countryCode,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      throw new Error("A location with this code already exists.");
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("A location with this code already exists.");
+      }
+
+      throw new Error(`Unable to create location: ${error.message}`);
     }
 
-    throw new Error(`Unable to create location: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/locations");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/locations");
 }
 
 export async function archiveTenantLocationAction(formData: FormData) {
@@ -608,36 +621,40 @@ async function validateTenantUserForSettings(tenantId: string, tenantUserId: str
 
 export async function createTeamAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = teamSchema.parse({
-    name: formData.get("name"),
-    code: formData.get("code"),
-    description: formData.get("description"),
-    locationId: formData.get("locationId")
-  });
+  try {
+    const parsed = teamSchema.parse({
+      name: formData.get("name"),
+      code: formData.get("code"),
+      description: formData.get("description"),
+      locationId: formData.get("locationId")
+    });
 
-  await validateLocationForSettings(context.tenant.id, parsed.locationId);
+    await validateLocationForSettings(context.tenant.id, parsed.locationId);
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("teams").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    code: parsed.code,
-    description: parsed.description,
-    location_id: parsed.locationId,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("teams").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      code: parsed.code,
+      description: parsed.description,
+      location_id: parsed.locationId,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      throw new Error("A team with this code already exists.");
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("A team with this code already exists.");
+      }
+
+      throw new Error(`Unable to create team: ${error.message}`);
     }
 
-    throw new Error(`Unable to create team: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/teams");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/teams");
 }
 
 export async function archiveTeamAction(formData: FormData) {
@@ -667,34 +684,38 @@ export async function archiveTeamAction(formData: FormData) {
 
 export async function addTeamMemberAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = teamMemberSchema.parse({
-    teamId: formData.get("teamId"),
-    tenantUserId: formData.get("tenantUserId")
-  });
+  try {
+    const parsed = teamMemberSchema.parse({
+      teamId: formData.get("teamId"),
+      tenantUserId: formData.get("tenantUserId")
+    });
 
-  await Promise.all([
-    validateTeamForSettings(context.tenant.id, parsed.teamId),
-    validateTenantUserForSettings(context.tenant.id, parsed.tenantUserId)
-  ]);
+    await Promise.all([
+      validateTeamForSettings(context.tenant.id, parsed.teamId),
+      validateTenantUserForSettings(context.tenant.id, parsed.tenantUserId)
+    ]);
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("team_members").insert({
-    tenant_id: context.tenant.id,
-    team_id: parsed.teamId,
-    tenant_user_id: parsed.tenantUserId,
-    created_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("team_members").insert({
+      tenant_id: context.tenant.id,
+      team_id: parsed.teamId,
+      tenant_user_id: parsed.tenantUserId,
+      created_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings/teams");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        revalidatePath("/settings/teams");
+        return;
+      }
+
+      throw new Error(`Unable to add team member: ${error.message}`);
     }
 
-    throw new Error(`Unable to add team member: ${error.message}`);
+    revalidatePath("/settings/teams");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings/teams");
 }
 
 export async function removeTeamMemberAction(formData: FormData) {
@@ -721,61 +742,65 @@ export async function removeTeamMemberAction(formData: FormData) {
 
 export async function createPaymentModeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description")
-  });
+  try {
+    const parsed = textMasterSchema.parse({
+      name: formData.get("name"),
+      description: formData.get("description")
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("payment_modes").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    description: parsed.description,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("payment_modes").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      description: parsed.description,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/payment-modes");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "A payment mode with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create payment mode: ${error.message}`);
     }
 
-    throw new Error(`Unable to create payment mode: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/payment-modes");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/payment-modes");
 }
 
 export async function createExpenseCategoryAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = z.object({ name: nameSchema }).parse({
-    name: formData.get("name")
-  });
+  try {
+    const parsed = z.object({ name: nameSchema }).parse({
+      name: formData.get("name")
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("expense_categories").insert({
-    tenant_id: context.tenant.id,
-    name: parsed.name,
-    is_default: false,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("expense_categories").insert({
+      tenant_id: context.tenant.id,
+      name: parsed.name,
+      is_default: false,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      revalidatePath("/settings");
-      revalidatePath("/settings/expense-categories");
-      return;
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        return { ok: false, message: "An expense category with this name already exists. Choose another name or edit the existing record." };
+      }
+
+      throw new Error(`Unable to create expense category: ${error.message}`);
     }
 
-    throw new Error(`Unable to create expense category: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/expense-categories");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/expense-categories");
 }
 
 function normalizeFieldKey(value: string) {
@@ -855,47 +880,51 @@ async function validateMeasurementKeysForItemType({
 
 export async function createMeasurementFieldAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = measurementFieldSchema.parse({
-    itemTypeId: formData.get("itemTypeId"),
-    fieldKey: formData.get("fieldKey"),
-    fieldLabel: formData.get("fieldLabel"),
-    unit: formData.get("unit"),
-    sortOrder: formData.get("sortOrder") || 0,
-    isRequired: formData.get("isRequired") === "on",
-    helpText: formData.get("helpText")
-  });
-  const fieldKey = normalizeFieldKey(parsed.fieldKey);
+  try {
+    const parsed = measurementFieldSchema.parse({
+      itemTypeId: formData.get("itemTypeId"),
+      fieldKey: formData.get("fieldKey"),
+      fieldLabel: formData.get("fieldLabel"),
+      unit: formData.get("unit"),
+      sortOrder: formData.get("sortOrder") || 0,
+      isRequired: formData.get("isRequired") === "on",
+      helpText: formData.get("helpText")
+    });
+    const fieldKey = normalizeFieldKey(parsed.fieldKey);
 
-  if (!fieldKey) {
-    throw new Error("Field key must include at least one letter or number.");
-  }
-
-  await validateItemTypeForSettings(context.tenant.id, parsed.itemTypeId);
-
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("item_type_measurement_fields").insert({
-    tenant_id: context.tenant.id,
-    item_type_id: parsed.itemTypeId,
-    field_key: fieldKey,
-    field_label: parsed.fieldLabel,
-    unit: parsed.unit,
-    sort_order: parsed.sortOrder,
-    is_required: parsed.isRequired,
-    help_text: parsed.helpText,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
-
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      throw new Error("This field key already exists for the selected item type.");
+    if (!fieldKey) {
+      throw new Error("Field key must include at least one letter or number.");
     }
 
-    throw new Error(`Unable to create measurement field: ${error.message}`);
-  }
+    await validateItemTypeForSettings(context.tenant.id, parsed.itemTypeId);
 
-  revalidatePath("/settings");
-  revalidatePath("/settings/measurement-standards");
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("item_type_measurement_fields").insert({
+      tenant_id: context.tenant.id,
+      item_type_id: parsed.itemTypeId,
+      field_key: fieldKey,
+      field_label: parsed.fieldLabel,
+      unit: parsed.unit,
+      sort_order: parsed.sortOrder,
+      is_required: parsed.isRequired,
+      help_text: parsed.helpText,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
+
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("This field key already exists for the selected item type.");
+      }
+
+      throw new Error(`Unable to create measurement field: ${error.message}`);
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/settings/measurement-standards");
+  } catch (error) {
+    return settingsDialogFailure(error);
+  }
 }
 
 export async function updateMeasurementFieldAction(formData: FormData) {
@@ -990,43 +1019,47 @@ export async function archiveMeasurementFieldAction(formData: FormData) {
 
 export async function createStandardSizeAction(formData: FormData) {
   const context = await getAuthorizedSettingsContext();
-  const parsed = standardSizeSchema.parse({
-    itemTypeId: formData.get("itemTypeId"),
-    sizeLabel: formData.get("sizeLabel"),
-    sortOrder: formData.get("sortOrder") || 0,
-    isActive: true,
-    measurementData: parseStandardSizeMeasurementData(formData)
-  });
+  try {
+    const parsed = standardSizeSchema.parse({
+      itemTypeId: formData.get("itemTypeId"),
+      sizeLabel: formData.get("sizeLabel"),
+      sortOrder: formData.get("sortOrder") || 0,
+      isActive: true,
+      measurementData: parseStandardSizeMeasurementData(formData)
+    });
 
-  await validateItemTypeForSettings(context.tenant.id, parsed.itemTypeId);
-  await validateMeasurementKeysForItemType({
-    itemTypeId: parsed.itemTypeId,
-    measurementData: parsed.measurementData,
-    tenantId: context.tenant.id
-  });
+    await validateItemTypeForSettings(context.tenant.id, parsed.itemTypeId);
+    await validateMeasurementKeysForItemType({
+      itemTypeId: parsed.itemTypeId,
+      measurementData: parsed.measurementData,
+      tenantId: context.tenant.id
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from("item_type_standard_sizes").insert({
-    tenant_id: context.tenant.id,
-    item_type_id: parsed.itemTypeId,
-    size_label: parsed.sizeLabel,
-    measurement_data_json: parsed.measurementData as Json,
-    sort_order: parsed.sortOrder,
-    is_active: true,
-    created_by: context.membership.clerk_user_id,
-    updated_by: context.membership.clerk_user_id
-  });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.from("item_type_standard_sizes").insert({
+      tenant_id: context.tenant.id,
+      item_type_id: parsed.itemTypeId,
+      size_label: parsed.sizeLabel,
+      measurement_data_json: parsed.measurementData as Json,
+      sort_order: parsed.sortOrder,
+      is_active: true,
+      created_by: context.membership.clerk_user_id,
+      updated_by: context.membership.clerk_user_id
+    });
 
-  if (error) {
-    if (isUniqueConstraintError(error)) {
-      throw new Error("This size name already exists for the selected item type.");
+    if (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("This size name already exists for the selected item type.");
+      }
+
+      throw new Error(`Unable to create standard size: ${error.message}`);
     }
 
-    throw new Error(`Unable to create standard size: ${error.message}`);
+    revalidatePath("/settings");
+    revalidatePath("/settings/measurement-standards");
+  } catch (error) {
+    return settingsDialogFailure(error);
   }
-
-  revalidatePath("/settings");
-  revalidatePath("/settings/measurement-standards");
 }
 
 export async function updateStandardSizeAction(formData: FormData) {
@@ -1148,31 +1181,40 @@ async function updateTextMaster(formData: FormData, kind: "workgroup" | "payment
 }
 
 export async function updateStageAction(formData: FormData) {
-  const context = await getAuthorizedSettingsContext();
-  const parsed = textMasterSchema.extend({ stageId: z.string().uuid(), effortTrackingMode: stageEffortModeSchema }).merge(activeFlagSchema).parse({
-    stageId: formData.get("stageId"), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on",
-    effortTrackingMode: formData.get("effortTrackingMode") || "none",
-  });
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.rpc("update_stage_configuration_with_effort", {
-    p_tenant_id: context.tenant.id,
-    p_stage_id: parsed.stageId,
-    p_name: parsed.name,
-    p_description: parsed.description,
-    p_is_active: parsed.isActive,
-    p_effort_tracking_mode: parsed.effortTrackingMode,
-    p_actor_id: context.membership.clerk_user_id
-  });
-  if (error) {
-    throw new Error(
-      isUniqueConstraintError(error) ? "A stage with this name already exists."
+  try {
+    const context = await getAuthorizedSettingsContext();
+    const parsed = textMasterSchema.extend({ stageId: z.string().uuid(), effortTrackingMode: stageEffortModeSchema }).merge(activeFlagSchema).parse({
+      stageId: formData.get("stageId"), name: formData.get("name"), description: formData.get("description"), isActive: formData.get("isActive") === "on",
+      effortTrackingMode: formData.get("effortTrackingMode") || "none",
+    });
+    const supabase = createSupabaseServiceRoleClient();
+    const { error } = await supabase.rpc("update_stage_configuration_with_effort", {
+      p_tenant_id: context.tenant.id,
+      p_stage_id: parsed.stageId,
+      p_name: parsed.name,
+      p_description: parsed.description,
+      p_is_active: parsed.isActive,
+      p_effort_tracking_mode: parsed.effortTrackingMode,
+      p_actor_id: context.membership.clerk_user_id
+    });
+    if (error) {
+      const message = isUniqueConstraintError(error) ? "A stage with this name already exists."
         : error.message.includes("STAGE_REQUIRED_BY_ACTIVE_WORKFLOW") ? "This stage is the last active stage in an active workflow. Replace that workflow sequence before deactivating it."
-          : error.message.includes("STAGE_EFFORT_MODE_HAS_INCOMPATIBLE_RULES") ? "Update this stage's item-type contribution rules before changing its effort mode."
+          : error.message.includes("STAGE_EFFORT_MODE_HAS_INCOMPATIBLE_RULES") ? "This stage still has active item-type contribution rules that need units or credited time. Clear those rules under Item types → Contribution rules, then change the effort mode. Started and completed work keeps its saved snapshot."
           : error.message.includes("STAGE_NOT_FOUND") ? "Stage does not belong to this tenant."
-            : `Unable to update stage: ${error.message}`
-    );
+            : "Unable to update this stage right now. Review the fields and try again.";
+      return { message, ok: false };
+    }
+    revalidatePath("/settings"); revalidatePath("/settings/stages"); revalidatePath("/settings/workflows");
+    return { message: "Stage saved.", ok: true };
+  } catch (error) {
+    return {
+      message: error instanceof z.ZodError
+        ? (error.issues[0]?.message ?? "Review the stage details and try again.")
+        : "Unable to update this stage right now. Review the fields and try again.",
+      ok: false,
+    };
   }
-  revalidatePath("/settings"); revalidatePath("/settings/stages"); revalidatePath("/settings/workflows");
 }
 
 export async function updateItemTypeStageContributionRuleAction(formData: FormData) {

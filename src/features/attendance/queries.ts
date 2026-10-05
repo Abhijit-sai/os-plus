@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
+import { assertPermission } from "@/lib/permissions/roles";
 
 function todayIsoDate() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -32,6 +33,7 @@ type AttendancePageDataOptions = {
 
 export async function getAttendancePageData(options: AttendancePageDataOptions = {}) {
   const context = await requireTenantContext();
+  assertPermission(context.membership.role, "attendance:view");
   const supabase = createSupabaseServiceRoleClient();
   const today = todayIsoDate();
   const selectedDate = options.selectedDate?.trim() || today;

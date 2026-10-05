@@ -1,3 +1,4 @@
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 import Link from "next/link";
 
 import { createItemTypeAction, updateItemTypeAction } from "@/features/settings/actions";
@@ -6,7 +7,6 @@ import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { ItemTypeIconPicker } from "@/components/item-types/item-type-icon-picker";
 import { SettingsList } from "@/components/settings/settings-list";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemTypeEditDialog } from "@/components/settings/configuration-edit-dialogs";
@@ -16,14 +16,8 @@ export default async function ItemTypesPage() {
   const itemTypes = await getItemTypes();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add item type</CardTitle>
-          <CardDescription>Item types are tenant-owned and later map to default workflows.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createItemTypeAction} className="space-y-4" data-unsaved-guard="true">
+    <div className="space-y-5">
+      <SettingsCreateDialog title="Add item type" description="Item types are tenant-owned and later map to default workflows." action={createItemTypeAction}>
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="Sherwani" required />
@@ -38,9 +32,7 @@ export default async function ItemTypesPage() {
               <Input id="defaultSlaDays" name="defaultSlaDays" type="number" min="0" placeholder="Optional" />
             </div>
             <Button type="submit">Add item type</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SettingsCreateDialog>
       <SettingsList
         title="Item types"
         description="Current tenant item type master."

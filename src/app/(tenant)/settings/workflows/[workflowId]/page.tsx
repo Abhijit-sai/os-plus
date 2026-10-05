@@ -67,15 +67,7 @@ export default async function WorkflowDetailPage({
           {!workflowStages.length ? <p className="text-sm text-muted-foreground">No stages configured.</p> : null}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Replace sequence</CardTitle>
-          <CardDescription>
-            Use this to fix a workflow created in the wrong order. Empty steps are ignored.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={replaceWorkflowStagesAction} className="space-y-4" data-unsaved-guard="true">
+      <AutoCloseActionDialog action={replaceWorkflowStagesAction} title="Edit stage sequence" description="Use this to fix a workflow created in the wrong order. Empty steps are ignored." className="max-w-3xl" trigger={<span className="inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium">Edit stage sequence</span>}>
             <input type="hidden" name="workflowId" value={workflow.id} />
             <div className="space-y-3">
               {Array.from({ length: Math.max(stages.length, workflowStages.length, 1) }).map((_, index) => {
@@ -114,9 +106,7 @@ export default async function WorkflowDetailPage({
               })}
             </div>
             <Button type="submit">Save sequence</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </AutoCloseActionDialog>
     </div>
   );
 }

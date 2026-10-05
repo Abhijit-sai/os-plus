@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 
 import {
   addTeamMemberAction,
@@ -37,16 +37,8 @@ export default async function TeamsSettingsPage() {
   }, new Map<string, typeof teamMembers>());
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add team</CardTitle>
-          <CardDescription>
-            Teams route operational work. They do not replace role permissions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createTeamAction} className="space-y-4" data-unsaved-guard="true">
+    <div className="space-y-5">
+      <SettingsCreateDialog title="Add team" description="Teams route operational work. They do not replace role permissions." action={createTeamAction}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="code">Code</Label>
@@ -73,9 +65,7 @@ export default async function TeamsSettingsPage() {
               <Input id="description" name="description" placeholder="Optional" />
             </div>
             <Button type="submit">Add team</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SettingsCreateDialog>
 
       <Card>
         <CardHeader>
@@ -84,9 +74,7 @@ export default async function TeamsSettingsPage() {
               <CardTitle>Teams</CardTitle>
               <CardDescription>{teams.length} operational teams configured.</CardDescription>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/settings">Back to settings</Link>
-            </Button>
+
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -127,19 +115,19 @@ export default async function TeamsSettingsPage() {
                       <p className="text-sm font-medium">Members</p>
                       <p className="text-xs text-muted-foreground">{members.length} assigned tenant users.</p>
                     </div>
-                    <form className="flex flex-col gap-2 sm:flex-row">
+                    <SettingsCreateDialog title="Add member" action={addTeamMemberAction}>
                       <input type="hidden" name="teamId" value={team.id} />
-                      <select name="tenantUserId" className="h-9 rounded-md border bg-background px-3 text-sm" disabled={!availableUsers.length}>
+                      <select aria-label="Team member" name="tenantUserId" className="h-9 rounded-md border bg-background px-3 text-sm" disabled={!availableUsers.length}>
                         {availableUsers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {userLabel(user)}
                           </option>
                         ))}
                       </select>
-                      <Button type="submit" formAction={addTeamMemberAction} size="sm" disabled={!availableUsers.length}>
+                      <Button type="submit" size="sm" disabled={!availableUsers.length}>
                         Add member
                       </Button>
-                    </form>
+                    </SettingsCreateDialog>
                   </div>
 
                   <div className="flex flex-wrap gap-2">

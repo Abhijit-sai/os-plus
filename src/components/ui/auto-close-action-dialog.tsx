@@ -1,15 +1,19 @@
 "use client";
 
 import * as React from "react";
+import { unstable_rethrow } from "next/navigation";
 
 import { Dialog } from "@/components/ui/dialog";
-
-export type AutoCloseDialogAction = (formData: FormData) => void | Promise<void>;
+import { useActionFeedback } from "@/components/ui/action-feedback-provider";
 
 type ActionState = {
   message: string | null;
   ok: boolean;
 };
+
+export type AutoCloseDialogAction = (
+  formData: FormData,
+) => void | ActionState | Promise<void | ActionState>;
 
 const initialState: ActionState = { message: null, ok: false };
 
@@ -42,14 +46,20 @@ export function AutoCloseActionDialog({
   const [open, setOpen] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [showState, setShowState] = React.useState(false);
-  const [state, formAction, pending] = React.useActionState(async (_previousState: ActionState, formData: FormData) => {
+  const [state, setState] = React.useState(initialState);
+  const [pending, setPending] = React.useState(false);
+  const pendingRef = React.useRef(false);
+  const feedback = useActionFeedback();
+  const actionId = React.useId();
+  async function formAction(formData: FormData) {
     setShowState(true);
     let nextState: ActionState;
 
     try {
-      await action(formData);
-      nextState = { message: successMessage, ok: true };
+      const actionState = await action(formData);
+      nextState = actionState ?? { message: successMessage, ok: true };
     } catch (error) {
+      unstable_rethrow(error);
       nextState = { message: actionErrorMessage(error), ok: false };
     }
 
@@ -60,8 +70,8 @@ export function AutoCloseActionDialog({
       setShowState(false);
     }
 
-    return nextState;
-  }, initialState);
+    setState(nextState);
+  }
 
   return (
     <div className="inline-flex items-center gap-2">
@@ -80,7 +90,20 @@ export function AutoCloseActionDialog({
         title={title}
         trigger={trigger}
       >
-        <form action={formAction} className={formClassName} data-preserve-dirty-on-submit="true" data-unsaved-guard="true" ref={formRef}>
+        <form onSubmit={(event) => {
+          event.preventDefault();
+          if (pendingRef.current) return;
+          const formData = new FormData(event.currentTarget);
+          pendingRef.current = true;
+          setPending(true);
+          feedback?.startAction(actionId, "Saving changes...");
+          // A native React form action resets uncontrolled fields even for an error result.
+          // Submit explicitly so a recoverable failure retains the complete local draft.
+          React.startTransition(async () => {
+            try { await formAction(formData); }
+            finally { pendingRef.current = false; setPending(false); feedback?.finishAction(actionId); }
+          });
+        }} className={formClassName} data-preserve-dirty-on-submit="true" data-unsaved-guard="true" ref={formRef}>
           <fieldset className="contents" disabled={pending}>
             {children}
           </fieldset>

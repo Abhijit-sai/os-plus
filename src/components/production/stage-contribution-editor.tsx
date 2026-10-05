@@ -83,6 +83,7 @@ function stageRule(
 
 export function StageContributionEditor({
   canCorrectCompleted,
+  canViewContributionAmounts,
   configuredRule,
   itemFinalValue,
   itemQuantity,
@@ -96,6 +97,7 @@ export function StageContributionEditor({
   workgroups,
 }: {
   canCorrectCompleted: boolean;
+  canViewContributionAmounts: boolean;
   configuredRule: ItemTypeStageContributionRule | null;
   itemFinalValue: number;
   itemQuantity: number;
@@ -150,9 +152,10 @@ export function StageContributionEditor({
   const selectedPairs = new Set(rows.map((row) => `${row.workerId}:${row.workgroupId}`));
   const removedEffort = [...existingEffortPairs].some((pair) => !selectedPairs.has(pair));
   const effectiveRule = React.useMemo(() => {
+    if (!canViewContributionAmounts || mode === "none") return null;
     const rule = stageRule(stage, configuredRule);
     return rule ? { ...rule, itemValue: stage.status === "ready_to_start" ? itemFinalValue : rule.itemValue } : null;
-  }, [configuredRule, itemFinalValue, stage]);
+  }, [canViewContributionAmounts, configuredRule, itemFinalValue, mode, stage]);
   const calculationKey = (row: Row) => row.workerId && row.workgroupId ? `${row.workerId}:${row.workgroupId}` : row.key;
   const calculation = calculateStageContributions(rows.map((row) => ({
     key: calculationKey(row),
@@ -163,6 +166,7 @@ export function StageContributionEditor({
   const totalUnits = rows.reduce((sum, row) => sum + (Number(row.creditedUnits) || 0), 0);
   const totalMinutes = rows.reduce((sum, row) => sum + row.creditedMinutes, 0);
   const tracksUnits = mode === "units" || mode === "hybrid";
+  const tracksHours = mode === "hours" || mode === "hybrid";
   const canOpen = stage.status === "ready_to_start" || stage.status === "in_progress"
     || (stage.status === "completed" && stage.effort_tracking_mode_snapshot !== null && canCorrectCompleted);
   const verb = stage.status === "ready_to_start" ? "Start stage" : stage.status === "in_progress" ? "Edit work" : "Correct contributions";
@@ -201,21 +205,25 @@ export function StageContributionEditor({
         <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-center" key={log.id}>
           <span>{workerById.get(log.worker_id)?.name ?? "Unknown worker"} · {workgroupById.get(log.workgroup_id ?? "")?.name ?? "Unknown role"}</span>
           <span className="text-muted-foreground">
-            {mode === "units" || mode === "hybrid" ? `${log.credited_units} units` : ""}
+            {tracksUnits ? `${log.credited_units} units` : ""}
             {mode === "hybrid" ? " · " : ""}
-            {mode === "hours" || mode === "hybrid" ? formatHours(log.credited_minutes) : ""}
-            {` · ${formatMoney(log.calculated_contribution_amount)}`}
+            {tracksHours ? formatHours(log.credited_minutes) : ""}
+            {mode === "none" ? "Assignment only" : ""}
+            {canViewContributionAmounts && mode !== "none" ? ` · ${formatMoney(log.calculated_contribution_amount)}` : ""}
           </span>
         </div>
       ))}
       <div className="border-t pt-2 font-medium">
-        {tracksUnits ? `Total credited units ${logs.reduce((sum, log) => sum + log.credited_units, 0)} / ${itemQuantity} · ` : ""}
-        Total man-hours {formatHours(logs.reduce((sum, log) => sum + log.credited_minutes, 0))} · Contribution {formatMoney(logs.reduce((sum, log) => sum + log.calculated_contribution_amount, 0))}
+        {mode === "none" ? `${logs.length} worker assignment${logs.length === 1 ? "" : "s"}` : null}
+        {tracksUnits ? `Total credited units ${logs.reduce((sum, log) => sum + log.credited_units, 0)} / ${itemQuantity}` : ""}
+        {mode === "hybrid" ? " · " : ""}
+        {tracksHours ? `Total credited time ${formatHours(logs.reduce((sum, log) => sum + log.credited_minutes, 0))}` : ""}
+        {canViewContributionAmounts && mode !== "none" ? ` · Contribution ${formatMoney(logs.reduce((sum, log) => sum + log.calculated_contribution_amount, 0))}` : ""}
       </div>
       {stage.status === "completed" ? (
         <div className="text-xs text-muted-foreground">
           Actual elapsed {elapsedMinutes(stage.started_at, stage.completed_at) === null ? "not recorded" : formatHours(elapsedMinutes(stage.started_at, stage.completed_at) ?? 0)}
-          {` · ${formatRuleSummary(stage)}`}
+          {canViewContributionAmounts && mode !== "none" ? ` · ${formatRuleSummary(stage)}` : ""}
         </div>
       ) : null}
     </div>
@@ -242,17 +250,20 @@ export function StageContributionEditor({
               <input name="assignments" type="hidden" value={assignmentJson} />
               <input name="expectedRevision" type="hidden" value={stage.contribution_revision} />
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className={`grid gap-3 ${mode === "hybrid" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                 <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Item quantity</p><p className="mt-1 font-semibold">{itemQuantity}</p></div>
-                <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Total credited units</p><p className="mt-1 font-semibold">{totalUnits}</p></div>
-                <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Total man-hours</p><p className="mt-1 font-semibold">{formatHours(totalMinutes)}</p></div>
+                {tracksUnits ? <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Total credited units</p><p className="mt-1 font-semibold">{totalUnits}</p></div> : null}
+                {tracksHours ? <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Total credited time</p><p className="mt-1 font-semibold">{formatHours(totalMinutes)}</p></div> : null}
+                {mode === "none" ? <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Tracking</p><p className="mt-1 font-semibold">Worker assignment only</p></div> : null}
               </div>
 
-              {!effectiveRule ? (
+              {mode === "none" ? (
+                <div className="rounded-md border p-3 text-sm text-muted-foreground">This stage records who performed the work. It has no credited units, credited time, or monetary contribution.</div>
+              ) : canViewContributionAmounts && !effectiveRule ? (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Rate not configured. Production can continue; calculated contribution will be ₹0.</div>
-              ) : (
+              ) : canViewContributionAmounts && effectiveRule ? (
                 <div className="rounded-md border p-3 text-sm">Calculated contribution pool: <strong>{formatMoney(calculation.totalAmount)}</strong>. This is analytics-only and does not affect salary, order totals, GST, payments, or finance.</div>
-              )}
+              ) : null}
 
               <div className="space-y-3">
                 {rows.map((row, index) => {
@@ -314,7 +325,7 @@ export function StageContributionEditor({
                           </div>
                         </div>
                       ) : <div />}
-                      {mode === "hours" || mode === "hybrid" ? (
+                      {tracksHours ? (
                         <div className="grid gap-2">
                           <Label>Credited time · {formatHours(row.creditedMinutes)}</Label>
                           <div className="grid grid-cols-4 gap-2">
@@ -323,9 +334,9 @@ export function StageContributionEditor({
                             ))}
                           </div>
                         </div>
-                      ) : <div className="text-sm text-muted-foreground">Contribution {formatMoney(amountByKey.get(calculationKey(row)) ?? 0)}</div>}
+                      ) : canViewContributionAmounts && tracksUnits ? <div className="text-sm text-muted-foreground">Contribution {formatMoney(amountByKey.get(calculationKey(row)) ?? 0)}</div> : <div />}
                       <Button aria-label={`Remove worker ${index + 1}`} disabled={pending || rows.length === 1} onClick={() => { prepareChangedSubmission(); setRows((current) => current.filter((entry) => entry.key !== row.key)); }} size="icon" type="button" variant="ghost"><Trash2 className="h-4 w-4" /></Button>
-                      {mode === "hours" || mode === "hybrid" ? <p className="text-xs text-muted-foreground lg:col-start-4">Calculated contribution: {formatMoney(amountByKey.get(calculationKey(row)) ?? 0)}</p> : null}
+                      {canViewContributionAmounts && tracksHours ? <p className="text-xs text-muted-foreground lg:col-start-4">Calculated contribution: {formatMoney(amountByKey.get(calculationKey(row)) ?? 0)}</p> : null}
                     </div>
                   );
                 })}

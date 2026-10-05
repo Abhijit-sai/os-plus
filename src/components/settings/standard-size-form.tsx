@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { AutoCloseDialogAction } from "@/components/ui/auto-close-action-dialog";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,11 @@ import { Label } from "@/components/ui/label";
 import type { ItemType, ItemTypeMeasurementField, ItemTypeStandardSize, Json } from "@/types/database";
 
 type StandardSizeFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
   itemTypes: ItemType[];
   fields: ItemTypeMeasurementField[];
   initialItemTypeId?: string;
   standardSize?: ItemTypeStandardSize;
-  bare?: boolean;
-};
+} & ({ bare: true; action: AutoCloseDialogAction } | { bare?: false; action: (formData: FormData) => void | Promise<void> });
 
 function getMeasurementRecord(measurementData: Json | undefined) {
   if (!measurementData || Array.isArray(measurementData) || typeof measurementData !== "object") {
@@ -26,7 +25,8 @@ function getMeasurementRecord(measurementData: Json | undefined) {
   );
 }
 
-export function StandardSizeForm({ action, bare = false, fields, initialItemTypeId, itemTypes, standardSize }: StandardSizeFormProps) {
+export function StandardSizeForm(props: StandardSizeFormProps) {
+  const { fields, initialItemTypeId, itemTypes, standardSize } = props;
   const [selectedItemTypeId, setSelectedItemTypeId] = React.useState(standardSize?.item_type_id ?? initialItemTypeId ?? "");
   const valuesByKey = React.useMemo(
     () => getMeasurementRecord(standardSize?.measurement_data_json),
@@ -138,7 +138,7 @@ export function StandardSizeForm({ action, bare = false, fields, initialItemType
     </>
   );
 
-  if (bare) return formFields;
+  if (props.bare) return formFields;
 
-  return <form action={action} className="space-y-4" data-unsaved-guard="true">{formFields}</form>;
+  return <form action={props.action} className="space-y-4" data-unsaved-guard="true">{formFields}</form>;
 }

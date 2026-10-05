@@ -88,7 +88,7 @@ assert.match(query, /select\("id, name, icon_emoji, icon_kind, icon_name, icon_c
 assert.match(query, /if \(!parsedFilters\.success\)[\s\S]*itemsQuery = itemsQuery\.eq\("id", impossibleId\)/);
 assert.ok(query.indexOf('in("item_type_id"') < query.indexOf(".limit(100)"), "garment filtering must occur before pagination");
 assert.ok(query.indexOf('in("workflow_id"') < query.indexOf(".limit(100)"), "workflow filtering must occur before pagination");
-assert.match(query, /Promise\.all\(\[\s*itemsQuery,/);
+assert.match(query, /const items = await itemsQuery;/);
 assert.match(filters, /name="itemTypeId"/);
 assert.match(filters, /aria-haspopup="dialog"/);
 assert.match(filters, /selectedItemTypeIds\.length === 1[\s\S]*itemTypes\.find/);

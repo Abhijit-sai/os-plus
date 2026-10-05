@@ -168,8 +168,8 @@ MVP supports:
 ### Attendance and Work Logs
 
 - Attendance is separate from work logs.
-- Attendance is manually marked by admin/manager in MVP.
-- Admins/managers can preview and atomically import supported `.xls` and `.xlsx` attendance reports; biometric device/API integration remains later.
+- Attendance viewing, manual marking, and imports are owner/admin-only; managers, finance, and viewers are denied.
+- Owner/admin can preview and atomically import supported `.xls` and `.xlsx` attendance reports; biometric device/API integration remains later.
 - Workers do not log in during MVP.
 - Managers/admins log work on behalf of workers.
 
@@ -249,7 +249,7 @@ To be finalized later:
 
 ## 7. Current Build Phase
 
-Current phase: The salary lifecycle, worker-money ledger, Worker detail, and Finance visibility hardening is implemented on `codex/salary-worker-ledger-ux`. All three forward migrations are applied to the shared production/QA Supabase environment. Focused behavior, source-contract, role-policy, disposable-database, authenticated owner/admin and manager browser QA, TypeScript, lint, and the optimized production build pass. The branch is ready for an intentional commit/review; direct Shopify webhooks remain a later phase.
+Current phase (2026-10-05): Owner requested a focused production release of the existing settings dialogs/navigation, contribution reporting, and owner/admin-only Attendance/contribution access. The isolated `codex/settings-contributions-release` checkout preserves unfinished Shopify, salary, and order-wizard work in the original repository. The release also repairs production customer resolution beyond the database's 1,000-row directory cap and updates Next.js/security dependencies compatibly. See the dated release entry below for current validation and deployment evidence; older session entries are historical, not current release approvals.
 
 ## 8. Completed
 
@@ -12478,3 +12478,31 @@ QA_BLOCKED
 - Focused phone normalization, customer parser, matching, UI/schema/RPC contract, TypeScript, ESLint, and the optimized 42-route production build pass.
 - Authenticated confirmation against the tenant's larger private export remains a manual release check; no customer records were written during this implementation session.
 - The existing salary/worker-money work on `codex/salary-worker-ledger-ux` remains uncommitted and was preserved. This patch must not be committed as though it were an isolated branch until that branch scope is resolved.
+
+
+### 2026-10-05 — Focused settings/contributions release preparation
+
+- Owner reprioritized an immediate release of the existing settings popup/back-navigation changes, improved contribution report, and owner/admin-only Attendance/contribution access. Release branch `codex/settings-contributions-release` is isolated from baseline `c881102b29c2be543bf33e5c3cc5320b3b686601`; original `D:\Develop\os-plus` dirty files and Shopify planning/foundation remain untouched. Shopify, salary fixes, the unfinished order wizard and order-detail compaction are excluded.
+- Included settings creation CTA dialogs across existing settings pages, shared All settings navigation, recoverable duplicate feedback/success close, searchable multiselect contribution dimensions, compact category-first reports, responsive shared controls, and manager-safe production/order workflow monetary projections. Managers retain allowed assignments/units/hours; Attendance and contribution reports deny all unauthorized roles before service-role access.
+- Confirmed defect STAB-012 (P2): Production board → view cards for ORD-000005/ORD-000012, owner/admin in `phantom-threads-boutique`, with more than 1,000 active customers. Expected linked customer names; actual Unknown customer. Read-only production evidence: 1,235 active customers, unbounded list capped at 1,000, both linked IDs absent from that list but present/named/non-archived in tenant-scoped direct lookup. Operational impact: staff cannot identify the customer from the card. No lost links, money changes, or tenant leakage found; no business-data mutation performed.
+- Root cause/fix: getProductionPageData used a capped tenant-wide customer directory. Resolve displayed items → bounded tenant-owned order IDs → bounded tenant-owned customer IDs instead. Malformed filters remain fail-closed; query errors fail rather than fabricating Unknown customer. Synthetic 1,235-customer regression against the actual query fails before the change and passes after; empty-board, read-failure and every lookup's tenant predicates also verified.
+- Security maintenance: Next.js and matching eslint-config-next updated from 16.2.6 to 16.3.8, with their necessary lockfile dependencies only. Independent release dependencies avoid touching the original node_modules. Fresh audit went from 19 findings (1 critical) to 15 (0 critical); omit-dev reports 10 residual findings in build/glob dependencies and ExcelJS/uuid. No forced major upgrade or broad Tailwind migration. These residual advisories require a separate reviewed maintenance slice, not a claim of zero vulnerabilities. Official release evidence: https://github.com/vercel/next.js/releases/tag/v16.3.8 .
+- Validation: all offline test scripts pass after replacing the unavailable private attendance fixture with 20 synthetic XLS worker sections and correcting the obsolete query-structure assertion. Database mutation/smoke tests intentionally not run. TypeScript, full ESLint, optimized 42-route webpack build pass; new owner-only action/query/import tests deny manager/finance/viewer with zero DB initialization. Customer query, aggregation/trends, settings action feedback, production UI/projection and role contracts pass.
+- Independent Spec review found no code defect and requested active documentation reconciliation; active PRD/tech/site map/rules/spec/status definitions now match latest owner-only policy without changing historical records. Standards review found two reproducible release issues: contribution totals/categories could truncate at 1,000 rows (P1), and several newly popup-wrapped actions threw sanitized production errors instead of readable validation (P2). Both were reproduced in executable actual-query/action harnesses and repaired: report pages of 500 with deterministic ordering and ID-bounded item joins; all 16 popup create actions return safe structured post-authorization failures while preserving framework redirects. New tests prove 1,205 complete report rows and every create action's conflict/validation/redaction/success/unauthorized behavior. Final re-review remains pending at this entry.
+- Read-only execution of the exact repaired production query against Phantom's current database returned 22 displayed items and 11 resolved customers. Both ORD-000005 and ORD-000012 were displayed and resolved to their existing named customer. No customer names or personal details were logged.
+- Authenticated browser verification could not run: computer-use kernel fails with Windows sandbox helper setup refresh errors even after reset. Prior authenticated Owner/Admin preview evidence is historical; this release does not claim fresh manager/mobile browser QA. Automated server-boundary checks do not substitute for that manual UX verification.
+- Environment: no migrations, production business-data changes, Shopify installation or Vercel region changes. Seoul placement preserved. Deployment has not occurred at this entry.
+- Exact next actions: resolve final review findings, inspect/stage only the selected release diff, commit/push the release branch, PR into main, verify Vercel production completion and live read-only smoke checks, then record commit/deployment evidence. Owner authorization is the current request to deploy this selected version; no approval for customer/accounting mutations inferred.
+
+#### Release gate result — 2026-10-05
+
+- All 28 offline package test scripts pass after review repairs; final TypeScript, full ESLint, optimized 42-route production build, and staged whitespace checks pass. Independent Standards re-review found no remaining actionable blockers and independently ran the 1,205-row report and all-16-popup action regressions. Spec policy-document findings are corrected.
+- Selected release files are staged on `codex/settings-contributions-release`; no Shopify implementation/planning, salary changes, order wizard, private fixture, credentials, or migrations are staged. Known environment-secret comparison found no matches in staged content.
+- Commit/push command was rejected before execution by automatic safety review because the target GitHub repository `Abhijit-sai/os-plus` is public. No commit, push, PR merge or deployment occurred. The owner must explicitly authorize publishing this release's source/documentation to that public repository before retrying; do not work around the rejection with another connector.
+- Next action: obtain that public-publishing approval, then commit/push the reviewed slice, create/attach/merge the release PR, verify Vercel production readiness and read-only live checks. Keep Seoul and all production business data unchanged. Fresh authenticated mobile/manager browser QA and residual dependency maintenance remain separately recorded limitations.
+
+#### Deployment authorization resumed — 2026-10-05
+
+- Owner changed `Abhijit-sai/os-plus` to private and explicitly requested deployment. Git-authenticated GitHub repository metadata confirms `private: true`, write access, and production branch `main`; remote main remains `c881102b29c2be543bf33e5c3cc5320b3b686601` before this release.
+- Re-read branch/HEAD/staged and unstaged status: the isolated release remains on `codex/settings-contributions-release`, with only the 65 reviewed release files staged, no unstaged source drift, and a clean staged whitespace check. Original unfinished work remains in `D:\Develop\os-plus`.
+- Proceed with the authorized selected commit/push, release PR and production merge; verify actual Vercel production readiness before claiming live deployment. No migration, production business-data mutation, or region change is part of this authorization.

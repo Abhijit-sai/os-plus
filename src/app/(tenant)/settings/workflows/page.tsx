@@ -1,3 +1,4 @@
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 import Link from "next/link";
 
 import { addStageWorkgroupAction, createWorkflowAction, removeStageWorkgroupAction } from "@/features/workflows/actions";
@@ -20,14 +21,8 @@ export default async function WorkflowsPage() {
           Build sequential item-level workflows from internal stages. Workflow order is configured here, not in the stage master.
         </p>
       </div>
-      <div className="grid gap-6 xl:grid-cols-[460px_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create workflow</CardTitle>
-            <CardDescription>Choose one stage per step. Empty steps are ignored.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={createWorkflowAction} className="space-y-5" data-unsaved-guard="true">
+      <div className="space-y-5">
+        <SettingsCreateDialog title="Create workflow" description="Choose one stage per step. Empty steps are ignored." action={createWorkflowAction}>
               <div className="grid gap-2">
                 <Label htmlFor="name">Workflow name</Label>
                 <Input id="name" name="name" placeholder="Standard blouse production" required />
@@ -78,9 +73,7 @@ export default async function WorkflowsPage() {
               <Button type="submit" disabled={!stages.length}>
                 Create workflow
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </SettingsCreateDialog>
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -103,8 +96,8 @@ export default async function WorkflowsPage() {
               <CardDescription>Allowed workgroups will restrict worker assignment when production starts.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <form action={addStageWorkgroupAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" data-unsaved-guard="true">
-                <select name="stageMasterId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
+              <SettingsCreateDialog title="Add stage workgroup" description="Choose which workgroup may be assigned at this stage." action={addStageWorkgroupAction}>
+                <select aria-label="Stage" name="stageMasterId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
                   <option value="">Stage</option>
                   {stages.map((stage) => (
                     <option key={stage.id} value={stage.id}>
@@ -112,7 +105,7 @@ export default async function WorkflowsPage() {
                     </option>
                   ))}
                 </select>
-                <select name="workgroupId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
+                <select aria-label="Workgroup" name="workgroupId" className="h-10 rounded-md border bg-background px-3 text-sm" required>
                   <option value="">Workgroup</option>
                   {workgroups.map((workgroup) => (
                     <option key={workgroup.id} value={workgroup.id}>
@@ -120,8 +113,8 @@ export default async function WorkflowsPage() {
                     </option>
                   ))}
                 </select>
-                <Button type="submit">Map</Button>
-              </form>
+                <Button type="submit">Add mapping</Button>
+              </SettingsCreateDialog>
               <div className="space-y-2">
                 {stages.map((stage) => {
                   const mapped = stageWorkgroups.filter((row) => row.stage_master_id === stage.id);

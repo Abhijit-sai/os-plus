@@ -1,9 +1,9 @@
+import { SettingsCreateDialog } from "@/components/settings/settings-create-dialog";
 import { createStageAction, updateStageAction } from "@/features/settings/actions";
 import { getStages } from "@/features/settings/queries";
 import { SettingsList } from "@/components/settings/settings-list";
 import { StageEditDialog } from "@/components/settings/configuration-edit-dialogs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -11,14 +11,8 @@ export default async function StagesPage() {
   const stages = await getStages();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add stage</CardTitle>
-          <CardDescription>Internal stages own their effort-tracking method; customer-facing statuses remain separate.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createStageAction} className="space-y-4" data-unsaved-guard="true">
+    <div className="space-y-5">
+      <SettingsCreateDialog title="Add stage" description="Internal stages own their effort-tracking method; customer-facing statuses remain separate." action={createStageAction}>
             <div className="grid gap-2"><Label htmlFor="stage-name">Name</Label><Input id="stage-name" name="name" placeholder="Embroidery" required /></div>
             <div className="grid gap-2"><Label htmlFor="stage-description">Description</Label><Input id="stage-description" name="description" placeholder="Optional" /></div>
             <div className="grid gap-2">
@@ -31,9 +25,7 @@ export default async function StagesPage() {
               </select>
             </div>
             <Button type="submit">Add stage</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SettingsCreateDialog>
       <SettingsList
         title="Stages"
         description="Internal production stage master."
