@@ -10,7 +10,7 @@ import { createShopifyTokenProvider } from "../src/integrations/shopify/client-c
 import { createShopifyConnectionTester } from "../src/integrations/shopify/connection-test.ts";
 import { createShopifyProbeHandler } from "../src/integrations/shopify/probe-handler.ts";
 import { readShopifyProbeActor } from "../src/integrations/shopify/probe-actor-reader.ts";
-import { ShopifyIntegrationError } from "../src/integrations/shopify/errors.ts";
+import { ShopifyIntegrationError, ShopifyProbeConfigurationError } from "../src/integrations/shopify/errors.ts";
 
 const tenantId = "10000000-0000-4000-8000-000000000001";
 const foreignId = "20000000-0000-4000-8000-000000000002";
@@ -178,6 +178,95 @@ for (const patch of [{ SHOPIFY_CONNECTION_TEST_ENABLED: "false" }, { SHOPIFY_SYN
     assert.equal((await pipeline(noTransport)(request(), { ...env, ...patch })).status, 503);
   });
 }
+
+const configurationDiagnostics = [
+  ["application_origin", { SHOPIFY_APPLICATION_ORIGIN: "" }],
+  ["application_origin", { SHOPIFY_APPLICATION_ORIGIN: "https://synthetic-os-plus.example/path" }],
+  ["vercel_environment", { VERCEL_ENV: undefined }],
+  ["vercel_environment", { VERCEL_ENV: "preview" }],
+  ["deployment_environment", { SHOPIFY_DEPLOYMENT_ENV: "preview" }],
+  ["sync_disabled", { SHOPIFY_SYNC_ENABLED: "true" }],
+  ["api_version", { SHOPIFY_API_VERSION: "2026-07" }],
+  ["test_tenant_id", { SHOPIFY_CONNECTION_TEST_TENANT_ID: "" }],
+  ["client_id", { SHOPIFY_CLIENT_ID: "" }],
+  ["client_id", { SHOPIFY_CLIENT_ID: "synthetic-client\n" }],
+  ["client_secret", { SHOPIFY_CLIENT_SECRET: "" }],
+  ["client_secret", { SHOPIFY_CLIENT_SECRET: "synthetic-secret\n" }],
+];
+for (const [check, patch] of configurationDiagnostics) {
+  test(`configuration diagnostic identifies ${check} without values: ${Object.keys(patch)[0]}`, async () => {
+    const reports = [];
+    const handler = createShopifyProbeHandler({ getActor: async () => actor,
+      testConnection: createShopifyConnectionTester(noTransport), reportConfigurationFailure: value => reports.push(value) });
+    const response = await handler(request(), { ...env, ...patch });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
+    assert.deepEqual(reports, [check]);
+  });
+}
+
+test("unauthorized contexts cannot trigger post-auth configuration diagnostics", async () => {
+  for (const selectedActor of [null, { ...actor, role: "manager" },
+    { ...actor, tenantId: foreignId, membershipTenantId: foreignId }]) {
+    const reports = [];
+    const handler = createShopifyProbeHandler({ getActor: async () => selectedActor,
+      testConnection: createShopifyConnectionTester(noTransport), reportConfigurationFailure: check => reports.push(check) });
+    const response = await handler(request(), { ...env, SHOPIFY_CLIENT_SECRET: "" });
+    assert.ok([401, 403].includes(response.status));
+    assert.deepEqual(reports, []);
+  }
+});
+
+test("a failed diagnostic reporter cannot change fail-closed HTTP behavior", async () => {
+  const handler = createShopifyProbeHandler({ getActor: async () => actor,
+    testConnection: createShopifyConnectionTester(noTransport),
+    reportConfigurationFailure: () => { throw new Error("synthetic-private-logger-error"); } });
+  for (const patch of [{ SHOPIFY_APPLICATION_ORIGIN: "" }, { SHOPIFY_CLIENT_SECRET: "" }]) {
+    const response = await handler(request(), { ...env, ...patch });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
+  }
+});
+
+test("the production logger emits only a fixed tag and failing-check label", async t => {
+  const logs = [];
+  t.mock.method(console, "warn", (...args) => logs.push(args));
+  const handler = pipeline(noTransport);
+  for (const patch of [{ SHOPIFY_APPLICATION_ORIGIN: "https://synthetic-private-origin.example/path" },
+    { SHOPIFY_CLIENT_SECRET: "synthetic-private-secret\n" }]) {
+    const response = await handler(request(), { ...env, ...patch });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
+  }
+  assert.deepEqual(logs, [["[DEBUG-osplus-shopify-config-v1]", "application_origin"],
+    ["[DEBUG-osplus-shopify-config-v1]", "client_secret"]]);
+  assert.doesNotMatch(JSON.stringify(logs), /synthetic|private|https:|user_|10000000|token/);
+});
+
+test("unclassified or corrupted diagnostic errors cannot inject log content", async t => {
+  const logs = [];
+  t.mock.method(console, "warn", (...args) => logs.push(args));
+  const corrupted = new ShopifyProbeConfigurationError("client_secret");
+  corrupted.check = "synthetic-private-secret";
+  for (const error of [corrupted, new ShopifyIntegrationError("CONFIGURATION_INVALID"),
+    new Error("synthetic-private-upstream-error")]) {
+    const handler = createShopifyProbeHandler({ getActor: async () => actor,
+      testConnection: async () => { throw error; } });
+    const response = await handler(request(), env);
+    assert.equal(response.status, 503);
+    assert.doesNotMatch(await response.text(), /synthetic-private/);
+  }
+  assert.deepEqual(logs, []);
+});
+
+test("successful and cross-site requests produce no configuration diagnostic logs", async t => {
+  const logs = [];
+  t.mock.method(console, "warn", (...args) => logs.push(args));
+  const handler = pipeline(async url => url.endsWith("/access_token") ? tokenResponse(token) : graphResponse({ data }));
+  assert.equal((await handler(request(), env)).status, 200);
+  assert.equal((await handler(request({}, { headers: { origin: "https://foreign.example" } }), env)).status, 403);
+  assert.deepEqual(logs, []);
+});
 for (const body of [{ tenantId: foreignId }, { shopDomain: "evil.example" }, { query: "mutation" },
   { accessToken: "attacker" }, [], "not json", "x".repeat(1025)]) {
   test(`untrusted request input rejected ${JSON.stringify(body).slice(0, 90)}`, async () => {
