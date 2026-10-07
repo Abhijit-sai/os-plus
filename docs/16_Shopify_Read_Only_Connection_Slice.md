@@ -56,6 +56,31 @@ Authenticated live token/store/scope test; protected customer-field access; veri
 - The existing QA workbook was inspected read-only for role and tenant coverage, not modified. Offline tests are not evidence that the installed Shopify app can read protected customer fields.
 - Initial Standards review found no actionable violation. Initial Spec review found dormant future-sync primitives outside the diagnostic scope. Removed the isolated copies of encrypted storage, money reconciliation, webhook HMAC, the general sync entry point and their future configuration; originals remain preserved in `D:\Develop\os-plus`. Extracted only the bounded-body helper and retained relevant transport tests. Corrected stale validation counts after narrowing. Final independent review against the owner-selected `c701ec3` baseline: Standards 0 remaining findings, Spec 0 remaining findings. Standards reviewer independently reran all 47 probe cases and whitespace checks. No deployment, environment changes, migration, live Shopify request, private customer import or business-data mutation occurred.
 
+## Temporary configuration diagnostics — 2026-10-07
+
+Owner authorized this diagnostic patch after a live canonical-alias POST returned HTTP 503 with `CONFIGURATION_INVALID` despite owner-confirmed custom variables and system-variable exposure. The live failing check is still unknown. This patch does not fix or relax any configuration requirement.
+
+The server emits one fixed tag and one allowlisted check label when a configured check fails:
+
+`[DEBUG-osplus-shopify-config-v1] <check>`
+
+| Check label | Setting to inspect privately |
+| --- | --- |
+| `application_origin` | `SHOPIFY_APPLICATION_ORIGIN`: canonical HTTPS origin only |
+| `vercel_environment` | Vercel-provided `VERCEL_ENV`: actual Production deployment and exposed system variables |
+| `deployment_environment` | `SHOPIFY_DEPLOYMENT_ENV`: exactly `production` |
+| `sync_disabled` | `SHOPIFY_SYNC_ENABLED`: exactly `false` |
+| `api_version` | `SHOPIFY_API_VERSION`: exactly `2026-10` |
+| `test_tenant_id` | `SHOPIFY_CONNECTION_TEST_TENANT_ID`: valid verified diagnostic tenant UUID |
+| `client_id` | `SHOPIFY_CLIENT_ID`: present and permitted format; never share the value |
+| `client_secret` | `SHOPIFY_CLIENT_SECRET`: present, bounded and without whitespace; never share the value |
+
+Only the first failing check is reported. There are no environment values, IDs, credentials, tokens, request payloads, error objects or upstream messages in these diagnostic logs. Logging failures cannot change HTTP behavior. The browser response stays generic and private/no-store; all previous authorization, tenant, same-origin, deployment and outbound checks remain in place. An invalid application origin is checked before actor resolution, as before, and its server-only fixed label contains no tenant/user information.
+
+After the new Production deployment is verified, an owner/admin selected in Phantom Threads Test should repeat the metadata-only POST once. In Vercel OS PLUS runtime logs, locate that POST and search the exact diagnostic tag; share only its fixed check label. Correct only the identified setting, redeploy if needed, and repeat. Do not manually override Vercel's environment fence or enable imports/messages. No log access is available in the agent session yet, so live verification remains an external gate.
+
+Remove the temporary diagnostic logger and its tag after the exact cause is verified and the live probe succeeds; retain applicable fail-closed/privacy regressions. The patch's diagnostic coverage was written first and observed failing without the logger, then all 64 probe cases and TypeScript passed. A local Node strip-types parameter-property syntax failure was repaired using an explicit field assignment, without changing dependencies or runner flags. Remaining lint/build/review/release evidence is recorded in the root summary.
+
 ## Sources
 
 - https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant
