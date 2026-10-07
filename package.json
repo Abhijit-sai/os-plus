@@ -16,6 +16,7 @@
     "smoke:v2:laundry-custody": "node scripts/smoke-v2-laundry-custody.mjs",
     "smoke:v2:work-units": "node scripts/smoke-v2-work-unit-runtime.mjs",
     "test:roles": "node scripts/test-role-route-policy.mjs",
+    "test:shopify-probe": "node --experimental-strip-types --conditions=react-server --test scripts/test-shopify-probe.mjs",
     "test:order-add-items": "node scripts/test-existing-order-add-items.mjs",
     "test:action-feedback": "node scripts/test-global-action-feedback.mjs",
     "test:client-boundaries": "node scripts/test-client-server-boundaries.mjs",
