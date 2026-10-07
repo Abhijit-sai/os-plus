@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "displayName": "Synthetic Inquiry Example",
+    "personaName": "Demo Inquiry Assistant",
+    "oneLiner": "A fictional example used only to test inquiry configuration.",
+    "languages": [
+      "en"
+    ],
+    "latinScriptOnly": false,
+    "localAcknowledgements": []
+  },
+  "hours": {
+    "default": "This demonstration has no published opening hours."
+  },
+  "services": [
+    {
+      "key": "general_inquiry",
+      "name": "General inquiry",
+      "aliases": [
+        "information"
+      ]
+    }
+  ],
+  "prices": [],
+  "areas": [],
+  "policies": [
+    {
+      "topic": "inquiry",
+      "answer": "A team member can help with your inquiry."
+    }
+  ],
+  "handoffTopics": [
+    "complaint",
+    "refund",
+    "payment",
+    "booking",
+    "order status"
+  ],
+  "locked": {
+    "paymentClaimReply": "A team member needs to review this.",
+    "paymentClaimAgain": "Please wait for a team member to review this.",
+    "identityReply": "I am a demo assistant for this fictional example.",
+    "vendorReply": "Please contact the team with your proposal.",
+    "unreadableHandoff": "Please clarify your message or ask a team member for help.",
+    "handoffLine": "A team member can help with this.",
+    "turnaroundCaution": "Please ask the team to confirm availability."
+  },
+  "style": {
+    "maxQuestionsPerTurn": 1,
+    "endInformationalWithNextStep": true,
+    "noFiller": true,
+    "pushy": false
+  }
+}

@@ -1,0 +1,8 @@
+# Install deliberately into /etc/cron.d/os-plus-chat-backup after a tested backup.
+# /opt/os-plus-chat is the isolated deployment kit directory. Run as root because
+# Docker access is privileged. cron's mail/host monitoring handles failures.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# 02:15 UTC; this is a short maintenance window. Choose a suitable local time.
+15 2 * * * root /opt/os-plus-chat/scripts/backup.sh >>/var/log/os-plus-chat-backup.log 2>&1
+45 2 * * * root /opt/os-plus-chat/scripts/check-backup.sh >>/var/log/os-plus-chat-backup.log 2>&1

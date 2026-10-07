@@ -12506,3 +12506,324 @@ QA_BLOCKED
 - Owner changed `Abhijit-sai/os-plus` to private and explicitly requested deployment. Git-authenticated GitHub repository metadata confirms `private: true`, write access, and production branch `main`; remote main remains `c881102b29c2be543bf33e5c3cc5320b3b686601` before this release.
 - Re-read branch/HEAD/staged and unstaged status: the isolated release remains on `codex/settings-contributions-release`, with only the 65 reviewed release files staged, no unstaged source drift, and a clean staged whitespace check. Original unfinished work remains in `D:\Develop\os-plus`.
 - Proceed with the authorized selected commit/push, release PR and production merge; verify actual Vercel production readiness before claiming live deployment. No migration, production business-data mutation, or region change is part of this authorization.
+
+## Chat Session Update - 2026-10-06 - CH-0 discovery and owner clarification
+
+### Date
+
+2026-10-06
+
+### Updated By
+
+Codex AI agent
+
+### Chat Phase
+
+CH-0 - Baseline, decisions, deploy kit
+
+### Phase Status
+
+PLANNED - discovery performed; implementation awaits phase decisions.
+
+### Branch / Base
+
+- Branch: codex/chat-ch0-discovery
+- Workspace: D:/Develop/os-plus-chat-ch0
+- Base: origin/main, c701ec346aeb1fb38a364f4da231bff2a9a0232e (refreshed from origin on 2026-10-06).
+- Owner explicitly confirmed origin/main as the deployed base and authorized an isolated worktree.
+- D:/Develop/os-plus remains on codex/shopify-sync-plan with unrelated uncommitted changes. No file changes, stash, reset, branch switch, commit, push, merge, or deployment were performed there.
+- D:/Develop/os-plus-chat is already another worktree of this repository, on docs/chat-leads-module; its docs_chat directory is untracked. It is not a Chatwoot source fork. Its existing files were preserved.
+
+### Session Objective
+
+- Resolve hosting and authentication expectations and inspect the planning/reference material before CH-0 implementation.
+
+### What Was Built
+
+- Created the owner-authorized isolated worktree and chat branch. No module runtime, deployment kit, or migrations implemented.
+
+### Key Decisions Made
+
+- Owner corrected the transcription: OS PLUS runs on Vercel; there is no WordPress or VoiceList project in this request.
+- Owner accepts one Chatwoot account per OS PLUS tenant, with multiple inboxes/numbers/brands/branches supported.
+- Managers may work with chats and linked leads. Conversation assignment/access follows configurable Chatwoot policies; chat/lead reporting remains owner/admin-only under the earlier instruction.
+- Owner chose an OS PLUS module CTA opening a single chat subdomain containing both Chats and Leads. Proposed /crm/ routing to a Vercel-served lead workspace requires verification; exact root domain and current production hostname remain pending.
+- One OS PLUS login should allow entry into Chatwoot without another password prompt where feasible. Chatwoot documents a Platform API user login-link endpoint; compatibility and tenant/session lifecycle still need a local proof on the chosen release.
+- Business admin and manager identities may participate in multiple tenant memberships; authorization must use authenticated identity plus tenant membership, never email alone as authority.
+- Meta business/app/channel onboarding starts from scratch. The platform provider manages hosting, backups, upgrades, and incidents. Expected initial volume is about 10 chats/day per brand.
+- The actual production reference is D:/Develop/fundry, as documented in docs_chat/00_README_CHAT.md. Its local deploy compose pins chatwoot/chatwoot:v4.17.1-ce. No remote server inspection was performed; this is not evidence of the currently running image.
+
+### Migrations Added / Applied
+
+- None. No local, shared, or production database migration or business-data mutation performed.
+
+### Files / Modules Changed
+
+- project_summary.md, copied docs_chat/*.md, and accepted clarification entries CHAT-D012 through CHAT-D016 in docs_chat/06_Decision_Log.md, all in the new isolated chat worktree.
+- Owner authorized copying docs_chat into the new branch. All nine original Markdown files were hash-verified after copying; originals remain untouched. Clarified decisions were then added to the copied decision log.
+
+### Automated Tests Run
+
+| Command | Result |
+|---|---|
+| npm run typecheck | NOT RUN |
+| npm run lint | NOT RUN |
+| npm run build | NOT RUN |
+| npm run test:roles | NOT RUN |
+| npm run test:v2 | NOT RUN |
+| npm run test:chat | NOT RUN - not yet created; planned in CH-1 |
+
+### Phase-Specific Tests / Boutique Regression / Tenant Isolation
+
+- No application tests or regression executed; discovery only. Baseline and complete reused-schema audit remain CH-0 work.
+- No shared Boutique or Laundry runtime code changed.
+
+### Manual QA
+
+- Read-only local repository, planning-document, tenant/permission/command-boundary, and Fundry deployment-reference inspection.
+- Official Chatwoot user-login-link documentation and Clerk domain guidance reviewed.
+- No browser, live Chatwoot, Meta, messaging, or database QA performed.
+- Owner checklist: D:/Develop/os-plus-chat/docs_chat/CHECKLIST.md Part C CH-0 row requires O1-O10 answers and deployment-kit/knowledge-pack review. Part A2.4 currently assumes committed documentation; actual docs are untracked.
+
+### Findings / Pending Verification
+
+- docs_chat originally placed full Leads pages on the main OS PLUS hostname; owner chose both Chats and Leads on one shared chat subdomain. Reconcile the architecture/phase plan and verify path-based reverse-proxy/authentication behavior before implementation.
+- Existing Clerk/selected-tenant context is not a Chatwoot session. Design authenticated login handoff, explicit staff links, membership/account synchronization, tenant switching, logout, and revocation.
+- Existing customer creation is in server actions; the proposed reusable customer command needs verification/design in CH-3 without changing legacy behavior.
+- Existing command actor/source values are uppercase platform enums; proposed chat contexts must use those conventions.
+- Current middleware protects all non-public routes; future signed webhook paths need their own authentication. The dot-excluding matcher also needs review for signed routes.
+- Laundry pickup source accepts whatsapp/call/manual/web/recurring/other, not raw instagram/facebook channel names. Map channel provenance without extending unrelated legacy constraints.
+- Fundry deploy/backup scripts contain business-specific domains, networking, names, hardcoded paths, and local-only backup assumptions. Its backup comment incorrectly equates file permissions with encryption. Generalize and review; do not paste or execute them.
+- The reference README describes CHATWOOT_TAG upgrades while the compose image is hard-pinned. The new kit must have one consistent release-pin mechanism.
+- Full baseline, full migration audit, Chatwoot edition/permission verification, login-link validation, and iframe authentication proof remain unperformed.
+
+### Open Decisions / Blockers
+
+- Documentation transfer resolved: owner approved copying docs_chat into the isolated branch; completed without a commit or merge.
+- Exact production/root domain and verified routing design for both Chats and Leads under the owner-selected single chat subdomain.
+- Remaining O1-O10 decisions from docs_chat/06_Decision_Log.md, plus login lifecycle and owner-only chat-report enforcement.
+- No authority to deploy, purchase infrastructure, configure live Meta/Chatwoot, send real messages, apply shared migrations, commit, push, or merge inferred.
+
+### Phase Gate Assessment
+
+- Can move to READY_FOR_CLOSURE: NO.
+- Missing: decisions, automated baseline, complete compatibility/schema audit, deploy kit, example knowledge pack, owner review.
+
+### Model Spend
+
+- Paid-model API spend: USD 0. No OpenRouter or other paid-model API calls made.
+
+### Notes for Next Session
+
+- Keep CH-0 current. Documentation is now in this isolated branch. Resolve the remaining open decisions together, reconcile the proposed hostname/login/report design and complete the CH-0 implementation plan, then record IN_PROGRESS before building.
+- Do not start CH-1 or commit without explicit owner authority.
+
+
+## Chat Session Update - 2026-10-06 - CH-0 new-business scope reconciliation
+
+### Date / Updated By / Chat Phase / Phase Status
+
+- Date: 2026-10-06 (client date).
+- Updated by: Codex AI agent.
+- Phase: CH-0 - Baseline, decisions, deploy kit.
+- Status: PLANNED; documentation reconciliation completed, implementation awaits remaining phase decisions.
+- Branch/base: codex/chat-ch0-discovery / c701ec346aeb1fb38a364f4da231bff2a9a0232e (origin/main).
+- Workspace: D:/Develop/os-plus-chat-ch0.
+
+### Session Objective / What Was Built
+
+- Reconciled all nine copied chat planning documents with the owner's new-business-only scope. No chat runtime or deployment kit built.
+- Removed active Fundry pack, workflow-port, inherited model/calibration and cutover requirements. Structural reference inventory and historical decisions are explicitly non-authoritative for business behaviour.
+- Updated phase requirements for tenant-configurable viewer access and its server-side permission/PII checks; future implementation remains CH-1/CH-4 work.
+- Updated future-session routing to continue in the approved chat worktree, preserving the original Shopify checkout.
+
+### Key Decisions Made
+
+- Domain not linked yet; owner will select it later, then use a single chat subdomain for Chats and Leads. Local preparation may use placeholders; live origin/DNS/callback checks remain required.
+- Fundry implementation/services/data remain untouched; no language, workflows, branding, credentials, models, knowledge packs or calibration adopted. New businesses have their own reviewed configuration.
+- Manual WhatsApp onboarding initially.
+- Viewer access configurable in OS PLUS role settings for this module. Existing code has a static rolePermissions map; tenant-owned chat-specific configuration is an additive design proposal.
+- Instagram comment automation excluded with no assumed future-phase commitment.
+- Accepted decisions recorded as CHAT-D017 through CHAT-D021; CHAT-D007 marked superseded.
+
+### Files / Modules Changed / Migrations
+
+- docs_chat/00_README_CHAT.md, 01_PRD.md, 02_Architecture_and_Data_Model.md, 03_Agent_Spec.md, 04_Rules_and_Pitfalls.md, 05_Phase_Plan_WBS.md, 06_Decision_Log.md, 07_Codex_Build_Prompt.md and CHECKLIST.md.
+- project_summary.md (this update).
+- Migrations added/applied: none, in any environment.
+- No shared Boutique/Laundry runtime, permission code, live credentials, production configuration, original worktree or Fundry file changed.
+
+### Automated Tests Run
+
+| Command | Result / count |
+|---|---|
+| npm run typecheck | NOT RUN / no application changes |
+| npm run lint | NOT RUN / documentation only |
+| npm run build | NOT RUN / documentation only |
+| npm run test:roles | NOT RUN / zero tests executed |
+| npm run test:v2 | NOT RUN / zero tests executed |
+| npm run test:chat | NOT RUN / script planned in CH-1 |
+| git diff --check | PASS after reconciliation |
+
+### Manual QA / Regression / Tenant Isolation
+
+- Read-only branch, upstream, full tracked diff and untracked file inspection; all local changes belong to this chat task.
+- Inspected rolePermissions and searched src/migrations for configurable role-setting storage; none found.
+- Reviewed revised documentation against original copies and checked for obsolete active pack/port/cutover requirements.
+- Browser/service/manual functional QA: NOT RUN.
+- Boutique regression and tenant-isolation tests: NOT RUN; no runtime changes.
+- Owner checklist: docs_chat/CHECKLIST.md Part C, CH-0 row: resolve O3/O6/O7 and review the eventual new deploy kit/new-business example.
+
+### Findings / Bugs
+
+- Documentation contradicted new-business-only scope, configurable viewer access and deferred domain selection; reconciled.
+- Static platform role settings do not yet satisfy configurable module access; future additive implementation required.
+- Vercel Hobby supports daily cron only; hourly scheduling requires an eligible plan or an independent scheduler. This is an O7 dependency, not authorization to upgrade or deploy.
+- Application defects fixed: none.
+
+### Open Decisions / Blockers
+
+- O3: Meta app ownership.
+- O6: optional screenshot-verification tasks.
+- O7: hourly scheduler and actual Vercel plan if Cron chosen.
+- New-business workflow, customer-facing language, pack content and production models must be approved before their respective later phases. Do not infer them from the reference.
+- Full CH-0 baseline, reused-schema audit, proxy/login proof, deployment kit, synthetic new-business pack and owner review remain outstanding.
+
+### Phase Gate / Model Spend / Next Action
+
+- READY_FOR_CLOSURE: NO; phase acceptance incomplete.
+- Paid-model API spend: USD 0; no model/service calls.
+- Next: obtain the three remaining CH-0 answers, present the reconciled exact implementation plan and record IN_PROGRESS before building.
+- No commit, push, merge, deployment, shared migration, purchase, real message or external service configuration authorized/performed.
+
+## Chat Session Update - 2026-10-07 - CH-0 implementation start
+
+### Date / Updated By / Chat Phase / Phase Status
+
+- Date: 2026-10-07 (Asia/Calcutta client date).
+- Updated by: Codex AI agent.
+- Phase: CH-0 - Baseline, decisions, deploy kit.
+- Status: IN_PROGRESS.
+- Branch/base: codex/chat-ch0-discovery / c701ec346aeb1fb38a364f4da231bff2a9a0232e (deployed origin/main).
+- Workspace: D:/Develop/os-plus-chat-ch0; existing Shopify and documentation worktrees preserved.
+
+### Objective / Decisions / Planned Files
+
+- Owner confirmed centrally managed Meta apps/pages; implement provider-managed platform app onboarding, preserving explicit business/WABA/page permissions and separate tenant/channel credentials. Common ownership never replaces tenant authorization.
+- Inquiries are the primary use case. Payment screenshots and verification tasks excluded from v1. Business booking flows are not assumed from the reference.
+- New isolated n8n instance beside Chatwoot on the new platform server; no existing business infrastructure reused.
+- All O1-O10 CH-0 decisions resolved or explicitly deferred before live setup. Local multi-phase commit authority has been requested; not inferred from “implement everything”.
+- Build deploy/chatwoot/{compose.yaml,.env.example,Caddyfile,README.md,scripts/*,backup.cron.example,.gitignore}, docs_chat/CH0_SCHEMA_AUDIT.md, docs_chat/examples/new-business.pack.json and its README; reconcile planning docs and add phase verification tooling only. No platform migration, runtime feature or production configuration in CH-0.
+- Baseline: typecheck, lint, build, test:roles and test:v2. test:chat remains CH-1 scope; CH-0 deployment checks run separately.
+- Known contradictions to verify: fixed role permissions; customer creation currently server actions rather than a reusable command; uppercase command actor/source contracts; middleware protected webhook routes and dot-token matching; pickup source constraints; shared-host lead/auth routing still unproved.
+- Docker CLI available but Linux daemon is initially stopped. Local validation must distinguish Compose/static checks from executed Linux service/restore tests.
+
+### Migrations / Tests / QA / Spend / Next
+
+- Migrations added or applied: none.
+- Baseline and deployment checks: pending.
+- Manual QA / regression: pending; no live service calls planned.
+- Paid-model spend: USD 0.
+- Next: run baseline, finish migration audit, build isolated deployment kit and verify. Owner deploy-kit review remains required before phase closure; no commit/push/deploy/shared migration/message authority assumed.
+
+## Chat Session Update - 2026-10-07 - CH-0 deployment kit and closure review
+
+### Date / Updated By / Chat Phase / Phase Status
+
+- Date: 2026-10-07 (Asia/Calcutta client date).
+- Updated by: Codex AI agent.
+- Phase: CH-0 - Baseline, decisions, deploy kit.
+- Status: READY_FOR_CLOSURE; implementation and local checks complete, required owner deploy-kit review pending. Not CLOSED; no phase commit yet.
+- Branch/base: codex/chat-ch0-discovery / c701ec346aeb1fb38a364f4da231bff2a9a0232e (deployed origin/main).
+- Workspace: D:/Develop/os-plus-chat-ch0.
+
+### Session Objective / What Was Built
+
+- New isolated Chatwoot CE + n8n deployment kit: compose.yaml with bounded resources, separate databases/storage/networks, private SSH-only n8n editor, environment template, Caddy reverse proxy and safe reserved /crm namespace.
+- Fresh configuration preflight with Zod; no inherited credentials, model choice, business wording or production configuration.
+- Encrypted age backups of both databases, Redis jobs, attachment/n8n storage and required encryption/config keys; writer quiescence, previous-running-service restart, cleanup on error/signals, concurrency lock, retention only after success, archive integrity and freshness checks. Backup cron example and detailed isolated restore/upgrade instructions. No destructive automatic restore script.
+- Synthetic unpublished inquiry-only knowledge-pack example and README; no prices, booking, phone/address/link facts, model ids or credentials.
+- CH0_SCHEMA_AUDIT.md covers every reused Architecture section 4.9 table/constraint and 12 integration differences, including Laundry-only task actions, country-validated customer rules, incomplete pickup slots, actor/source casing, RPC grants, RLS/service role, verified identity and cross-host auth.
+- Offline deployment policy tests, Linux backup subprocess/failure tests and real Caddy routing tests against a local mock. Real age encryption/decryption/authenticated tamper rejection tested with generated synthetic keys/data.
+
+### Key Decisions / Authority
+
+- CHAT-D022: central provider-managed Meta onboarding direction; each business separately authorises its pages/WABA/inboxes.
+- CHAT-D023: inquiries primary; payment screenshots/verification tasks excluded. Future booking/financial capability rules require new-business approval.
+- CHAT-D024: new n8n instance beside Chatwoot, isolated from existing business/Shopify infrastructure; no workflow activated.
+- CHAT-D025: owner authorised local phase commits and continued phases after each closure gate passes. Required owner QA is not waived; push/merge/deploy/shared migrations/paid-model runs/real messages remain separately gated.
+- All CH-0 product decisions resolved. Domain and live credentials/assets deliberately deferred before live setup.
+
+### Files / Modules Changed / Migrations
+
+- deploy/chatwoot/: compose.yaml, .env.example, Caddyfile, .gitignore, .gitattributes, backup.cron.example, README.md; scripts/{init-n8n-db.sh,check-config.mjs,backup.sh,verify-backup.sh,check-backup.sh}; tests/{config.test.mjs,caddy.test.mjs,backup_test.py}.
+- docs_chat/CH0_SCHEMA_AUDIT.md and examples/{new-business.pack.json,README.md}; planning/decision/checklist documentation reconciled.
+- project_summary.md: implementation start and this closure-review update appended; prior history retained.
+- Migrations added: none. Applied locally/shared/production: none.
+- No src/, application package/lockfile, Boutique/Laundry schema or existing permission behavior changed. Original OS PLUS/Shopify and Fundry implementation untouched.
+
+### Automated Tests Run
+
+| Command | Result / counts |
+|---|---|
+| npm ci --no-audit --no-fund | PASS; 587 locked packages; no manifest/lock changes |
+| npm run typecheck | PASS; TypeScript baseline |
+| npm run lint | PASS; baseline and final added-deployment JS checks |
+| npm run build | PASS; existing app compiled, 42/42 static-generation steps |
+| npm run test:roles | PASS; 1 policy suite; runner does not report case count |
+| npm run test:v2 | PASS; 4 existing suites; runners do not report individual case counts |
+| npm run test:chat | NOT AVAILABLE; explicitly CH-1 scope, not introduced early |
+| node --test deploy/chatwoot/tests/config.test.mjs | PASS; 11/11 tests |
+| Linux python3 deploy/chatwoot/tests/backup_test.py with REAL_AGE_BIN | PASS; 13/13 tests, no skips; Docker operations mocked, one test uses real age roundtrip/tamper rejection |
+| node --test deploy/chatwoot/tests/caddy.test.mjs with LOCAL_CADDY_BIN | PASS; 4/4 Node tests (parent + 3 checks); actual Caddy, synthetic local HTTP/WebSocket server |
+| docker compose --env-file outputs/chat-ch0/example.env -f deploy/chatwoot/compose.yaml config --quiet | PASS; synthetic credentials only |
+| bash -n on all 4 shell scripts | PASS |
+| Caddy 2.10.2 adapt --validate | PASS; no public server/TLS issuance started |
+| git diff --check | PASS after removing trailing blank line |
+
+### Manual QA / Regression / Tenant Isolation
+
+- Reviewed deployment/secrets/backup failure boundaries, schema source and new file set; no runtime changes or migration diff.
+- Real local proxy smoke: /crm and child paths return safe 503 without reaching inbox; inbox path/query preserved; Server header stripped; WebSocket upgrade forwarded.
+- Real synthetic archive crypto/integrity smoke: encrypted age archive verified, corrupted ciphertext rejected.
+- Docker CLI/Compose available, but Desktop Linux daemon pipe remains unavailable despite starting Desktop. No Chatwoot/n8n/Postgres service boot or DB restore executed; do not equate mocks with a restore proof.
+- Service startup, actual DB/file/credential restore, TLS, SMTP, real Meta authorisation, one-login handoff and tenant-access UI QA remain owner-authorised server/later-phase checks. They are not CH-0 live-deployment claims.
+- No new tenant-owned runtime table/query exists yet. Existing role/V2 checks are baseline regression; no shared-code Boutique tier triggered, no browser/production regression claimed.
+- Owner checklist: CHECKLIST.md Part C CH-0 (review kit/example); Part B B1-B7 before live setup, including encrypted host storage and restore/backup/alert checks.
+
+### Findings / Bugs / Remaining Gate
+
+- Reconciled resolved choices and removed payment screenshot schema/task requirements.
+- Fixed backup inventory error handling so Docker failure cannot silently skip writer quiescence; failure/restart/cleanup tests pass.
+- Dedicated ops-profile tar helper has no network and read-only file mounts; backups do not depend on tar availability in application images.
+- Health probe marks forwarded HTTPS for FORCE_SSL; Caddy reserves lead namespace until Clerk/routing/origin proof is implemented.
+- No known application P0/P1 defect introduced. Existing runtime untouched. Local Docker service validation limitation explicitly recorded; production restore proof remains required before live use.
+- Owner deploy-kit review required by 05_Phase_Plan_WBS.md CH-0 acceptance before local phase commit/CH-1. General commit authority is already granted; do not ask for it again.
+
+### Phase Gate / Model Spend / Next
+
+- READY_FOR_CLOSURE: YES for implementation/local evidence; owner kit/example acceptance outstanding, so phase not CLOSED and no commit yet.
+- Paid-model API spend: USD 0. No model API, WhatsApp/Instagram/Facebook/Telegram message, real inbox, shared DB, workflow activation, production setting, purchase, push/merge/deploy action.
+- Next: owner reviews the concrete kit/example, then apply existing local commit authority if CH-0 accepted and continue CH-1 with its own scope plan/decisions/start update. Do not bypass the phase gate while waiting.
+
+## Chat Session Update - 2026-10-07 - CH-0 closure accepted
+
+### Date / Updated By / Chat Phase / Phase Status
+
+- Date: 2026-10-07 (Asia/Calcutta client date).
+- Updated by: Codex AI agent.
+- Phase: CH-0 - Baseline, decisions, deploy kit.
+- Status: CLOSED (closure evidence complete; included in the local phase commit).
+- Branch/base: codex/chat-ch0-discovery / c701ec346aeb1fb38a364f4da231bff2a9a0232e.
+- Owner's “ok next steps?” is treated as acceptance of the concrete CH-0 kit review, following the report and approval request. CHAT-D025 already authorises local phase commits and continued work after gates.
+
+### Closure Evidence / Files / Migrations / QA
+
+- CH-0 scope: baseline, source-schema audit, resolved decisions, new isolated deployment/backup kit, synthetic unpublished inquiry example completed. Final implementation evidence is in the preceding 2026-10-07 closure-review entry.
+- Automated evidence retained: typecheck, lint, build, test:roles and four test:v2 suites PASS; deployment configuration 11/11, backup 13/13 with real age crypto, Caddy 4/4; Compose config and four shell syntax checks PASS; 27 new-file whitespace reviews and tracked diff check PASS.
+- No application source/package/lock changes or OS PLUS migrations. Shared Boutique/Laundry regression tier not triggered; baseline checks PASS, no production/browser smoke claimed.
+- Manual local proxy, WebSocket and synthetic archive integrity checks PASS. Live server/TLS/SMTP/Meta/DB restore checks remain CHECKLIST Part B before deployment. Local Docker Linux engine unavailable; no service boot/DB restore claimed.
+- No known P0/P1 application defect introduced. No deferred application P2/P3 defect. Production readiness is not claimed.
+- Files: project_summary.md, docs_chat/ planning/audit/example documents, deploy/chatwoot/ kit/tests only. Original dirty Shopify checkout and Fundry preserved.
+- Migrations added/applied: none. Model API spend: USD 0. No push, merge, deployment, purchase, shared DB, model API run, real message or workflow activation.
+- Next: use the local CH-0 commit as the dependent CH-1 branch base. CH-1 remains PLANNED until its complete scope and remaining policy decisions are presented and answered.
