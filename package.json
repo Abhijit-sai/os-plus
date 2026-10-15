@@ -51,7 +51,7 @@
     "test:expense-defaults": "node scripts/test-expense-category-defaults.mjs",
     "test:attendance-import": "node --experimental-strip-types scripts/test-attendance-import.mjs",
     "test:attendance-import-contract": "node scripts/test-attendance-import-contract.mjs",
-    "test:customer-inline": "node --experimental-strip-types scripts/test-inline-customer-creation.mjs",
+    "test:customer-inline": "node --experimental-strip-types scripts/test-inline-customer-creation.mjs && node --experimental-strip-types --test scripts/test-inline-customer-runtime.mjs",
     "test:customer-phone": "node --experimental-strip-types scripts/test-customer-phone.mjs",
     "test:customer-import": "node --experimental-strip-types scripts/test-customer-import-parser.mjs",
     "test:customer-import-matching": "node --experimental-strip-types scripts/test-customer-import-matching.mjs",

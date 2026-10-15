@@ -121,25 +121,46 @@ async function findCustomerByNormalizedMobile({
   if (!normalized) return null;
 
   const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
+  let canonicalQuery = supabase
     .from("customers")
     .select("id, name, phone, normalized_phone_e164")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
-    .not("phone", "is", null);
+    .eq("normalized_phone_e164", normalized.e164);
+  if (excludeCustomerId) canonicalQuery = canonicalQuery.neq("id", excludeCustomerId);
+  const { data, error } = await canonicalQuery.maybeSingle();
 
   if (error) {
     throw new Error(`Unable to check customer mobile number: ${error.message}`);
   }
 
-  return (
-    (data ?? []).find(
-      (customer) =>
-        customer.id !== excludeCustomerId &&
-        (customer.normalized_phone_e164 === normalized.e164 ||
-          normalizeCustomerPhone(customer.phone)?.e164 === normalized.e164),
-    ) ?? null
-  );
+  if (data) return data;
+
+  // Only old, unnormalized rows need a scan. Keyset pages avoid the API row cap.
+  // Fail closed at the work limit: a partial scan must never authorize an insert.
+  let afterId: string | undefined;
+  for (let page = 0; page < 50; page += 1) {
+    let legacyQuery = supabase
+      .from("customers")
+      .select("id, name, phone, normalized_phone_e164")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .is("normalized_phone_e164", null)
+      .not("phone", "is", null)
+      .order("id", { ascending: true })
+      .limit(200);
+    if (excludeCustomerId) legacyQuery = legacyQuery.neq("id", excludeCustomerId);
+    if (afterId) legacyQuery = legacyQuery.gt("id", afterId);
+    const { data: customers, error: legacyError } = await legacyQuery;
+    if (legacyError) throw new Error("Unable to check legacy customer mobile number.");
+    if (!customers?.length) return null;
+    const existing = customers.find(
+      (customer) => normalizeCustomerPhone(customer.phone)?.e164 === normalized.e164,
+    );
+    if (existing) return existing;
+    afterId = customers[customers.length - 1].id;
+  }
+  throw new Error("Customer mobile lookup exceeded its safe work limit.");
 }
 
 async function validateCustomerForMutation(tenantId: string, customerId: string) {
@@ -265,7 +286,7 @@ export async function createCustomerAction(formData: FormData) {
 
 export async function createCustomerInlineAction(formData: FormData) {
   const context = await getAuthorizedCustomerContext();
-  const parsed = createCustomerSchema.parse({
+  const validation = createCustomerSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone"),
     email: formData.get("email"),
@@ -273,39 +294,67 @@ export async function createCustomerInlineAction(formData: FormData) {
     address: formData.get("address"),
     notes: formData.get("notes"),
   });
-  const existingCustomer = await findCustomerByNormalizedMobile({
-    normalizedPhone: parsed.phone,
-    tenantId: context.tenant.id,
-  });
-
-  if (existingCustomer) {
-    return { customer: existingCustomer, wasExisting: true };
+  if (!validation.success) {
+    return {
+      ok: false as const,
+      error: validation.error.issues[0]?.message ?? "Review the customer details.",
+    };
   }
+  const parsed = validation.data;
+  const failure = {
+    ok: false as const,
+    error: "Unable to create or find the customer. Your draft is still here. Search the customer list before trying again.",
+  };
+  try {
+    const existingCustomer = await findCustomerByNormalizedMobile({
+      normalizedPhone: parsed.phone,
+      tenantId: context.tenant.id,
+    });
 
-  const supabase = createSupabaseServiceRoleClient();
-  const { data: customer, error } = await supabase
-    .from("customers")
-    .insert({
-      tenant_id: context.tenant.id,
-      name: parsed.name,
-      phone: parsed.phone,
-      normalized_phone_e164: normalizeCustomerPhone(parsed.phone)?.e164 ?? null,
-      email: parsed.email,
-      gender: parsed.gender as CustomerGender | null,
-      address: parsed.address,
-      notes: parsed.notes,
-      created_by: context.membership.clerk_user_id,
-      updated_by: context.membership.clerk_user_id,
-    })
-    .select("id, name, phone")
-    .single();
+    if (existingCustomer) {
+      return { ok: true as const, customer: existingCustomer, wasExisting: true };
+    }
 
-  if (error) {
-    throw new Error(`Unable to create customer: ${error.message}`);
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: customer, error } = await supabase
+      .from("customers")
+      .insert({
+        tenant_id: context.tenant.id,
+        name: parsed.name,
+        phone: parsed.phone,
+        normalized_phone_e164: normalizeCustomerPhone(parsed.phone)?.e164 ?? null,
+        email: parsed.email,
+        gender: parsed.gender as CustomerGender | null,
+        address: parsed.address,
+        notes: parsed.notes,
+        created_by: context.membership.clerk_user_id,
+        updated_by: context.membership.clerk_user_id,
+      })
+      .select("id, name, phone")
+      .single();
+
+    if (error) {
+      // A simultaneous request may have inserted the same phone after our lookup.
+      // Recover only this known constraint, through the tenant-scoped lookup.
+      if (
+        error.code === "23505" &&
+        error.message.includes('"customers_tenant_normalized_phone_active_idx"')
+      ) {
+        const winner = await findCustomerByNormalizedMobile({
+          normalizedPhone: parsed.phone,
+          tenantId: context.tenant.id,
+        });
+        if (winner) return { ok: true as const, customer: winner, wasExisting: true };
+      }
+      return failure;
+    }
+
+    revalidatePath("/customers");
+    return { ok: true as const, customer, wasExisting: false };
+  } catch {
+    // Never serialize database details or throw recoverable errors through RSC.
+    return failure;
   }
-
-  revalidatePath("/customers");
-  return { customer, wasExisting: false };
 }
 
 export async function updateCustomerAction(formData: FormData) {

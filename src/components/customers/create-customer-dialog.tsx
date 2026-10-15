@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useId, useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 
 import { createCustomerInlineAction } from "@/features/customers/actions";
 import { normalizeIndianMobile } from "@/features/customers/phone";
@@ -51,6 +51,7 @@ export function CreateCustomerDialog({
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const submitting = useRef(false);
   const feedback = useActionFeedback();
   const actionId = useId();
   const normalizedPhone = normalizeIndianMobile(draft.phone);
@@ -88,11 +89,13 @@ export function CreateCustomerDialog({
   }
 
   function createCustomer() {
+    if (submitting.current) return;
     if (!draft.name.trim()) {
       setError("Customer name is required.");
       return;
     }
 
+    submitting.current = true;
     startTransition(async () => {
       feedback?.startAction(actionId, "Creating customer...");
       setError(null);
@@ -101,14 +104,17 @@ export function CreateCustomerDialog({
         const formData = new FormData();
         Object.entries(draft).forEach(([key, value]) => formData.set(key, value));
         const result = await createCustomerInlineAction(formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
         resolveCustomer(result.customer);
-      } catch (createError) {
+      } catch {
         setError(
-          createError instanceof Error
-            ? createError.message
-            : "Unable to create customer. Please try again.",
+          "Unable to save the customer. Your draft is still here. Check your connection and sign-in, then search the customer list before trying again.",
         );
       } finally {
+        submitting.current = false;
         feedback?.finishAction(actionId);
       }
     });
