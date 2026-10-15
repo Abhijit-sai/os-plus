@@ -22,6 +22,9 @@ export type ContributionValidationOptions = {
 };
 
 const databaseErrorMessages: Array<[string, string]> = [
+  ["SHOPIFY_PRODUCTION_HELD", "Production is on hold for owner review of Shopify changes. Nothing was changed."],
+  ["SHOPIFY_SOURCE_BUSY", "Shopify information is being updated. Refresh and try again; nothing was changed."],
+  ["SHOPIFY_HISTORY_PROTECTED", "Imported production history cannot be deleted or rolled back."],
   ["AT_LEAST_ONE_WORKER_REQUIRED", "Add at least one worker."],
   ["DUPLICATE_WORKER_ROLE", "The same worker and role can appear only once."],
   ["MULTIPLE_WORKERS_NOT_ALLOWED", "This workflow stage is not configured for multiple workers."],

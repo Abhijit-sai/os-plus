@@ -20,7 +20,7 @@ function databaseQuery(table) {
     then(resolve, reject) {
       queried.push({ table, filters });
       assert.ok(filters.some(([kind, field, value]) => kind === "eq" && field === "tenant_id" && value === tenantId), "All production/customer reads must be tenant scoped");
-      let rows = table === "order_items" ? (empty ? [] : items) : table === "orders" ? orders : table === "customers" ? customers : [];
+      let rows = table === "operational_order_items" ? (empty ? [] : items) : table === "operational_orders" ? orders : table === "customers" ? customers : [];
       for (const [kind, field, values] of filters) if (kind === "in") rows = rows.filter((row) => values.includes(row[field]));
       // Reproduce the shared PostgREST response cap AFTER server predicates.
       rows = rows.slice(0, 1000);
@@ -39,6 +39,7 @@ vm.runInNewContext(compiled, {
     if (id === "next/navigation") return { notFound() { throw new Error("NOT_FOUND"); } };
     if (id.endsWith("/tenant/context")) return { requireTenantContext: async () => ({ tenant: { id: tenantId }, membership: { role: "manager" } }) };
     if (id.endsWith("/supabase/server")) return { createSupabaseServiceRoleClient: () => ({ from: databaseQuery }) };
+    if (id.endsWith("/orders/shopify-operational")) return { getShopifyOperationalSummaries: async () => [] };
     throw new Error(`Unexpected import ${id}`);
   },
 });
@@ -47,13 +48,15 @@ for (const order of result.orders) {
   assert.ok(result.customers.some((customer) => customer.id === order.customer_id), `Linked customer beyond the first 1000 must resolve for ${order.order_number}`);
 }
 assert.equal(result.customers.length, 2, "Load only referenced customers rather than the directory");
-assert.ok(queried.filter((call) => call.table === "orders").every((call) => call.filters.some(([kind, field]) => kind === "in" && field === "id")), "Displayed items determine the bounded order lookup");
+assert.ok(queried.some((call) => call.table === "operational_orders"), "Board must use the released-only operational order view");
+assert.equal(queried.some((call) => call.table === "orders"), false, "No unguarded raw-order read");
+assert.ok(queried.filter((call) => call.table === "operational_orders").every((call) => call.filters.some(([kind, field]) => kind === "in" && field === "id")), "Displayed items determine the bounded order lookup");
 assert.ok(queried.filter((call) => call.table === "customers").every((call) => call.filters.some(([kind, field]) => kind === "in" && field === "id")), "Displayed orders determine the bounded customer lookup");
 empty = true; queried.length = 0;
 const emptyResult = await loaded.exports.getProductionPageData({ itemTypeIds: [], workflowIds: [] });
 assert.equal(emptyResult.orders.length, 0);
 assert.equal(emptyResult.customers.length, 0);
-assert.equal(queried.some((call) => ["orders", "customers"].includes(call.table)), false, "Empty board must not load the customer directory");
+assert.equal(queried.some((call) => ["operational_orders", "customers"].includes(call.table)), false, "Empty board must not load the customer directory");
 empty = false; queryFailure = true;
 await assert.rejects(() => loaded.exports.getProductionPageData({ itemTypeIds: [], workflowIds: [] }), /Synthetic read failed/, "Read failures must not silently render Unknown customer");
 console.log("Production customer resolution beyond 1000, tenant predicates, bounded related reads, empty board and read-failure regression passed.");

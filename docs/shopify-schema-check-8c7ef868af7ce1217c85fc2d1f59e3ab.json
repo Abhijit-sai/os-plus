@@ -1,0 +1,5929 @@
+{
+  "kind": "osplus-private-backup-report-v1",
+  "check": "post-migration-readonly-v1",
+  "status": "post_migration_findings",
+  "productionWrites": false,
+  "mayApply": false,
+  "mayDeploy": false,
+  "mayActivate": false,
+  "step": "complete",
+  "reference": {
+    "historicalFiles": 51,
+    "candidateFiles": 12,
+    "historicalSetSha256": "a1cc952a647183ccfb239defa9fd3bf547ae18767192b041aca8ffdd23d8a0cc",
+    "historicalHashes": [
+      {
+        "file": "20260517120000_foundation_tenants.sql",
+        "sha256": "043f7549ad1c37500f1c32e40870f5bc62f59925dfbdcfdc9d7343cc9522dbd3"
+      },
+      {
+        "file": "20260518170000_configuration_foundation.sql",
+        "sha256": "30a05258b66fbbcb30701828ab961c9e0ed269f67b13b4ce53692d3c67745999"
+      },
+      {
+        "file": "20260518190000_workflow_configuration.sql",
+        "sha256": "cdba912d113267b6281a685666ec8d2b463870d2c38d19d321108a39088d1dc6"
+      },
+      {
+        "file": "20260519110000_worker_master.sql",
+        "sha256": "460e3205d0476c57b53675b653f2ad2491c858b05cead0a14c458d0d873cc239"
+      },
+      {
+        "file": "20260519123000_seed_configuration_defaults.sql",
+        "sha256": "fd922879317829dab2d97cfa1f04b711003165a778d8694d5597747be3498166"
+      },
+      {
+        "file": "20260519150000_customer_master_measurements.sql",
+        "sha256": "438cab5bbec85d7e8b32ab69f453b62b9cd04b9f797ce6a48ad27f4ed179dd2f"
+      },
+      {
+        "file": "20260519170000_order_foundation.sql",
+        "sha256": "adc56e40b288dc0ca2f6d5b19d17f6a05cfe9234d77313a462d7d0756c3c5791"
+      },
+      {
+        "file": "20260519183000_order_reference_and_numbering.sql",
+        "sha256": "dca5d4b9825971ab8024d19be2cd986944392d906e614ebfc4de3bcb52f8ce23"
+      },
+      {
+        "file": "20260519193000_workflow_execution_foundation.sql",
+        "sha256": "8a09baf383822340a5f0c39929495d9229d457b69738ecfb9de1dbbbbfdd9433"
+      },
+      {
+        "file": "20260519203000_attendance_foundation.sql",
+        "sha256": "9c8ddda2e08210341d3bd084eaf2bf14d1a0aa5a27f065186b64f6753a97efb1"
+      },
+      {
+        "file": "20260520110000_salary_worker_ledger.sql",
+        "sha256": "93de74bd2662bd879db041971d0ea9c05327e26fe6e9063e3286afdf895d4290"
+      },
+      {
+        "file": "20260520130000_finance_basics.sql",
+        "sha256": "544871b681e9e02be1699a5af3ac73997063775793b8b27e53fe27fdc2b2939a"
+      },
+      {
+        "file": "20260522100000_finance_due_settlements.sql",
+        "sha256": "9f68390b7af0a4b06b07aa0468ad8b724ddd9fe8ecbc7085fc9d76cf32a7fb33"
+      },
+      {
+        "file": "20260523100000_order_status_delivered.sql",
+        "sha256": "7ef4b23b21d9466ba4fbf7eebb8705b74e1fa9213366ac01537ef7505c2e8583"
+      },
+      {
+        "file": "20260523101000_backfill_delivered_order_status.sql",
+        "sha256": "8203646e6c10d512b1d2dd8dd2cd1af6fad8603997ca6675ab8b74a1ce187852"
+      },
+      {
+        "file": "20260526120000_salary_finalization_payments.sql",
+        "sha256": "825b4dc915a7a963af78754e001ffdd302475ec534ab84ddddb6297050980718"
+      },
+      {
+        "file": "20260527110000_customer_measurement_reference.sql",
+        "sha256": "dda57b7fb52b1edd65b925f8a9aec34f73edacfd19df9d7a1328dd3a31f54284"
+      },
+      {
+        "file": "20260527123000_order_item_measurement_reference.sql",
+        "sha256": "5219635ce04141d9ae82c9027fb4df862e51f21c599b58879877afeaa72f5023"
+      },
+      {
+        "file": "20260528100000_item_type_measurement_fields.sql",
+        "sha256": "9f1ffbee4fa2a31cf811e456316c704849fb52b641ea211dd986512beac94f5c"
+      },
+      {
+        "file": "20260529100000_item_type_standard_sizes.sql",
+        "sha256": "19a9413c817afdf94128b81e4496736106c22d664dc6db1ae23bc968a7302de6"
+      },
+      {
+        "file": "20260529110000_attachments_foundation.sql",
+        "sha256": "2a481c4c6ed11640c8003793850286b46665e22769da13b80d2db737bce13822"
+      },
+      {
+        "file": "20260529113000_attachment_storage_bucket.sql",
+        "sha256": "b7ed30af3b51e2350291c0445bd46ffe62790b3248167a16a114b274194b5784"
+      },
+      {
+        "file": "20260529120000_communications_foundation.sql",
+        "sha256": "d63db327269368f007763447bd0168534fb2779a543631d5d0cd23d1293e89b3"
+      },
+      {
+        "file": "20260601090000_tenant_user_profile_fields.sql",
+        "sha256": "ab1b13960d38d64f98d5afe4318b0cfdad9826977e264e56188ede080ca65e9e"
+      },
+      {
+        "file": "20260601103000_email_first_tenant_users.sql",
+        "sha256": "0b82c7768f12547cf155f62f3d237ff9d64fc36b28a9ea7d0b44caffc7700b41"
+      },
+      {
+        "file": "20260604160000_tenant_assets_bucket.sql",
+        "sha256": "d22d842617b70bd9cc0b7b82758f31690b84b6df28d4ccc2dc0c5410034d8e26"
+      },
+      {
+        "file": "20260605100000_tenant_billing_records.sql",
+        "sha256": "ed5b0b76b805fd1764e0a5939f4b8d92c922c90d9a38a6dd1ce1b49652d0ce4e"
+      },
+      {
+        "file": "20260605110000_tenant_gst_configuration.sql",
+        "sha256": "7d4bcd109acf89b171b1638242bbe7c73d2aadd1fde714b19bb504a895525c6d"
+      },
+      {
+        "file": "20260605120000_order_gst_capture.sql",
+        "sha256": "e576adb8c69752a81e4e1121de0ff68d18dfcfe3f5bec07cdb6c8e3c7d962bd5"
+      },
+      {
+        "file": "20260605123000_expense_gst_capture.sql",
+        "sha256": "b5dc5f0c8752339be28a36c87d088e44c726e64a76a927a0c7435e42eafa9c7f"
+      },
+      {
+        "file": "20260705160000_v2_phase_1_platform_primitives.sql",
+        "sha256": "ea7651ea51fbc802f740fb4f16c6fe34a798a47f98171b19e4011f6f426dfb9e"
+      },
+      {
+        "file": "20260705170000_v2_phase_1_team_location_fk_fix.sql",
+        "sha256": "4bd9a6a7b64f1859e5f6d560b879b62878adbd1dcf05a1eb57091f8e3aa4a679"
+      },
+      {
+        "file": "20260706110000_v2_phase_2_work_unit_runtime.sql",
+        "sha256": "cb94c8d4be4f6f88a8888f7d0da4d0f1438f3ecfe836bc286b3e038f512dc652"
+      },
+      {
+        "file": "20260706113000_v2_phase_2_work_unit_stage_transitions.sql",
+        "sha256": "99a1230f48b28d4f0c115eeec8e84d4c417c08e216d89e7e67931a6742399d29"
+      },
+      {
+        "file": "20260706120000_v2_phase_2_work_unit_runtime_creation.sql",
+        "sha256": "6060845fcdac7492e7d4dc675213177518e6973df55f7afdb2f3f01b12bd8d83"
+      },
+      {
+        "file": "20260706130000_v2_phase_3_commands_events_tasks.sql",
+        "sha256": "1272b7bfba3d8fc739e8a299ae4bce6377536f068ca3ade105c80afa352f7358"
+      },
+      {
+        "file": "20260707100000_v2_phase_4_laundry_custody.sql",
+        "sha256": "c1ab85203f16b9e9fcc1193b6e2cd31eddd1079196701ddf0e76f455306c1bc9"
+      },
+      {
+        "file": "20260707103000_v2_phase_4_qr_token_generator_fix.sql",
+        "sha256": "a2fc1fcfde2b936b9036b82f8ca2bd580d85ab314c610348a328b7aa08b49497"
+      },
+      {
+        "file": "20260707110000_v2_rpc_security_and_custody_integrity.sql",
+        "sha256": "331d7672bbcdfae92f73ab2ccbebb4075435daeb27ab5520522da096c17e3144"
+      },
+      {
+        "file": "20260807100000_existing_order_add_items.sql",
+        "sha256": "41fc17c726c3dcf45659fcbf5387e00731cd34c1642da5dacfde4a7d5fbb6228"
+      },
+      {
+        "file": "20260808100000_configuration_editing_and_expense_defaults.sql",
+        "sha256": "784abb1f5d5904a6832ddeabf71358660ac4a6fb2ff487febf331e0a7ae3e571"
+      },
+      {
+        "file": "20260808110000_attendance_excel_import.sql",
+        "sha256": "2ba6941958a559acd00aeeb4d28e2211b354a7ff40a4ee1db7ac273f975685f5"
+      },
+      {
+        "file": "20260809100000_customer_import_and_phone_identity.sql",
+        "sha256": "c06fae9a7870ee84c7ba0fa1ed132601493c3fd761c7a1224ed6e2d59d401e35"
+      },
+      {
+        "file": "20260809120000_stage_worker_contributions.sql",
+        "sha256": "8bc6e91be58973082d232e55054dace89e2cd348888e39919f3c7d3827cf0b88"
+      },
+      {
+        "file": "20260809130000_stage_contribution_usability_reports.sql",
+        "sha256": "93b26e797c0e6f23b90e7be2f4a97fa2ab0142a7134780941270df38e4540567"
+      },
+      {
+        "file": "20260809140000_item_type_emoji.sql",
+        "sha256": "dd2abad7029bc651b295cb38610a1333ef84caa685c92b8aac97bea38a6645b2"
+      },
+      {
+        "file": "20260809150000_item_type_icon_picker.sql",
+        "sha256": "4a0673a5b6a282cd4c29cb97000f6420a7678574bfe7b2138bea8e7e5cbd717d"
+      },
+      {
+        "file": "20260810100000_worker_money_ledger.sql",
+        "sha256": "f0209e7480f8af9046b442c12d67d2c01846d88b62630b8863c1f3a63de7340e"
+      },
+      {
+        "file": "20260812120000_salary_workflow_hardening.sql",
+        "sha256": "dfcb13325e1b0e44028f456d139edc4d803b61042339a0ceacbb6e36091a6409"
+      },
+      {
+        "file": "20260812152000_restore_worker_money_summaries.sql",
+        "sha256": "d9c8190cc4945a811cdbc314e9de6dc0acc573f082f9388c1a84cfb5791a9392"
+      },
+      {
+        "file": "20260812170000_salary_period_bulk_workspace.sql",
+        "sha256": "a3d7adff92b80598e9c2ee13e9c1e070855c25992b0710fd0d1d0117460573a9"
+      }
+    ],
+    "candidateChecksumsVerified": true,
+    "fictionalOnly": true,
+    "perFileTransaction": true,
+    "serverVersion": "170009"
+  },
+  "proposedImpact": {
+    "missing": [],
+    "changed": [
+      {
+        "kind": "column",
+        "name": "orders.customer_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6",
+        "actualHash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "orders.delivery_type",
+        "hash": "d35fee1ef1942f6b6adb8c42409b39d0",
+        "actualHash": "3fc44216800cb09eb60f9f803858514c"
+      },
+      {
+        "kind": "enum",
+        "name": "order_source",
+        "hash": "dc009c41c641c4e3d1c23effef8a6ba4",
+        "actualHash": "be8b6758f3d4c56159a731609da81e58"
+      },
+      {
+        "kind": "enum",
+        "name": "order_status",
+        "hash": "94e3ac7fb4ca765b7083519225b3f3f4",
+        "actualHash": "1a9971637414171a869f39aad9f144c4"
+      }
+    ],
+    "extra": [
+      {
+        "kind": "column",
+        "name": "orders.financial_management",
+        "hash": "c4143cdca4f19a89049816c8605675e1"
+      },
+      {
+        "kind": "column",
+        "name": "orders.source_currency_code",
+        "hash": "bb66b9a61af44e62ba6a1f08231c3241"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.action",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.created_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.detail",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_application_audit.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.reasons",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_cases.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.accepted_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.action",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.case_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.observed_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.reason",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_change_decisions.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.action",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.actor_id",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.actor_kind",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.after_revision",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.after_state",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.before_revision",
+        "hash": "d0fb072eece0f085604dd742c1229695"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.before_state",
+        "hash": "4981b2e7c64050e0a3993f83b91b12a1"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.reason_code",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.request_fingerprint",
+        "hash": "4981b2e7c64050e0a3993f83b91b12a1"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.request_key",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connection_audit.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.api_version",
+        "hash": "f39912c0b0eea9766e2baf6be82e7f43"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.app_ref",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.canonical_domain",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.draft_import_enabled",
+        "hash": "903c26643c3a2cfb463dc8611dab1f57"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.environment",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.import_created_at_cutoff",
+        "hash": "847bcdc7109e737d474f7de6b2676fdc"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.intake_enabled",
+        "hash": "903c26643c3a2cfb463dc8611dab1f57"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.processing_enabled",
+        "hash": "903c26643c3a2cfb463dc8611dab1f57"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.protected_customer_fields_verified_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.release_enabled",
+        "hash": "903c26643c3a2cfb463dc8611dab1f57"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.revision",
+        "hash": "c622042f5859cfeff8625795474d6362"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.scopes_verified_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.shop_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.source_copy_authorized_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.status",
+        "hash": "9a2e7139ed39ce694fc86f1a8b5a0fd7"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.updated_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_connections.verified_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.customer_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.generated_name",
+        "hash": "903c26643c3a2cfb463dc8611dab1f57"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.identity_key",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.shop_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_customer_bindings.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.generation",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.job_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_import_results.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.decision",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.source_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_draft_reviews.version",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.after_state",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.before_state",
+        "hash": "4981b2e7c64050e0a3993f83b91b12a1"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.mapping_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.reason",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_mapping_audit.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.accepted_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.held",
+        "hash": "5ffdf206f837f04d890e8339fe8cf393"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.latest_case_id",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.latest_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.reasons",
+        "hash": "f01e1dd86864c0678018694a38196691"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_operational_state.updated_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.line_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.mapping_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.mapping_revision",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.order_item_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.source_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_order_item_links.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.body_sha256",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.created_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.delivery_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_external_receipts.topic",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.authorized_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.authorized_by",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.expires_at",
+        "hash": "847bcdc7109e737d474f7de6b2676fdc"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.key_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.order_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.reason",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_pilot_policies.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.action",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.created_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.redacted_count",
+        "hash": "0d90606bb8c4c02465605a3d5987918b"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.request_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_audit.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.body_sha256",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.customer_gid",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.delivery_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.due_at",
+        "hash": "1de4147eeab32f44acdc7535bc3354f2"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.order_gids",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.received_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.sealed_contact",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_requests.topic",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_tombstones.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_tombstones.created_at",
+        "hash": "eb246f04e3d11429c00d7075b4c2ccff"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_tombstones.identity_key",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_tombstones.request_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_privacy_tombstones.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_release_capabilities.backend_pid",
+        "hash": "0d90606bb8c4c02465605a3d5987918b"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_release_capabilities.order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_release_capabilities.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_release_capabilities.transaction_id",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.actor_id",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.intent_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.request_key",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.result",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.review_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.source_revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_releases.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_revision_facts.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_revision_facts.meaningful_digest",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_revision_facts.revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_revision_facts.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_revision_facts.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_lines.current_quantity",
+        "hash": "0d90606bb8c4c02465605a3d5987918b"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_lines.line_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_lines.quantity",
+        "hash": "0d90606bb8c4c02465605a3d5987918b"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_lines.revision_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_lines.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.order_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.shop_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_orders.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.completeness",
+        "hash": "aab75dd44d24198fa878dc82b8ecab30"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.generation",
+        "hash": "0278b3f2ba64b18a59140ccf7178461a"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.job_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.observed_at",
+        "hash": "847bcdc7109e737d474f7de6b2676fdc"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.review_reasons",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.sealed_source",
+        "hash": "39c2afd2d1300fb45ac08e114b3acfdf"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.source_customer_gid",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.source_digest",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.source_order_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.source_updated_at",
+        "hash": "847bcdc7109e737d474f7de6b2676fdc"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_source_revisions.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.attempts",
+        "hash": "d4401326f5bc87b4470ea65933493534"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.claimed_connection_revision",
+        "hash": "d0fb072eece0f085604dd742c1229695"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.claimed_generation",
+        "hash": "d0fb072eece0f085604dd742c1229695"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.completed_generation",
+        "hash": "84c291af41e1222ed76acc2b4a8e221d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.dead_lettered_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.first_attempt_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.last_error_code",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.lease_expires_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.lease_token",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.next_attempt_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.order_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.requested_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.requested_generation",
+        "hash": "c622042f5859cfeff8625795474d6362"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_sync_jobs.updated_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.classification",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.created_by",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.is_active",
+        "hash": "5ffdf206f837f04d890e8339fe8cf393"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.item_type_id",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.revision",
+        "hash": "c622042f5859cfeff8625795474d6362"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.sku",
+        "hash": "211a9de916f94c7b9a093e3dcb224b5d"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.standard_size_id",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.updated_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.updated_by",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.variant_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_variant_mappings.workflow_id",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.created_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.incoming_api_version",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.incoming_body_sha256",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.incoming_order_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.incoming_topic",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.receipt_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_conflicts.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.api_version",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.body_sha256",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.connection_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.delivery_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.event_id",
+        "hash": "b46f7e06bf6c3e3b8c09ca64278de095"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.id",
+        "hash": "d4d97ecf059d58c0f231d05601cdd891"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.order_gid",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.received_at",
+        "hash": "e3f8ea95220dbe1ec707f835f734115e"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.tenant_id",
+        "hash": "c23cefb1e5b174fc4005f9fde30847a6"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.topic",
+        "hash": "ca5ac54ea2e09f55c5ae0c4651da06e0"
+      },
+      {
+        "kind": "column",
+        "name": "shopify_webhook_receipts.triggered_at",
+        "hash": "6b1601055ea4c10ddbb20cb651957814"
+      },
+      {
+        "kind": "constraint",
+        "name": "item_type_standard_sizes.shopify_sizes_tenant_id_id_unique",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "item_types.shopify_item_types_tenant_id_id_unique",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "order_items.shopify_item_order_key",
+        "hash": "ebde445703848c8f3e1c93e9fb211ae5"
+      },
+      {
+        "kind": "constraint",
+        "name": "orders.orders_customer_and_delivery_required",
+        "hash": "dd5de250423ba4250643a6b82c086b90"
+      },
+      {
+        "kind": "constraint",
+        "name": "orders.orders_customer_tenant_fk",
+        "hash": "2174b566ba443495ae32d4c2728090f7"
+      },
+      {
+        "kind": "constraint",
+        "name": "orders.orders_financial_management_check",
+        "hash": "65c14572a2e41c16971ab64628e40e59"
+      },
+      {
+        "kind": "constraint",
+        "name": "orders.orders_shopify_financial_boundary",
+        "hash": "02fff65c501bcb4576c03493402054a0"
+      },
+      {
+        "kind": "constraint",
+        "name": "orders.orders_source_currency_code_check",
+        "hash": "a3b887d90dcee5b430bd61bb8b0c761c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_application_audit.shopify_application_audit_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_application_audit.shopify_application_audit_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_application_audit.shopify_application_audit_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_cases.shopify_change_cases_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_cases.shopify_change_cases_source_order_id_revision_id_key",
+        "hash": "94821dccc8cbdd8ca0a27597ee84a749"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_cases.shopify_change_cases_tenant_id_source_order_id_id_key",
+        "hash": "1e9f0496ff88de2e8237f592c706d874"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_cases.shopify_change_cases_tenant_id_source_order_id_revision_id_fkey",
+        "hash": "2994833e933b93da8cb52060fd0c8b5f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_action_check",
+        "hash": "549adce3a533eaa12a29511fee3ee6a7"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_reason_check",
+        "hash": "366fdcced895690154fe5970adfa6f17"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_tenant_id_source_order_id_accepte_fkey",
+        "hash": "e4b232ee1391c4e33c267d51db8d557f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_tenant_id_source_order_id_case_id_fkey",
+        "hash": "006f0ac9c9975b767c13a69f65ff6241"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_change_decisions.shopify_change_decisions_tenant_id_source_order_id_observe_fkey",
+        "hash": "7d6e8c71643bcf77184460fd19cd6d55"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_action_check",
+        "hash": "7783f676ec2d00e35384e5cf0391326a"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_actor_kind_check",
+        "hash": "ca5d6cebe249a73f6fecc526d49c7203"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_check",
+        "hash": "483c67a96a31e577954a8375368c4b88"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_reason_code_check",
+        "hash": "ed9036cf7d5614a5d0c3bb831c164abc"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connection_audit.shopify_connection_audit_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_api_version_check",
+        "hash": "991d20b506655ad390ccf0e9d9d9095c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_app_ref_check",
+        "hash": "c1cb521d7f21271a9f470ae22de60800"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_canonical_domain_check",
+        "hash": "c4d9ee7bdd9577760501bdda8959af29"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_check",
+        "hash": "b3bdcc5e7e9ff5fdd1aa8100c7a97a5c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_check1",
+        "hash": "fd01944cbedf2040979f3d564f1900b2"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_environment_canonical_domain_key",
+        "hash": "1e58f6c722665afd9e6d35730a3f9bd4"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_environment_check",
+        "hash": "0c09788834fa24fb38aaadbb2c21e85a"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_environment_shop_gid_key",
+        "hash": "b6dae1166dde6efa083a4790a013e0f4"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_import_created_at_cutoff_check",
+        "hash": "da4907eca44872c0b9a32a52fab42bc2"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_revision_check",
+        "hash": "f31c7d6ee855902bd609017de024eb19"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_shop_gid_check",
+        "hash": "2470d87e03c168705da48b1feeb6bd0f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_status_check",
+        "hash": "2d2e467f9f7b04a2c4e9c9a09fa0c18b"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_tenant_id_fkey",
+        "hash": "43668406a1a36fcd23aac1dcab3f6460"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_connections_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_draft_activation_ready",
+        "hash": "1005dcca87b0fff279e884b73a0b4f94"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_connections.shopify_processing_verified",
+        "hash": "b8779f2c0a8c91284a3eb733f6f0e230"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_customer_bindings.shopify_customer_bindings_identity_key_check",
+        "hash": "4fc5988b843ae5ae799bd24d18999b8c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_customer_bindings.shopify_customer_bindings_pkey",
+        "hash": "b5299786d586845a152a6707250ac5cb"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_customer_bindings.shopify_customer_bindings_shop_gid_check",
+        "hash": "2470d87e03c168705da48b1feeb6bd0f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_customer_bindings.shopify_customer_bindings_tenant_id_customer_id_fkey",
+        "hash": "6be07465bf4d1771cb80211d1d999923"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_import_results.shopify_draft_import_results_intent_digest_check",
+        "hash": "7e4e43e3fea97965671df81de402a475"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_import_results.shopify_draft_import_results_pkey",
+        "hash": "f6109b6b8b314924e7b18b608696b9da"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_import_results.shopify_draft_import_results_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_import_results.shopify_draft_import_results_tenant_id_job_id_fkey",
+        "hash": "7f061d7d94047faa079c8924b0cbdb2c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_source_order_id_version_key",
+        "hash": "3cd17584dd6d57857abc31757868885d"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_tenant_id_source_order_id_source_rev_fkey",
+        "hash": "ab13bc27cb5b937637d9775980741c13"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_draft_reviews.shopify_draft_reviews_version_check",
+        "hash": "a328fc6645cd03b68d448e502efa6e00"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_reason_check",
+        "hash": "b76e0913459faa24d7ec6447925dfa60"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_tenant_id_mapping_id_fkey",
+        "hash": "5576525fc8ea0b259759855f0842f250"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_operational_state.shopify_operational_state_pkey",
+        "hash": "c1149e62a4cae468e489a0537d406682"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_operational_state.shopify_operational_state_tenant_id_source_order_id_accept_fkey",
+        "hash": "e4b232ee1391c4e33c267d51db8d557f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_operational_state.shopify_operational_state_tenant_id_source_order_id_lates_fkey1",
+        "hash": "8205db1ac64fce9b1b0bbd86c2b02c2b"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_operational_state.shopify_operational_state_tenant_id_source_order_id_latest_fkey",
+        "hash": "8aeeb21a75be3772299b4325a512b1bc"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_order_item_id_key",
+        "hash": "dd56f6fbdc2495cd31d60e60aaa8f7f8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_pkey",
+        "hash": "cbe857e8de2f1a91522c90fe42a50a3a"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_tenant_id_mapping_id_fkey",
+        "hash": "5576525fc8ea0b259759855f0842f250"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_tenant_id_order_id_order_item_id_fkey",
+        "hash": "78df101fce424d81e6754aa891f8c1ae"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_tenant_id_source_order_id_fkey",
+        "hash": "81109178db0039a14b66925d71f50a37"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_order_item_links.shopify_order_item_links_tenant_id_source_order_id_source__fkey",
+        "hash": "ab13bc27cb5b937637d9775980741c13"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_external_receipts.shopify_pilot_external_receipts_body_sha256_check",
+        "hash": "178c7eec5a285a1134791cb472b6510f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_external_receipts.shopify_pilot_external_receipts_pkey",
+        "hash": "6d87971020b41fa359a876e7fcd28504"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_external_receipts.shopify_pilot_external_receipts_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_check",
+        "hash": "353f5dec2a50671d9d93402cba370ece"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_key_id_check",
+        "hash": "db5c68544397f0abf5c86418597e78fb"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_order_gid_check",
+        "hash": "be32d8f50735016e7797df863fe29fa0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_pkey",
+        "hash": "7f5148964172280e947b6b209e11d227"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_reason_check",
+        "hash": "366fdcced895690154fe5970adfa6f17"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_pilot_policies.shopify_pilot_policies_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_audit.shopify_privacy_audit_action_check",
+        "hash": "7fac4f2aec846d5b049892c50936bf55"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_audit.shopify_privacy_audit_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_audit.shopify_privacy_audit_redacted_count_check",
+        "hash": "80087140fba9297aa8780f2f0cb94df6"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_audit.shopify_privacy_audit_tenant_id_request_id_fkey",
+        "hash": "aa7a5e3aae9e77135dc72ac63970eec2"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_audit.shopify_privacy_audit_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_body_sha256_check",
+        "hash": "178c7eec5a285a1134791cb472b6510f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_connection_id_delivery_id_key",
+        "hash": "81c86c987c9cfb56143dcd85a314269c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_customer_gid_check",
+        "hash": "4d59beb46cb9b50d0d6d39bcd11c5f6e"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_order_gids_check",
+        "hash": "87c266807aee2a8b183510ce761b8691"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_sealed_contact_check",
+        "hash": "178c7853fafb1ae07e71ac60be9a4a20"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_requests.shopify_privacy_requests_topic_check",
+        "hash": "464e14fec9eb1fa7e19f29987150eb39"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_tombstones.shopify_privacy_tombstones_identity_key_check",
+        "hash": "5296680b88682bea0f2501a1ae5e4552"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_tombstones.shopify_privacy_tombstones_pkey",
+        "hash": "9a0402bc5af9155c2d055546a22216dd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_tombstones.shopify_privacy_tombstones_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_privacy_tombstones.shopify_privacy_tombstones_tenant_id_request_id_fkey",
+        "hash": "aa7a5e3aae9e77135dc72ac63970eec2"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_release_capabilities.shopify_release_capabilities_pkey",
+        "hash": "eb0499c80e9a369392d21c1fbad7313d"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_release_capabilities.shopify_release_capabilities_tenant_id_order_id_fkey",
+        "hash": "5a0616720f9ad58351347e1a8deb80ff"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_source_order_id_key",
+        "hash": "2ea6ebd99d8e1f1402bf311691aabc49"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_tenant_id_request_key_key",
+        "hash": "0d52aa90b985c9e7cc0149fceaaa9dbd"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_tenant_id_review_id_fkey",
+        "hash": "cbd5828ba802426b270e3f2cb13d6cd2"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_releases.shopify_releases_tenant_id_source_order_id_source_revision_fkey",
+        "hash": "ab13bc27cb5b937637d9775980741c13"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_revision_facts.shopify_revision_facts_meaningful_digest_check",
+        "hash": "3c9c911a4ac6a437be6434c10e891c0a"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_revision_facts.shopify_revision_facts_pkey",
+        "hash": "770a23702f5f8de218671139594f1166"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_revision_facts.shopify_revision_facts_tenant_id_source_order_id_revision__fkey",
+        "hash": "2994833e933b93da8cb52060fd0c8b5f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_lines.shopify_source_lines_check",
+        "hash": "37b31cd512c8b36bfde9c8e3708d53c8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_lines.shopify_source_lines_line_gid_check",
+        "hash": "d0cb23340d729dd735988e2c5b6dea3d"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_lines.shopify_source_lines_pkey",
+        "hash": "c4352e11ae06e8b0ed2c68e9a6a8c153"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_lines.shopify_source_lines_quantity_check",
+        "hash": "d58cbad07ff3dd505523cef4295abab0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_lines.shopify_source_lines_tenant_id_revision_id_fkey",
+        "hash": "21ff7ae28e4b5bdea70c28f413dc37d3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_order_gid_check",
+        "hash": "be32d8f50735016e7797df863fe29fa0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_order_id_key",
+        "hash": "e96de96c79ea5d0bd5cc005aea23113e"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_tenant_id_order_id_fkey",
+        "hash": "5a0616720f9ad58351347e1a8deb80ff"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_orders.shopify_source_orders_tenant_id_shop_gid_order_gid_key",
+        "hash": "f2a15541fbc1c56e7ba91ef6582d37b5"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_revision_source_key",
+        "hash": "1e9f0496ff88de2e8237f592c706d874"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_completeness_check",
+        "hash": "e71548240369b99c4eae484eb4b7a3e7"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_generation_check",
+        "hash": "903901e55d308d20844791b10636fcf1"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_job_id_generation_key",
+        "hash": "0c0f4348a0f1cb99d7740985a2972fc6"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_review_reasons_check",
+        "hash": "d5fd5ac4a585ee8cae80a4a946abfcc0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_sealed_source_check",
+        "hash": "2e814be3639989d1884b76a705f9dcd8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_source_customer_gid_check",
+        "hash": "a12f562b2fed6b4bba30b38d1076d554"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_source_digest_check",
+        "hash": "b17452f2ecc09731b7829f5f40102266"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_tenant_id_job_id_fkey",
+        "hash": "7f061d7d94047faa079c8924b0cbdb2c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_source_revisions.shopify_source_revisions_tenant_id_source_order_id_fkey",
+        "hash": "81109178db0039a14b66925d71f50a37"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_job_attempts",
+        "hash": "cb2888be739831c9f6be6f802d374bf8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_job_error_code",
+        "hash": "d208dfdcbfd27e17c2df9aea4810a50f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_job_generations",
+        "hash": "4c038fb13d5f95528a47f0fddb3c9f87"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_job_lease",
+        "hash": "92437cebb95a43706c7a02c8428f5c93"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_jobs_connection_fk",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_sync_jobs_connection_id_order_gid_key",
+        "hash": "9b72a4df4e32f8b5345689c57d5ed9d7"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_sync_jobs_order_gid_check",
+        "hash": "be32d8f50735016e7797df863fe29fa0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_sync_jobs_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_sync_jobs_requested_generation_check",
+        "hash": "32b66213df02880120a3af2a49f05845"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_sync_jobs.shopify_sync_jobs_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_check",
+        "hash": "004570252dd713257cf4e3ad5d9f4c22"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_check1",
+        "hash": "2610bc2780065c5dc930de1d95fc4229"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_classification_check",
+        "hash": "212f4a16a7235a5cbe1d2ffa3c218563"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_revision_check",
+        "hash": "dbde70f32cdb44cc5ef06a6ed67361b0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_sku_check",
+        "hash": "d71e17f4bc31ea9192eb6139a670fca8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_tenant_id_connection_id_fkey",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_tenant_id_item_type_id_fkey",
+        "hash": "813de3b41c81833c08bf3eff5f057b59"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_tenant_id_standard_size_id_fkey",
+        "hash": "4dcea793717649224508163f0979a3aa"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_tenant_id_workflow_id_fkey",
+        "hash": "62dd1a89ab64b8b80b5466fc3443c5c7"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_variant_mappings.shopify_variant_mappings_variant_gid_check",
+        "hash": "7b584531f950dcd214e693c10aadeed0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_conflicts_receipt_fk",
+        "hash": "03081705f4f56af20358f91c536c297e"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_incoming_api_version_check",
+        "hash": "305b8339d85bdc60c5e4b5cd4c110e22"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_incoming_body_sha256_check",
+        "hash": "556d54aaa718444b1944a41414b1df8c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_incoming_order_gid_check",
+        "hash": "06321e68760c6f316ad96177241aab01"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_incoming_topic_check",
+        "hash": "e9ccb86d03b54a1db466a1d6fe636796"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_conflicts.shopify_webhook_conflicts_receipt_id_incoming_body_sha256_i_key",
+        "hash": "b4cad23a7de5c47014d2769713e489ae"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_receipts_connection_fk",
+        "hash": "eeb8d740541ce84639f1e11efebcc011"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_api_version_check",
+        "hash": "991d20b506655ad390ccf0e9d9d9095c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_body_sha256_check",
+        "hash": "178c7eec5a285a1134791cb472b6510f"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_connection_id_delivery_id_key",
+        "hash": "81c86c987c9cfb56143dcd85a314269c"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_order_gid_check",
+        "hash": "be32d8f50735016e7797df863fe29fa0"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_pkey",
+        "hash": "8575827bd72cf82bc402dd2dbf786ee8"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_tenant_id_id_key",
+        "hash": "cf17508d27346ce214c827c58754ebf3"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_topic_check",
+        "hash": "466b23eb233f7900fc28927ef116bb21"
+      },
+      {
+        "kind": "constraint",
+        "name": "shopify_webhook_receipts.shopify_webhook_receipts_triggered_at_check",
+        "hash": "d90de7f572fe5adeb610f7c4856d8e5a"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_application_owner(uuid, uuid, text)",
+        "hash": "79e9bda6c707e0a9134971e00b426be4"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_owner(uuid, uuid, text)",
+        "hash": "7b0ee291400e71e0aaade15e501b04df"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_production_allowed(uuid, uuid)",
+        "hash": "8f9676b83aa07413c9a9e80e29a973d8"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text)",
+        "hash": "cb8d766e2f37198228e4e34b6a210950"
+      },
+      {
+        "kind": "function",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer)",
+        "hash": "51f844abe54dee3e4516c49c8540cfd0"
+      },
+      {
+        "kind": "function",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb)",
+        "hash": "a44db5644a361fe63feed366e0541a57"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_draft_order()",
+        "hash": "56a11034d5f348e2042596ba22770649"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_handover()",
+        "hash": "0b717b81cb284e9aa1a7bd68f4cafad0"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_order_child()",
+        "hash": "9be2b68a12a8be96a2a6f6bf5071b392"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_pilot_scope()",
+        "hash": "d3a653e28d815b65221edfae6e01f628"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_privacy_activation()",
+        "hash": "fe5ca94547ca4d5e44718b1a8acec96f"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_privacy_contact_purge()",
+        "hash": "832a82e3b0bd31ded9dff77b9073e167"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_production_hold()",
+        "hash": "2b9cea1374e4b389b39e736f84ae486a"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_source_redaction()",
+        "hash": "8da57200e6b769af6e132e2933bf4311"
+      },
+      {
+        "kind": "function",
+        "name": "has_shopify_release_capability(uuid, uuid)",
+        "hash": "9a477e714c01e8d959656fcda322adf4"
+      },
+      {
+        "kind": "function",
+        "name": "import_shopify_draft(jsonb, boolean)",
+        "hash": "648daf299d9cb41fa163722c2dab6a5f"
+      },
+      {
+        "kind": "function",
+        "name": "import_shopify_draft_v1(jsonb, boolean)",
+        "hash": "7ede2ae6aba6d9ed87f9892cf8ab12a9"
+      },
+      {
+        "kind": "function",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer)",
+        "hash": "10a567a76f44009316ec16a751cdad91"
+      },
+      {
+        "kind": "function",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone)",
+        "hash": "aa995a6f59077248ef9d01dd3d14e46b"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_connection_binding()",
+        "hash": "ec892e61746e14967880ebf1db69d002"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_draft_audit()",
+        "hash": "2e54c60f7c5714a0ae5562331e6f0b9f"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_intake_audit()",
+        "hash": "d816635751d6a8767160e3a0b58d96ae"
+      },
+      {
+        "kind": "function",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer)",
+        "hash": "b863aeafeceb4bbbd5bdd35c1054e163"
+      },
+      {
+        "kind": "function",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer)",
+        "hash": "82648dc546cbe85f2678c891b2e428f9"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_application(uuid, text, text, text, text)",
+        "hash": "be16ad571118f0f0b6146f3cfea2126d"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_payment_source(uuid, text, uuid)",
+        "hash": "1eb17d4d47cf58dbbaa2c63148b50fa0"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid)",
+        "hash": "16bc3dd96cd5209e9acafabd529c01c3"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone)",
+        "hash": "c51d3394f3601b3ac5909a3d2a4a643e"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb)",
+        "hash": "1366bb177d0516ccf29552138bf55349"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_privacy(jsonb)",
+        "hash": "4ece344de7ab2467f23766b5e8724a9b"
+      },
+      {
+        "kind": "function",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid)",
+        "hash": "11ce5b0c9eb812386fd567d7b33f713f"
+      },
+      {
+        "kind": "function",
+        "name": "recover_shopify_draft(jsonb)",
+        "hash": "e790bffbc9705cc22e73d410ed599352"
+      },
+      {
+        "kind": "function",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer)",
+        "hash": "b7c800e7d7db123a004aa24fab3a86ca"
+      },
+      {
+        "kind": "function",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone)",
+        "hash": "3bf29b2ee73a116789f4e903b665ca26"
+      },
+      {
+        "kind": "function",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "16fa80ba55f14862f3ba9ccf666c31be"
+      },
+      {
+        "kind": "function",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "847301c316b5eeb261b11e37fd7e444d"
+      },
+      {
+        "kind": "function",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text)",
+        "hash": "5cd8d1629c176d0ab52b87cc88a008b8"
+      },
+      {
+        "kind": "function",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb)",
+        "hash": "e0818a0a89a579e3f6ac05f4c3385fd2"
+      },
+      {
+        "kind": "function",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb)",
+        "hash": "9e641ee49d2b89192d76f9865ca8daad"
+      },
+      {
+        "kind": "function",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text)",
+        "hash": "b657c5d5c907955111274b3115c98701"
+      },
+      {
+        "kind": "function",
+        "name": "shopify_pilot_policy(uuid, uuid)",
+        "hash": "b0437a80909951564873566499f39790"
+      },
+      {
+        "kind": "function",
+        "name": "touch_shopify_job_request()",
+        "hash": "5aa5c554b0bc8b7f7b5b69d14bb275d8"
+      },
+      {
+        "kind": "function",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text)",
+        "hash": "d207a8ddaf8a3a59316611de4d46520a"
+      },
+      {
+        "kind": "function",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer)",
+        "hash": "582cb7f1386e56f1033f70e28cb12877"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_application_owner(uuid, uuid, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_application_owner(uuid, uuid, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_application_owner(uuid, uuid, text).service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_owner(uuid, uuid, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_owner(uuid, uuid, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_owner(uuid, uuid, text).service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_production_allowed(uuid, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_production_allowed(uuid, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_production_allowed(uuid, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text).service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_draft_order().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_draft_order().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_draft_order().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_handover().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_handover().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_handover().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_order_child().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_order_child().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_order_child().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_pilot_scope().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_pilot_scope().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_pilot_scope().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_activation().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_activation().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_activation().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_contact_purge().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_contact_purge().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_contact_purge().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_production_hold().anon",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_production_hold().authenticated",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_production_hold().service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_source_redaction().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_source_redaction().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_source_redaction().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "has_shopify_release_capability(uuid, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "has_shopify_release_capability(uuid, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "has_shopify_release_capability(uuid, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft(jsonb, boolean).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft(jsonb, boolean).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft(jsonb, boolean).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft_v1(jsonb, boolean).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft_v1(jsonb, boolean).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "import_shopify_draft_v1(jsonb, boolean).service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_connection_binding().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_connection_binding().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_connection_binding().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_draft_audit().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_draft_audit().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_draft_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_intake_audit().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_intake_audit().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_intake_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_application(uuid, text, text, text, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_application(uuid, text, text, text, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_application(uuid, text, text, text, text).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_payment_source(uuid, text, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_payment_source(uuid, text, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_payment_source(uuid, text, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_privacy(jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_privacy(jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "receive_shopify_privacy(jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_draft(jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_draft(jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "recover_shopify_draft(jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean).service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "shopify_pilot_policy(uuid, uuid).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "shopify_pilot_policy(uuid, uuid).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "shopify_pilot_policy(uuid, uuid).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "touch_shopify_job_request().anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "touch_shopify_job_request().authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "touch_shopify_job_request().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer).anon",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer).authenticated",
+        "hash": "68934a3e9455fa72420237eb05902327"
+      },
+      {
+        "kind": "function_access",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer).service_role",
+        "hash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_owner",
+        "name": "assert_shopify_application_owner(uuid, uuid, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "assert_shopify_owner(uuid, uuid, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "assert_shopify_production_allowed(uuid, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_draft_order()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_handover()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_order_child()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_pilot_scope()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_privacy_activation()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_privacy_contact_purge()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_production_hold()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "guard_shopify_source_redaction()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "has_shopify_release_capability(uuid, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "import_shopify_draft(jsonb, boolean)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "import_shopify_draft_v1(jsonb, boolean)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "protect_shopify_connection_binding()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "protect_shopify_draft_audit()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "protect_shopify_intake_audit()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "read_shopify_application(uuid, text, text, text, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "read_shopify_payment_source(uuid, text, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "receive_shopify_privacy(jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "recover_shopify_draft(jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "shopify_pilot_policy(uuid, uuid)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "touch_shopify_job_request()",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "function_owner",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer)",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_application_audit_pkey",
+        "hash": "4a94ff10098c77d313605e5cf7a48ca8"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_application_audit_tenant_id_request_key_key",
+        "hash": "4f6cf22da8fd6fd9dfb07d34d04eb8aa"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_change_cases_pkey",
+        "hash": "6586ad017b110671685e57e8fcb33a6c"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_change_cases_source_order_id_revision_id_key",
+        "hash": "c8d37c299daa32413354588ad769bc96"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_change_cases_tenant_id_source_order_id_id_key",
+        "hash": "d7b858967b8b510615543a7cf11678d1"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_change_decisions_pkey",
+        "hash": "11201402ccf0c612e74baa255df97c69"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_change_decisions_tenant_id_request_key_key",
+        "hash": "5abef1975eb83eb2e56df9adb61b51a0"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connection_audit_pkey",
+        "hash": "5393fce97bc0b313ec47534c36d6ddb8"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connection_audit_tenant_id_request_key_key",
+        "hash": "89810384d23eebe3aeb38bcde4ab23e7"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connections_environment_canonical_domain_key",
+        "hash": "8ad23fb41d65b452c5e79a578d74089f"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connections_environment_shop_gid_key",
+        "hash": "b8255c6a15c2b3e7f5de3e3dbc05e808"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connections_one_destination_per_tenant",
+        "hash": "fa3ec578d2e95eefec8f8c51a3f8b811"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connections_pkey",
+        "hash": "4dc277205b24721b93a60d7fa7e84b13"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_connections_tenant_id_id_key",
+        "hash": "27ff019dff729da5eb1fd0afd12708f9"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_customer_bindings_pkey",
+        "hash": "c18e42975ef877728ace441e4b2d953b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_draft_import_results_pkey",
+        "hash": "959f35026e88ce853593500d9870731a"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_draft_reviews_pkey",
+        "hash": "5b0e62cf3a3786f79afa6731a046599a"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_draft_reviews_source_order_id_version_key",
+        "hash": "a4df0c2e9b6157d8878561a256ad354f"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_draft_reviews_tenant_id_id_key",
+        "hash": "198aa1532cb18e677a7f3654256c3350"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_draft_reviews_tenant_id_request_key_key",
+        "hash": "6ddf75e797d461abb716995492cc66e4"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_item_order_key",
+        "hash": "cbcb116fabd49afef386c344ff31afbc"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_item_types_tenant_id_id_unique",
+        "hash": "2fd427a3397bcb88d31da7ed20887160"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_jobs_due",
+        "hash": "d1d08dc73c2e9cb50cedbca2f630309c"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_mapping_audit_pkey",
+        "hash": "8043143f62fffab8c3e3095956537826"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_mapping_audit_tenant_id_request_key_key",
+        "hash": "c4ac6add0254552e672b0ddf3ebec095"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_mapping_variant_unique",
+        "hash": "2839fc45e2747b9d64aef309725b669f"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_operational_state_pkey",
+        "hash": "b7a8637c56e7578876aa98cb1c190b79"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_order_item_links_order_item_id_key",
+        "hash": "85755d8cc231a4c2bb76b7d284940365"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_order_item_links_pkey",
+        "hash": "4c6ef32afe0ab5a98b9937b16afc0332"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_pilot_external_receipts_pkey",
+        "hash": "2610a8b9092eefa2461df18c603c9ba9"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_pilot_policies_pkey",
+        "hash": "3c377837573d5ed9e3e107d89528463d"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_audit_pkey",
+        "hash": "e094a4b7ed5b01b43c923dcdab0db50c"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_audit_tenant_id_request_key_key",
+        "hash": "7a8fdc841faf38fcfecd0479ab75d51b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_requests_connection_id_delivery_id_key",
+        "hash": "db6bbd15c77c4fd11236740e75802a7b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_requests_pkey",
+        "hash": "7c2c81d77a239b00b0ab770da1b11b4c"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_requests_tenant_id_id_key",
+        "hash": "c18522501ac9ae0e0033b7d261f31542"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_privacy_tombstones_pkey",
+        "hash": "6f5c931c7970d1eebf434aff09b48a4b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_release_capabilities_pkey",
+        "hash": "a59dc6cab8c9113aab3dccf16fad337b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_releases_pkey",
+        "hash": "ab4e12f93de8638dc96cd11e722bff1a"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_releases_source_order_id_key",
+        "hash": "d746424d1783c642a3ee5a9bfe7d8db5"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_releases_tenant_id_id_key",
+        "hash": "82031a9f6ba94d74df3abd8954fb5712"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_releases_tenant_id_request_key_key",
+        "hash": "6fef4b3e8f5a1b88f38f22735a5e62b1"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_revision_facts_pkey",
+        "hash": "ba0bae073378b4ddca7099e5f6aff3d5"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_revision_source_key",
+        "hash": "5016c11f1321e3aac34aba3bc311a048"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_sizes_tenant_id_id_unique",
+        "hash": "d8ce99be1f0c697b25321c7590edb4df"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_lines_pkey",
+        "hash": "c3f2fb6d055849215e34335692f58b83"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_orders_order_id_key",
+        "hash": "65ce29271de59979fed44f5d269b2bbb"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_orders_pkey",
+        "hash": "d22d310776e3bf03a428028cf21ac2a3"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_orders_tenant_id_id_key",
+        "hash": "3c2df7af7ec305c306900533f27921c5"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_orders_tenant_id_shop_gid_order_gid_key",
+        "hash": "2fb52c1fc8df03f81c695804436c4066"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_revisions_job_id_generation_key",
+        "hash": "892d568ea42ac39c9b2912e10d2c489f"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_revisions_pkey",
+        "hash": "be0a5fa49ec124838429441a8684bf56"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_source_revisions_tenant_id_id_key",
+        "hash": "39dc274be75d7bc12bccbad8a231aa78"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_sync_jobs_connection_id_order_gid_key",
+        "hash": "e14e22261442607831cacdce4931f35b"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_sync_jobs_pkey",
+        "hash": "8968a9beaa9aa8c3d277bdeb6c0f7770"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_sync_jobs_tenant_id_id_key",
+        "hash": "b87c42a443003bb6d6a1cdf729e6b479"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_variant_mappings_pkey",
+        "hash": "fa5b8a355e448e1449643cabe8d341aa"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_variant_mappings_tenant_id_id_key",
+        "hash": "e290515aea9cc81b0191a995c572511d"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_conflicts_pkey",
+        "hash": "16675ff433a2fda2e4f50253c3196ea6"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_conflicts_receipt_id_incoming_body_sha256_i_key",
+        "hash": "484226efea47232869f55be9c349e929"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_receipts_connection_id_delivery_id_key",
+        "hash": "1ff896ef7054b67ccb3339460a395cb4"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_receipts_pkey",
+        "hash": "4829efba083198ffdf755f0dcf11da69"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_receipts_received",
+        "hash": "f9370dbf6ffaa8a0aa3a49de1f3f2455"
+      },
+      {
+        "kind": "index",
+        "name": "shopify_webhook_receipts_tenant_id_id_key",
+        "hash": "d698d6f8d0182ee3b81bd9c4966e1bdb"
+      },
+      {
+        "kind": "relation",
+        "name": "local_operational_orders",
+        "hash": "aa49afe85b61545b5ccf408b64dbb64a"
+      },
+      {
+        "kind": "relation",
+        "name": "operational_order_items",
+        "hash": "aa49afe85b61545b5ccf408b64dbb64a"
+      },
+      {
+        "kind": "relation",
+        "name": "operational_orders",
+        "hash": "aa49afe85b61545b5ccf408b64dbb64a"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_application_audit",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_change_cases",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_change_decisions",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_connection_audit",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_connections",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_customer_bindings",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_draft_import_results",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_draft_reviews",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_mapping_audit",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_operational_state",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_operational_summaries",
+        "hash": "aa49afe85b61545b5ccf408b64dbb64a"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_order_item_links",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_pilot_external_receipts",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_pilot_policies",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_privacy_audit",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_privacy_requests",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_privacy_tombstones",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_release_capabilities",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_releases",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_revision_facts",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_source_lines",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_source_orders",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_source_revisions",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_sync_jobs",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_variant_mappings",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_webhook_conflicts",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation",
+        "name": "shopify_webhook_receipts",
+        "hash": "a0368b63e35b670f746494452b3e2cf3"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "local_operational_orders",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "operational_order_items",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "operational_orders",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_application_audit",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_change_cases",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_change_decisions",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_connection_audit",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_connections",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_customer_bindings",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_draft_import_results",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_draft_reviews",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_mapping_audit",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_operational_state",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_operational_summaries",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_order_item_links",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_pilot_external_receipts",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_pilot_policies",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_privacy_audit",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_privacy_requests",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_privacy_tombstones",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_release_capabilities",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_releases",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_revision_facts",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_source_lines",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_source_orders",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_source_revisions",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_sync_jobs",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_variant_mappings",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_webhook_conflicts",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "relation_owner",
+        "name": "shopify_webhook_receipts",
+        "hash": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "kind": "table_access",
+        "name": "local_operational_orders.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "local_operational_orders.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "local_operational_orders.service_role",
+        "hash": "904da935c2d7f5c7aadeb71012ee0e29"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_order_items.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_order_items.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_order_items.service_role",
+        "hash": "904da935c2d7f5c7aadeb71012ee0e29"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_orders.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_orders.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "operational_orders.service_role",
+        "hash": "904da935c2d7f5c7aadeb71012ee0e29"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_application_audit.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_application_audit.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_application_audit.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_cases.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_cases.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_cases.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_decisions.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_decisions.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_change_decisions.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connection_audit.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connection_audit.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connection_audit.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connections.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connections.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_connections.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_customer_bindings.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_customer_bindings.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_customer_bindings.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_import_results.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_import_results.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_import_results.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_reviews.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_reviews.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_draft_reviews.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_mapping_audit.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_mapping_audit.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_mapping_audit.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_state.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_state.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_state.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_summaries.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_summaries.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_operational_summaries.service_role",
+        "hash": "904da935c2d7f5c7aadeb71012ee0e29"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_order_item_links.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_order_item_links.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_order_item_links.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_external_receipts.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_external_receipts.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_external_receipts.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_policies.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_policies.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_pilot_policies.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_audit.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_audit.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_audit.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_requests.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_requests.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_requests.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_tombstones.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_tombstones.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_privacy_tombstones.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_release_capabilities.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_release_capabilities.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_release_capabilities.service_role",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_releases.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_releases.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_releases.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_revision_facts.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_revision_facts.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_revision_facts.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_lines.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_lines.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_lines.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_orders.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_orders.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_orders.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_revisions.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_revisions.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_source_revisions.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_sync_jobs.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_sync_jobs.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_sync_jobs.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_variant_mappings.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_variant_mappings.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_variant_mappings.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_conflicts.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_conflicts.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_conflicts.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_receipts.anon",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_receipts.authenticated",
+        "hash": "50c720b3ceec8c631d54bea0b40b979a"
+      },
+      {
+        "kind": "table_access",
+        "name": "shopify_webhook_receipts.service_role",
+        "hash": "4b5ad866ce6de2608eee2c24133051a9"
+      },
+      {
+        "kind": "trigger",
+        "name": "communication_message_queue.guard_shopify_order_child",
+        "hash": "eaa9e3b201d5853ef5161bb0f8f3236a"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_history.shopify_production_hold",
+        "hash": "890a0899ada80105186d7cdd268ee769"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_stage_contribution_corrections.shopify_production_hold",
+        "hash": "1a3e73f19b3a516fe1f86ff1d4a9af2e"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_stage_contribution_operations.shopify_production_hold",
+        "hash": "998f2ec0bd9945b539cd3711f80ebf4e"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_stage_instances.shopify_production_hold",
+        "hash": "59c647a110d1a9d993a6fcf377f04b21"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_stage_work_logs.shopify_production_hold",
+        "hash": "fc13124fcb9cac844af3ef2c0d09cce9"
+      },
+      {
+        "kind": "trigger",
+        "name": "item_workflow_instances.shopify_production_hold",
+        "hash": "a42719ed8e7b26bfe2b5e2066b8a10d9"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_handover_items.aaa_shopify_handover_guard",
+        "hash": "e3eadf60dcc94ab576fe3319791d3577"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_handovers.aaa_shopify_handover_guard",
+        "hash": "b441335b940d945faa379749ec8b6797"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_items.guard_shopify_order_child",
+        "hash": "39e870d9f281d4c3f0011285e495a05c"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_items.shopify_production_hold",
+        "hash": "8a31fb7e7c35d7292034822e976b630d"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_lines.guard_shopify_order_child",
+        "hash": "8b0996cc56bae288273877a9171805b0"
+      },
+      {
+        "kind": "trigger",
+        "name": "order_payments.guard_shopify_order_child",
+        "hash": "612820c96a146288a484d019986de7fd"
+      },
+      {
+        "kind": "trigger",
+        "name": "orders.guard_shopify_draft_order",
+        "hash": "eb9c0cd5ba38e4d02dfdd7f5a39882c2"
+      },
+      {
+        "kind": "trigger",
+        "name": "orders.shopify_production_hold",
+        "hash": "f16249d665198e2ee9ba5eda0bb7d84f"
+      },
+      {
+        "kind": "trigger",
+        "name": "receivables_payables.guard_shopify_order_child",
+        "hash": "08eb65c6bb9aae3064e2c87827eb3c95"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_application_audit.shopify_application_immutable",
+        "hash": "af89383283ca38779cb341dd2a718b98"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_change_cases.shopify_change_immutable",
+        "hash": "fa1673fbd1cd0f75a1ee41e2e2da27e5"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_change_decisions.shopify_change_immutable",
+        "hash": "7a965079f10899444f3680a801bc6e07"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_connection_audit.shopify_connection_audit_immutable",
+        "hash": "c45b51dfc7161231247814dfa266555f"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_connections.shopify_connections_protect_binding",
+        "hash": "fd2551d2d15186a16b93dda0b1bfc311"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_connections.shopify_privacy_activation",
+        "hash": "602c59fba0d62876d0569635dffe539f"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_customer_bindings.shopify_draft_immutable",
+        "hash": "445a0697f0e9fd713ae2aed5281cc82b"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_draft_import_results.shopify_draft_immutable",
+        "hash": "0a9a2c8213142c90e439c48de3d85d93"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_draft_reviews.shopify_review_immutable",
+        "hash": "ebdcc5c6f98eebb61a6dcaa438171ac5"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_mapping_audit.shopify_mapping_audit_immutable",
+        "hash": "9d51508e66bd745abe628c8ea46d9703"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_operational_state.shopify_operational_state_updated_at",
+        "hash": "7f5cff56b4e08c13db5aab837f170b26"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_order_item_links.shopify_review_immutable",
+        "hash": "76bc4d465ed3cf6f4c2f5b24408ec5f0"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_pilot_external_receipts.shopify_pilot_external_immutable",
+        "hash": "1448eefa4cde0ea8f10a6f2f576628f8"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_pilot_policies.shopify_application_immutable",
+        "hash": "d554a651c09d269b09002e78479789fd"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_privacy_audit.shopify_privacy_immutable",
+        "hash": "a9dbca6c54f6e5d3833fba568d0e4c0f"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_privacy_requests.shopify_privacy_immutable",
+        "hash": "c613228e93bcf29382c0f93f4c7b9829"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_privacy_tombstones.shopify_privacy_immutable",
+        "hash": "8948474ebe384287ddf756f40915887e"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_releases.shopify_pilot_release_scope",
+        "hash": "bbe06666c55c6b20b858a0e2c45667a5"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_releases.shopify_review_immutable",
+        "hash": "5ded85357797484c4a18c7851ebc6aec"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_revision_facts.shopify_change_immutable",
+        "hash": "53cb9bbca87a010875727b91de8c6466"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_source_lines.shopify_draft_immutable",
+        "hash": "c5a9b90fa761acbaa48b0bfc1884d003"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_source_orders.shopify_draft_immutable",
+        "hash": "9bc3a858dcdfee275f358fd3ef0d8bf2"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_source_orders.shopify_pilot_source_scope",
+        "hash": "cb7333ad862fdb28ff5f02660e4752dc"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_source_revisions.shopify_draft_immutable",
+        "hash": "4a9285608bba4a85b89bdde3aa5d9183"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_source_revisions.shopify_pilot_revision_scope",
+        "hash": "6c1f96506acd7851a086b1d95db17426"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_sync_jobs.shopify_jobs_request_updated",
+        "hash": "90457221ef9ac42174ba8d301500fd8b"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_sync_jobs.shopify_pilot_job_scope",
+        "hash": "081d82d2635c655b0211ce5b1641b0e0"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_webhook_conflicts.shopify_conflicts_immutable",
+        "hash": "66e72bbedbc44213051b4e36133e31b8"
+      },
+      {
+        "kind": "trigger",
+        "name": "shopify_webhook_receipts.shopify_receipts_immutable",
+        "hash": "ab44663c4e61854ffb9fa5565dbf7ea2"
+      },
+      {
+        "kind": "trigger",
+        "name": "work_units.guard_shopify_order_child",
+        "hash": "02cc159dbacb2f79957b4a0dbbe80132"
+      },
+      {
+        "kind": "view",
+        "name": "local_operational_orders",
+        "hash": "34e4823353fcc113ace078f4cadf4c4d"
+      },
+      {
+        "kind": "view",
+        "name": "operational_order_items",
+        "hash": "0ff40b04fce80ba1775f2770e7cab6a8"
+      },
+      {
+        "kind": "view",
+        "name": "operational_orders",
+        "hash": "27151c124d9500b747dfb17b5a9a0639"
+      },
+      {
+        "kind": "view",
+        "name": "shopify_operational_summaries",
+        "hash": "3709b7d32291a14632a5f381395983d5"
+      }
+    ]
+  },
+  "snapshotTime": "2026-10-15T10:00:27.145Z",
+  "serverVersion": "170006",
+  "readOnlyTransactionVerified": true,
+  "historyPresent": false,
+  "productionConnection": true,
+  "projectRef": "dxiyihrdfismbuqdmhit",
+  "liveCatalogueObjects": 3579,
+  "candidateComparison": {
+    "expectedObjects": 919,
+    "missing": [],
+    "changed": [
+      {
+        "kind": "function",
+        "name": "assert_shopify_application_owner(uuid, uuid, text)",
+        "hash": "79e9bda6c707e0a9134971e00b426be4",
+        "actualHash": "6b33294010add901024383befee3d7f2"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_owner(uuid, uuid, text)",
+        "hash": "7b0ee291400e71e0aaade15e501b04df",
+        "actualHash": "febaee1823ea489b63a7ebc979be9f7a"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_production_allowed(uuid, uuid)",
+        "hash": "8f9676b83aa07413c9a9e80e29a973d8",
+        "actualHash": "87f6f94eb2e2c9ffe4d57d15f9e57edd"
+      },
+      {
+        "kind": "function",
+        "name": "assert_shopify_receipt_reader(uuid, uuid, text)",
+        "hash": "cb8d766e2f37198228e4e34b6a210950",
+        "actualHash": "514047a10c7365cd41a4993a919bbcc2"
+      },
+      {
+        "kind": "function",
+        "name": "claim_shopify_jobs(uuid, uuid, text, text, integer)",
+        "hash": "51f844abe54dee3e4516c49c8540cfd0",
+        "actualHash": "6cf5674dd1aff95d1ec5778f2c0e48ab"
+      },
+      {
+        "kind": "function",
+        "name": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb)",
+        "hash": "a44db5644a361fe63feed366e0541a57",
+        "actualHash": "77e141efe6cf42016a5f1b0d4f791a0c"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_draft_order()",
+        "hash": "56a11034d5f348e2042596ba22770649",
+        "actualHash": "7a5ad516b8ea1abdfd47b4135258fc2b"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_handover()",
+        "hash": "0b717b81cb284e9aa1a7bd68f4cafad0",
+        "actualHash": "2c4f0d8c1f56c244912df662e23e40fa"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_order_child()",
+        "hash": "9be2b68a12a8be96a2a6f6bf5071b392",
+        "actualHash": "9bc98c1f92f37b86ed24c43f0b10bd46"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_pilot_scope()",
+        "hash": "d3a653e28d815b65221edfae6e01f628",
+        "actualHash": "983266bf80b4970a71024c88e2f04e9e"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_privacy_activation()",
+        "hash": "fe5ca94547ca4d5e44718b1a8acec96f",
+        "actualHash": "b9475ffc8e2ecd80863198303d725d43"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_privacy_contact_purge()",
+        "hash": "832a82e3b0bd31ded9dff77b9073e167",
+        "actualHash": "d5a80d9c5716ecbfefa6d0aba69ea628"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_production_hold()",
+        "hash": "2b9cea1374e4b389b39e736f84ae486a",
+        "actualHash": "2613c8989dcf1f062289afe4a9db1429"
+      },
+      {
+        "kind": "function",
+        "name": "guard_shopify_source_redaction()",
+        "hash": "8da57200e6b769af6e132e2933bf4311",
+        "actualHash": "628e330006c86eed04927898c0701387"
+      },
+      {
+        "kind": "function",
+        "name": "has_shopify_release_capability(uuid, uuid)",
+        "hash": "9a477e714c01e8d959656fcda322adf4",
+        "actualHash": "7da1dee237d85ced66459de19b276e8c"
+      },
+      {
+        "kind": "function",
+        "name": "import_shopify_draft(jsonb, boolean)",
+        "hash": "648daf299d9cb41fa163722c2dab6a5f",
+        "actualHash": "890b5e60ff4610f4dda341856fa9ee28"
+      },
+      {
+        "kind": "function",
+        "name": "import_shopify_draft_v1(jsonb, boolean)",
+        "hash": "7ede2ae6aba6d9ed87f9892cf8ab12a9",
+        "actualHash": "0331ae8e2a4051b6bd40a65c02e2862a"
+      },
+      {
+        "kind": "function",
+        "name": "list_operational_orders(uuid, text, text, text, text, text, integer)",
+        "hash": "10a567a76f44009316ec16a751cdad91",
+        "actualHash": "d9fcc8225c579d9255ef745bef7f41ba"
+      },
+      {
+        "kind": "function",
+        "name": "observe_shopify_pilot(uuid, uuid, timestamp with time zone)",
+        "hash": "aa995a6f59077248ef9d01dd3d14e46b",
+        "actualHash": "02b73bc278d9b8d4c23143f68b1d31b3"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_connection_binding()",
+        "hash": "ec892e61746e14967880ebf1db69d002",
+        "actualHash": "6d8c3f89212240d2738df14271086674"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_draft_audit()",
+        "hash": "2e54c60f7c5714a0ae5562331e6f0b9f",
+        "actualHash": "1394a7f3e070980b4067be096edd0d61"
+      },
+      {
+        "kind": "function",
+        "name": "protect_shopify_intake_audit()",
+        "hash": "d816635751d6a8767160e3a0b58d96ae",
+        "actualHash": "ded4fd0c2836f5a3e05ab1474a0725b4"
+      },
+      {
+        "kind": "function",
+        "name": "purge_expired_shopify_pilot(uuid, uuid, text, integer)",
+        "hash": "b863aeafeceb4bbbd5bdd35c1054e163",
+        "actualHash": "3bf770c08b7613d18accd846bf099397"
+      },
+      {
+        "kind": "function",
+        "name": "purge_shopify_privacy_contacts(uuid, uuid, integer)",
+        "hash": "82648dc546cbe85f2678c891b2e428f9",
+        "actualHash": "a0c4e2bf6dc3b1b07ccdd669e50ff8cd"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_application(uuid, text, text, text, text)",
+        "hash": "be16ad571118f0f0b6146f3cfea2126d",
+        "actualHash": "e74c917e5a2b2453ac908bd89c15f700"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_payment_source(uuid, text, uuid)",
+        "hash": "1eb17d4d47cf58dbbaa2c63148b50fa0",
+        "actualHash": "a3c48f69d471c072b14b65cddb3de078"
+      },
+      {
+        "kind": "function",
+        "name": "read_shopify_privacy_review(uuid, uuid, text, uuid)",
+        "hash": "16bc3dd96cd5209e9acafabd529c01c3",
+        "actualHash": "0da3e36d829401e4ca66208cae727ea4"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone)",
+        "hash": "c51d3394f3601b3ac5909a3d2a4a643e",
+        "actualHash": "d6a5ff46d3663db767e64a64d401de04"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_pilot_event(uuid, uuid, jsonb)",
+        "hash": "1366bb177d0516ccf29552138bf55349",
+        "actualHash": "1a29102af016d302ddede7786ba4c7e8"
+      },
+      {
+        "kind": "function",
+        "name": "receive_shopify_privacy(jsonb)",
+        "hash": "4ece344de7ab2467f23766b5e8724a9b",
+        "actualHash": "b7dd65196558a4cc95f7ca5c9854c099"
+      },
+      {
+        "kind": "function",
+        "name": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid)",
+        "hash": "11ce5b0c9eb812386fd567d7b33f713f",
+        "actualHash": "645e4145c21d7a879fbb4f366e38d70f"
+      },
+      {
+        "kind": "function",
+        "name": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer)",
+        "hash": "b7c800e7d7db123a004aa24fab3a86ca",
+        "actualHash": "11f6fec183dac8b2279eb125d14fcd58"
+      },
+      {
+        "kind": "function",
+        "name": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone)",
+        "hash": "3bf29b2ee73a116789f4e903b665ca26",
+        "actualHash": "320be13413c38e8e64278125bd184a14"
+      },
+      {
+        "kind": "function",
+        "name": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "16fa80ba55f14862f3ba9ccf666c31be",
+        "actualHash": "34c97eadc7cca5b503e907578225dffd"
+      },
+      {
+        "kind": "function",
+        "name": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "hash": "847301c316b5eeb261b11e37fd7e444d",
+        "actualHash": "3ea062385c9f8d2769a2f46e7c4c8da9"
+      },
+      {
+        "kind": "function",
+        "name": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text)",
+        "hash": "5cd8d1629c176d0ab52b87cc88a008b8",
+        "actualHash": "d8dedfa5c009da09bf1f1693918332d0"
+      },
+      {
+        "kind": "function",
+        "name": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb)",
+        "hash": "e0818a0a89a579e3f6ac05f4c3385fd2",
+        "actualHash": "bfe7cdf827253adb3b9415fd10eb3c16"
+      },
+      {
+        "kind": "function",
+        "name": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb)",
+        "hash": "9e641ee49d2b89192d76f9865ca8daad",
+        "actualHash": "eae646bedd7d8c9b206337460b9a8315"
+      },
+      {
+        "kind": "function",
+        "name": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text)",
+        "hash": "b657c5d5c907955111274b3115c98701",
+        "actualHash": "15389e41213b3839fc6dc186918720e3"
+      },
+      {
+        "kind": "function",
+        "name": "shopify_pilot_policy(uuid, uuid)",
+        "hash": "b0437a80909951564873566499f39790",
+        "actualHash": "8487b301e35c1dd11736a796d4d7d09e"
+      },
+      {
+        "kind": "function",
+        "name": "touch_shopify_job_request()",
+        "hash": "5aa5c554b0bc8b7f7b5b69d14bb275d8",
+        "actualHash": "93d22476297f7deab979f5d4d34e4d7b"
+      },
+      {
+        "kind": "function",
+        "name": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text)",
+        "hash": "d207a8ddaf8a3a59316611de4d46520a",
+        "actualHash": "4ae99ed32419862b573492ae250b313d"
+      },
+      {
+        "kind": "function",
+        "name": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer)",
+        "hash": "582cb7f1386e56f1033f70e28cb12877",
+        "actualHash": "6ea8e03f6b6727f377a31950923d8771"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_draft_order().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_order_child().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_activation().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_contact_purge().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_source_redaction().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_connection_binding().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_draft_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_intake_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "touch_shopify_job_request().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      }
+    ],
+    "unexpected": [],
+    "passed": false
+  },
+  "lineEndingNormalizedComparison": {
+    "expectedObjects": 919,
+    "missing": [],
+    "changed": [
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_draft_order().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_order_child().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_activation().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_privacy_contact_purge().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "guard_shopify_source_redaction().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_connection_binding().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_draft_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "protect_shopify_intake_audit().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      },
+      {
+        "kind": "function_access",
+        "name": "touch_shopify_job_request().service_role",
+        "hash": "68934a3e9455fa72420237eb05902327",
+        "actualHash": "b326b5062b2f0e69046810717534cb09"
+      }
+    ],
+    "unexpected": [],
+    "passed": false
+  },
+  "shopifyPreflight": {
+    "kind": "shopify-readonly-preflight-v1",
+    "scope": "shared-schema-all-tenant-aggregates-no-business-rows",
+    "readyForMigration": false,
+    "mayApply": false,
+    "mayDeploy": false,
+    "mayActivate": false,
+    "ownership": {
+      "database": "postgres",
+      "actor": "postgres",
+      "owner": "postgres",
+      "schemaCreate": true,
+      "databaseCreate": true
+    },
+    "historyPresent": false,
+    "orderSafety": {
+      "missing_customer_or_delivery": 0,
+      "invalid_customer_tenant_link": 0,
+      "existing_new_shopify_source": 0,
+      "existing_draft_status": 0
+    },
+    "missingPrerequisiteTables": [],
+    "setUpdatedAtPresent": true,
+    "customerIndexes": [
+      {
+        "name": "customers_pkey",
+        "sha256": "09bcf2424203693e43b0716b73d7de4eb45f824ebf95faa502707a7baa64ea76"
+      },
+      {
+        "name": "customers_tenant_created_at_idx",
+        "sha256": "ef885c3e8ff23f4532e32631f8d84673eb5d00d2b1d79f00fa846f0ded0d2860"
+      },
+      {
+        "name": "customers_tenant_id_id_unique",
+        "sha256": "366f2248a09201aa522d3813cc41c2f997271c9ebf9d7d9610086fd0abb2076e"
+      },
+      {
+        "name": "customers_tenant_name_idx",
+        "sha256": "39f12af5f7b34aeee6fe6ea7b44cc82319a0d48bf53d5fbcb5d3f195c2d077ee"
+      },
+      {
+        "name": "customers_tenant_normalized_phone_active_idx",
+        "sha256": "bc50eae206f85ca57392ea20209236d321c0b2015c06ac8636d79c68e4cfc3c2"
+      },
+      {
+        "name": "customers_tenant_phone_idx",
+        "sha256": "bea35700768a17c4ac778ad0bf70f307b60ac180438cb422a639601d1815fea4"
+      }
+    ],
+    "pilot": {
+      "matches": 1,
+      "active": true
+    },
+    "existingShopifyRelations": [
+      "local_operational_orders",
+      "operational_orders",
+      "shopify_application_audit",
+      "shopify_change_cases",
+      "shopify_change_decisions",
+      "shopify_connection_audit",
+      "shopify_connections",
+      "shopify_customer_bindings",
+      "shopify_draft_import_results",
+      "shopify_draft_reviews",
+      "shopify_mapping_audit",
+      "shopify_operational_state",
+      "shopify_operational_summaries",
+      "shopify_order_item_links",
+      "shopify_pilot_external_receipts",
+      "shopify_pilot_policies",
+      "shopify_privacy_audit",
+      "shopify_privacy_requests",
+      "shopify_privacy_tombstones",
+      "shopify_release_capabilities",
+      "shopify_releases",
+      "shopify_revision_facts",
+      "shopify_source_lines",
+      "shopify_source_orders",
+      "shopify_source_revisions",
+      "shopify_sync_jobs",
+      "shopify_variant_mappings",
+      "shopify_webhook_conflicts",
+      "shopify_webhook_receipts"
+    ],
+    "roles": [
+      {
+        "name": "anon",
+        "superuser": false,
+        "bypassrls": false
+      },
+      {
+        "name": "authenticated",
+        "superuser": false,
+        "bypassrls": false
+      },
+      {
+        "name": "service_role",
+        "superuser": false,
+        "bypassrls": true
+      }
+    ],
+    "limitation": "Inspection only; no rebuilt migration reference or full new compatibility verdict. Known drift remains subject to review."
+  },
+  "installedState": {
+    "checks": {
+      "allTablesPresent": true,
+      "allTablesRls": true,
+      "allTablesEmpty": true,
+      "ordinaryRelationAccessDenied": true,
+      "runtimeCommandsServiceOnly": true,
+      "ordinaryShopifyRpcAccessDenied": true,
+      "flagsDefaultOff": true,
+      "bothHandoverGuardsEnabled": true,
+      "existingOrdersLocal": true
+    },
+    "passed": true,
+    "tableCounts": [
+      {
+        "name": "shopify_application_audit",
+        "rows": 0
+      },
+      {
+        "name": "shopify_change_cases",
+        "rows": 0
+      },
+      {
+        "name": "shopify_change_decisions",
+        "rows": 0
+      },
+      {
+        "name": "shopify_connection_audit",
+        "rows": 0
+      },
+      {
+        "name": "shopify_connections",
+        "rows": 0
+      },
+      {
+        "name": "shopify_customer_bindings",
+        "rows": 0
+      },
+      {
+        "name": "shopify_draft_import_results",
+        "rows": 0
+      },
+      {
+        "name": "shopify_draft_reviews",
+        "rows": 0
+      },
+      {
+        "name": "shopify_mapping_audit",
+        "rows": 0
+      },
+      {
+        "name": "shopify_operational_state",
+        "rows": 0
+      },
+      {
+        "name": "shopify_order_item_links",
+        "rows": 0
+      },
+      {
+        "name": "shopify_pilot_external_receipts",
+        "rows": 0
+      },
+      {
+        "name": "shopify_pilot_policies",
+        "rows": 0
+      },
+      {
+        "name": "shopify_privacy_audit",
+        "rows": 0
+      },
+      {
+        "name": "shopify_privacy_requests",
+        "rows": 0
+      },
+      {
+        "name": "shopify_privacy_tombstones",
+        "rows": 0
+      },
+      {
+        "name": "shopify_release_capabilities",
+        "rows": 0
+      },
+      {
+        "name": "shopify_releases",
+        "rows": 0
+      },
+      {
+        "name": "shopify_revision_facts",
+        "rows": 0
+      },
+      {
+        "name": "shopify_source_lines",
+        "rows": 0
+      },
+      {
+        "name": "shopify_source_orders",
+        "rows": 0
+      },
+      {
+        "name": "shopify_source_revisions",
+        "rows": 0
+      },
+      {
+        "name": "shopify_sync_jobs",
+        "rows": 0
+      },
+      {
+        "name": "shopify_variant_mappings",
+        "rows": 0
+      },
+      {
+        "name": "shopify_webhook_conflicts",
+        "rows": 0
+      },
+      {
+        "name": "shopify_webhook_receipts",
+        "rows": 0
+      }
+    ],
+    "ordinaryRelationGrants": [],
+    "runtimeCommandsChecked": 18,
+    "runtimePermissionFailures": [],
+    "sourceRpcExposure": [],
+    "triggerGrantFindings": [
+      {
+        "name": "guard_shopify_production_hold",
+        "role": "anon",
+        "trigger_only": true,
+        "security_definer": false
+      },
+      {
+        "name": "guard_shopify_production_hold",
+        "role": "authenticated",
+        "trigger_only": true,
+        "security_definer": false
+      }
+    ],
+    "flagDefaults": [
+      {
+        "name": "draft_import_enabled",
+        "not_null": true,
+        "default_false": true
+      },
+      {
+        "name": "intake_enabled",
+        "not_null": true,
+        "default_false": true
+      },
+      {
+        "name": "processing_enabled",
+        "not_null": true,
+        "default_false": true
+      },
+      {
+        "name": "release_enabled",
+        "not_null": true,
+        "default_false": true
+      }
+    ],
+    "handoverGuards": [
+      {
+        "name": "order_handover_items",
+        "enabled": "O",
+        "function_name": "guard_shopify_handover",
+        "function_schema": "public"
+      },
+      {
+        "name": "order_handovers",
+        "enabled": "O",
+        "function_name": "guard_shopify_handover",
+        "function_schema": "public"
+      }
+    ],
+    "orderDefaults": {
+      "nonlocal": 0,
+      "nondefault_currency": 0
+    },
+    "concurrentActivity": {
+      "other_active_sessions": 0,
+      "active_transactions": 0
+    },
+    "routineMetadata": [
+      {
+        "signature": "assert_shopify_application_owner(uuid, uuid, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "assert_shopify_owner(uuid, uuid, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "assert_shopify_production_allowed(uuid, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "assert_shopify_receipt_reader(uuid, uuid, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "claim_shopify_jobs(uuid, uuid, text, text, integer)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "command_shopify_application(uuid, uuid, text, uuid, text, jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_draft_order()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_handover()",
+        "trigger_only": true,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_order_child()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_pilot_scope()",
+        "trigger_only": true,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_privacy_activation()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_privacy_contact_purge()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_production_hold()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "guard_shopify_source_redaction()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "has_shopify_release_capability(uuid, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "import_shopify_draft(jsonb, boolean)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "import_shopify_draft_v1(jsonb, boolean)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "list_operational_orders(uuid, text, text, text, text, text, integer)",
+        "trigger_only": false,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "observe_shopify_pilot(uuid, uuid, timestamp with time zone)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "protect_shopify_connection_binding()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "protect_shopify_draft_audit()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "protect_shopify_intake_audit()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "purge_expired_shopify_pilot(uuid, uuid, text, integer)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "purge_shopify_privacy_contacts(uuid, uuid, integer)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "read_shopify_application(uuid, text, text, text, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "read_shopify_payment_source(uuid, text, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "read_shopify_privacy_review(uuid, uuid, text, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "receive_shopify_event(uuid, uuid, text, text, text, bigint, text, uuid, uuid, text, text, text, timestamp with time zone)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "receive_shopify_pilot_event(uuid, uuid, jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "receive_shopify_privacy(jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "recover_shopify_application_release(uuid, uuid, text, uuid, uuid, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "recover_shopify_draft(jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": false
+      },
+      {
+        "signature": "redact_shopify_source(uuid, uuid, text, uuid, uuid, integer)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "register_shopify_connection(uuid, text, uuid, text, text, text, text, timestamp with time zone)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "release_shopify_order(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "release_shopify_order_v1(uuid, uuid, text, uuid, uuid, uuid, jsonb, boolean)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "review_shopify_change(uuid, uuid, text, uuid, uuid, uuid, uuid, uuid, text, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "save_shopify_draft_review(uuid, uuid, text, uuid, uuid, uuid, bigint, jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "save_shopify_mapping(uuid, uuid, text, uuid, jsonb)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "set_shopify_connection_state(uuid, uuid, text, uuid, bigint, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "shopify_pilot_policy(uuid, uuid)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "touch_shopify_job_request()",
+        "trigger_only": true,
+        "security_definer": false,
+        "contains_crlf": true
+      },
+      {
+        "signature": "uninstall_shopify_pilot(uuid, uuid, text, uuid, text)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      },
+      {
+        "signature": "update_shopify_job_lease(uuid, uuid, text, text, uuid, uuid, bigint, bigint, text, text, integer)",
+        "trigger_only": false,
+        "security_definer": true,
+        "contains_crlf": true
+      }
+    ],
+    "functionDefaults": [
+      {
+        "owner": "postgres",
+        "schema": "public",
+        "grantee": "anon",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "public",
+        "grantee": "authenticated",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "public",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "public",
+        "grantee": "service_role",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "storage",
+        "grantee": "anon",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "storage",
+        "grantee": "authenticated",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "storage",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "postgres",
+        "schema": "storage",
+        "grantee": "service_role",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "grantee": "anon",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "grantee": "authenticated",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "grantee": "service_role",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "grantee": "anon",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "grantee": "authenticated",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "grantee": "service_role",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "public",
+        "grantee": "anon",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "public",
+        "grantee": "authenticated",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "public",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "public",
+        "grantee": "service_role",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "grantee": "dashboard_user",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "grantee": "dashboard_user",
+        "privilege_type": "EXECUTE"
+      },
+      {
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "grantee": "postgres",
+        "privilege_type": "EXECUTE"
+      }
+    ],
+    "limitations": [
+      "Current aggregates do not prove legacy row preservation or a historical writer pause.",
+      "No private backup decrypted, business RPC executed, source order read, import activated or deployed configuration inspected."
+    ]
+  },
+  "disposableCleanupComplete": true,
+  "evidenceFile": "C:\\Users\\abhij\\OneDrive\\Documents\\New project 2\\os-plus-shopify-intake-20261008\\docs\\shopify-schema-check-8c7ef868af7ce1217c85fc2d1f59e3ab.json"
+}

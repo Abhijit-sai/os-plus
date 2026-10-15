@@ -5,6 +5,7 @@ import { seedConfigurationDefaultsAction } from "@/features/settings/actions";
 import { getSettingsOverview } from "@/features/settings/queries";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { isShopifyConnectionScreenEnabled } from "@/integrations/shopify/connection-screen";
 
 export default async function SettingsPage() {
   const {
@@ -57,6 +58,10 @@ export default async function SettingsPage() {
       description: "Operational expense buckets"
     }
   ];
+
+  if (membership.role === "owner_admin" && isShopifyConnectionScreenEnabled(tenant.id)) {
+    settingsCards.push({ href: "/settings/shopify", title: "Shopify connection", count: "Pilot", description: "Read-only store access and setup status" });
+  }
 
   return (
     <div className="space-y-6">

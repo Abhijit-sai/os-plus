@@ -583,7 +583,7 @@ export async function addOrderItemsFormAction(
     });
     const supabase = createSupabaseServiceRoleClient();
     const orderResult = await supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("tracking_token")
       .eq("tenant_id", context.tenant.id)
       .eq("id", parsed.orderId)
@@ -659,7 +659,7 @@ export async function updateOrderDetailsAction(formData: FormData) {
 
   const supabase = createSupabaseServiceRoleClient();
   const { data: order, error: orderError } = await supabase
-    .from("orders")
+    .from("local_operational_orders")
     .select("id, tracking_token")
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.orderId)
@@ -730,7 +730,7 @@ export async function updateOrderItemAction(formData: FormData) {
   }
 
   const { data: order, error: orderError } = await supabase
-    .from("orders")
+    .from("local_operational_orders")
     .select("id, customer_id, tracking_token")
     .eq("tenant_id", context.tenant.id)
     .eq("id", item.order_id)

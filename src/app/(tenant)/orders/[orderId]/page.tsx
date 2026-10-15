@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Route } from "lucide-react";
 
 import { getOrderDetailPageData } from "@/features/orders/queries";
+import { localOrderReceivable } from "@/features/orders/financial-display";
 import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -10,6 +11,7 @@ import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
+import { ShopifyPaymentPanel } from "@/components/orders/shopify-payment-panel";
 import { AddOrderItemsDialog } from "@/components/orders/add-order-items-dialog";
 import { CustomerContextSheet } from "@/components/orders/customer-context-sheet";
 import { EditOrderDialog } from "@/components/orders/edit-order-dialog";
@@ -91,6 +93,8 @@ export default async function OrderDetailPage({
   const { orderId } = await params;
   const {
     context,
+    shopifySummary,
+    shopifyPayment,
     order,
     customer,
     items,
@@ -147,7 +151,8 @@ export default async function OrderDetailPage({
     stagesByItemId.set(stageInstance.order_item_id, existing);
   });
 
-  const outstandingAmount = Math.max(order.total_amount - order.amount_paid, 0);
+  const isShopify = order.source === "shopify";
+  const outstandingAmount = localOrderReceivable(order);
   const trackingPath = `/track/${order.tracking_token}`;
   const trackingUrl = trackingPath;
   const effectivelyDeliveredItemIds = new Set(
@@ -204,7 +209,7 @@ export default async function OrderDetailPage({
         description={`Order source: ${order.source.replace("_", " ")}`}
         actions={
           <>
-            <AddOrderItemsDialog
+            {!isShopify ? <><AddOrderItemsDialog
               orderId={order.id}
               customerId={order.customer_id}
               orderStatus={order.order_status}
@@ -223,15 +228,20 @@ export default async function OrderDetailPage({
               measurements={customerMeasurements}
               standardSizes={standardSizes}
             />
-            <Button asChild variant="outline">
+            </> : null}
+            {!isShopify ? <Button asChild variant="outline">
               <Link href={trackingPath}>Open tracking</Link>
-            </Button>
+            </Button> : null}
             <Button asChild variant="outline">
               <Link href="/orders">Back to orders</Link>
             </Button>
           </>
         }
       />
+      {isShopify && shopifySummary?.held !== false ? <div role="alert" className="rounded-md border border-destructive/30 p-4 text-sm">
+        <p className="font-medium">Production is on hold for owner review</p>
+        <p className="mt-1 text-muted-foreground">Shopify source changes require an owner decision. Existing assignments and history are preserved; new starts and completions are blocked.</p>
+      </div> : null}
       <CommandBar>
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           <span>Customer</span>
@@ -249,7 +259,7 @@ export default async function OrderDetailPage({
         ) : null}
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           <span>Payment</span>
-          <StatusBadge value={order.payment_status} />
+          {isShopify ? "Shopify-managed" : <StatusBadge value={order.payment_status} />}
         </span>
         <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           {deliveredItems}/{items.length} items delivered
@@ -258,7 +268,12 @@ export default async function OrderDetailPage({
           Promised {order.promised_delivery_date ?? "not set"}
         </span>
       </CommandBar>
-      <Card>
+      {isShopify ? (
+        <div className="rounded-md border bg-muted/30 p-4 text-sm">
+          <p className="font-medium">Shopify-managed order</p>
+          <p className="mt-1 text-muted-foreground">Payments, shipping and source tax remain in Shopify. The values below describe accepted production merchandise only, not a local invoice or collectible balance. Automatic messages are disabled.</p>
+        </div>
+      ) : <Card>
         <CardHeader>
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
@@ -328,15 +343,15 @@ export default async function OrderDetailPage({
             </div>
           </CardContent>
         ) : null}
-      </Card>
+      </Card>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
-          label="Order total"
+          label={isShopify ? "Production merchandise" : "Order total"}
           value={`₹${formatMoney(order.total_amount)}`}
-          hint={order.gst_amount > 0 ? `Includes GST ₹${formatMoney(order.gst_amount)}` : `Discount ₹${formatMoney(order.discount_amount)}`}
+          hint={isShopify ? "Accepted source merchandise after discount; excludes shipping and tax" : order.gst_amount > 0 ? `Includes GST ₹${formatMoney(order.gst_amount)}` : `Discount ₹${formatMoney(order.discount_amount)}`}
         />
-        <MetricCard label="Amount paid" value={`₹${formatMoney(order.amount_paid)}`} hint={order.payment_status.replace("_", " ")} />
-        <MetricCard label="Receivable" value={`₹${formatMoney(outstandingAmount)}`} hint="Derived from order payments" />
+        {!isShopify ? <><MetricCard label="Amount paid" value={`₹${formatMoney(order.amount_paid)}`} hint={order.payment_status.replace("_", " ")} />
+        <MetricCard label="Receivable" value={`₹${formatMoney(outstandingAmount)}`} hint="Derived from order payments" /></> : null}
         <MetricCard label="Production" value={`${productionCompleteItems}/${items.length}`} hint="Production-complete items" />
         <MetricCard label="Delivery" value={`${deliveredItems}/${items.length}`} hint={fulfillmentLabel.replaceAll("_", " ")} />
       </div>
@@ -380,7 +395,7 @@ export default async function OrderDetailPage({
               </div>
             </CardContent>
           </Card>
-          <Card>
+          {!isShopify ? <Card>
             <CardHeader>
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
@@ -485,7 +500,7 @@ export default async function OrderDetailPage({
                 </details>
               ) : null}
             </CardContent>
-          </Card>
+          </Card> : <ShopifyPaymentPanel payment={shopifyPayment ?? { availability: "unavailable" }} />}
       </div>
       <div className="space-y-6">
           <Card>
@@ -648,6 +663,7 @@ export default async function OrderDetailPage({
                               <ItemWorkflowPanel
                                 item={item}
                                 order={order}
+                                shopifySummary={shopifySummary}
                                 workflow={workflowById.get(item.workflow_id) ?? null}
                                 workflows={workflows}
                                 itemType={itemTypeById.get(item.item_type_id) ?? null}

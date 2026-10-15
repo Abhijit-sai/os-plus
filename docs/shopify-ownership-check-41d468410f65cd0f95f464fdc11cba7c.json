@@ -1,0 +1,16 @@
+{
+  "kind": "osplus-private-backup-report-v1",
+  "status": "ownership_checked_readonly",
+  "check": "approved-database-ownership-only",
+  "productionWrites": false,
+  "projectRef": "dxiyihrdfismbuqdmhit",
+  "ownership": {
+    "database": "postgres",
+    "actor": "postgres",
+    "owner": "postgres",
+    "readOnly": true,
+    "migrationActorCanCreate": true,
+    "migrationActorDatabaseCreate": true,
+    "checkedAt": "2026-10-14T12:22:54.790Z"
+  }
+}

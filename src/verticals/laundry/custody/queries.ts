@@ -120,7 +120,7 @@ export async function getLaundryCustodyData() {
       .is("deleted_at", null)
       .order("name", { ascending: true }),
     supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("id, order_number, customer_id, order_date, promised_delivery_date, runtime_model, vertical_key")
       .eq("tenant_id", context.tenant.id)
       .eq("vertical_key", "laundry")

@@ -170,7 +170,7 @@ async function validateEntityAndGetPaths({
 
   if (entityType === "order") {
     const { data, error } = await supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("id")
       .eq("tenant_id", tenantId)
       .eq("id", entityId)

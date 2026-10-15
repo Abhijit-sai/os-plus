@@ -13,7 +13,7 @@ export async function getPublicTrackingPageData(trackingToken: string) {
   }
 
   const { data: order, error: orderError } = await supabase
-    .from("orders")
+    .from("local_operational_orders")
     .select(
       "id, tenant_id, order_number, order_date, promised_delivery_date, delivery_type, order_status, tracking_token, deleted_at"
     )

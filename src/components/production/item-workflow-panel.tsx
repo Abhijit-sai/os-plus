@@ -10,6 +10,7 @@ import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChangeWorkflowDialog, CorrectStageDialog } from "@/components/production/workflow-action-dialogs";
+import type { ShopifyOperationalSummary } from "@/features/orders/shopify-operational";
 import type {
   ItemHistory,
   ItemStageInstance,
@@ -217,6 +218,7 @@ export function ItemWorkflowPanel({
   canViewContributionAmounts,
   history,
   linkedMeasurement,
+  shopifySummary = null,
   variant = "page"
 }: {
   item: OrderItem;
@@ -239,6 +241,7 @@ export function ItemWorkflowPanel({
   canViewContributionAmounts: boolean;
   history: ItemHistory[];
   linkedMeasurement?: CustomerMeasurement | null;
+  shopifySummary?: ShopifyOperationalSummary | null;
   variant?: "page" | "pane";
 }) {
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
@@ -264,6 +267,8 @@ export function ItemWorkflowPanel({
     stageInstances.some((stage) => Boolean(stage.started_at) || !["not_started", "ready_to_start"].includes(stage.status)) ||
     Boolean(workLogs.length);
   const linkedMeasurementEntries = linkedMeasurement ? getMeasurementEntries(linkedMeasurement.measurement_data_json) : [];
+  const isShopify = order?.source === "shopify";
+  const productionHeld = isShopify && shopifySummary?.held !== false;
 
   return (
     <div className="space-y-5">
@@ -276,7 +281,7 @@ export function ItemWorkflowPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {workflows.length > 1 ? (
+          {!isShopify && workflows.length > 1 ? (
             <ChangeWorkflowDialog orderItemId={item.id} currentWorkflowId={item.workflow_id} workflows={workflows} hasStartedWork={hasStartedWork} />
           ) : null}
           {variant === "pane" ? (
@@ -290,7 +295,11 @@ export function ItemWorkflowPanel({
         </div>
       </div>
 
-      {!workflowInstance ? (
+      {productionHeld ? <div role="alert" className="rounded-md border border-destructive/30 p-4 text-sm">
+        <p className="font-medium">Production held · owner review required</p>
+        <p className="mt-1 text-muted-foreground">Shopify has new or incomplete source information. Assignments and history remain visible; work cannot start or complete until reviewed.</p>
+      </div> : null}
+      {!isShopify && !workflowInstance ? (
         <Card>
           <CardHeader>
             <CardTitle>Initialize workflow</CardTitle>
@@ -412,7 +421,7 @@ export function ItemWorkflowPanel({
                           </p>
                         </div>
                         <div className="flex items-start gap-2">
-                          {stageInstance.effort_tracking_mode_snapshot === null && stageInstance.status !== "ready_to_start" ? (
+                          {!isShopify && stageInstance.effort_tracking_mode_snapshot === null && stageInstance.status !== "ready_to_start" ? (
                             <CorrectStageDialog
                               stageInstance={stageInstance}
                               stageName={stage?.name ?? "stage"}
@@ -422,7 +431,7 @@ export function ItemWorkflowPanel({
                           ) : null}
                         </div>
                       </div>
-                      {(["ready_to_start", "in_progress", "completed"].includes(stageInstance.status)
+                      {!productionHeld && (["ready_to_start", "in_progress", "completed"].includes(stageInstance.status)
                         && (stageInstance.status === "ready_to_start" || stageInstance.effort_tracking_mode_snapshot !== null)) ? (
                         allowedWorkgroupIds.length && (eligibleWorkers.length || stageLogs.length) ? (
                           <StageContributionEditor

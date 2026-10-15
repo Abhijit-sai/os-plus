@@ -1,3 +1,5 @@
+import type { ShopifyIntakeTables, ShopifyIntakeFunctions } from "./shopify-intake.ts";
+
 export type TenantStatus = "active" | "inactive" | "suspended";
 export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
 export type TenantVerticalKey = "boutique" | "laundry";
@@ -11,7 +13,7 @@ export type WorkerStatus = "active" | "inactive";
 export type WorkerWageType = "hourly" | "daily" | "weekly" | "monthly" | "per_piece" | "hybrid";
 export type CustomerGender = "female" | "male" | "other" | "not_specified";
 export type ItemTypeIconKind = "emoji" | "lucide";
-export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other";
+export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other" | "shopify";
 export type DeliveryType = "store_pickup" | "self_delivery" | "courier";
 export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "refunded";
 export type OrderStatus = "confirmed" | "in_progress" | "ready" | "partially_delivered" | "completed" | "delivered" | "cancelled";
@@ -1140,7 +1142,7 @@ type TenantRelationship = {
 
 export type Database = {
   public: {
-    Tables: {
+    Tables: ShopifyIntakeTables & {
       tenants: {
         Row: Tenant;
         Insert: Omit<Tenant, "id" | "created_at" | "updated_at"> & {
@@ -1389,7 +1391,14 @@ export type Database = {
         Relationships: [TenantRelationship];
       };
       orders: {
-        Row: Order;
+        Row: Omit<Order, "customer_id" | "delivery_type" | "source" | "order_status"> & {
+          customer_id: string | null;
+          delivery_type: DeliveryType | null;
+          source: OrderSource | "shopify";
+          order_status: OrderStatus | "draft";
+          financial_management: "local" | "external_shopify";
+          source_currency_code: string;
+        };
         Insert: TenantOwnedInsertBase & {
           order_number?: string;
           reference_order_id?: string | null;
@@ -2346,8 +2355,15 @@ export type Database = {
         Relationships: [TenantRelationship];
       };
     };
-    Views: Record<string, never>;
-    Functions: {
+    // The view's predicates plus database checks establish non-null operational
+    // customer/delivery fields; raw orders can contain unresolved Shopify drafts.
+    Views: {
+      local_operational_orders: { Row: Order; Relationships: [TenantRelationship] };
+      operational_orders: { Row: Order; Relationships: [TenantRelationship] };
+      operational_order_items: { Row: OrderItem; Relationships: [TenantRelationship] };
+      shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
+    };
+    Functions: ShopifyIntakeFunctions & {
       create_salary_period_with_calculations: {
         Args: {
           p_tenant_id: string;
@@ -2890,10 +2906,10 @@ export type Database = {
       worker_status: WorkerStatus;
       worker_wage_type: WorkerWageType;
       customer_gender: CustomerGender;
-      order_source: OrderSource;
+      order_source: OrderSource | "shopify";
       delivery_type: DeliveryType;
       payment_status: PaymentStatus;
-      order_status: OrderStatus;
+      order_status: OrderStatus | "draft";
       item_status: ItemStatus;
       item_workflow_status: ItemWorkflowStatus;
       item_stage_status: ItemStageStatus;
