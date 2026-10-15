@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import type { ItemHistory, ItemStageInstance, ItemStageWorkLog } from "@/types/database";
+import { getShopifyOperationalSummaries } from "@/features/orders/shopify-operational";
 
 const productionFiltersSchema = z.object({
   itemTypeIds: z.array(z.string().uuid()).max(100),
@@ -17,7 +18,7 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
   const parsedFilters = productionFiltersSchema.safeParse(filters);
-  let itemsQuery = supabase.from("order_items").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null);
+  let itemsQuery = supabase.from("operational_order_items").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null);
 
   if (!parsedFilters.success) {
     itemsQuery = itemsQuery.eq("id", impossibleId);
@@ -34,7 +35,7 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
   if (items.error) throw new Error(`Unable to load production data: ${items.error.message}`);
   const orderIds = [...new Set((items.data ?? []).map((item) => item.order_id))];
   const orders = orderIds.length
-    ? await supabase.from("orders").select("id, order_number, customer_id").eq("tenant_id", context.tenant.id).in("id", orderIds).is("deleted_at", null)
+    ? await supabase.from("operational_orders").select("id, order_number, customer_id, source").eq("tenant_id", context.tenant.id).in("id", orderIds).is("deleted_at", null)
     : { data: [], error: null };
   if (orders.error) throw new Error(`Unable to load production data: ${orders.error.message}`);
   const customerIds = [...new Set((orders.data ?? []).map((order) => order.customer_id))];
@@ -59,7 +60,7 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
       .is("deleted_at", null),
     supabase
       .from("item_stage_instances")
-      .select("*")
+      .select("id, tenant_id, workflow_instance_id, order_item_id, stage_master_id, sequence_number, status, started_at, completed_at, planned_start_at, planned_end_at")
       .eq("tenant_id", context.tenant.id)
       .is("deleted_at", null),
     supabase.from("stage_master").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
@@ -82,8 +83,10 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
     }
   }
 
+  const shopifySummaries = await getShopifyOperationalSummaries(supabase, context.tenant.id, (orders.data ?? []).filter(order => order.source === "shopify").map(order => order.id));
   return {
     context,
+    shopifySummaries,
     items: items.data ?? [],
     orders: orders.data ?? [],
     customers: customers.data ?? [],
@@ -104,7 +107,7 @@ export async function getProductionItemPageData(itemId: string) {
   const canViewContributionAmounts = context.membership.role === "owner_admin";
 
   const item = await supabase
-    .from("order_items")
+    .from("operational_order_items")
     .select("*")
     .eq("tenant_id", context.tenant.id)
     .eq("id", itemId)
@@ -157,7 +160,7 @@ export async function getProductionItemPageData(itemId: string) {
   ] =
     await Promise.all([
       supabase
-        .from("orders")
+        .from("operational_orders")
         .select("*")
         .eq("tenant_id", context.tenant.id)
         .eq("id", item.data.order_id)
@@ -264,8 +267,11 @@ export async function getProductionItemPageData(itemId: string) {
     }
   }
 
+  if (!order.data) notFound();
+  const [shopifySummary] = await getShopifyOperationalSummaries(supabase, context.tenant.id, [order.data.id]);
   return {
     context,
+    shopifySummary: shopifySummary ?? null,
     item: item.data,
     order: order.data,
     workflow: workflow.data,

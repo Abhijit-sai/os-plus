@@ -1,0 +1,178 @@
+// Fictional private DTOs only: no real tenants, credentials, customer exports or env files.
+export const now = Date.parse("2026-10-08T12:00:00Z");
+export const context = {
+  tenantId: "10000000-0000-4000-8000-000000000001",
+  connectionId: "20000000-0000-4000-8000-000000000001",
+  shopGid: "gid://shopify/Shop/101",
+  shopDomain: "synthetic-intake.myshopify.com",
+  appRef: "synthetic-app",
+  environment: "production",
+  apiVersion: "2026-10",
+  revision: 2,
+  status: "verified",
+  tenantStatus: "active",
+  intakeEnabled: true,
+  processingEnabled: true,
+  requiredScopesVerified: true,
+  protectedCustomerFieldsVerified: true,
+  importCreatedAtCutoff: "2026-10-08T00:00:00Z",
+};
+export const lease = {
+  jobId: "30000000-0000-4000-8000-000000000001",
+  tenantId: context.tenantId,
+  connectionId: context.connectionId,
+  orderGid: "gid://shopify/Order/9007199254740993",
+  generation: 1,
+  connectionRevision: 2,
+  leaseToken: "40000000-0000-4000-8000-000000000001",
+  leaseExpiresAt: "2026-10-08T12:10:00Z",
+};
+export const env = {
+  VERCEL_ENV: "production",
+  SHOPIFY_DEPLOYMENT_ENV: "production",
+  SHOPIFY_API_VERSION: "2026-10",
+  SHOPIFY_HYDRATION_ENABLED: "true",
+  SHOPIFY_SYNC_ENABLED: "true",
+};
+export const bag = (amount) => ({
+  shopMoney: { amount, currencyCode: "INR" },
+  presentmentMoney: { amount, currencyCode: "USD" },
+});
+export function snapshot() {
+  const tax = {
+    title: "Synthetic tax",
+    rate: 0.18,
+    channelLiable: null,
+    priceSet: bag("18.00"),
+  };
+  return {
+    completeness: "complete",
+    tenantId: context.tenantId,
+    connectionId: context.connectionId,
+    shopGid: context.shopGid,
+    connectionRevision: 2,
+    jobId: lease.jobId,
+    generation: 1,
+    observedAt: "2026-10-08T12:00:00Z",
+    order: {
+      id: lease.orderGid,
+      legacyResourceId: "9007199254740993",
+      name: "#SYNTHETIC-1",
+      createdAt: "2026-10-08T01:00:00Z",
+      updatedAt: "2026-10-08T02:00:00Z",
+      note: "Fictional customization",
+      tags: ["synthetic"],
+      customAttributes: [],
+      edited: false,
+      requiresShipping: true,
+      currencyCode: "INR",
+      presentmentCurrencyCode: "USD",
+      cancelledAt: null,
+      displayFinancialStatus: "PAID",
+      displayFulfillmentStatus: "UNFULFILLED",
+      taxesIncluded: false,
+      email: null,
+      phone: null,
+      customer: null,
+      shippingAddress: null,
+      billingAddress: null,
+      currentTotalPriceSet: bag("118.00"),
+      currentSubtotalPriceSet: bag("100.00"),
+      currentTotalTaxSet: bag("18.00"),
+      currentTotalDiscountsSet: bag("10.00"),
+      totalShippingPriceSet: bag("0.00"),
+      totalOutstandingSet: bag("0.00"),
+      originalTotalPriceSet: bag("118.00"),
+      currentShippingPriceSet: bag("0.00"),
+      currentTotalDutiesSet: null,
+      originalTotalDutiesSet: null,
+      currentTotalAdditionalFeesSet: null,
+      originalTotalAdditionalFeesSet: null,
+      totalReceivedSet: bag("118.00"),
+      netPaymentSet: bag("118.00"),
+      totalRefundedSet: bag("0.00"),
+      totalRefundedShippingSet: bag("0.00"),
+      totalTipReceivedSet: bag("0.00"),
+      currentTaxLines: [tax],
+      taxLines: [tax],
+      totalCashRoundingAdjustment: {
+        paymentSet: bag("0.00"),
+        refundSet: bag("0.00"),
+      },
+    },
+    lines: [
+      {
+        id: "gid://shopify/LineItem/1",
+        title: "Synthetic blue shirt",
+        name: "Synthetic blue shirt / M",
+        variantTitle: "M",
+        sku: " Shirt-01 ",
+        quantity: 1,
+        currentQuantity: 1,
+        isGiftCard: false,
+        requiresShipping: true,
+        customAttributes: [{ key: "Colour", value: "Blue" }],
+        product: null,
+        variant: null,
+        image: null,
+        priceAfterAllDiscountsBeforeTaxesSet: bag("100.00"),
+        originalTotalSet: bag("110.00"),
+        originalUnitPriceSet: bag("110.00"),
+        totalDiscountSet: bag("10.00"),
+        taxLines: [tax],
+        discountAllocations: [{ allocatedAmountSet: bag("10.00") }],
+        warnings: [],
+        catalogue: {
+          provenance: "current_catalogue",
+          observedAt: "2026-10-08T12:00:00Z",
+          product: null,
+          variant: null,
+        },
+      },
+    ],
+    shippingLines: [],
+  };
+}
+export function addCatalogue(value) {
+  value.lines[0].product = { id: "gid://shopify/Product/11" };
+  value.lines[0].variant = { id: "gid://shopify/ProductVariant/12" };
+  value.lines[0].catalogue.product = {
+    __typename: "Product",
+    id: "gid://shopify/Product/11",
+    title: "Current product title",
+    description: "Current plain description",
+    productType: "Shirts",
+    tags: ["private-source"],
+    updatedAt: "2026-10-08T03:00:00Z",
+    image: {
+      id: null,
+      url: "https://cdn.shopify.com/product.jpg",
+      altText: null,
+    },
+  };
+  value.lines[0].catalogue.variant = {
+    __typename: "ProductVariant",
+    id: "gid://shopify/ProductVariant/12",
+    title: "Current Blue / M",
+    sku: "NEW-SKU",
+    updatedAt: "2026-10-08T03:00:00Z",
+    product: { id: "gid://shopify/Product/11" },
+    selectedOptions: [
+      { name: "Shade", value: "Blue" },
+      { name: "Size", value: "M" },
+    ],
+    image: null,
+  };
+  return value;
+}
+export const address = (country = "IN", phone = null) => ({
+  firstName: "Fictional",
+  lastName: "Buyer",
+  phone,
+  address1: "Synthetic address",
+  address2: null,
+  city: null,
+  province: null,
+  countryCodeV2: country,
+  zip: null,
+});

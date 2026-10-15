@@ -10,7 +10,7 @@ import { createShopifyTokenProvider } from "../src/integrations/shopify/client-c
 import { createShopifyConnectionTester } from "../src/integrations/shopify/connection-test.ts";
 import { createShopifyProbeHandler } from "../src/integrations/shopify/probe-handler.ts";
 import { readShopifyProbeActor } from "../src/integrations/shopify/probe-actor-reader.ts";
-import { ShopifyIntegrationError, ShopifyProbeConfigurationError } from "../src/integrations/shopify/errors.ts";
+import { ShopifyIntegrationError } from "../src/integrations/shopify/errors.ts";
 
 const tenantId = "10000000-0000-4000-8000-000000000001";
 const foreignId = "20000000-0000-4000-8000-000000000002";
@@ -105,6 +105,20 @@ test("GraphQL timeout aborts stalled headers with no automatic retry", async () 
   assert.equal(attempts, 1);
 });
 
+for (const [label, transport] of [
+  ['stalled error-body cancellation', async () => new Response(new ReadableStream({ cancel() { return new Promise(() => {}); } }), { status: 503 })],
+  ['transport ignoring abort', async () => new Promise(() => {})],
+  ['stalled body ignoring fetch abort', async () => new Response(new ReadableStream({ start(controller) { controller.enqueue(Buffer.from('{')); } }),
+    { headers: { 'X-Shopify-API-Version': '2026-10' } })],
+]) test(`GraphQL deadline bounds ${label}`, async () => {
+  const withinBudget = async promise => {
+    let timer;
+    try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('MISSED_DEADLINE')), 150); })]); }
+    finally { clearTimeout(timer); }
+  };
+  await assert.rejects(() => withinBudget(readGraph({ ...transportInput, timeoutMs: 10 }, transport)), code('UPSTREAM_UNAVAILABLE'));
+});
+
 test("GraphQL deadline stays active while reading a stalled response body", async () => {
   await assert.rejects(() => readGraph({ ...transportInput, timeoutMs: 10 }, async (_url, options) => {
     const body = new ReadableStream({ start(controller) {
@@ -194,41 +208,32 @@ const configurationDiagnostics = [
   ["client_secret", { SHOPIFY_CLIENT_SECRET: "synthetic-secret\n" }],
 ];
 for (const [check, patch] of configurationDiagnostics) {
-  test(`configuration diagnostic identifies ${check} without values: ${Object.keys(patch)[0]}`, async () => {
+  test(`configuration ${check} fails closed without logging: ${Object.keys(patch)[0]}`, async t => {
     const reports = [];
     const handler = createShopifyProbeHandler({ getActor: async () => actor,
-      testConnection: createShopifyConnectionTester(noTransport), reportConfigurationFailure: value => reports.push(value) });
+      testConnection: createShopifyConnectionTester(noTransport) });
+    t.mock.method(console, "warn", (...values) => reports.push(values));
     const response = await handler(request(), { ...env, ...patch });
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
-    assert.deepEqual(reports, [check]);
+    assert.deepEqual(reports, []);
   });
 }
 
-test("unauthorized contexts cannot trigger post-auth configuration diagnostics", async () => {
+test("unauthorized contexts fail before transport and produce no logs", async t => {
+  const reports = [];
+  t.mock.method(console, "warn", (...values) => reports.push(values));
   for (const selectedActor of [null, { ...actor, role: "manager" },
     { ...actor, tenantId: foreignId, membershipTenantId: foreignId }]) {
-    const reports = [];
     const handler = createShopifyProbeHandler({ getActor: async () => selectedActor,
-      testConnection: createShopifyConnectionTester(noTransport), reportConfigurationFailure: check => reports.push(check) });
+      testConnection: createShopifyConnectionTester(noTransport) });
     const response = await handler(request(), { ...env, SHOPIFY_CLIENT_SECRET: "" });
     assert.ok([401, 403].includes(response.status));
     assert.deepEqual(reports, []);
   }
 });
 
-test("a failed diagnostic reporter cannot change fail-closed HTTP behavior", async () => {
-  const handler = createShopifyProbeHandler({ getActor: async () => actor,
-    testConnection: createShopifyConnectionTester(noTransport),
-    reportConfigurationFailure: () => { throw new Error("synthetic-private-logger-error"); } });
-  for (const patch of [{ SHOPIFY_APPLICATION_ORIGIN: "" }, { SHOPIFY_CLIENT_SECRET: "" }]) {
-    const response = await handler(request(), { ...env, ...patch });
-    assert.equal(response.status, 503);
-    assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
-  }
-});
-
-test("the production logger emits only a fixed tag and failing-check label", async t => {
+test("configuration failures remain redacted after temporary logging is removed", async t => {
   const logs = [];
   t.mock.method(console, "warn", (...args) => logs.push(args));
   const handler = pipeline(noTransport);
@@ -238,17 +243,14 @@ test("the production logger emits only a fixed tag and failing-check label", asy
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), { error: "CONFIGURATION_INVALID" });
   }
-  assert.deepEqual(logs, [["[DEBUG-osplus-shopify-config-v1]", "application_origin"],
-    ["[DEBUG-osplus-shopify-config-v1]", "client_secret"]]);
+  assert.deepEqual(logs, []);
   assert.doesNotMatch(JSON.stringify(logs), /synthetic|private|https:|user_|10000000|token/);
 });
 
-test("unclassified or corrupted diagnostic errors cannot inject log content", async t => {
+test("unclassified errors cannot inject response or log content", async t => {
   const logs = [];
   t.mock.method(console, "warn", (...args) => logs.push(args));
-  const corrupted = new ShopifyProbeConfigurationError("client_secret");
-  corrupted.check = "synthetic-private-secret";
-  for (const error of [corrupted, new ShopifyIntegrationError("CONFIGURATION_INVALID"),
+  for (const error of [new ShopifyIntegrationError("CONFIGURATION_INVALID"),
     new Error("synthetic-private-upstream-error")]) {
     const handler = createShopifyProbeHandler({ getActor: async () => actor,
       testConnection: async () => { throw error; } });
@@ -372,12 +374,11 @@ test("actual actor resolver uses current tenant/user/active filters and performs
   assert.equal(await readShopifyProbeActor(actor.userId, "bad-id", untouched), null);
   assert.equal(noReads.length, 0);
 });
-test("real route is protected, wires actual handler, and slice has no business-write/messaging operations", () => {
+test("real diagnostic route stays Clerk protected when exact HMAC/bearer application ingress is introduced", async () => {
   const route = readFileSync(new URL("../src/app/api/integrations/shopify/test-connection/route.ts", import.meta.url), "utf8");
   assert.match(route, /getActor: getShopifyProbeActor/); assert.match(route, /testConnection: createShopifyConnectionTester/);
   assert.match(route, /export async function POST/); assert.doesNotMatch(route, /export.*GET/);
-  const proxy = readFileSync(new URL("../src/proxy.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(proxy, /shopify|\/api\/\(\.\*\)/);
+  const {assertShopifyProxyBoundary}=await import('./fixtures/shopify-proxy-contract.mjs');await assertShopifyProxyBoundary();
   for (const name of ["probe-actor.ts", "probe-actor-reader.ts", "probe-handler.ts", "connection-test.ts"]) {
     const source = readFileSync(new URL(`../src/integrations/shopify/${name}`, import.meta.url), "utf8");
     assert.doesNotMatch(source, /\.(insert|update|upsert|delete|rpc)\s*\(|sendWhatsApp|sendSms|enqueue/);

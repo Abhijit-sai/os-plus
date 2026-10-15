@@ -1,0 +1,50 @@
+{
+  "kind": "osplus-shopify-fresh-recovery-redacted-v1",
+  "status": "FRESH_BACKUP_RECOVERY_VERIFIED",
+  "projectRef": "dxiyihrdfismbuqdmhit",
+  "productionConnection": true,
+  "productionWrites": false,
+  "migrationsExecuted": false,
+  "mayApply": false,
+  "mayDeploy": false,
+  "mayActivate": false,
+  "hostedTestPopulated": false,
+  "preflightEvidenceFile": "shopify-readonly-preflight-20261015T073238224Z.json",
+  "preflightEvidenceSha256": "7c7b4eb92ddde4de321107a29c9a24a444f9d81714469045b884766337171597",
+  "preflightSnapshotTime": "2026-10-15T07:32:38.224Z",
+  "backupSnapshotTime": "2026-10-15T07:33:00.072Z",
+  "archiveRunId": "7d01251b81dc48c1840d32142382e778",
+  "archiveSha256": "939655945ecfa2b5f650a09a9609d3d5764cc52a8627891c5d84c18a846132cc",
+  "archiveBytes": 1377317,
+  "serverVersion": 170006,
+  "readOnlyTransactionVerified": true,
+  "savedRecoverySetVerified": true,
+  "restoreVerified": true,
+  "verifiedTables": 73,
+  "verifiedCatalogueObjects": 2140,
+  "catalogueSha256": "84243ec9d28c9e236f4bbf50624f2082b65270d898288dc03f01402c42bc160b",
+  "preflightAndBackupCatalogueMatch": true,
+  "permissionMetadataCounts": {
+    "memberships": 21,
+    "defaultprivileges": 6
+  },
+  "requiredNativeExtensions": [
+    {
+      "name": "pgcrypto",
+      "version": "1.3"
+    }
+  ],
+  "disposableCleanupComplete": true,
+  "privateReportName": "result.json",
+  "recoveryScope": "All-tenant public application schema/data plus captured role, membership, default and schema privileges; no Storage object bytes, platform Auth/Vault secrets or external settings.",
+  "ownershipLimitation": "Archive does not record database ownership. Fresh read-only preflight separately confirms owner postgres and public/schema CREATE permissions; this is not snapshot-atomic ownership evidence or full live recovery authority.",
+  "existingBackupsRetained": true,
+  "limitations": [
+    "New snapshot covers only data visible at 2026-10-15T07:33:00.072Z; subsequent writes are not protected by it.",
+    "No candidate migrations were run anywhere during this fresh preflight/backup/recovery pass.",
+    "Earlier twelve-file migration rehearsal used the October14 backup, not this new snapshot.",
+    "Fresh inspection is not a full new reference-based compatibility verdict; known drift/missing migration history remain subject to review.",
+    "No shared restore, migration, deployment, import, flag change or Chat/CRM access authorized or performed."
+  ]
+}
+

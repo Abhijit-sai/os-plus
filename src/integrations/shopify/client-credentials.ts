@@ -19,6 +19,16 @@ export function createShopifyTokenProvider(transport: typeof fetch = fetch, now 
   let current: Slot | null = null;
   return {
     invalidate() { current = null; },
+    async getTokenLease(config: ShopifyProbeConfig): Promise<{accessToken:string;expiresAt:string}> {
+      const accessToken = await this.getToken(config);
+      const key = createHash("sha256").update(JSON.stringify(config)).digest("hex");
+      // Return the actual provider expiry, not an invented lifetime. A cache
+      // switch/invalidation between awaiting and reading fails closed.
+      if (!current || current.key !== key || current.token !== accessToken ||
+        !current.expiresAt || current.expiresAt <= now() + 60000)
+        throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+      return {accessToken,expiresAt:new Date(current.expiresAt).toISOString()};
+    },
     async getToken(config: ShopifyProbeConfig): Promise<string> {
       const key = createHash("sha256").update(JSON.stringify(config)).digest("hex");
       if (!current || current.key !== key) current = { key };

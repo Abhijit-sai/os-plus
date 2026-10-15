@@ -125,7 +125,8 @@ export default async function ProductionPage({
   const selectedItemTypeSet = new Set(selectedItemTypeIds);
   const selectedWorkflowItemId = resolvedSearchParams?.workflowItemId;
   const selectedWorkflowData = selectedWorkflowItemId ? await getProductionItemPageData(selectedWorkflowItemId) : null;
-  const { context, items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
+  const { context, items, orders, customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers, shopifySummaries } = await getProductionPageData({ itemTypeIds: selectedItemTypeIds, workflowIds: selectedWorkflowIds });
+  const holdByOrder = new Map(shopifySummaries.map(summary => [summary.orderId, summary.held]));
   const orderById = new Map(orders.map((order) => [order.id, order]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
   const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
@@ -173,11 +174,13 @@ export default async function ProductionPage({
     const isDelivered = item.item_status === "delivered" || isWorkflowDeliveryComplete;
     const isAtRisk = dueInDays !== null && dueInDays <= 2 && !isDelivered;
     const isDelayed = dueInDays !== null && dueInDays < 0 && !isDelivered;
+    const productionHeld = order?.source === "shopify" && holdByOrder.get(order.id) !== false;
 
     return {
       item,
       order,
       customer,
+      productionHeld,
       workflow,
       itemType,
       workflowInstance,
@@ -734,6 +737,7 @@ export default async function ProductionPage({
                             <p className="truncate">
                               {row.order?.order_number ?? "Unknown"} · {row.customer?.name ?? "Unknown customer"}
                             </p>
+                            {row.productionHeld ? <p className="mt-1 font-medium text-destructive">Production held · owner review</p> : null}
                             <div className="mt-1 flex min-w-0 items-center gap-3">
                               <span className="inline-flex min-w-0 items-center gap-1">
                                 <UserRound className="h-3.5 w-3.5 shrink-0" />

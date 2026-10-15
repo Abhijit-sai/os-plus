@@ -6,31 +6,45 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { getAttachmentsForEntities } from "@/features/attachments/queries";
 import type { ItemHistory, ItemStageInstance, ItemStageWorkLog } from "@/types/database";
+import { getShopifyOperationalSummaries } from "./shopify-operational";
+import { getShopifyPaymentDisplay } from "./shopify-payments";
 
-export async function getOrdersPageData(search?: string | null) {
+export async function getOrdersPageData(search?: string | null, filters: {
+  source?: string; status?: string; payment?: string; view?: string;
+} = {}) {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
   const trimmedSearch = search?.trim();
 
-  const [orders, customers, orderItems] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("*")
-      .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
+  const selected = (value?: string) => !value || value === "all" ? null : value;
+  const orders = await supabase.rpc("list_operational_orders", {
+    p_tenant_id: context.tenant.id,
+    p_search: trimmedSearch || null,
+    p_source: selected(filters.source),
+    p_status: selected(filters.status),
+    p_payment: selected(filters.payment),
+    p_view: filters.view ?? "all",
+    p_limit: 50,
+  });
+  if (orders.error) throw new Error("Unable to load orders. Please try again.");
+  const listedOrders = orders.data ?? [];
+  const orderIds = listedOrders.map(order => order.id);
+  const customerIds = Array.from(new Set(listedOrders.map(order => order.customer_id)));
+  const [customers, orderItems] = await Promise.all([
+    customerIds.length ? supabase
       .from("customers")
       .select("id, name, phone")
       .eq("tenant_id", context.tenant.id)
+      .in("id", customerIds)
       .is("deleted_at", null)
-      .order("name"),
-    supabase
-      .from("order_items")
+      .order("name") : Promise.resolve({ data: [], error: null }),
+    orderIds.length ? supabase
+      .from("operational_order_items")
       .select("id, order_id, item_status")
       .eq("tenant_id", context.tenant.id)
+      .in("order_id", orderIds)
       .is("deleted_at", null)
+      : Promise.resolve({ data: [], error: null })
   ]);
 
   for (const result of [orders, customers, orderItems]) {
@@ -39,15 +53,6 @@ export async function getOrdersPageData(search?: string | null) {
     }
   }
 
-  const customerById = new Map((customers.data ?? []).map((customer) => [customer.id, customer]));
-  const filteredOrders = trimmedSearch
-    ? (orders.data ?? []).filter((order) => {
-        const customer = customerById.get(order.customer_id);
-        const haystack =
-          `${order.order_number} ${order.reference_order_id ?? ""} ${customer?.name ?? ""} ${customer?.phone ?? ""}`.toLowerCase();
-        return haystack.includes(trimmedSearch.toLowerCase());
-      })
-    : orders.data ?? [];
   const orderItemIds = (orderItems.data ?? []).map((item) => item.id);
   const stageInstances = orderItemIds.length
     ? await supabase
@@ -62,9 +67,11 @@ export async function getOrdersPageData(search?: string | null) {
     throw new Error(`Unable to load order progress: ${stageInstances.error.message}`);
   }
 
+  const shopifySummaries = await getShopifyOperationalSummaries(supabase, context.tenant.id, listedOrders.filter(order => order.source === "shopify").map(order => order.id));
   return {
     context,
-    orders: filteredOrders,
+    shopifySummaries,
+    orders: listedOrders,
     customers: customers.data ?? [],
     orderItems: orderItems.data ?? [],
     stageInstances: stageInstances.data ?? [],
@@ -152,7 +159,7 @@ export async function getOrderDetailPageData(orderId: string) {
   const canViewContributionAmounts = context.membership.role === "owner_admin";
 
   const order = await supabase
-    .from("orders")
+    .from("operational_orders")
     .select("*")
     .eq("tenant_id", context.tenant.id)
     .eq("id", orderId)
@@ -193,7 +200,7 @@ export async function getOrderDetailPageData(orderId: string) {
     supabase.from("workflows").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase.from("payment_modes").select("*").eq("tenant_id", context.tenant.id).is("deleted_at", null),
     supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("id, order_number, order_date, promised_delivery_date, total_amount, amount_paid, payment_status, order_status")
       .eq("tenant_id", context.tenant.id)
       .eq("customer_id", order.data.customer_id)
@@ -324,8 +331,14 @@ export async function getOrderDetailPageData(orderId: string) {
     }
   }
 
+  const [shopifySummary] = order.data.source === "shopify" ? await getShopifyOperationalSummaries(supabase, context.tenant.id, [order.data.id]) : [];
+  const shopifyPayment = order.data.source === "shopify"
+    ? await getShopifyPaymentDisplay(supabase, context.tenant.id, context.membership.clerk_user_id, order.data.id)
+    : null;
   return {
     context,
+    shopifySummary: shopifySummary ?? null,
+    shopifyPayment,
     order: order.data,
     customer: customer.data,
     items: items.data ?? [],

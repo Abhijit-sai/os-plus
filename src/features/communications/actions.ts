@@ -472,7 +472,7 @@ export async function queueManualOrderMessageAction(formData: FormData) {
   const supabase = createSupabaseServiceRoleClient();
 
   const order = await supabase
-    .from("orders")
+    .from("local_operational_orders")
     .select("*")
     .eq("tenant_id", context.tenant.id)
     .eq("id", parsed.orderId)

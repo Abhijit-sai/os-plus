@@ -2,30 +2,19 @@ import "server-only";
 
 import { z } from "zod";
 import { assertShopifyProbeActor, type ShopifyProbeActor } from "./probe-config.ts";
-import { ShopifyIntegrationError, ShopifyProbeConfigurationError, SHOPIFY_CONFIGURATION_CHECKS,
-  type ShopifyConfigurationCheck } from "./errors.ts";
+import { ShopifyIntegrationError } from "./errors.ts";
 import { readBoundedBody } from "./bounded-body.ts";
 import type { createShopifyConnectionTester } from "./connection-test.ts";
 
 type Dependencies = {
   getActor: () => Promise<ShopifyProbeActor | null>;
   testConnection: ReturnType<typeof createShopifyConnectionTester>;
-  reportConfigurationFailure?: (check: ShopifyConfigurationCheck) => void;
 };
 const bodySchema = z.object({}).strict();
 const noStoreHeaders = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 const reply = (body: object, status: number) => Response.json(body, { status, headers: noStoreHeaders });
 
 export function createShopifyProbeHandler(dependencies: Dependencies) {
-  function reportConfigurationFailure(check: ShopifyConfigurationCheck) {
-    // Temporary server-only instrumentation. No values, IDs, tokens, request
-    // payloads or Error objects; a reporter failure must not affect the response.
-    if (!SHOPIFY_CONFIGURATION_CHECKS.includes(check)) return;
-    try {
-      if (dependencies.reportConfigurationFailure) dependencies.reportConfigurationFailure(check);
-      else console.warn("[DEBUG-osplus-shopify-config-v1]", check);
-    } catch { /* Keep the original fail-closed response if logging is unavailable. */ }
-  }
   return async function handle(request: Request, env: NodeJS.ProcessEnv = process.env) {
     if (request.method !== "POST") return reply({ error: "METHOD_NOT_ALLOWED" }, 405);
     // Compare to configured canonical host, never a client-controlled Host header.
@@ -35,7 +24,6 @@ export function createShopifyProbeHandler(dependencies: Dependencies) {
       if (origin.protocol !== "https:" || origin.username || origin.password || origin.port ||
         origin.pathname !== "/" || origin.search || origin.hash) throw new Error();
     } catch {
-      reportConfigurationFailure("application_origin");
       return reply({ error: "CONFIGURATION_INVALID" }, 503);
     }
     if (request.headers.get("origin") !== origin.origin ||
@@ -55,7 +43,6 @@ export function createShopifyProbeHandler(dependencies: Dependencies) {
       if (!bodySchema.safeParse(json).success) return reply({ error: "REQUEST_INVALID" }, 400);
       return reply(await dependencies.testConnection(actor, env), 200);
     } catch (error) {
-      if (error instanceof ShopifyProbeConfigurationError) reportConfigurationFailure(error.check);
       const code = error instanceof ShopifyIntegrationError ? error.code : "UPSTREAM_UNAVAILABLE";
       const status = code === "ACCESS_DENIED" ? 403 : code === "BODY_TOO_LARGE" ? 413 : 503;
       return reply({ error: code }, status);

@@ -1,0 +1,605 @@
+{
+  "kind": "osplus-shopify-private-rehearsal-redacted-v1",
+  "status": "LOCAL_REPAIRS_VERIFIED",
+  "scope": "verified-backup-local-rehearsal-no-production-no-chat-crm",
+  "productionConnection": false,
+  "productionWrites": false,
+  "hostedTestPopulated": false,
+  "liveEndToEndVerified": false,
+  "mayApply": false,
+  "mayDeploy": false,
+  "mayActivate": false,
+  "archiveId": "1b2bc4faa9b34c0b8af1e5eb1e9dba5b",
+  "archiveSha256": "9e0fd1fefe2e1485f162ae36357e3f606a8eb96cd4df72b6a4e7bd4bdab6985e",
+  "snapshotTime": "2026-10-14T10:40:12.129Z",
+  "privateReportName": "rehearsal-dfe2ea34822a86007cffb0eda59fd181.json",
+  "restoreVerified": true,
+  "verifiedTables": 73,
+  "verifiedCatalogueObjects": 2140,
+  "cloneOwnershipAlignment": {
+    "cloneOnly": true,
+    "archiveDatabaseOwnerCaptured": false,
+    "attestationTime": "2026-10-14T12:22:54.79Z",
+    "evidenceSha256": "5bd249847bcef0f62907f020b46a7e6cbac77cb2d98e889f7876c53eedc0f2d4",
+    "before": {
+      "owner": "supabase_admin",
+      "can_create": false,
+      "database_create": false
+    },
+    "after": {
+      "owner": "postgres",
+      "can_create": true,
+      "database_create": true
+    }
+  },
+  "migrations": [
+    {
+      "file": "20261008100000_shopify_intake_foundation.sql",
+      "sha256": "12eac495f29355ff483664306629aae99d46e0c9d462ba393ebe441b3fd9b4ce",
+      "status": "committed_locally",
+      "milliseconds": 257
+    },
+    {
+      "file": "20261008120000_shopify_worker_leases.sql",
+      "sha256": "e29b5f6b61ac905b31fba21726fd8fad5b09d5985ba2ee4d1d76c62a9ae85382",
+      "status": "committed_locally",
+      "milliseconds": 201
+    },
+    {
+      "file": "20261008140000_shopify_draft_enums.sql",
+      "sha256": "09bf0588c8a38826d78e925f22d7e3ff8c0291120155e75f80d4a886e4146db0",
+      "status": "committed_locally",
+      "milliseconds": 278
+    },
+    {
+      "file": "20261008141000_shopify_draft_import.sql",
+      "sha256": "f66384a468f612db8d17321600466ad6ab3d5c9297b25a62b2f913571f1452c0",
+      "status": "committed_locally",
+      "milliseconds": 198
+    },
+    {
+      "file": "20261008150000_shopify_privacy.sql",
+      "sha256": "5e4efb6acb48f0bacba3aac9b94582cbc987dc8817cfc80bcf40ff633b3f1e55",
+      "status": "committed_locally",
+      "milliseconds": 168
+    },
+    {
+      "file": "20261008160000_shopify_mappings.sql",
+      "sha256": "fe9ad99ab928cad37b39390d44ca645fa21487d7756a782ea4e762320ca8ee84",
+      "status": "committed_locally",
+      "milliseconds": 313
+    },
+    {
+      "file": "20261008170000_shopify_review_release.sql",
+      "sha256": "52901238253e6b8f17447c5261c5a7b0b385520a364e3a0c27c0b4297112db35",
+      "status": "committed_locally",
+      "milliseconds": 350
+    },
+    {
+      "file": "20261008180000_shopify_source_changes.sql",
+      "sha256": "6642500c5c156f35324cfb3be50e03f5f634efb568b66f9f474956869f5f132c",
+      "status": "committed_locally",
+      "milliseconds": 253
+    },
+    {
+      "file": "20261009090000_shopify_payment_source_read.sql",
+      "sha256": "8b6b88d46fdbb2e201670a9f7b364a7183a9dc3ec5dd173dd0e6397961092a1c",
+      "status": "committed_locally",
+      "milliseconds": 226
+    },
+    {
+      "file": "20261014130000_shopify_runtime_rpc_permissions.sql",
+      "sha256": "a08169e70e2cef9e176100bfc3194726d1a520b1f0bfea1896b7d11929e54958",
+      "status": "committed_locally",
+      "milliseconds": 367
+    },
+    {
+      "file": "20261014131000_shopify_handover_guards.sql",
+      "sha256": "f991a196144f9b8835337197e0133bf3647de4487e6f8365a4e01d9058e424a5",
+      "status": "committed_locally",
+      "milliseconds": 376
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "DRAFT_NOT_IN_PRODUCTION",
+      "category": "draft",
+      "items": 0,
+      "state": "draft",
+      "passed": true,
+      "localPayments": 0,
+      "milliseconds": 377
+    },
+    {
+      "id": "PARTIAL_SOURCE_HAS_NO_CUSTOMER_OR_ITEMS",
+      "category": "draft",
+      "state": "incomplete review",
+      "passed": true,
+      "milliseconds": 278
+    },
+    {
+      "id": "IMPORT_IDENTICAL_RETRY_NO_DUPLICATES",
+      "category": "retry",
+      "orders": 1,
+      "passed": true,
+      "customers": 1,
+      "sourceRevisions": 1,
+      "milliseconds": 333
+    },
+    {
+      "id": "RELEASE_TWO_LINES_QUANTITIES_AND_MONEY",
+      "category": "release",
+      "items": 2,
+      "state": "confirmed; ready, not started",
+      "passed": true,
+      "pieces": 3,
+      "localPayments": 0,
+      "syntheticOperationalValue": 4500,
+      "milliseconds": 377
+    },
+    {
+      "id": "RELEASE_RETRY_ONE_MATERIALIZATION",
+      "category": "retry",
+      "items": 2,
+      "passed": true,
+      "releaseReceipts": 1,
+      "milliseconds": 331
+    },
+    {
+      "id": "DENY_RELEASE_REHEARSAL_MANAGER",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 315
+    },
+    {
+      "id": "DENY_RELEASE_REHEARSAL_FINANCE",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 363
+    },
+    {
+      "id": "DENY_RELEASE_REHEARSAL_FOREIGN_OWNER",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 376
+    },
+    {
+      "id": "DENY_RELEASE_UNKNOWN",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 341
+    },
+    {
+      "id": "DENY_CROSS_TENANT_RELEASE",
+      "category": "tenant",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 358
+    },
+    {
+      "id": "DENY_ANON_SOURCE_TABLE_READ",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "milliseconds": 366
+    },
+    {
+      "id": "DENY_ANON_IMPORT_RPC",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "milliseconds": 364
+    },
+    {
+      "id": "DENY_AUTHENTICATED_SOURCE_TABLE_READ",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "milliseconds": 356
+    },
+    {
+      "id": "DENY_AUTHENTICATED_IMPORT_RPC",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "milliseconds": 378
+    },
+    {
+      "id": "SERVICE_CANNOT_FORGE_RELEASE_CAPABILITY",
+      "category": "permission",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "milliseconds": 280
+    },
+    {
+      "id": "MANAGER_CAN_READ_ORDER_PAYMENTS_NOT_CONTRIBUTIONS",
+      "category": "payment",
+      "passed": true,
+      "expected": "order payments allowed; not worker contribution amounts",
+      "milliseconds": 360
+    },
+    {
+      "id": "DENY_SOURCE_PAYMENT_REHEARSAL_FINANCE",
+      "category": "payment",
+      "passed": true,
+      "milliseconds": 327
+    },
+    {
+      "id": "DENY_SOURCE_PAYMENT_REHEARSAL_FOREIGN_OWNER",
+      "category": "payment",
+      "passed": true,
+      "milliseconds": 367
+    },
+    {
+      "id": "DENY_SOURCE_PAYMENT_UNKNOWN",
+      "category": "payment",
+      "passed": true,
+      "milliseconds": 373
+    },
+    {
+      "id": "DENY_FOREIGN_SOURCE_PAYMENT",
+      "category": "tenant",
+      "passed": true,
+      "milliseconds": 354
+    },
+    {
+      "id": "LOCAL_PAYMENT_POSTING_BLOCKED",
+      "category": "payment",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ORDER_READ_ONLY",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 344
+    },
+    {
+      "id": "COMMERCIAL_AMOUNT_EDIT_BLOCKED",
+      "category": "payment",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ORDER_READ_ONLY",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 398
+    },
+    {
+      "id": "ITEM_QUANTITY_EDIT_BLOCKED",
+      "category": "release",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ORDER_READ_ONLY",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 315
+    },
+    {
+      "id": "SOURCE_CHANGE_HOLDS_PRODUCTION",
+      "category": "source-change",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_PRODUCTION_HELD",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 362
+    },
+    {
+      "id": "HELD_ORDER_NOTES_STILL_EDITABLE",
+      "category": "source-change",
+      "passed": true,
+      "milliseconds": 294
+    },
+    {
+      "id": "PARTIAL_POST_RELEASE_CANNOT_CONTINUE",
+      "category": "source-change",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_INCOMPLETE_SOURCE",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 346
+    },
+    {
+      "id": "IMMUTABLE_SOURCE_HISTORY",
+      "category": "history",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_AUDIT_IMMUTABLE",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 353
+    },
+    {
+      "id": "RELEASE_AUDIT_FAILURE_ROLLS_BACK",
+      "category": "rollback",
+      "passed": true,
+      "observation": {
+        "code": "REHEARSAL_INJECTED_FAILURE",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 367
+    },
+    {
+      "id": "FOREIGN_MAPPING_REJECTED",
+      "category": "mapping",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_ACCESS_DENIED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 365
+    },
+    {
+      "id": "STALE_SOURCE_PROOF_REJECTED",
+      "category": "release",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_STALE_REVISION",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 379
+    },
+    {
+      "id": "FOREIGN_CURRENCY_REVIEW_ONLY",
+      "category": "payment",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_SOURCE_REVIEW",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 362
+    },
+    {
+      "id": "RELEASE_FLAG_OFF_REJECTED",
+      "category": "activation",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_RELEASE_DISABLED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 365
+    },
+    {
+      "id": "PAUSE_BLOCKS_NEW_PROCESSING",
+      "category": "activation",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_RELEASE_DISABLED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 356
+    },
+    {
+      "id": "RECOVERY_AFTER_PAUSE_IS_READ_ONLY",
+      "category": "retry",
+      "passed": true,
+      "milliseconds": 376
+    },
+    {
+      "id": "HANDOVER_RELEASED_UNHELD_VALID_CONTROL",
+      "category": "handover",
+      "actor": "service_role",
+      "passed": true,
+      "milliseconds": 391
+    },
+    {
+      "id": "HANDOVER_DRAFT_ORDER_BLOCKED",
+      "category": "handover",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_DRAFT_LOCKED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 280
+    },
+    {
+      "id": "HANDOVER_HELD_ORDER_BLOCKED",
+      "category": "handover",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_PRODUCTION_HELD",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 435
+    },
+    {
+      "id": "HANDOVER_ITEM_RELEASED_UNHELD_VALID_CONTROL",
+      "category": "handover",
+      "actor": "service_role",
+      "passed": true,
+      "milliseconds": 355
+    },
+    {
+      "id": "HANDOVER_HELD_ITEM_INSERT_BLOCKED",
+      "category": "handover",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_PRODUCTION_HELD",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 353
+    },
+    {
+      "id": "HANDOVER_HELD_ITEM_UPDATE_BLOCKED",
+      "category": "handover",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_PRODUCTION_HELD",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 396
+    },
+    {
+      "id": "HANDOVER_HELD_ITEM_DELETE_BLOCKED",
+      "category": "handover",
+      "passed": true,
+      "observation": {
+        "code": "SHOPIFY_HISTORY_PROTECTED",
+        "rejected": true,
+        "sqlstate": "P0001"
+      },
+      "milliseconds": 351
+    },
+    {
+      "id": "ORDINARY_V2_MUTATION_RPC_EXECUTE_REVOKED",
+      "category": "permission",
+      "passed": true,
+      "expected": "ordinary roles denied",
+      "milliseconds": 269
+    },
+    {
+      "id": "V2_WORK_UNIT_VALID_CONTROL",
+      "category": "permission",
+      "actor": "postgres",
+      "passed": true,
+      "observation": {
+        "code": "EXECUTED",
+        "rejected": false
+      },
+      "newFictionalWorkUnits": 1,
+      "milliseconds": 299
+    },
+    {
+      "id": "ANON_CANNOT_CREATE_V2_WORK",
+      "category": "permission",
+      "actor": "anon",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "newFictionalWorkUnits": 0,
+      "milliseconds": 300
+    },
+    {
+      "id": "AUTHENTICATED_CANNOT_CREATE_V2_WORK",
+      "category": "permission",
+      "actor": "authenticated",
+      "passed": true,
+      "observation": {
+        "code": "REDACTED_DATABASE_ERROR",
+        "rejected": true,
+        "sqlstate": "42501"
+      },
+      "newFictionalWorkUnits": 0,
+      "milliseconds": 311
+    }
+  ],
+  "blockers": [],
+  "passed": 45,
+  "failed": 0,
+  "legacyTablesPreserved": 73,
+  "expectedPermissionRepairs": [
+    "assert_laundry_vertical_enabled(uuid).anon",
+    "assert_laundry_vertical_enabled(uuid).authenticated",
+    "assign_task_command(uuid, text, text, text, text, text, uuid, uuid, uuid, text).anon",
+    "assign_task_command(uuid, text, text, text, text, text, uuid, uuid, uuid, text).authenticated",
+    "cancel_task_command(uuid, text, text, text, text, text, uuid, text).anon",
+    "cancel_task_command(uuid, text, text, text, text, text, uuid, text).authenticated",
+    "complete_laundry_pickup_request_command(uuid, text, text, text, text, text, uuid, text, uuid, uuid, text).anon",
+    "complete_laundry_pickup_request_command(uuid, text, text, text, text, text, uuid, text, uuid, uuid, text).authenticated",
+    "complete_task_command(uuid, text, text, text, text, text, uuid, text).anon",
+    "complete_task_command(uuid, text, text, text, text, text, uuid, text).authenticated",
+    "complete_work_unit_stage(uuid, uuid, text, text).anon",
+    "complete_work_unit_stage(uuid, uuid, text, text).authenticated",
+    "complete_work_unit_stage_command(uuid, text, text, text, text, text, uuid, text).anon",
+    "complete_work_unit_stage_command(uuid, text, text, text, text, text, uuid, text).authenticated",
+    "create_laundry_container_asset_command(uuid, text, text, text, text, text, text, text, uuid, text).anon",
+    "create_laundry_container_asset_command(uuid, text, text, text, text, text, text, text, uuid, text).authenticated",
+    "create_laundry_pickup_request_command(uuid, text, text, text, text, text, uuid, uuid, date, text, text, uuid, uuid, timestamp with time zone, text).anon",
+    "create_laundry_pickup_request_command(uuid, text, text, text, text, text, uuid, uuid, date, text, text, uuid, uuid, timestamp with time zone, text).authenticated",
+    "create_laundry_service_lot_command(uuid, text, text, text, text, text, uuid, uuid, uuid, numeric, text, integer, numeric, text, text).anon",
+    "create_laundry_service_lot_command(uuid, text, text, text, text, text, uuid, uuid, uuid, numeric, text, integer, numeric, text, text).authenticated",
+    "create_task_command(uuid, text, text, text, text, text, text, text, text, text, uuid, uuid, uuid, text, timestamp with time zone, uuid).anon",
+    "create_task_command(uuid, text, text, text, text, text, text, text, text, text, uuid, uuid, uuid, text, timestamp with time zone, uuid).authenticated",
+    "create_work_unit_runtime(uuid, uuid, text, uuid, text, text, text, text, numeric, text, numeric, numeric, public.gst_treatment, numeric, uuid, text, uuid, text).anon",
+    "create_work_unit_runtime(uuid, uuid, text, uuid, text, text, text, text, numeric, text, numeric, numeric, public.gst_treatment, numeric, uuid, text, uuid, text).authenticated",
+    "generate_laundry_human_code(uuid, text, text, text).anon",
+    "generate_laundry_human_code(uuid, text, text, text).authenticated",
+    "generate_qr_identity_token().anon",
+    "generate_qr_identity_token().authenticated",
+    "initialize_work_unit_workflow(uuid, uuid, text).anon",
+    "initialize_work_unit_workflow(uuid, uuid, text).authenticated",
+    "start_task_command(uuid, text, text, text, text, text, uuid, text).anon",
+    "start_task_command(uuid, text, text, text, text, text, uuid, text).authenticated",
+    "start_work_unit_stage(uuid, uuid, uuid, text, text).anon",
+    "start_work_unit_stage(uuid, uuid, uuid, text, text).authenticated",
+    "start_work_unit_stage_command(uuid, text, text, text, text, text, uuid, uuid, text).anon",
+    "start_work_unit_stage_command(uuid, text, text, text, text, text, uuid, uuid, text).authenticated"
+  ],
+  "legacySchema": {
+    "missing": [],
+    "unexpectedChanges": [],
+    "expectedChanges": [
+      "column:orders.customer_id",
+      "column:orders.delivery_type",
+      "enum:order_source",
+      "enum:order_status"
+    ]
+  },
+  "legacySecurityPreserved": true,
+  "legacyDataPreservedAfterScenarios": true,
+  "syntheticShopifyReadiness": true,
+  "sourceEncryptionTestedHere": false,
+  "disposableCleanupComplete": true
+}
