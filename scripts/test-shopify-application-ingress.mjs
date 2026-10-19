@@ -35,3 +35,24 @@ test('uninstall verifies raw HMAC before any binding lookup',async()=>{
   const req=new Request('https://example.invalid/api/integrations/shopify/uninstall-webhook',{method:'POST',headers:{'Content-Type':'application/json','x-shopify-hmac-sha256':createHmac('sha256','wrong').update(body).digest('base64')},body});
   assert.equal((await f.ingress.uninstall(req,{...env,SHOPIFY_UNINSTALL_ENABLED:'true'})).status,401);assert.deepEqual(f.calls,[]);
 });
+
+test('automatic background work is scheduled only after accepted durable receipt and retries safely',async()=>{
+  for(const status of ['accepted','duplicate','ignored','conflict']){
+    const tasks=[],calls=[];
+    const db={from(){const q={select(){return q;},eq(){return q;},in(){return q;},limit(){return q;},async abortSignal(){return {data:[{
+      id:connection,tenant_id:tenant,shop_gid:'gid://shopify/Shop/101',canonical_domain:env.SHOPIFY_SHOP_DOMAIN,app_ref:env.SHOPIFY_CLIENT_ID,
+      environment:'production',api_version:'2026-10',status:'verified',intake_enabled:true,verified_at:new Date().toISOString(),revision:2}],error:null};}};return q;},
+      rpc(){calls.push('committed');return {async abortSignal(){return {data:{status,receiptId:connection},error:null};}};}};
+    const ingress=createShopifyApplicationIngress(db,{schedule:task=>{assert.deepEqual(calls,['committed']);tasks.push(task);},run:async()=>{calls.push('worker');return {status:'no_job'};}});
+    const body=JSON.stringify({admin_graphql_api_id:'gid://shopify/Order/101'});
+    const req=()=>new Request('https://example.invalid/webhook',{method:'POST',body,headers:{'content-type':'application/json',
+      'x-shopify-shop-domain':env.SHOPIFY_SHOP_DOMAIN,'x-shopify-topic':'orders/create','x-shopify-api-version':'2026-10','x-shopify-webhook-id':connection,
+      'x-shopify-hmac-sha256':createHmac('sha256',env.SHOPIFY_CLIENT_SECRET).update(body).digest('base64')}});
+    const settings={...env,SHOPIFY_INTAKE_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true'};
+    assert.equal((await ingress.orders(req(),settings)).status,status==='conflict'?409:200);
+    assert.equal(tasks.length,['accepted','duplicate'].includes(status)?1:0);
+    if(tasks.length){await tasks.shift()();assert.deepEqual(calls,['committed','worker']);}
+    calls.length=0;
+    await ingress.orders(req(),{...settings,SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'false'});assert.equal(tasks.length,0);
+  }
+});

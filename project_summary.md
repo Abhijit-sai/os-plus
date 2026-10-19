@@ -1,5 +1,15 @@
 # OS PLUS Project Summary
 
+### 2026-10-19 — Automatic Shopify Test-order visibility and webhook worker
+
+- Owner approved this scoped migration/deployment and webhook test in Phantom Threads Test only. Production business data and Chat/CRM are excluded.
+- Release built from live main a62edd9 in a clean isolated checkout; excludes the separate customer fix and all unrelated dirty work.
+- Shopify webhook schedules the existing lease-protected worker after durable receipt. Imported commercial orders are visible in Orders/detail without mapping/review/release under SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED and the existing Test binding.
+- The one-order policy remains unchanged. Unrestricted new-order ingestion, multi-store onboarding and broader retention authorization remain separate unfinished work; do not claim these complete.
+- Applied ONLY 20261019160000_shopify_imported_order_reads.sql after explicit approval. Exact SHA-256 f93414687f8c9d5ee3d21c37503898c375fa263e507954ccbcb985bf0350e1aa. Transaction verified all 113 pre-existing functions unchanged, anonymous/authenticated execute denied, service_role execute granted, unauthorized actor returns no rows. No business row or production-tenant mutation.
+- Focused local verification: 14 server/SQL and 10 rendered UI tests pass. Prior regression: 75 memory SQL tests; lint/typecheck/optimized build pass. Hosted delivery, production deployment status and authenticated UI verification must be checked separately; no acceptance claim from local tests.
+- See docs/39_Shopify_Automatic_Order_Creation.md for scope, rollout and rollback. Existing source retention is not silently extended. No messages, local payment posting or production workflow creation.
+
 ## 1. Product Context
 
 OS PLUS is a multi-tenant, white-label WorkOS for boutiques and small manufacturing businesses.

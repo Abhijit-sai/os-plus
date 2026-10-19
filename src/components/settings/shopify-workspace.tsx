@@ -20,7 +20,7 @@ function Select({label,name,options,value="",required=false}:{label:string;name:
     <option value="">Choose {label.toLowerCase()}</option>{options.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}
   </select></label>;
 }
-function Command({action,build,children,label,disabled=false,confirm,onSuccess,onPendingChange}: {action:Action;build:(form:FormData)=>Record<string,unknown>;children?:React.ReactNode;label:string;disabled?:boolean;confirm?:string;onSuccess?:()=>void;onPendingChange?:(pending:boolean)=>void}){
+function Command({action,build,children,label,disabled=false,confirm,onSuccess,onPendingChange,onOpenInbox,openOperationalOrder=false}: {action:Action;build:(form:FormData)=>Record<string,unknown>;children?:React.ReactNode;label:string;disabled?:boolean;confirm?:string;onSuccess?:()=>void;onPendingChange?:(pending:boolean)=>void;onOpenInbox?:()=>void;openOperationalOrder?:boolean}){
   const router=useRouter(),feedbackId=useId();
   const intent=useRef<{serialized:string;key:string}|null>(null);
   const formRef=useRef<HTMLFormElement>(null);
@@ -39,7 +39,9 @@ function Command({action,build,children,label,disabled=false,confirm,onSuccess,o
     if(confirm&&!window.confirm(confirm))return;const form=new FormData(event.currentTarget);startTransition(()=>dispatch(form));}} aria-describedby={state.message?feedbackId:undefined}>
     <fieldset disabled={pending||disabled} className="min-w-0 space-y-4">{children}<Button type="submit" disabled={pending||disabled} className="min-h-11">{pending?"Working…":label}</Button></fieldset>
     {state.message&&<div id={feedbackId} role={state.status==="error"?"alert":"status"} className="rounded-md border p-3 text-sm">{state.message}
-      {state.orderId&&<Link className="ml-2 underline" href={`/orders/${state.orderId}`}>Open order</Link>}</div>}
+      {state.status==="success"&&state.orderId&&(onOpenInbox
+        ?<Button type="button" variant="outline" className="ml-2 min-h-11" onClick={onOpenInbox}>Review copied order</Button>
+        :openOperationalOrder&&<Link className="ml-2 inline-flex min-h-11 items-center underline" href={`/orders/${state.orderId}`}>Open order</Link>)}</div>}
   </form>;
 }
 type Mapping=ShopifyApplicationView["mappings"][number];
@@ -77,8 +79,10 @@ function SourceReview({view,source,action}:{view:ShopifyApplicationView;source:S
   return <article className="border-t py-5 first:border-t-0 first:pt-0">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{source.number}</h3>
       <p className="break-all text-sm text-muted-foreground">{source.orderGid}</p><p className="mt-1 text-sm">{source.orderStatus==="draft"?"Draft, not in production":source.orderStatus} · Source {source.sourceStatus}</p></div>
-      <Link className="min-h-11 rounded-md border px-3 py-2 text-sm underline" href={`/orders/${source.orderId}`}>Order details</Link></div>
-    {!!source.reviewReasons.length&&<p className="mt-3 break-words rounded-md bg-muted p-3 text-sm">Review: {source.reviewReasons.join(", ").replaceAll("_"," ").toLowerCase()}</p>}
+      {source.orderStatus==="draft"&&!view.automaticOrderCreation?<p className="text-sm text-muted-foreground">Review this draft below</p>
+        :<Link className="min-h-11 rounded-md border px-3 py-2 text-sm underline" href={`/orders/${source.orderId}`}>Order details</Link>}</div>
+    {view.automaticOrderCreation&&source.orderStatus==="draft"?<p className="mt-3 rounded-md bg-muted p-3 text-sm">Order imported. Open Order details to view it. Production setup is separate; no mapping or release is required to view this order.</p>
+      :!!source.reviewReasons.length&&<p className="mt-3 break-words rounded-md bg-muted p-3 text-sm">Review: {source.reviewReasons.join(", ").replaceAll("_"," ").toLowerCase()}</p>}
     {source.state?.held&&<div className="mt-3 rounded-md border border-destructive p-3 text-sm"><p className="font-medium">Production held</p>
       <p>{source.state.reasons.join(", ").replaceAll("_"," ").toLowerCase()}</p>
       {source.state.latest_case_id&&<details className="mt-3"><summary className="cursor-pointer py-2 font-medium">Review source change</summary>
@@ -94,9 +98,9 @@ function SourceReview({view,source,action}:{view:ShopifyApplicationView;source:S
     <div className="mt-4 space-y-2">{source.lines.map(line=>{const mapping=view.mappings.find(m=>m.variantGid===line.variantGid);return <div key={line.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-3">
       <div className="min-w-0 flex-1"><p className="font-medium">{line.title} <span className="text-muted-foreground">× {line.quantity}</span></p>
         <p className="break-words text-sm text-muted-foreground">{[line.sku,line.colour,line.size].filter(Boolean).join(" · ")||"No SKU, colour or size"}</p>
-        <p className="text-sm">{mapping?.isActive?"Mapped":"Needs mapping"}{!line.variantGid?" · Custom/deleted variant requires manual review":""}</p></div>
-      {line.variantGid&&<MappingEditor view={view} action={action} mapping={mapping} variantGid={line.variantGid} sku={line.sku}/>}</div>;})}</div>
-    {source.orderStatus==="draft"&&<details className="mt-4" open={ready}><summary className="min-h-11 cursor-pointer py-2 font-medium">Review customer, delivery and items</summary>
+        {!view.automaticOrderCreation&&<p className="text-sm">{mapping?.isActive?"Mapped":"Needs mapping"}{!line.variantGid?" · Custom/deleted variant requires manual review":""}</p>}</div>
+      {!view.automaticOrderCreation&&line.variantGid&&<MappingEditor view={view} action={action} mapping={mapping} variantGid={line.variantGid} sku={line.sku}/>}</div>;})}</div>
+    {source.orderStatus==="draft"&&!view.automaticOrderCreation&&<details className="mt-4" open={ready}><summary className="min-h-11 cursor-pointer py-2 font-medium">Review customer, delivery and items</summary>
       <p className="mb-4 text-sm text-muted-foreground">{source.customerName?`Shopify name: ${source.customerName}. `:""}Choose the correct local customer. Search all customers with the name filter above. No existing customer profile is overwritten.</p>
       <Command action={action} label="Save review" disabled={!canWork||!ready}
         build={form=>({action:"save_review",connectionId:c.id,sourceOrderId:source.id,sourceRevisionId:source.revisionId,expectedVersion:source.review?.version??0,
@@ -120,7 +124,7 @@ function SourceReview({view,source,action}:{view:ShopifyApplicationView;source:S
         <Field label="Review note" name="reason" required defaultValue={source.review?.decision.reason??""}/>
       </Command>
     </details>}
-    {source.orderStatus==="draft"&&source.review&&<div className="mt-5 border-t pt-4"><Command action={action} label="Release reviewed items" disabled={!canWork||!c.releaseEnabled||!source.review.current||!ready}
+    {source.orderStatus==="draft"&&!view.automaticOrderCreation&&source.review&&<div className="mt-5 border-t pt-4"><Command action={action} label="Release reviewed items" openOperationalOrder disabled={!canWork||!c.releaseEnabled||!source.review.current||!ready}
       confirm="Release this reviewed draft into the Test tenant's production workflow? No worker assignment, payment or message is created."
       build={()=>({action:"release",connectionId:c.id,sourceOrderId:source.id,reviewId:source.review!.id})}>
       <p className="text-sm text-muted-foreground">Review v{source.review.version}{source.review.current?" matches the current source.":" is stale. Save a new review."} Shopify is rechecked before release.</p>
@@ -129,6 +133,8 @@ function SourceReview({view,source,action}:{view:ShopifyApplicationView;source:S
 }
 export function ShopifyWorkspace({view,action}:{view:ShopifyApplicationView;action:Action}){
   const [tab,setTab]=useState<"setup"|"inbox"|"mappings"|"activity">(view.sources.length?"inbox":"setup");
+  const inboxHeading=useRef<HTMLHeadingElement>(null);
+  const openInbox=()=>{setTab("inbox");requestAnimationFrame(()=>inboxHeading.current?.focus());};
   const c=view.connection,scope={connectionId:c?.id},active=!!view.policy?.active&&c?.status==="verified"&&c.processingEnabled;
   return <div className="min-w-0 space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-semibold tracking-tight">Shopify</h2>
@@ -157,7 +163,7 @@ export function ShopifyWorkspace({view,action}:{view:ShopifyApplicationView;acti
             orderGid:view.policy!.orderGid,retentionDays:1,reason:text(form,"reason"),consent:form.has("consent")})}>
             <Field label="Resume reason" name="reason" required/><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="consent" required/>Reverify the same approved order. Keep the original expiry.</label></Command>}
           <div className="flex flex-wrap gap-3"><Command action={action} label="Copy approved order" disabled={!active} build={()=>({action:"queue_order",...scope})}/>
-            <Command action={action} label="Process queued copy" disabled={!active} build={()=>({action:"run_worker",...scope})}/></div></div>}
+            <Command action={action} label="Process queued copy" disabled={!active} onOpenInbox={view.automaticOrderCreation?undefined:openInbox} openOperationalOrder={view.automaticOrderCreation} build={()=>({action:"run_worker",...scope})}/></div></div>}
         <details className="border-t pt-3"><summary className="cursor-pointer py-2 text-sm font-medium">Connection controls</summary><div className="flex flex-wrap gap-3 pt-3">
           {c.status!=="disconnected"&&<Command action={action} label="Pause processing" disabled={c.status!=="verified"} build={()=>({action:"connection_state",...scope,expectedRevision:c.revision,state:"pause"})}/>}
           <Command action={action} label="Disconnect" disabled={c.status==="disconnected"} confirm="Disconnect Shopify? Existing OS Plus orders and audit history are preserved."
@@ -165,8 +171,8 @@ export function ShopifyWorkspace({view,action}:{view:ShopifyApplicationView;acti
           <p className="mt-2 text-sm text-muted-foreground">Resume requires a fresh store check and keeps the same order and expiry. Expiry or disconnect needs a separately approved renewal or cutover.</p></details>
       </div>}
     </section>
-    <section hidden={tab!=="inbox"} className={sectionClass}><h3 className="text-lg font-semibold">Review before production</h3>
-      <p className="mt-1 text-sm text-muted-foreground">Copying creates an inert draft. Map variants, choose customer and delivery, save the review, then release.</p>
+    <section hidden={tab!=="inbox"} className={sectionClass}><h3 ref={inboxHeading} tabIndex={-1} className="text-lg font-semibold">{view.automaticOrderCreation?"Imported orders":"Review before production"}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{view.automaticOrderCreation?"Imported orders are available in Orders without mapping or release. This Test pilot still accepts only the approved source order.":"Copying creates an inert draft. Map variants, choose customer and delivery, save the review, then release."}</p>
       <form method="get" className="my-5 flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1"><Field label="Find local customer by name" name="customerSearch" placeholder="Customer name"/></div><Button type="submit" variant="outline" className="min-h-11">Search customers</Button></form>
       {view.customersTruncated&&<p className="mb-3 text-sm text-muted-foreground">Showing the first 100 matching customers. Narrow your search to find another.</p>}
       {!view.sources.length?<p className="py-8 text-sm text-muted-foreground">No copied orders yet. Complete Setup, copy the approved order and process it.</p>:view.sources.map(s=><SourceReview key={s.id+":"+s.revisionId+":"+s.review?.version} view={view} source={s} action={action}/>)}</section>

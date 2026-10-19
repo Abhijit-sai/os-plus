@@ -62,7 +62,7 @@ export function projectShopifyApplication(raw:unknown,config:ShopifyApplicationC
         quantity:line.quantity,colour:normalized.lines[index].colour.value,size:normalized.lines[index].size.value})),
       payment:projectShopifySourcePayment(source,row.state?.held??false)};
   });
-  return {shopDomain:config.shopDomain,connection:c?{id:c.id,status:c.status,revision:c.revision,processingEnabled:c.processing_enabled,releaseEnabled:c.release_enabled,cutoff:c.import_created_at_cutoff}:null,
+  return {automaticOrderCreation:env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED==="true",shopDomain:config.shopDomain,connection:c?{id:c.id,status:c.status,revision:c.revision,processingEnabled:c.processing_enabled,releaseEnabled:c.release_enabled,cutoff:c.import_created_at_cutoff}:null,
     policy:data.policy?{orderGid:data.policy.order_gid,expiresAt:data.policy.expires_at,active:policyActive,reason:data.policy.reason}:null,
     sources,mappings:data.mappings.map(m=>({id:m.id,variantGid:m.variant_gid,sku:m.sku,classification:m.classification,itemTypeId:m.item_type_id,workflowId:m.workflow_id,standardSizeId:m.standard_size_id,isActive:m.is_active,revision:m.revision})),
     jobs:data.jobs.map(job=>({...job,leaseActive:!!job.leaseExpiresAt&&Date.parse(job.leaseExpiresAt)>now})),privacy:data.privacy,history:data.history.map(a=>({id:a.id,action:a.action,at:a.created_at,reason:typeof a.detail.reason==="string"?a.detail.reason:null,

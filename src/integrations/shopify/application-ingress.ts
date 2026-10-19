@@ -19,7 +19,9 @@ const signEnv=(env:NodeJS.ProcessEnv)=>({...env,SHOPIFY_CLIENT_SECRET:env.SHOPIF
 function pilotBinding(tenant:string,domain:string,env:NodeJS.ProcessEnv){
   return tenant===env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&domain===canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"");
 }
-export function createShopifyApplicationIngress(db:SupabaseClient<Database>){
+type BackgroundImport = { schedule: (task: () => Promise<void>) => void;
+  run?: typeof runShopifyPilotWorker };
+export function createShopifyApplicationIngress(db:SupabaseClient<Database>,background?:BackgroundImport){
   return {
     orders(request:Request,env:NodeJS.ProcessEnv=process.env){
       if(env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true"||env.SHOPIFY_TEST_COPY_ENABLED!=="true")return Promise.resolve(reply({error:"INTAKE_DISABLED"},503));
@@ -29,7 +31,19 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>){
       },async receive(connection,envelope,signal){
         const {data,error}=await db.rpc("receive_shopify_pilot_event",{p_tenant_id:connection.tenant_id,p_connection_id:connection.id,
           p_envelope:{...envelope,connectionRevision:connection.revision}}).abortSignal(signal);
-        if(error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");return shopifyIntakeResultSchema.parse(data);
+        if(error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+        const result=shopifyIntakeResultSchema.parse(data);
+        if(background&&env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED==="true"&&connection.status==="verified"&&
+          (result.status==="accepted"||result.status==="duplicate")){
+          // Receipt is durable before scheduling. Never run for ignored/foreign
+          // orders; the worker independently rechecks binding, policy and lease.
+          // Duplicate delivery may recover a previously interrupted worker.
+          background.schedule(async()=>{
+            try{await (background.run??runShopifyPilotWorker)(db,connection.id,AbortSignal.timeout(45000),env);}
+            catch{console.error("Shopify automatic import deferred; queued job retained for worker retry.");}
+          });
+        }
+        return result;
       }})(request,signEnv(env));
     },
     privacy(request:Request,env:NodeJS.ProcessEnv=process.env){

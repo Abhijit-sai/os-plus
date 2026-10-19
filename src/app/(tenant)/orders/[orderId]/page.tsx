@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Route } from "lucide-react";
 
 import { getOrderDetailPageData } from "@/features/orders/queries";
+import { getImportedShopifyOrders } from "@/features/orders/shopify-imported";
+import { ShopifyImportedOrder } from "@/components/orders/shopify-imported-order";
 import { localOrderReceivable } from "@/features/orders/financial-display";
 import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
@@ -91,6 +93,8 @@ export default async function OrderDetailPage({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = await params;
+  const [imported] = await getImportedShopifyOrders(orderId);
+  if (imported) return <ShopifyImportedOrder order={imported}/>;
   const {
     context,
     shopifySummary,

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, Plus, Search } from "lucide-react";
 
 import { getOrdersPageData } from "@/features/orders/queries";
+import { getImportedShopifyOrders } from "@/features/orders/shopify-imported";
+import { ShopifyImportedOrderList } from "@/components/orders/shopify-imported-order";
 import { localOrderReceivable, matchesLocalPayment } from "@/features/orders/financial-display";
 import { deliveryDayOffset } from "@/features/orders/delivery-date";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -53,6 +55,8 @@ export default async function OrdersPage({
   const statusFilter = resolvedSearchParams?.status ?? "all";
   const sourceFilter = resolvedSearchParams?.source ?? "all";
   const viewFilter = resolvedSearchParams?.view ?? "active";
+  const imported = ["all", "shopify"].includes(sourceFilter) && statusFilter === "all" && paymentFilter === "all" && ["all", "active"].includes(viewFilter)
+    ? await getImportedShopifyOrders(undefined, resolvedSearchParams?.q) : [];
   const { orders, customers, orderItems, stageInstances, search, shopifySummaries } = await getOrdersPageData(resolvedSearchParams?.q, {
     payment: paymentFilter, status: statusFilter, source: sourceFilter, view: viewFilter,
   });
@@ -247,6 +251,7 @@ export default async function OrdersPage({
         </CommandBar>
       </form>
 
+      <ShopifyImportedOrderList orders={imported}/>
       <Card className="overflow-hidden">
         <p className="border-b px-4 py-3 text-xs text-muted-foreground">Showing up to 50 matching orders. Summary counts describe the shown results, not tenant-wide totals.</p>
         <CardContent className="p-0">
