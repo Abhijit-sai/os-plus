@@ -162,3 +162,41 @@ test('imported-order read fails closed across roles, tenants, binding, retention
   for(const role of ['anon','authenticated'])assert.equal(await scalar("SELECT has_function_privilege($1,'public.read_shopify_imported_orders(uuid,text,text,text,uuid,text)','EXECUTE') AS result",[role]),false);
   await db.query("UPDATE tenants SET status='suspended' WHERE id=$1",[f.tenant]);assert.deepEqual(await read(),[]);
 }));
+
+test('owner webhook setup→signed delivery→automatic worker creates one order without mapping or release',isolated(async f=>{
+  Object.assign(f.env,{SHOPIFY_INTAKE_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true',SHOPIFY_RELEASE_ENABLED:'false'});
+  const state=await authorize(f),rows=[],tasks=[];
+  const ingress=createShopifyApplicationIngress(adapter,{schedule:task=>tasks.push(task),run:(db,id,signal,env)=>runShopifyPilotWorker(db,id,signal,env,false,f.transport)});
+  const transport=async(url,init)=>{
+    if(url==='https://example.invalid/api/integrations/shopify/orders-webhook')return ingress.orders(new Request(url,init),f.env);
+    if(url.endsWith('/graphql.json')){
+      const input=JSON.parse(init.body);let data;
+      if(input.query.includes('OSPlusPilotWebhooks'))data={shop:{id:'gid://shopify/Shop/101',myshopifyDomain:f.env.SHOPIFY_SHOP_DOMAIN},
+        currentAppInstallation:{app:{apiKey:f.env.SHOPIFY_CLIENT_ID,webhookApiVersion:'2026-10'}},webhookSubscriptions:{nodes:rows,pageInfo:{hasNextPage:false,endCursor:null}}};
+      if(input.query.includes('OSPlusCreatePilotWebhook')){
+        assert.equal(input.variables.subscription.filter,`id:${f.source.order.id.split('/').at(-1)}`);
+        const row={...input.variables.subscription,topic:input.variables.topic,id:`gid://shopify/WebhookSubscription/${rows.length+1}`,apiVersion:{handle:'2026-10'}};rows.push(row);
+        data={webhookSubscriptionCreate:{webhookSubscription:row,userErrors:[]}};
+      }
+      if(data)return Response.json({data},{headers:{'X-Shopify-API-Version':'2026-10'}});
+    }
+    return f.transport(url,init);
+  };
+  const service=createShopifyApplicationService(adapter,createShopifyApplicationSource(transport),async()=>assert.fail('test must not manually run worker'),transport);
+  const command=action=>({action,requestKey:randomUUID(),connectionId:state.connection.id});
+  const run=(input,actor=f.actor)=>service.execute(actor,input,f.signal,f.env);
+  await assert.rejects(()=>run(command('register_webhooks'),{...f.actor,role:'manager'}),/ACCESS_DENIED/);assert.equal(rows.length,0);
+  await assert.rejects(()=>run(command('test_webhook')),/WEBHOOK_SETUP_REQUIRED/);assert.equal(tasks.length,0);
+  assert.equal((await run(command('register_webhooks'))).created,3);
+  assert.equal((await run(command('register_webhooks'))).created,0);
+  const delivery=command('test_webhook');assert.equal((await run(delivery)).status,'webhook_test_received');assert.equal(tasks.length,2);
+  while(tasks.length)await tasks.shift()();
+  assert.equal((await f.view()).sources.length,1);
+  await run(delivery);while(tasks.length)await tasks.shift()();
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),1);
+  for(const table of ['shopify_variant_mappings','shopify_draft_reviews','shopify_releases','order_items','order_payments'])
+    assert.equal(await scalar(`SELECT count(*)::int AS result FROM ${table} WHERE tenant_id=$1`,[f.tenant]),0,table);
+  const latest=await f.view();assert.equal(latest.jobs[0].requested,latest.jobs[0].completed);assert.equal(latest.sources[0].payment.status,'PAID');
+  await db.query("UPDATE tenant_users SET status='disabled' WHERE tenant_id=$1 AND clerk_user_id='fictional-owner'",[f.tenant]);
+  await assert.rejects(()=>run(command('register_webhooks')),/ACCESS_DENIED/);assert.equal(rows.length,3);
+}));

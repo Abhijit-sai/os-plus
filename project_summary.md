@@ -1,5 +1,14 @@
 # OS PLUS Project Summary
 
+### 2026-10-19 — Owner-triggered Test webhook registration and signed-delivery check
+
+- Built from released main 5a3e722 in the isolated Shopify checkout. No SQL, production-tenant data, source Shopify order or Chat/CRM changes.
+- Adds protected setup commands using existing Vercel runtime credentials: list/create missing/verify three exact-order filtered subscriptions, and send/replay a synthetic signed notification to the fixed application endpoint.
+- Rechecks active owner, configured Test binding, verified connection, live one-order policy, worker gates and Shopify app/store identity. Conflicting subscriptions fail closed; never overwritten/deleted. No secrets or upstream error payloads returned to the browser.
+- 23 focused webhook checks and 26 automatic-order checks pass (overlapping suites); 66 probe regressions and role/client/owner/order boundaries pass. Lint/typecheck and optimized build pass.
+- Public hosted unsigned request returns 401. Actual subscription registration, signed hosted processing and genuine Shopify delivery are separate pending acceptance steps, not inferred from local tests.
+- See docs/40_Shopify_Test_Webhook_Setup.md for exact owner clicks and limitations. Existing one-day retention and exact-one-order scope are unchanged.
+
 ### 2026-10-19 — Automatic Shopify Test-order visibility and webhook worker
 
 - Owner approved this scoped migration/deployment and webhook test in Phantom Threads Test only. Production business data and Chat/CRM are excluded.

@@ -113,9 +113,30 @@ export async function readShopifyApplicationGraphQL<T>(input:ShopifyGraphQLReque
   return executeShopifyGraphQL(input,transport);
 }
 
+const webhookCreateQuery=`mutation OSPlusCreatePilotWebhook($topic: WebhookSubscriptionTopic!, $subscription: WebhookSubscriptionInput!) {
+  webhookSubscriptionCreate(topic: $topic, webhookSubscription: $subscription) {
+    webhookSubscription { id topic uri filter format includeFields apiVersion { handle } }
+    userErrors { field message }
+  }
+}`;
+// Deliberately not a generic mutation transport. This is the sole allowed
+// Shopify write: subscription configuration, never order/customer mutations.
+export async function createShopifyApplicationWebhook<T>(input:Omit<ShopifyGraphQLRequest<T>,"query"|"variables"> & {
+  topic:"ORDERS_CREATE"|"ORDERS_UPDATED"|"ORDERS_CANCELLED";orderGid:string;
+},actor:ShopifyProbeActor,transport:typeof fetch=fetch,env:NodeJS.ProcessEnv=process.env){
+  const config=getShopifyApplicationConfig(actor,env);
+  if(input.shopDomain!==config.shopDomain||input.connectionEnvironment!=="production"||
+    !["ORDERS_CREATE","ORDERS_UPDATED","ORDERS_CANCELLED"].includes(input.topic)||
+    !/^gid:\/\/shopify\/Order\/[1-9][0-9]{0,31}$/.test(input.orderGid))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  return executeShopifyGraphQL({...input,query:webhookCreateQuery,variables:{topic:input.topic,subscription:{
+    uri:`${config.origin}/api/integrations/shopify/orders-webhook`,format:"JSON",
+    filter:`id:${input.orderGid.split("/").at(-1)}`,includeFields:["id","admin_graphql_api_id","updated_at"]}}},transport,true);
+}
+
 async function executeShopifyGraphQL<T>(
   input: ShopifyGraphQLRequest<T>,
   transport: typeof fetch,
+  allowWebhookCreate=false,
 ): Promise<{
   data: T;
   apiVersion: typeof SHOPIFY_API_VERSION;
@@ -132,7 +153,7 @@ async function executeShopifyGraphQL<T>(
     /[\r\n]/.test(input.accessToken) ||
     // The diagnostic transport is read-only and accepts internal named queries.
     // The handler never accepts a query from the browser.
-    !/^\s*query\s+[A-Za-z_][A-Za-z0-9_]*\s*[(\{]/.test(input.query)
+    !(allowWebhookCreate?input.query===webhookCreateQuery:/^\s*query\s+[A-Za-z_][A-Za-z0-9_]*\s*[(\{]/.test(input.query))
   )
     throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
 

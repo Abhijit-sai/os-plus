@@ -15,6 +15,8 @@ import { readShopifyWorkerContext } from "./worker-context.ts";
 import { createShopifyPilotCredentialReader } from "./pilot-credentials.ts";
 import { sealShopifySource } from "./source-crypto.ts";
 import type { createShopifyApplicationSource } from "./application-source.ts";
+import { registerShopifyPilotWebhooks } from "./webhook-registration.ts";
+import { testShopifyWebhookDelivery } from "./webhook-test.ts";
 
 type Db=Pick<SupabaseClient<Database>,"rpc"|"from">;
 type Worker=(connectionId:string,signal:AbortSignal,env:NodeJS.ProcessEnv)=>Promise<{status:string;orderId?:string}>;
@@ -97,6 +99,23 @@ export function createShopifyApplicationService(db:Db,source:ReturnType<typeof c
       }
       // Every non-receipt source operation requires a live, named-copy policy.
       if(!data.policy||data.policy.connection_id!==connection.id||Date.parse(data.policy.expires_at)<=now())throw new ShopifyIntegrationError("REVIEW_REQUIRED");
+      if(command.action==="register_webhooks"||command.action==="test_webhook"){
+        const checkBinding=async()=>{
+          const fresh=await read(actor,signal,env),c=fresh.data.connection,p=fresh.data.policy;
+          if(!c||c.id!==connection.id||c.status!=="verified"||!c.processing_enabled||!p||
+            p.tenant_id!==actor.tenantId||p.connection_id!==c.id||Date.parse(p.expires_at)<=now()||
+            !/^gid:\/\/shopify\/Order\/[1-9][0-9]{0,31}$/.test(p.order_gid))throw new ShopifyIntegrationError("REVIEW_REQUIRED");
+          const context=await readShopifyWorkerContext(db,{...binding,appRef:config.clientId,environment:"production"},signal);
+          if(context.shopGid!==c.shop_gid||context.shopDomain!==config.shopDomain)throw new ShopifyIntegrationError("ACCESS_DENIED");
+          return {connectionId:c.id,shopGid:c.shop_gid,orderGid:p.order_gid,expiresAt:p.expires_at};
+        };
+        const expected=await checkBinding();
+        const result=await registerShopifyPilotWebhooks(actor,expected,checkBinding,signal,env,transport,now,command.action==="register_webhooks");
+        if(command.action==="register_webhooks")return result;
+        return testShopifyWebhookDelivery(actor,expected.orderGid,command.requestKey,async()=>{
+          if(JSON.stringify(await checkBinding())!==JSON.stringify(expected))throw new ShopifyIntegrationError("REVIEW_REQUIRED");
+        },signal,env,transport,now);
+      }
       if(command.action==="queue_order"){
         assertShopifyApplicationStage("copy",env);await send(command.action,{});return {status:"queued"};
       }

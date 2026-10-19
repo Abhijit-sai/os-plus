@@ -11,6 +11,8 @@ export const shopifyApplicationCommandSchema=z.discriminatedUnion("action",[
     retentionDays:z.number().int().min(1).max(7),reason,consent:z.literal(true)}).strict(),
   z.object({action:z.literal("queue_order"),...scope}).strict(),
   z.object({action:z.literal("run_worker"),...scope}).strict(),
+  z.object({action:z.literal("register_webhooks"),...scope}).strict(),
+  z.object({action:z.literal("test_webhook"),...scope}).strict(),
   z.object({action:z.literal("purge_expired_source"),...scope}).strict(),
   z.object({action:z.literal("connection_state"),...scope,expectedRevision:version,state:z.enum(["pause","resume","disconnect"])}).strict(),
   z.object({action:z.literal("retry_job"),...scope,jobId:id,reason}).strict(),
