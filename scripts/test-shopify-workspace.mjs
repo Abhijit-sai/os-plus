@@ -38,6 +38,19 @@ test('automatic import mode links unreleased orders and removes mandatory produc
   assert.ok(!html.includes('Save review'));assert.ok(!html.includes('Release reviewed items'));
   assert.ok(!html.includes('Needs mapping'));assert.ok(!html.includes('Map variants, choose'));
 });
+
+test('webhook setup uses explicit actions, with disabled expired/paused state and no secret fields',()=>{
+  for(const active of [true,false]){
+    const view=applicationView();view.automaticOrderCreation=true;view.policy.active=active;
+    const html=renderToStaticMarkup(React.createElement(component(),{view,action:async()=>assert.fail('render must not register')}));
+    assert.ok(html.includes('Register Test webhooks'));assert.ok(html.includes('Test signed delivery'));
+    assert.ok(html.includes('synthetic notification'));assert.ok(!/<input[^>]+(?:clientSecret|accessToken|callbackUrl)/i.test(html));
+    if(!active)assert.match(html,/disabled=""[^>]*>Register Test webhooks/);
+  }
+  const view=applicationView();view.automaticOrderCreation=true;view.connection.status='paused';
+  const html=renderToStaticMarkup(React.createElement(component(),{view,action:async()=>assert.fail('render must not register')}));
+  assert.match(html,/disabled=""[^>]*>Test signed delivery/);
+});
 test('unknown outcome preserves form/retry intent and mapping dialog is controlled through pending and success',()=>{
   const code=readFileSync(new URL('../src/components/settings/shopify-workspace.tsx',import.meta.url),'utf8');
   assert.ok(code.includes('if(next.status==="success"){intent.current=null;'));assert.ok(code.includes('onPendingChange={setBusy}'));assert.ok(code.includes('preventClose={busy}'));

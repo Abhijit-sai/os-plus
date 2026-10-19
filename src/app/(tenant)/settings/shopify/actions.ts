@@ -18,6 +18,11 @@ const messages:Record<string,string>={
   RELEASE_DISABLED:"Release is not enabled. The draft has not entered production.",CONFIGURATION_BUSY:"Another change is in progress. Retry shortly.",
   SOURCE_CHANGED:"Shopify changed since this review. Refresh the source and review it again.",
   CONFIGURATION_INVALID:"Private Shopify configuration is incomplete. Ask the administrator to check the readiness list.",
+  INTAKE_DISABLED:"Webhook intake and automatic creation must both be enabled for this Test pilot.",
+  WEBHOOK_SIGNING_MISMATCH:"The webhook signing override differs from this Shopify app secret. Ask the administrator to correct the server configuration; do not share secrets here.",
+  WEBHOOK_CONFIGURATION_CONFLICT:"Existing webhook subscriptions differ from this one-order Test setup. Nothing was replaced or removed. Ask the administrator to review them.",
+  WEBHOOK_SETUP_REQUIRED:"Register Test webhooks first, then run the signed-delivery test.",
+  WEBHOOK_SETUP_UNCONFIRMED:"Webhook setup or delivery could not be confirmed. Retry the same action; existing subscriptions and deliveries are checked before reuse.",
 };
 export async function shopifyApplicationAction(_previous:ShopifyApplicationActionState,form:FormData):Promise<ShopifyApplicationActionState>{
   try{
@@ -32,6 +37,8 @@ export async function shopifyApplicationAction(_previous:ShopifyApplicationActio
     revalidatePath("/settings/shopify");
     if(["retry","unknown","fenced"].includes(result.status))return {status:"error",message:"No completion was confirmed. Keep the same choices, check job health and retry safely."};
     return {status:"success",message:result.status==="released"?"Released to production in this Test tenant. No local payment or message was created.":
+      result.status==="webhooks_ready"?"All three order webhook subscriptions verified for the approved Test order. Run Test signed delivery next.":
+      result.status==="webhook_test_received"?"Synthetic signed delivery and replay received. This is not a real Shopify event or proof of import completion. Check Health & privacy for completed processing, then open the imported order.":
       result.status==="draft"?"Draft copied. Map and review it before releasing production work.":
       result.status==="idle"?"No pending job. Queue the approved order first.":
       result.status==="authorized"?"One-order Test copy approved. Use Copy approved order, then Process queued copy.":
