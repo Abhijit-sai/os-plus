@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { test } from 'node:test';
 import ts from 'typescript';
 import { projectShopifySourcePayment, decodeShopifySourcePayment } from '../src/integrations/shopify/source-payment.ts';
+import { readShopifyCommercialPayment } from '../src/integrations/shopify/commercial-order.ts';
+import { canonicalShopDomain } from '../src/integrations/shopify/config.ts';
 import { sealShopifySource } from '../src/integrations/shopify/source-crypto.ts';
 import { snapshot, bag, context } from './fixtures/shopify-draft.mjs';
 const orderId='70000000-0000-4000-8000-000000000001';
@@ -73,12 +75,18 @@ test('server decoder authenticates scope, AAD, hash, envelope and clocks and exp
     assert.throws(()=>decodeShopifySourcePayment({...sealed,...patch},expected,env));
   assert.throws(()=>decodeShopifySourcePayment(sealed,expected,{}),/CONFIGURATION_INVALID/);
 });
-test('source payment reader issues one scoped read and returns unavailable rather than zero or private error',async()=>{
+function loadPaymentReader(){
   const code=ts.transpileModule(readFileSync(new URL('../src/features/orders/shopify-payments.ts',import.meta.url),'utf8'),
     {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
   const testModule={exports:{}};vm.runInNewContext(code,{module:testModule,exports:testModule.exports,require(name){
-    if(name==='server-only')return {};if(name==='@/integrations/shopify/source-payment')return {decodeShopifySourcePayment};throw Error(name);
+    if(name==='server-only')return {};if(name==='@/integrations/shopify/source-payment')return {decodeShopifySourcePayment};
+    if(name==='@/integrations/shopify/commercial-order')return {readShopifyCommercialPayment};
+    if(name==='@/integrations/shopify/config')return {canonicalShopDomain};throw Error(name);
   },AbortSignal});
+  return testModule.exports;
+}
+test('source payment reader issues one scoped read and returns unavailable rather than zero or private error',async()=>{
+  const testModule={exports:loadPaymentReader()};
   let calls=0;const db={rpc(name,args){calls++;assert.equal(name,'read_shopify_payment_source');assert.deepEqual(JSON.parse(JSON.stringify(args)),
     {p_tenant_id:context.tenantId,p_actor_id:'synthetic-owner',p_order_id:orderId});return {abortSignal(signal){assert.equal(signal.aborted,false);return Promise.resolve({data:row(),error:null});}};}};
   const result=await testModule.exports.getShopifyPaymentDisplay(db,context.tenantId,'synthetic-owner',orderId,env);
@@ -87,4 +95,20 @@ test('source payment reader issues one scoped read and returns unavailable rathe
   assert.deepEqual(JSON.parse(JSON.stringify(unavailable)),{availability:'unavailable'});
   const thrown=await testModule.exports.getShopifyPaymentDisplay({rpc(){throw Error('private transport error');}},context.tenantId,'synthetic-owner',orderId,env);
   assert.deepEqual(JSON.parse(JSON.stringify(thrown)),{availability:'unavailable'});
+});
+
+test('retained Test payment reader needs no raw key and fails closed on wrong returned scope or SQL failure',async()=>{
+  const {getShopifyPaymentDisplay}=loadPaymentReader();
+  const settings={SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true',SHOPIFY_CONNECTION_TEST_TENANT_ID:context.tenantId,
+    SHOPIFY_SHOP_DOMAIN:context.shopDomain,SHOPIFY_CLIENT_ID:context.appRef};
+  const payment=projectShopifySourcePayment(snapshot());let calls=0;
+  const db={rpc(name,args){calls++;assert.equal(name,'read_shopify_retained_payment');
+    assert.equal(args.p_domain,context.shopDomain);assert.equal(args.p_tenant_id,context.tenantId);
+    return {abortSignal(){return Promise.resolve({data:{tenantId:context.tenantId,orderId,payment},error:null});}};}};
+  assert.deepEqual(await getShopifyPaymentDisplay(db,context.tenantId,'synthetic-manager',orderId,settings),payment);assert.equal(calls,1);
+  for(const response of [{data:{tenantId:context.tenantId,orderId:'70000000-0000-4000-8000-000000000002',payment},error:null},
+    {data:null,error:{message:'private SQL details'}}]){
+    const result=await getShopifyPaymentDisplay({rpc(){return {abortSignal(){return Promise.resolve(response);}};}},context.tenantId,'synthetic-manager',orderId,settings);
+    assert.deepEqual(JSON.parse(JSON.stringify(result)),{availability:'unavailable'});
+  }
 });

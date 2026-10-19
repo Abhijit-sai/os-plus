@@ -8,16 +8,19 @@ import { getAttachmentsForEntities } from "@/features/attachments/queries";
 import type { ItemHistory, ItemStageInstance, ItemStageWorkLog } from "@/types/database";
 import { getShopifyOperationalSummaries } from "./shopify-operational";
 import { getShopifyPaymentDisplay } from "./shopify-payments";
+import { shopifyCommercialReadScope, shopifyCommercialSummarySchema } from "./shopify-commercial";
 
 export async function getOrdersPageData(search?: string | null, filters: {
-  source?: string; status?: string; payment?: string; view?: string;
+  source?: string; status?: string; payment?: string; view?: string; page?: number;
 } = {}) {
   const context = await requireTenantContext();
   const supabase = createSupabaseServiceRoleClient();
   const trimmedSearch = search?.trim();
 
   const selected = (value?: string) => !value || value === "all" ? null : value;
-  const orders = await supabase.rpc("list_operational_orders", {
+  const commercialScope = shopifyCommercialReadScope(context.tenant.id, context.membership.role, context.membership.clerk_user_id);
+  const page = commercialScope && Number.isInteger(filters.page) && (filters.page ?? 0) >= 1 && (filters.page ?? 0) <= 201 ? filters.page! : 1;
+  const listArguments = {
     p_tenant_id: context.tenant.id,
     p_search: trimmedSearch || null,
     p_source: selected(filters.source),
@@ -25,12 +28,18 @@ export async function getOrdersPageData(search?: string | null, filters: {
     p_payment: selected(filters.payment),
     p_view: filters.view ?? "all",
     p_limit: 50,
-  });
+  };
+  const orders = commercialScope
+    ? await supabase.rpc("list_shopify_commercial_orders", { ...listArguments, ...commercialScope, p_limit: 51, p_offset: (page - 1) * 50 })
+    : await supabase.rpc("list_operational_orders", listArguments);
   if (orders.error) throw new Error("Unable to load orders. Please try again.");
-  const listedOrders = orders.data ?? [];
+  const hasNextPage = commercialScope !== null && page < 201 && (orders.data?.length ?? 0) > 50;
+  const pageLimitReached = commercialScope !== null && page === 201 && (orders.data?.length ?? 0) > 50;
+  const listedOrders = (orders.data ?? []).slice(0, 50);
   const orderIds = listedOrders.map(order => order.id);
-  const customerIds = Array.from(new Set(listedOrders.map(order => order.customer_id)));
-  const [customers, orderItems] = await Promise.all([
+  const customerIds = Array.from(new Set(listedOrders.map(order => order.customer_id).filter((id): id is string => typeof id === "string")));
+  const importedIds = listedOrders.filter(order => order.source === "shopify").map(order => order.id);
+  const [customers, orderItems, commercialResult] = await Promise.all([
     customerIds.length ? supabase
       .from("customers")
       .select("id, name, phone")
@@ -44,10 +53,12 @@ export async function getOrdersPageData(search?: string | null, filters: {
       .eq("tenant_id", context.tenant.id)
       .in("order_id", orderIds)
       .is("deleted_at", null)
-      : Promise.resolve({ data: [], error: null })
+      : Promise.resolve({ data: [], error: null }),
+    commercialScope && importedIds.length ? supabase.rpc("read_shopify_commercial_summaries", { ...commercialScope, p_order_ids: importedIds })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  for (const result of [orders, customers, orderItems]) {
+  for (const result of [orders, customers, orderItems, commercialResult]) {
     if (result.error) {
       throw new Error(`Unable to load orders: ${result.error.message}`);
     }
@@ -70,6 +81,8 @@ export async function getOrdersPageData(search?: string | null, filters: {
   const shopifySummaries = await getShopifyOperationalSummaries(supabase, context.tenant.id, listedOrders.filter(order => order.source === "shopify").map(order => order.id));
   return {
     context,
+    page, hasNextPage, pageLimitReached,
+    shopifyCommercialSummaries: shopifyCommercialSummarySchema.parse(commercialResult.data),
     shopifySummaries,
     orders: listedOrders,
     customers: customers.data ?? [],

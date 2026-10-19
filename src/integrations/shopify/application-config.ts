@@ -12,6 +12,18 @@ export function isShopifyApplicationVisible(tenantId:string,env:NodeJS.ProcessEn
 // Same-organization pilot, not a global store binding for arbitrary tenants.
 export function getShopifyApplicationConfig(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv=process.env,mode:"read"|"operate"="operate"){
   assertShopifyProbeActor(actor);
+  return privateConfig(actor,env,mode);
+}
+// Team setup is not owner-only connection administration. Never impersonate an
+// owner to acquire credentials; SQL also rechecks the current membership.
+export function getShopifyManagerConfig(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv=process.env,mode:"read"|"operate"="operate"){
+  if(!actor.userId||actor.userId!==actor.membershipUserId||actor.tenantId!==actor.membershipTenantId||
+    !["owner_admin","manager"].includes(actor.role)||actor.membershipStatus!=="active"||actor.tenantStatus!=="active"||
+    !z.string().uuid().safeParse(actor.tenantId).success||env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED!=="true")
+    throw new ShopifyIntegrationError("ACCESS_DENIED");
+  return privateConfig(actor,env,mode);
+}
+function privateConfig(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv,mode:"read"|"operate"){
   if(!isShopifyApplicationVisible(actor.tenantId,env))throw new ShopifyIntegrationError("ACCESS_DENIED");
   if(mode==="operate"&&env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true")throw new ShopifyIntegrationError("ACCESS_DENIED");
   if(env.VERCEL_ENV!=="production"||env.SHOPIFY_DEPLOYMENT_ENV!=="production"||env.SHOPIFY_API_VERSION!==SHOPIFY_API_VERSION)

@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 const unavailable = { expired: "Test source retention has expired.", partial: "Order details are still being fetched from Shopify.",
   unavailable: "Source details are unavailable. Ask an administrator to check the connection." };
 
-export function ShopifyImportedOrder({ order }: { order: ImportedShopifyOrder }) {
+export function ShopifyImportedOrder({ order, embedded=false }: { order: ImportedShopifyOrder;embedded?:boolean }) {
   return <div className="min-w-0 space-y-5">
-    <Button asChild variant="outline"><Link href="/orders">Back to orders</Link></Button>
+    {!embedded&&<><Button asChild variant="outline"><Link href="/orders">Back to orders</Link></Button>
     <header><h1 className="text-2xl font-semibold">{order.number}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Imported from Shopify · Production not assigned</p></header>
+      <p className="mt-1 text-sm text-muted-foreground">Imported from Shopify · Draft — needs setup</p></header></>}
     {order.availability !== "available" ? <p role="status">{unavailable[order.availability]}</p> : <>
       <Card><CardHeader><CardTitle>Order {order.sourceNumber}</CardTitle></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
         <div><h2 className="font-medium">Customer</h2><p>{order.customer.name}</p>
@@ -34,9 +34,9 @@ export function ShopifyImportedOrder({ order }: { order: ImportedShopifyOrder })
           {line.properties.length > 0 && <details><summary className="cursor-pointer py-2 text-sm">Item details</summary>
             <dl className="space-y-2">{line.properties.map((property, index) => <div key={index} className="break-words text-sm"><dt className="font-medium">{property.name}</dt><dd>{property.value}</dd></div>)}</dl></details>}
         </div>)}
-        <p className="text-sm text-muted-foreground">No workflow or worker has been assigned by this import. Production setup is a separate team action.</p>
+        {!embedded&&<p className="text-sm text-muted-foreground">No workflow or worker has been assigned by this import. Production setup is a separate team action.</p>}
       </CardContent></Card>
-      <ShopifyPaymentPanel payment={order.payment}/>
+      {!embedded&&<ShopifyPaymentPanel payment={order.payment}/>}
       <p className="text-sm text-muted-foreground">Shopify source amounts: subtotal {order.currency} {order.subtotal} · discount {order.discount} · shipping {order.shipping} · tax {order.tax}. No local receipt, GST posting or customer message was created.</p>
     </>}
   </div>;

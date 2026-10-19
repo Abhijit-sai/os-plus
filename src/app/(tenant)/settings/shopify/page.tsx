@@ -10,6 +10,12 @@ import { runShopifyPilotWorker } from "@/integrations/shopify/application-worker
 import { ShopifyWorkspace } from "@/components/settings/shopify-workspace";
 import { shopifyApplicationAction } from "./actions";
 import type { ShopifyApplicationView } from "@/integrations/shopify/application-view";
+import { ShopifySimpleSetup } from "@/components/settings/shopify-simple-setup";
+import {shopifyUnifiedAction} from "./unified-actions";
+import { createShopifyUnifiedService } from "@/integrations/shopify/unified-service";
+import type { UnifiedWorkspace } from "@/integrations/shopify/unified-contract";
+
+function currentIndiaDate(){return new Date(Date.now()+330*60000).toISOString().slice(0,10);}
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
@@ -17,6 +23,16 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
   if(process.env.SHOPIFY_CONNECTION_SCREEN_ENABLED!=="true")notFound();
   const actor=await getShopifyProbeActor();
   if(!actor || actor.role!=="owner_admin" || !isShopifyConnectionScreenEnabled(actor.tenantId))notFound();
+  if(process.env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true"){
+    let unified:UnifiedWorkspace|null=null,shopDomain="";
+    try{
+      const config=getShopifyApplicationConfig(actor);shopDomain=config.shopDomain;
+      unified=await createShopifyUnifiedService(createSupabaseServiceRoleClient()).view(actor,AbortSignal.timeout(6000));
+    }catch{ /* Never render raw configuration or SQL errors. */ }
+    if(!unified)return <div role="alert" className="rounded-lg border p-5"><h1 className="text-xl font-semibold">Shopify setup is unavailable</h1>
+      <p>Nothing was imported. The administrator needs to verify the approved database update and Test connection.</p></div>;
+    return <ShopifySimpleSetup key={actor.tenantId} initial={unified} shopDomain={shopDomain} today={currentIndiaDate()} submitAction={shopifyUnifiedAction}/>;
+  }
   if(process.env.SHOPIFY_PILOT_OPERATIONS_ENABLED==="true"){
     let view:ShopifyApplicationView|null=null;
     try{

@@ -25,6 +25,12 @@ test('expired-source cleanup does not skip the independent privacy-contact TTL',
   const f=fixture();const response=await f.ingress.worker(request(),env);assert.equal(response.status,200);
   assert.deepEqual(f.calls,['shopify_connections','purge_expired_shopify_pilot','purge_shopify_privacy_contacts']);
 });
+
+test('unified raw and privacy cleanup still run when order synchronization is switched off',async()=>{
+  const f=fixture();const response=await f.ingress.worker(request(),{...env,SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_SYNC_ENABLED:'false'});
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),{status:'raw_cleanup_checked'});
+  assert.deepEqual(f.calls,['shopify_connections','purge_expired_shopify_raw','purge_shopify_privacy_contacts']);
+});
 test('worker rejects missing secret, bad authorization and browser-selected authority without DB calls',async()=>{
   for(const [body,auth,settings] of [['{}','bad',env],['{}',`Bearer ${env.SHOPIFY_WORKER_SECRET}`,{...env,SHOPIFY_WORKER_SECRET:''}],['{"tenantId":"foreign"}',`Bearer ${env.SHOPIFY_WORKER_SECRET}`,env]]){
     const f=fixture();const response=await f.ingress.worker(request(body,auth),settings);assert.ok(response.status>=400);assert.deepEqual(f.calls,[]);

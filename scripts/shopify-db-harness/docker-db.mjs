@@ -41,6 +41,10 @@ async function migrations(client,populated=false){
   const folder=new URL('../../supabase/migrations/',import.meta.url),files=readdirSync(folder).filter(name=>name.endsWith('.sql')).sort();
   let seeded=false;
   for(const name of files){
+    if(name==='20261019190000_shopify_import_preview.sql'){
+      await client.query(readFileSync(new URL('../../docs/sql/20261019_unified_orders_preflight.readonly.sql',import.meta.url),'utf8'));
+      console.log('PASS read-only unified migration catalogue preflight on fictional baseline');
+    }
     if(populated&&!seeded&&name.startsWith('20261008')){
       await client.query("insert into tenants(id,name,slug,store_name) values('10000000-0000-4000-8000-000000000001','Fictional upgrade shop','fictional-upgrade','Fictional');insert into customers(tenant_id,name,normalized_phone_e164) values('10000000-0000-4000-8000-000000000001','Fictional legacy customer','+919000000001');insert into orders(tenant_id,order_number,customer_id,tracking_token,total_amount) select tenant_id,'',id,'fictional-upgrade-token',100 from customers;");
       seeded=true;

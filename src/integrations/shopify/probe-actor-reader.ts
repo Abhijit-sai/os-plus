@@ -9,15 +9,23 @@ export async function readShopifyProbeActor(
   tenantId: string | undefined,
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
 ): Promise<ShopifyProbeActor | null> {
-  if (!userId || !tenantId || !z.string().uuid().safeParse(tenantId).success) return null;
-  const { data: members, error } = await supabase.from("tenant_users")
+  if (!userId || (tenantId !== undefined && !z.string().uuid().safeParse(tenantId).success)) return null;
+  let query = supabase.from("tenant_users")
     .select("tenant_id,clerk_user_id,role,status")
-    .eq("tenant_id", tenantId).eq("clerk_user_id", userId).eq("status", "active").limit(2);
+    .eq("clerk_user_id", userId).eq("status", "active");
+  // Match the ordinary workspace's single-membership default, without its
+  // invitation-linking writes. An explicit (even stale) selection never falls
+  // back to a different tenant. Two memberships require explicit selection.
+  if (tenantId !== undefined) query = query.eq("tenant_id", tenantId);
+  const { data: members, error } = await query.limit(2);
   if (error || members?.length !== 1) return null;
-  const { data: tenant, error: tenantError } = await supabase.from("tenants")
-    .select("id,status").eq("id", tenantId).eq("status", "active").maybeSingle();
-  if (tenantError || !tenant) return null;
   const member = members[0];
+  if (member.clerk_user_id !== userId || member.status !== "active" ||
+      !z.string().uuid().safeParse(member.tenant_id).success ||
+      (tenantId !== undefined && member.tenant_id !== tenantId)) return null;
+  const { data: tenant, error: tenantError } = await supabase.from("tenants")
+    .select("id,status").eq("id", member.tenant_id).eq("status", "active").maybeSingle();
+  if (tenantError || !tenant || tenant.id !== member.tenant_id || tenant.status !== "active") return null;
   return { userId, tenantId: tenant.id, role: member.role, tenantStatus: tenant.status,
     membershipUserId: member.clerk_user_id ?? "", membershipTenantId: member.tenant_id,
     membershipStatus: member.status };

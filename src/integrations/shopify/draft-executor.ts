@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { assertShopifyHydrationContext, type ShopifyHydrationContext } from "./hydration-contract.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
-import { createShopifyQueueStore, shopifyJobLeaseSchema } from "./queue-store.ts";
+import { createShopifyQueueStore, shopifyJobLeaseSchema, type ShopifyJobLease } from "./queue-store.ts";
 import { createShopifyDraftStore } from "./draft-store.ts";
 import { createShopifyOrderHydrator, type ShopifyHydrationResult } from "./order-hydration.ts";
 import { sealShopifySource } from "./source-crypto.ts";
@@ -18,6 +18,7 @@ type Dependencies = {
   drafts: ReturnType<typeof createShopifyDraftStore>;
   hydrate: ReturnType<typeof createShopifyOrderHydrator>;
   readCredential(context:ShopifyHydrationContext,signal:AbortSignal):Promise<z.infer<typeof credential>>;
+  resolveContext?(context:ShopifyHydrationContext,lease:ShopifyJobLease,signal:AbortSignal):Promise<ShopifyHydrationContext>;
 };
 type Outcome = {status:"idle"|"draft"|"observed"|"retry"|"fenced"|"unknown";jobId?:string;orderId?:string};
 
@@ -57,6 +58,14 @@ export function createShopifyDraftExecutor(deps:Dependencies,now=Date.now,budget
       lease=shopifyJobLeaseSchema.parse(claimed[0]);
       if(lease.tenantId!==context.tenantId || lease.connectionId!==context.connectionId || lease.connectionRevision!==context.revision || Date.parse(lease.leaseExpiresAt)<=now())
         throw new ShopifyIntegrationError("ACCESS_DENIED");
+      if(deps.resolveContext){
+        const resolved=await bounded(()=>deps.resolveContext!(context,lease!,controller.signal));
+        assertShopifyHydrationContext(resolved,env);
+        const {importCreatedAtCutoff:beforeCutoff,...before}=context;
+        const {importCreatedAtCutoff:afterCutoff,...after}=resolved;
+        if(JSON.stringify(before)!==JSON.stringify(after)||!beforeCutoff||!afterCutoff)throw new ShopifyIntegrationError("ACCESS_DENIED");
+        context=resolved;
+      }
       const token=credential.safeParse(await bounded(()=>deps.readCredential(context,controller.signal)));
       if(!token.success || token.data.tenantId!==context.tenantId || token.data.connectionId!==context.connectionId || token.data.shopGid!==context.shopGid ||
         token.data.appRef!==context.appRef || token.data.connectionRevision!==context.revision || Date.parse(token.data.expiresAt)<=now()+45_000)
@@ -90,7 +99,7 @@ export function createShopifyDraftExecutor(deps:Dependencies,now=Date.now,budget
         const code=error instanceof ShopifyIntegrationError?error.code:"UPSTREAM_UNAVAILABLE";
         const failure=code==="THROTTLED"?"THROTTLED":["AUTHENTICATION_REQUIRED","SHOP_INACTIVE"].includes(code)?"AUTH_REQUIRED":
           code==="ACCESS_DENIED" && hydrationStarted?"SCOPE_REQUIRED":
-          ["ACCESS_DENIED","REQUEST_INVALID","RESPONSE_INVALID","CONFIGURATION_INVALID","UPSTREAM_REJECTED","API_VERSION_MISMATCH","SOURCE_UNAVAILABLE"].includes(code)?"VALIDATION_REQUIRED":"TRANSIENT";
+          ["ACCESS_DENIED","REQUEST_INVALID","RESPONSE_INVALID","CONFIGURATION_INVALID","UPSTREAM_REJECTED","API_VERSION_MISMATCH","SOURCE_UNAVAILABLE","REFERENCE_MATCH_REQUIRED"].includes(code)?"VALIDATION_REQUIRED":"TRANSIENT";
         const delay=failure==="THROTTLED" ? (error instanceof ShopifyIntegrationError?error.retryAfterSeconds??60:60) : null;
         const changed=await clean(()=>deps.queue.update(binding,lease!,"fail",failure,delay,cleanup.signal));
         return {status:changed?"retry":"fenced",jobId:lease.jobId};

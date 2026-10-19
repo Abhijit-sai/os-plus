@@ -11,6 +11,7 @@ import { prepareShopifyPartialDraft } from "./partial-draft.ts";
 import { sealShopifySource } from "./source-crypto.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 import { shopifyMeaningfulSourceDigest } from "./source-change.ts";
+import { projectShopifyCommercialDetails } from "./commercial-order.ts";
 import {
   parseShopifyOrderSnapshot,
   shopifyTimestampInstant,
@@ -50,6 +51,7 @@ type ImportArguments = [
 // passing a synthetic context cannot attest a live store's privacy permissions.
 export function createShopifyDraftStore(
   db: Pick<SupabaseClient<Database>, "rpc">,
+  options: { retainBusinessDetails: boolean } = { retainBusinessDetails: false },
 ) {
   async function send(
     recoveryOnly: boolean,
@@ -121,6 +123,7 @@ export function createShopifyDraftStore(
       sourceDigest,
       meaningfulDigest: partialObservedAt ? null : shopifyMeaningfulSourceDigest(input),
       completeness: partialObservedAt ? "partial" : "complete",
+      ...(options.retainBusinessDetails && !partialObservedAt ? { commercialDetails: projectShopifyCommercialDetails(input) } : {}),
       addresses: partialObservedAt ? [] : [
         (snapshot as ReturnType<typeof prepareShopifyDraft>["sourceSnapshot"]).order.shippingAddress,
         (snapshot as ReturnType<typeof prepareShopifyDraft>["sourceSnapshot"]).order.billingAddress,
@@ -146,15 +149,14 @@ export function createShopifyDraftStore(
     };
     if (signal.aborted)
       throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
-    const { data, error } = await db
-      .rpc(recoveryOnly ? "recover_shopify_draft" : "import_shopify_draft", {
-        p_input: payload,
-      })
-      .abortSignal(signal);
+    const pending = options.retainBusinessDetails && !partialObservedAt
+      ? db.rpc("import_shopify_retained_draft", { p_input: payload, p_recovery_only: recoveryOnly })
+      : db.rpc(recoveryOnly ? "recover_shopify_draft" : "import_shopify_draft", { p_input: payload });
+    const { data, error } = await pending.abortSignal(signal);
     // Never forward SQL details/parameters/customer data or raw error objects.
     // On timeout retain the SAME source/lease. Once expired/stale use the
     // read-only recovery method, not a fresh claim or invented observation.
-    if (error) throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+    if (error) throw new ShopifyIntegrationError(error.message === "SHOPIFY_REFERENCE_CONFLICT" ? "REFERENCE_MATCH_REQUIRED" : "UPSTREAM_UNAVAILABLE");
     if (recoveryOnly && data === null) return null;
     const parsed = resultSchema.safeParse(data);
     if (!parsed.success || parsed.data.tenantId !== draft.tenantId)

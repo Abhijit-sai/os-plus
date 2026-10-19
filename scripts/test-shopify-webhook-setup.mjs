@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createHmac,randomUUID} from 'node:crypto';
 import {z} from 'zod';
-import {registerShopifyPilotWebhooks} from '../src/integrations/shopify/webhook-registration.ts';
+import {registerShopifyPilotWebhooks,registerShopifyUnifiedWebhooks} from '../src/integrations/shopify/webhook-registration.ts';
 import {testShopifyWebhookDelivery} from '../src/integrations/shopify/webhook-test.ts';
 import {readShopifyApplicationGraphQL,createShopifyApplicationWebhook} from '../src/integrations/shopify/client.ts';
 const tenant='10000000-0000-4000-8000-000000000001';
@@ -37,6 +37,26 @@ test('registers exactly three filtered subscriptions; repeated setup performs no
   const f=fixture();assert.deepEqual(await f.run(),{status:'webhooks_ready',created:3,verified:3});
   assert.deepEqual(f.rows.map(r=>r.topic),['ORDERS_CREATE','ORDERS_UPDATED','ORDERS_CANCELLED']);
   assert.deepEqual(await f.run(),{status:'webhooks_ready',created:0,verified:3});assert.equal(f.rows.length,3);
+});
+
+test('unified webhook setup rejects foreign configuration before changing any existing subscription',async()=>{
+  const binding={connectionId:expected.connectionId,shopGid:expected.shopGid,revision:2,pilotOrderGid:expected.orderGid};
+  for(const patch of [{filter:'id:999'},{uri:'https://foreign.invalid'},{includeFields:[]},{format:'XML'},{apiVersion:{handle:'2026-07'}}]){
+    const f=fixture();await f.run();Object.assign(f.rows[0],patch);const before=structuredClone(f.rows),calls=f.calls.length;
+    await assert.rejects(()=>registerShopifyUnifiedWebhooks(actor,binding,async()=>binding,signal,{...env,SHOPIFY_UNIFIED_ORDERS_ENABLED:'true'},f.transport,now),/WEBHOOK_CONFIGURATION_CONFLICT/);
+    assert.deepEqual(f.rows,before);assert.ok(f.calls.slice(calls).filter(x=>x.url.endsWith('/graphql.json')).every(x=>!JSON.parse(x.init.body).query?.startsWith('mutation')));
+  }
+  const f=fixture();await f.run();f.rows.push({...f.rows[0],id:'gid://shopify/WebhookSubscription/99'});
+  await assert.rejects(()=>registerShopifyUnifiedWebhooks(actor,binding,async()=>binding,signal,{...env,SHOPIFY_UNIFIED_ORDERS_ENABLED:'true'},f.transport,now),/WEBHOOK_CONFIGURATION_CONFLICT/);
+});
+
+test('unified setup requires Test owner, rollout gate and stable current binding before HTTP',async()=>{
+  const binding={connectionId:expected.connectionId,shopGid:expected.shopGid,revision:2,pilotOrderGid:expected.orderGid},f=fixture();
+  for(const patch of [{role:'manager'},{tenantId:randomUUID()},{membershipStatus:'disabled'}])
+    await assert.rejects(()=>registerShopifyUnifiedWebhooks({...actor,...patch},binding,async()=>binding,signal,{...env,SHOPIFY_UNIFIED_ORDERS_ENABLED:'true'},f.transport,now));
+  await assert.rejects(()=>registerShopifyUnifiedWebhooks(actor,binding,async()=>binding,signal,env,f.transport,now));
+  await assert.rejects(()=>registerShopifyUnifiedWebhooks(actor,binding,async()=>({...binding,revision:3}),signal,{...env,SHOPIFY_UNIFIED_ORDERS_ENABLED:'true'},f.transport,now));
+  assert.equal(f.calls.length,0);
 });
 test('partial unknown create is recovered by listing before the next attempt',async()=>{
   const f=fixture();f.failNext();await assert.rejects(()=>f.run(),/UPSTREAM_UNAVAILABLE/);assert.equal(f.rows.length,1);

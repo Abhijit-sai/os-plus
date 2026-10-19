@@ -384,3 +384,16 @@ test("real diagnostic route stays Clerk protected when exact HMAC/bearer applica
     assert.doesNotMatch(source, /\.(insert|update|upsert|delete|rpc)\s*\(|sendWhatsApp|sendSms|enqueue/);
   }
 });
+
+test("missing tenant cookie resolves only a single linked active membership, without claiming invitations", async () => {
+  const member = { tenant_id: tenantId, clerk_user_id: actor.userId, role: "owner_admin", status: "active" };
+  const { db, filters } = database([member]);
+  assert.deepEqual(await readShopifyProbeActor(actor.userId, undefined, db), actor);
+  assert.ok(!filters.some(([table, field]) => table === 'tenant_users' && field === 'tenant_id'));
+  for (const rows of [[], [member, { ...member, tenant_id: foreignId }], [{ ...member, clerk_user_id: null }],
+    [{ ...member, status: 'disabled' }], [{ ...member, tenant_id: 'bad' }]]) {
+    assert.equal(await readShopifyProbeActor(actor.userId, undefined, database(rows).db), null);
+  }
+  assert.equal(await readShopifyProbeActor(actor.userId, undefined, database([member], null).db), null);
+  assert.equal(await readShopifyProbeActor(actor.userId, foreignId, database([member]).db), null, 'stale explicit selection never falls back');
+});

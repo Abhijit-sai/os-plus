@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { openShopifySource } from "./source-crypto.ts";
 import { parseShopifyOrderSnapshot, shopifyTimestampInstant } from "./order-hydration.ts";
-import { projectShopifySourcePayment } from "./source-payment.ts";
+import { projectShopifyCommercialDetails } from "./commercial-order.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 
 const id = z.string().uuid();
@@ -41,24 +41,7 @@ export function projectImportedShopifyOrder(input: unknown, expectedTenant: stri
       source.order.id !== row.sourceOrderGid || shopifyTimestampInstant(source.order.updatedAt) !== shopifyTimestampInstant(row.sourceUpdatedAt) ||
       shopifyTimestampInstant(source.observedAt) !== shopifyTimestampInstant(row.observedAt))
     throw new ShopifyIntegrationError("ACCESS_DENIED");
-  const order = source.order;
-  const person = order.customer ?? order.shippingAddress ?? order.billingAddress;
-  return { ...common, availability: "available" as const, sourceNumber: order.name,
-    createdAt: order.createdAt, updatedAt: order.updatedAt, cancelledAt: order.cancelledAt,
-    fulfillmentStatus: order.displayFulfillmentStatus, note: order.note,
-    customer: { name: [person?.firstName, person?.lastName].filter(Boolean).join(" ") || "Shopify guest",
-      email: order.email ?? order.customer?.email ?? null, phone: order.phone ?? order.customer?.phone ?? null },
-    shippingAddress: order.shippingAddress, billingAddress: order.billingAddress,
-    currency: order.currencyCode, subtotal: order.currentSubtotalPriceSet.shopMoney.amount,
-    shipping: order.currentShippingPriceSet.shopMoney.amount, tax: order.currentTotalTaxSet.shopMoney.amount,
-    discount: order.currentTotalDiscountsSet.shopMoney.amount, payment: projectShopifySourcePayment(source),
-    lines: source.lines.map(line => ({ id: line.id, title: line.title, variant: line.variantTitle, sku: line.sku,
-      quantity: line.quantity, currentQuantity: line.currentQuantity,
-      unitPrice: line.originalUnitPriceSet.shopMoney.amount,
-      unitCurrency: line.originalUnitPriceSet.shopMoney.currencyCode,
-      currentLineSubtotal: line.priceAfterAllDiscountsBeforeTaxesSet.shopMoney.amount,
-      properties: line.customAttributes.map(attribute => ({ name: attribute.key, value: attribute.value })) })),
-  };
+  return { ...common, availability: "available" as const, ...projectShopifyCommercialDetails(source) };
 }
 export type ImportedShopifyOrder = ReturnType<typeof projectImportedShopifyOrder>;
 

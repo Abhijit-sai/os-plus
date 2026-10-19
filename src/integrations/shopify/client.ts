@@ -119,6 +119,25 @@ const webhookCreateQuery=`mutation OSPlusCreatePilotWebhook($topic: WebhookSubsc
     userErrors { field message }
   }
 }`;
+const webhookUpdateQuery=`mutation OSPlusUpdateTestWebhook($id: ID!, $subscription: WebhookSubscriptionInput!) {
+  webhookSubscriptionUpdate(id: $id, webhookSubscription: $subscription) {
+    webhookSubscription { id topic uri filter format includeFields apiVersion { handle } }
+    userErrors { field message }
+  }
+}`;
+// Only the Test setup reconciler may expand its own subscriptions. Caller has
+// already verified the existing endpoint, topic, installation and pilot filter.
+export async function configureShopifyUnifiedWebhook<T>(input:Omit<ShopifyGraphQLRequest<T>,"query"|"variables"> & {
+  topic:"ORDERS_CREATE"|"ORDERS_UPDATED"|"ORDERS_CANCELLED";subscriptionId:string|null;
+},actor:ShopifyProbeActor,transport:typeof fetch=fetch,env:NodeJS.ProcessEnv=process.env){
+  const config=getShopifyApplicationConfig(actor,env);
+  if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true"||input.shopDomain!==config.shopDomain||input.connectionEnvironment!=="production"||
+    !["ORDERS_CREATE","ORDERS_UPDATED","ORDERS_CANCELLED"].includes(input.topic)||
+    (input.subscriptionId!==null&&!/^gid:\/\/shopify\/WebhookSubscription\/[1-9][0-9]*$/.test(input.subscriptionId)))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const subscription={uri:`${config.origin}/api/integrations/shopify/orders-webhook`,format:"JSON",filter:"",includeFields:["id","admin_graphql_api_id","updated_at"]};
+  return executeShopifyGraphQL({...input,query:input.subscriptionId?webhookUpdateQuery:webhookCreateQuery,
+    variables:input.subscriptionId?{id:input.subscriptionId,subscription}:{topic:input.topic,subscription}},transport,true);
+}
 // Deliberately not a generic mutation transport. This is the sole allowed
 // Shopify write: subscription configuration, never order/customer mutations.
 export async function createShopifyApplicationWebhook<T>(input:Omit<ShopifyGraphQLRequest<T>,"query"|"variables"> & {
@@ -153,7 +172,7 @@ async function executeShopifyGraphQL<T>(
     /[\r\n]/.test(input.accessToken) ||
     // The diagnostic transport is read-only and accepts internal named queries.
     // The handler never accepts a query from the browser.
-    !(allowWebhookCreate?input.query===webhookCreateQuery:/^\s*query\s+[A-Za-z_][A-Za-z0-9_]*\s*[(\{]/.test(input.query))
+    !(allowWebhookCreate?[webhookCreateQuery,webhookUpdateQuery].includes(input.query):/^\s*query\s+[A-Za-z_][A-Za-z0-9_]*\s*[(\{]/.test(input.query))
   )
     throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
 

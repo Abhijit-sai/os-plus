@@ -2,8 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight, Plus, Search } from "lucide-react";
 
 import { getOrdersPageData } from "@/features/orders/queries";
-import { getImportedShopifyOrders } from "@/features/orders/shopify-imported";
-import { ShopifyImportedOrderList } from "@/components/orders/shopify-imported-order";
 import { localOrderReceivable, matchesLocalPayment } from "@/features/orders/financial-display";
 import { deliveryDayOffset } from "@/features/orders/delivery-date";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -31,8 +29,8 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatEnum(value: string) {
-  return value.replaceAll("_", " ");
+function formatEnum(value: string | null) {
+  return value ? value.replaceAll("_", " ") : "Not set";
 }
 
 function isDueSoon(value: string | null) {
@@ -48,19 +46,19 @@ function isOverdue(value: string | null) {
 export default async function OrdersPage({
   searchParams
 }: {
-  searchParams?: Promise<{ q?: string; payment?: string; status?: string; source?: string; view?: string }>;
+  searchParams?: Promise<{ q?: string; payment?: string; status?: string; source?: string; view?: string; page?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const paymentFilter = resolvedSearchParams?.payment ?? "all";
   const statusFilter = resolvedSearchParams?.status ?? "all";
   const sourceFilter = resolvedSearchParams?.source ?? "all";
   const viewFilter = resolvedSearchParams?.view ?? "active";
-  const imported = ["all", "shopify"].includes(sourceFilter) && statusFilter === "all" && paymentFilter === "all" && ["all", "active"].includes(viewFilter)
-    ? await getImportedShopifyOrders(undefined, resolvedSearchParams?.q) : [];
-  const { orders, customers, orderItems, stageInstances, search, shopifySummaries } = await getOrdersPageData(resolvedSearchParams?.q, {
-    payment: paymentFilter, status: statusFilter, source: sourceFilter, view: viewFilter,
+  const requestedPage = /^[1-9][0-9]{0,2}$/.test(resolvedSearchParams?.page ?? "") ? Number(resolvedSearchParams?.page) : 1;
+  const { orders, customers, orderItems, stageInstances, search, shopifySummaries, shopifyCommercialSummaries, page, hasNextPage, pageLimitReached } = await getOrdersPageData(resolvedSearchParams?.q, {
+    payment: paymentFilter, status: statusFilter, source: sourceFilter, view: viewFilter, page: requestedPage,
   });
   const holdByOrder = new Map(shopifySummaries.map(summary => [summary.orderId, summary.held]));
+  const commercialByOrder = new Map(shopifyCommercialSummaries.map(summary => [summary.orderId, summary]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
   const itemsByOrder = new Map<string, typeof orderItems>();
   const stageInstancesByItem = new Map<string, typeof stageInstances>();
@@ -118,8 +116,8 @@ export default async function OrdersPage({
   const overdueCount = openOrders.filter((order) => isOverdue(order.promised_delivery_date)).length;
   const itemCount = visibleOrders.reduce((sum, order) => sum + (itemsByOrder.get(order.id)?.length ?? 0), 0);
 
-  const paymentOptions = ["unpaid", "partially_paid", "paid", "refunded"];
-  const statusOptions = ["confirmed", "in_progress", "ready", "partially_delivered", "completed", "delivered", "cancelled"];
+  const paymentOptions = ["unpaid", "partially_paid", "paid", "refunded", "partially_refunded", "authorized", "voided", "expired"];
+  const statusOptions = ["draft", "confirmed", "in_progress", "ready", "partially_delivered", "completed", "delivered", "cancelled"];
   const sourceOptions = ["walk_in", "shopify_manual", "whatsapp", "other", "shopify"];
   const hasFilters = Boolean(search) || paymentFilter !== "all" || statusFilter !== "all" || sourceFilter !== "all" || viewFilter !== "active";
   const selectClassName =
@@ -158,9 +156,15 @@ export default async function OrdersPage({
     return query ? `/orders?${query}` : "/orders";
   };
   const chipOrders = baseFilteredOrders;
+  const buildPageHref = (nextPage: number) => {
+    const [path, query = ""] = buildViewHref(viewFilter).split("?");
+    const params = new URLSearchParams(query);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    return params.size ? `${path}?${params}` : path;
+  };
   const chipActiveOrders = chipOrders.filter((order) => !["completed", "delivered", "cancelled"].includes(order.order_status));
   const orderChips = [
-    { value: "active", label: "Active", count: chipActiveOrders.length, hint: "Open operations" },
+    { value: "active", label: "Active", count: chipActiveOrders.length, hint: "Open orders" },
     { value: "all", label: "All", count: chipOrders.length, hint: "Current search" },
     { value: "due_soon", label: "Due soon", count: chipActiveOrders.filter((order) => isDueSoon(order.promised_delivery_date)).length, hint: "Next 3 days" },
     { value: "delayed", label: "Delayed", count: chipActiveOrders.filter((order) => isOverdue(order.promised_delivery_date)).length, hint: "Past promised" },
@@ -251,7 +255,6 @@ export default async function OrdersPage({
         </CommandBar>
       </form>
 
-      <ShopifyImportedOrderList orders={imported}/>
       <Card className="overflow-hidden">
         <p className="border-b px-4 py-3 text-xs text-muted-foreground">Showing up to 50 matching orders. Summary counts describe the shown results, not tenant-wide totals.</p>
         <CardContent className="p-0">
@@ -268,8 +271,11 @@ export default async function OrdersPage({
           </div>
           <div className="divide-y">
             {visibleOrders.map((order) => {
-              const customer = customerById.get(order.customer_id);
+              const customer = order.customer_id ? customerById.get(order.customer_id) : undefined;
               const items = itemsByOrder.get(order.id) ?? [];
+              const commercial = commercialByOrder.get(order.id);
+              const draft = order.order_status === "draft";
+              const lineCount = draft ? commercial?.itemCount : items.length;
               const receivable = localOrderReceivable(order);
               const production = productionByOrder.get(order.id);
               const promisedTone = isOverdue(order.promised_delivery_date)
@@ -288,7 +294,8 @@ export default async function OrdersPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{order.order_number}</p>
                       <StatusBadge value={order.order_status} />
-                      {order.source === "shopify" && holdByOrder.get(order.id) !== false ? <span className="text-xs font-medium text-destructive">Production held · owner review</span> : null}
+                      {draft ? <span className="text-xs font-medium text-muted-foreground">Needs manager setup</span> :
+                        order.source === "shopify" && holdByOrder.get(order.id) !== false ? <span className="text-xs font-medium text-destructive">Production held · owner review</span> : null}
                     </div>
                     {order.reference_order_id ? (
                       <p className="mt-1 truncate text-xs text-muted-foreground">Ref {order.reference_order_id}</p>
@@ -296,12 +303,15 @@ export default async function OrdersPage({
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{customer?.name ?? "Unknown customer"}</p>
-                    <p className="truncate text-xs text-muted-foreground">{customer?.phone ?? "No phone"}</p>
+                    <p className="truncate font-medium">{customer?.name ?? commercial?.customerName ?? "Customer needs review"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{customer?.phone ?? commercial?.customerPhone ?? "No phone"}</p>
                   </div>
 
                   <div className="space-y-1">
-                    {order.source === "shopify" ? <p className="text-sm font-medium">Shopify-managed</p> : <>
+                    {order.source === "shopify" ? <>
+                      <p className="text-sm font-medium">{commercial?.paymentLabel ?? "Shopify-managed"}</p>
+                      {commercial ? <p className="text-xs text-muted-foreground">{commercial.currency} {commercial.received} / {commercial.total}</p> : null}
+                    </> : <>
                     <StatusBadge value={order.payment_status} />
                     <p className="text-xs text-muted-foreground">
                       ₹{formatMoney(order.amount_paid)} / ₹{formatMoney(order.total_amount)}
@@ -310,10 +320,12 @@ export default async function OrdersPage({
                   </div>
 
                   <div className="space-y-2">
+                    {draft ? <p className="text-xs text-muted-foreground">Not started · complete order setup</p> : <>
                     <div className="h-2 rounded-full bg-muted">
                       <div className="h-2 rounded-full bg-primary" style={{ width: `${production?.percent ?? 0}%` }} />
                     </div>
                     <p className="text-xs text-muted-foreground">{production?.label ?? "0/0 items"}</p>
+                    </>}
                   </div>
 
                   <div>
@@ -329,7 +341,7 @@ export default async function OrdersPage({
                   </div>
 
                   <p className="text-muted-foreground">
-                    {items.length} item{items.length === 1 ? "" : "s"}
+                    {lineCount === undefined ? "Awaiting source details" : `${lineCount} item${lineCount === 1 ? "" : "s"}`}
                   </p>
 
                   <div className="hidden justify-end lg:flex">
@@ -347,6 +359,12 @@ export default async function OrdersPage({
           ) : null}
         </CardContent>
       </Card>
+      {page > 1 || hasNextPage ? <nav aria-label="Order pages" className="flex min-h-11 items-center justify-between gap-3">
+        <div>{page > 1 ? <Button asChild variant="outline"><Link href={buildPageHref(page - 1)}>Previous page</Link></Button> : null}</div>
+        <p className="text-sm text-muted-foreground">Page {page}</p>
+        <div>{hasNextPage ? <Button asChild variant="outline"><Link href={buildPageHref(page + 1)}>Next page</Link></Button> : null}</div>
+      </nav> : null}
+      {pageLimitReached ? <p role="status" className="text-sm text-muted-foreground">More orders match. Narrow the search or filters to continue.</p> : null}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { shopifyIntakeResultSchema } from "./intake-contract.ts";
 import { canonicalShopDomain } from "./config.ts";
 import { readBoundedBody } from "./bounded-body.ts";
 import { runShopifyPilotWorker } from "./application-worker.ts";
+import { runShopifyUnifiedWorker } from "./unified-worker.ts";
 import { assertShopifyApplicationStage } from "./application-config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 
@@ -29,7 +30,8 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
       return createShopifyIntakeHandler({async findConnection(domain,app,signal){
         const c=await store.findConnection(domain,app,signal);return c&&pilotBinding(c.tenant_id,domain,env)?c:null;
       },async receive(connection,envelope,signal){
-        const {data,error}=await db.rpc("receive_shopify_pilot_event",{p_tenant_id:connection.tenant_id,p_connection_id:connection.id,
+        const unified=env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true";
+        const {data,error}=await db.rpc(unified?"receive_shopify_unified_event":"receive_shopify_pilot_event",{p_tenant_id:connection.tenant_id,p_connection_id:connection.id,
           p_envelope:{...envelope,connectionRevision:connection.revision}}).abortSignal(signal);
         if(error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
         const result=shopifyIntakeResultSchema.parse(data);
@@ -39,7 +41,7 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
           // orders; the worker independently rechecks binding, policy and lease.
           // Duplicate delivery may recover a previously interrupted worker.
           background.schedule(async()=>{
-            try{await (background.run??runShopifyPilotWorker)(db,connection.id,AbortSignal.timeout(45000),env);}
+            try{await (background.run??(unified?runShopifyUnifiedWorker:runShopifyPilotWorker))(db,connection.id,AbortSignal.timeout(45000),env);}
             catch{console.error("Shopify automatic import deferred; queued job retained for worker retry.");}
           });
         }
@@ -84,7 +86,7 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
         // Includes cleanup: a Preview or disabled pilot must not even read the
         // shared database. Do not defer these checks to the import executor.
         if(env.VERCEL_ENV!=="production"||env.SHOPIFY_DEPLOYMENT_ENV!=="production"||env.SHOPIFY_API_VERSION!=="2026-10"||env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true")throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
-        assertShopifyApplicationStage("worker",env);
+        if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true")assertShopifyApplicationStage("worker",env);
         z.string().uuid().parse(env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
         z.string().regex(/^[A-Za-z0-9_-]{1,256}$/).parse(env.SHOPIFY_CLIENT_ID);
         canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"");
@@ -95,6 +97,17 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
         const {data,error}=await db.from("shopify_connections").select("id").eq("tenant_id",env.SHOPIFY_CONNECTION_TEST_TENANT_ID??"")
           .eq("app_ref",env.SHOPIFY_CLIENT_ID??"").eq("canonical_domain",canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"")).eq("environment","production").limit(2).abortSignal(signal);
         if(error||!data||data.length!==1)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
+        if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true"){
+          // Retention cleanup is independent of synchronization switches. It
+          // redacts expired raw payloads, never retained business order records.
+          const purged=await db.rpc("purge_expired_shopify_raw",{p_tenant_id:env.SHOPIFY_CONNECTION_TEST_TENANT_ID!,p_connection_id:data[0].id,
+            p_shop_domain:canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??""),p_app_ref:env.SHOPIFY_CLIENT_ID!,p_limit:100}).abortSignal(signal);
+          if(purged.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+          const contacts=await db.rpc("purge_shopify_privacy_contacts",{p_tenant_id:env.SHOPIFY_CONNECTION_TEST_TENANT_ID!,p_connection_id:data[0].id,p_limit:100}).abortSignal(signal);
+          if(contacts.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+          if(env.SHOPIFY_SYNC_ENABLED!=="true")return reply({status:"raw_cleanup_checked"},200);
+          return reply(await runShopifyUnifiedWorker(db,data[0].id,signal,env),200);
+        }
         const purged=await db.rpc("purge_expired_shopify_pilot",{p_tenant_id:env.SHOPIFY_CONNECTION_TEST_TENANT_ID!,p_connection_id:data[0].id,p_limit:100}).abortSignal(signal);
         if(purged.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
         const contacts=await db.rpc("purge_shopify_privacy_contacts",{p_tenant_id:env.SHOPIFY_CONNECTION_TEST_TENANT_ID!,p_connection_id:data[0].id,p_limit:100}).abortSignal(signal);

@@ -1,5 +1,6 @@
 param(
-  [ValidateSet('Inspect','BackupAndVerify','VerifyExisting','CheckSchema','CheckPostMigration','CheckOwnership','RehearseExisting')][string]$Mode='Inspect',
+  [ValidateSet('Inspect','BackupAndVerify','VerifyExisting','CheckSchema','CheckPostMigration','CheckOwnership','RehearseExisting','CheckUnified','ApplyUnified')][string]$Mode='Inspect',
+  [switch]$ExecuteApprovedUnifiedMigrations,
   [switch]$ExecuteApprovedBackup,
   [switch]$ExecuteApprovedRehearsal,
   [string]$ArchiveRunId
@@ -14,6 +15,7 @@ $backupBstr=[IntPtr]::Zero
 $backupStep='platform'
 try{
   if(-not $IsWindows){throw 'WINDOWS_REQUIRED'}
+  if($Mode -eq 'ApplyUnified' -and -not $ExecuteApprovedUnifiedMigrations){throw 'EXPLICIT_UNIFIED_APPROVAL_REQUIRED'}
   if($Mode -in @('BackupAndVerify','VerifyExisting') -and -not $ExecuteApprovedBackup){throw 'EXPLICIT_BACKUP_SWITCH_REQUIRED'}
   if($Mode -eq 'RehearseExisting' -and (-not $ExecuteApprovedRehearsal -or $ArchiveRunId -cne '1b2bc4faa9b34c0b8af1e5eb1e9dba5b')){throw 'EXPLICIT_REHEARSAL_SCOPE_REQUIRED'}
   $backupStep='private_path'
@@ -96,7 +98,7 @@ try{
   $backupSecurePassword=ConvertTo-SecureString -String $backupAccess.passwordDpapi
   $backupBstr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($backupSecurePassword)
   $backupPlainPassword=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($backupBstr)
-  $backupPayload=[ordered]@{mode=$(if($Mode -in @('CheckSchema','CheckPostMigration','CheckOwnership')){'Inspect'}else{$Mode});approved=[bool]$ExecuteApprovedBackup;projectRef='dxiyihrdfismbuqdmhit';
+  $backupPayload=[ordered]@{mode=$(if($Mode -in @('CheckSchema','CheckPostMigration','CheckOwnership','CheckUnified','ApplyUnified')){'Inspect'}else{$Mode});approved=[bool]$ExecuteApprovedBackup;projectRef='dxiyihrdfismbuqdmhit';
     host='aws-1-ap-northeast-2.pooler.supabase.com';port=5432;database='postgres';user='postgres.dxiyihrdfismbuqdmhit';
     password=$backupPlainPassword;ca=[IO.File]::ReadAllText($backupCaPath);localRoot=$backupLocalRoot;
     privateRoot=$backupPrivateRoot;ownerSid=$backupOwnerSid.Value}
@@ -120,9 +122,12 @@ try{
   $backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\private-backup.mjs'
   if($Mode -in @('CheckSchema','CheckPostMigration')){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\schema-compatibility.mjs'}
   if($Mode -eq 'CheckOwnership'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\ownership-check.mjs'}
+  if($Mode -eq 'CheckUnified'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\unified-deployment-preflight.mjs'}
+  if($Mode -eq 'ApplyUnified'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\apply-unified-release.mjs'}
   $backupStart=[Diagnostics.ProcessStartInfo]::new()
   $backupStart.FileName=$backupNode
   $backupStart.ArgumentList.Add($backupRunner)
+  if($Mode -eq 'ApplyUnified'){$backupStart.ArgumentList.Add('--owner-approved-seven-migrations')}
   if($Mode -eq 'CheckPostMigration'){$backupStart.ArgumentList.Add('--post-migration')}
   $backupStart.WorkingDirectory=$PSScriptRoot
   $backupStart.UseShellExecute=$false
@@ -147,7 +152,7 @@ try{
   # Only the runner's small structured report is emitted, never raw stderr.
   $backupStep='runner_report'
   $backupOutput=$backupOutputTask.GetAwaiter().GetResult()
-  $backupReportLimit=if($Mode -in @('CheckSchema','CheckPostMigration','RehearseExisting')){262144}else{16384}
+  $backupReportLimit=if($Mode -in @('CheckSchema','CheckPostMigration','RehearseExisting','CheckUnified','ApplyUnified')){262144}else{16384}
   if($backupOutput.Length -gt $backupReportLimit){throw 'RUNNER_REPORT_TOO_LARGE'}
   $backupReport=$backupOutput | ConvertFrom-Json
   if($backupReport.kind -cne 'osplus-private-backup-report-v1'){throw 'RUNNER_REPORT_INVALID'}

@@ -13,6 +13,7 @@ import { rolesSql,membershipSql,defaultsSql,schemaAclSql,roleFlags,membershipCom
 import { rowsQuery,parseRows } from './private-backup-rows.mjs';
 import { rehearseShopify,alignVerifiedCloneOwner } from './private-rehearsal.mjs';
 import { readOnlyPreflight } from './readonly-preflight.mjs';
+import { canonicalBackupCatalogue } from './backup-catalogue-equivalence.mjs';
 
 // No CLI/environment secret input, business rows or raw child/database errors.
 const root=fileURLToPath(new URL('../..',import.meta.url));
@@ -300,7 +301,19 @@ async function verifyArtifact({metadata,integrity,snapshot,requiredExtensions},k
   if(!bootstrapCapabilities)throw new Error('BOOTSTRAP_ROLE_UNSUPPORTED');
   await localSql(dbName,`ALTER ROLE ${identifier(localAdmin)} ${roleFlags(bootstrapCapabilities)};`);
   const localCatalogue=await localRows(dbName,catalogueSql);
-  if(JSON.stringify(localCatalogue)!==JSON.stringify(recovered.catalogue))throw new Error('RESTORED_SCHEMA_OR_GRANTS_DIFFER');
+  if(JSON.stringify(canonicalBackupCatalogue(localCatalogue))!==JSON.stringify(canonicalBackupCatalogue(recovered.catalogue))){
+    // Schema object names/hashes only; never definitions or business values.
+    const objectKey=row=>`${row.kind}:${row.name}`;
+    const expected=new Map(recovered.catalogue.map(row=>[objectKey(row),row.hash]));
+    const actual=new Map(localCatalogue.map(row=>[objectKey(row),row.hash]));
+    const changed=recovered.catalogue.filter(row=>actual.get(objectKey(row))!==row.hash);
+    const extra=localCatalogue.filter(row=>!expected.has(objectKey(row)));
+    report.catalogueDifference={changedCount:changed.length,extraCount:extra.length,
+      changed:changed.slice(0,12).map(row=>({kind:row.kind,name:row.name,expectedHash:row.hash,actualHash:actual.get(objectKey(row))??null})),
+      extra:extra.slice(0,12)};
+    throw new Error('RESTORED_SCHEMA_OR_GRANTS_DIFFER');
+  }
+  report.schemaComparison='exact hashes with three narrowly pinned pg_dump representation equivalents';
   for(const [query,expected] of [[rolesSql,recovered.roles],[membershipSql(170000),recovered.memberships],
     [defaultsSql,recovered.defaultPrivileges],[schemaAclSql,recovered.schemaPrivileges]]){
     if(JSON.stringify(await localRows(dbName,query))!==JSON.stringify(expected))throw new Error('RESTORED_EFFECTIVE_PERMISSIONS_DIFFER');

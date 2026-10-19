@@ -2,8 +2,11 @@ import Link from "next/link";
 import { Route } from "lucide-react";
 
 import { getOrderDetailPageData } from "@/features/orders/queries";
-import { getImportedShopifyOrders } from "@/features/orders/shopify-imported";
+import { getImportedShopifyOrders,getRetainedShopifyBusinessOrder } from "@/features/orders/shopify-imported";
 import { ShopifyImportedOrder } from "@/components/orders/shopify-imported-order";
+import { ShopifyDraftSetupForm } from "@/components/orders/shopify-draft-setup-form";
+import { getShopifyManagerSetup } from "@/features/orders/shopify-setup";
+import {shopifyDraftSetupAction,searchShopifySetupOptions} from "@/features/orders/shopify-setup-actions";
 import { localOrderReceivable } from "@/features/orders/financial-display";
 import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
@@ -94,7 +97,13 @@ export default async function OrderDetailPage({
 }) {
   const { orderId } = await params;
   const [imported] = await getImportedShopifyOrders(orderId);
-  if (imported) return <ShopifyImportedOrder order={imported}/>;
+  if (imported) {
+    const setup=imported.availability==="available"?await getShopifyManagerSetup(orderId):null;
+    return <div className="space-y-5"><ShopifyImportedOrder order={imported}/>
+      {setup&&imported.availability==="available"?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={imported.lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>:
+        <p role="status" className="text-sm text-muted-foreground">Manager setup becomes available after the complete order details have been synced.</p>}
+    </div>;
+  }
   const {
     context,
     shopifySummary,
@@ -127,6 +136,7 @@ export default async function OrderDetailPage({
     orderMessages,
     standardSizes
   } = await getOrderDetailPageData(orderId);
+  const retainedSource=order.source==="shopify"?await getRetainedShopifyBusinessOrder(orderId):null;
   const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
   const workflowById = new Map(workflows.map((workflow) => [workflow.id, workflow]));
   const paymentModeById = new Map(paymentModes.map((paymentMode) => [paymentMode.id, paymentMode]));
@@ -507,6 +517,8 @@ export default async function OrderDetailPage({
           </Card> : <ShopifyPaymentPanel payment={shopifyPayment ?? { availability: "unavailable" }} />}
       </div>
       <div className="space-y-6">
+          {retainedSource&&<details className="rounded-lg border p-4"><summary className="cursor-pointer py-2 font-medium">Shopify order details</summary>
+            <div className="mt-4"><ShopifyImportedOrder order={retainedSource} embedded/></div></details>}
           <Card>
             <CardHeader>
               <CardTitle>Production items</CardTitle>

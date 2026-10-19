@@ -5,6 +5,8 @@ import { before, after, test } from 'node:test';
 import { Client } from 'pg';
 import { createClient } from '@supabase/supabase-js';
 import { readShopifyWorkerContext } from '../../src/integrations/shopify/worker-context.ts';
+import {snapshot} from '../fixtures/shopify-draft.mjs';
+import {projectShopifyCommercialDetails} from '../../src/integrations/shopify/commercial-order.ts';
 
 const nonce=process.env.OSPLUS_SHOPIFY_DISPOSABLE_NONCE;
 assert.match(nonce??'',/^[a-f0-9]{24}$/);
@@ -129,6 +131,83 @@ function bothSucceeded(results){
   for(const row of results)assert.equal(row.status,'fulfilled',row.reason?.message);
   return results.map(row=>row.value);
 }
+
+async function retainedFixture(){
+  const f=await fixture();f.input=await draftInput(f);
+  await query(a,'select approve_shopify_business_retention($1,$2,$3,true) as result',[f.tenant,f.connection,'docker-owner']);
+  const source=snapshot();source.order.name=`#R-${randomUUID()}`;source.order.createdAt=f.input.sourceCreatedAt;source.order.updatedAt=f.input.sourceUpdatedAt;
+  source.lines[0].id=f.input.lines[0].lineGid;
+  f.input.completeness='complete';f.input.commercialDetails=projectShopifyCommercialDetails(source);
+  f.persist=client=>query(client,'select import_shopify_retained_draft($1::jsonb) as result',[JSON.stringify(f.input)]);
+  return f;
+}
+async function managerFixture(){
+  const f=await retainedFixture();f.saved=await f.persist(a);f.itemType=randomUUID();f.workflow=randomUUID();f.stage=randomUUID();
+  await admin.query("insert into item_types(id,tenant_id,name) values($1,$2,'Fictional pant')",[f.itemType,f.tenant]);
+  await admin.query("insert into stage_master(id,tenant_id,name) values($1,$2,'Fictional stitch')",[f.stage,f.tenant]);
+  await admin.query("insert into workflows(id,tenant_id,name,item_type_id) values($1,$2,'Pant default',$3)",[f.workflow,f.tenant,f.itemType]);
+  await admin.query('insert into workflow_stages(tenant_id,workflow_id,stage_master_id,sequence_number) values($1,$2,$3,1)',[f.tenant,f.workflow,f.stage]);
+  f.choices={customerId:f.saved.customerId,deliveryType:'store_pickup',promisedDeliveryDate:null,note:'Fictional manager choice',
+    lines:[{lineGid:f.input.lines[0].lineGid,itemTypeId:f.itemType,workflowId:f.workflow,standardSizeId:null,expectedCompletionDate:null}]};
+  f.save=(client,key=randomUUID())=>query(client,'select save_shopify_manager_draft_setup($1,$2,$3,$4,$5,$6,$7,0,$8,$9::jsonb) as result',
+    [f.tenant,f.connection,f.domain,'synthetic-app','docker-manager',f.saved.orderId,f.saved.sourceRevisionId,key,JSON.stringify(f.choices)]);
+  f.complete=(client,setup,key)=>query(client,'select complete_shopify_manager_setup($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,clock_timestamp()) as result',
+    [f.tenant,f.connection,f.domain,'synthetic-app','docker-manager',f.saved.orderId,setup.setupId,key,f.revision,f.input.sourceUpdatedAt]);
+  return f;
+}
+test('retained import simultaneous exact retries create one visible order and one business snapshot',async()=>{
+  const f=await retainedFixture(),values=bothSucceeded(await race(f,()=>f.persist(a),()=>f.persist(b)));
+  assert.deepEqual(values[0],values[1]);assert.equal((await counts(f)).orders,1);assert.equal((await counts(f)).customers,1);
+  assert.equal((await admin.query('select count(*)::int as n from shopify_commercial_details where tenant_id=$1',[f.tenant])).rows[0].n,1);
+});
+test('retained import racing a manual Reference insert cannot produce two orders',async()=>{
+  const f=await retainedFixture(),reference=f.input.commercialDetails.sourceNumber,customer=randomUUID();
+  await admin.query("insert into customers(id,tenant_id,name,normalized_phone_e164) values($1,$2,'Fictional existing', '+919000000011')",[customer,f.tenant]);
+  await blocker.query('begin');let results;
+  try{
+    await blocker.query("select pg_advisory_xact_lock(hashtextextended('shopify-reference:'||$1||':'||normalize_shopify_reference($2),0))",[f.tenant,reference]);
+    results=Promise.allSettled([f.persist(a),b.query("insert into orders(tenant_id,customer_id,order_number,tracking_token,reference_order_id) values($1,$2,'MANUAL-RACE',$3,$4)",
+      [f.tenant,customer,randomUUID(),reference])]);
+    await waitBlocked([a.pid,b.pid]);
+  }finally{await blocker.query('rollback');}
+  const values=await results;assert.equal(values.filter(x=>x.status==='fulfilled').length,1);
+  assert.match(values.find(x=>x.status==='rejected').reason.message,/SHOPIFY_REFERENCE_CONFLICT/);
+  assert.equal((await counts(f)).orders,1);assert.equal((await counts(f)).customers,1);
+});
+test('manager simultaneous same setup completion recovers exactly one production workflow',async()=>{
+  const f=await managerFixture(),setup=await f.save(a),key=randomUUID();
+  const values=bothSucceeded(await race(f,()=>f.complete(a,setup,key),()=>f.complete(b,setup,key)));
+  assert.deepEqual(values[0],values[1]);assert.equal((await counts(f)).items,1);assert.equal((await counts(f)).releases,1);
+  assert.equal((await admin.query('select count(*)::int as n from item_stage_instances where tenant_id=$1',[f.tenant])).rows[0].n,1);
+});
+test('manager concurrent different completion intents create only one workflow',async()=>{
+  const f=await managerFixture(),setup=await f.save(a);
+  const values=await race(f,()=>f.complete(a,setup,randomUUID()),()=>f.complete(b,setup,randomUUID()));
+  assert.equal(values.filter(x=>x.status==='fulfilled').length,1);
+  assert.match(values.find(x=>x.status==='rejected').reason.message,/SHOPIFY_DRAFT_LOCKED/);assert.equal((await counts(f)).items,1);
+});
+test('manager simultaneous edits are optimistic-version fenced',async()=>{
+  const f=await managerFixture(),values=await race(f,()=>f.save(a),()=>f.save(b));
+  assert.equal(values.filter(x=>x.status==='fulfilled').length,1);
+  assert.match(values.find(x=>x.status==='rejected').reason.message,/SHOPIFY_STALE_REVISION/);
+  assert.equal((await counts(f)).items,0);
+});
+test('simultaneous date-range commits queue one generation without importing reference matches',async()=>{
+  const f=await fixture();
+  await query(a,'select enable_shopify_unified_imports($1,$2,$3,$4,$5,$6,$7,true) as result',[f.tenant,f.connection,'docker-owner',f.domain,'synthetic-app',randomUUID(),f.revision]);
+  const end=new Date(Date.now()-1000),start=new Date(end.getTime()-86400000),created=new Date(end.getTime()-3600000).toISOString();
+  const rows=[{orderGid:f.order,reference:'R-NEW',createdAt:created,updatedAt:created,amount:'100.00',currency:'INR',financialStatus:'PAID',cancelledAt:null,status:'new',orderIds:[],incomingReferenceConflict:false}];
+  const preview=await query(a,'select save_shopify_import_preview($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) as result',
+    [f.tenant,f.connection,'docker-owner',f.domain,'synthetic-app',randomUUID(),start.toISOString(),end.toISOString(),JSON.stringify(rows)]);
+  const commit=(client,key)=>query(client,'select commit_shopify_import_preview($1,$2,$3,$4,$5,$6,$7) as result',
+    [f.tenant,f.connection,'docker-owner',f.domain,'synthetic-app',preview.previewId,key]);
+  const key=randomUUID(),same=bothSucceeded(await race(f,()=>commit(a,key),()=>commit(b,key)));
+  assert.deepEqual(same[0],same[1]);assert.equal(same[0].rows[0].status,'queued');
+  const again=bothSucceeded(await race(f,()=>commit(a,randomUUID()),()=>commit(b,randomUUID())));
+  assert.ok(again.every(x=>x.rows[0].status==='already_queued'));
+  assert.equal((await admin.query('select requested_generation from shopify_sync_jobs where tenant_id=$1',[f.tenant])).rows[0].requested_generation,'1');
+  assert.equal((await counts(f)).orders,0);
+});
 
 test('same simultaneous webhook delivery commits one receipt and one generation',async()=>{
   const f=await fixture(),delivery=randomUUID();
