@@ -2364,6 +2364,10 @@ export type Database = {
       shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
     };
     Functions: ShopifyIntakeFunctions & {
+      read_shopify_imported_orders: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id?: string | null; p_search?: string | null };
+        Returns: Json;
+      };
       create_salary_period_with_calculations: {
         Args: {
           p_tenant_id: string;
