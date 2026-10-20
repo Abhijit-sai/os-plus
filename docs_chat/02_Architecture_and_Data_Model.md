@@ -223,14 +223,14 @@ Add to `src/lib/permissions/roles.ts` (verify names against the file):
 
 | Permission | owner_admin | manager | finance | viewer |
 |---|---|---|---|---|
-| `leads:view` | ✓ | ✓ | – | Tenant-configured |
+| `leads:view` | ✓ | ✓ | Tenant-configured | Tenant-configured |
 | `leads:manage` | ✓ | ✓ | – | – |
-| `leads:pii` (full numbers/handles) | ✓ | ✓ | – | Tenant-configured; masked unless granted |
+| `leads:pii` (full numbers/handles) | ✓ | ✓ | Tenant-configured; masked unless granted | Tenant-configured; masked unless granted |
 | `chat_settings:manage` | ✓ | – | – | – |
 
 Masking is applied on the server in the DTO, never only in the UI. Module routes also require `tenant_modules.chat_leads.is_enabled`.
 
-The current platform uses a fixed `rolePermissions` map; configurable role settings do not yet exist. Proposed additive `chat_role_permissions` stores tenant-owned chat/lead viewing and PII grants by existing role (unique tenant + role + permission). Only owner/admin manages this configuration, through audited tenant-scoped actions. New viewer grants default to denied until configured. Chat-specific resolvers apply those grants; do not broaden or rewrite existing Boutique/Laundry permissions. Chat reports remain owner/admin-only under the owner's earlier requirement. Read-only viewer access to Chatwoot itself needs separate edition/capability verification; OS PLUS toggles cannot bypass Chatwoot authorization.
+The current platform uses a fixed `rolePermissions` map; configurable role settings do not yet exist. Proposed additive `chat_role_permissions` stores tenant-owned chat/lead viewing and PII grants by existing role (unique tenant + role + permission). Only owner/admin manages this configuration, through audited tenant-scoped actions. Viewer and finance lead-view/PII grants default to denied until configured (CHAT-D026); both receive read-only lead access when granted. Viewer Chatwoot entry remains disabled pending equivalent capability verification (CHAT-D027). Chat-specific resolvers apply those grants; do not broaden or rewrite existing Boutique/Laundry permissions. Chat reports remain owner/admin-only under the owner's earlier requirement. Read-only viewer access to Chatwoot itself needs separate edition/capability verification; OS PLUS toggles cannot bypass Chatwoot authorization.
 
 ## 7. Surfaces and routes
 

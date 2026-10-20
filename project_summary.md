@@ -12827,3 +12827,124 @@ PLANNED - discovery performed; implementation awaits phase decisions.
 - Files: project_summary.md, docs_chat/ planning/audit/example documents, deploy/chatwoot/ kit/tests only. Original dirty Shopify checkout and Fundry preserved.
 - Migrations added/applied: none. Model API spend: USD 0. No push, merge, deployment, purchase, shared DB, model API run, real message or workflow activation.
 - Next: use the local CH-0 commit as the dependent CH-1 branch base. CH-1 remains PLANNED until its complete scope and remaining policy decisions are presented and answered.
+
+## Chat Session Update - 2026-10-07 - CH-1 foundation plan and access decisions
+
+### Date / Updated By / Chat Phase / Phase Status
+
+- Date: 2026-10-07 (Asia/Calcutta client date).
+- Updated by: Codex AI agent.
+- Current phase: CH-1 - Foundation.
+- Status: PLANNED; access decisions P1/P2 pending; no runtime implementation begun.
+- Branch/base: codex/chat-ch1-foundation / 4f74bd6d6c311225623d74cb99d6bfe3c4406208.
+- Closed CH-0 local commit: 4f74bd6d6c311225623d74cb99d6bfe3c4406208 - Chat CH-0: add isolated deployment kit and discovery baseline.
+- Workspace: D:/Develop/os-plus-chat-ch0. Routing verified: clean CH-1 branch before this planning update, no upstream; original codex/shopify-sync-plan remains dirty and untouched.
+
+### Objective / Built / Files / Migrations
+
+- Prepared docs_chat/CH1_IMPLEMENTATION_PLAN.md: full CH-1 scope, proposed files/two additive migrations, eleven specified foundation tables plus tenant-safe notification brand junction, code contradictions, access decisions, meaningful tests and closure gates.
+- No CH-1 application source, schema, permission behavior or dependency change. No migrations added/applied locally/shared/production.
+- Appended this exact dated planning update; prior phase history retained.
+- Corrected obsolete payment-screenshot paragraph in 03_Agent_Spec.md to accepted CHAT-D023 exclusion; no screenshot feature or payment workflow added.
+- Recorded pending P1/P2 together in 06_Decision_Log.md. Proposed defaults are not accepted decisions.
+
+### Tests / Manual QA / Regression
+
+- Planning-only checks: branch/status/base verified, original uncommitted work inventory checked; git diff --check PASS after planning edits.
+- Platform/module tests not rerun this planning session; no runtime change. CH-0 retained evidence: typecheck/lint/build/test:roles PASS, test:v2 four suites PASS; deployment tests 11/11 + backup 13/13 + Caddy 4/4 PASS (28 total Node/Python cases).
+- test:chat not created yet; CH-1 implementation scope.
+- Manual QA this session: source/schema/route/role inspection only; no browser, live service or database proof claimed.
+- Boutique compatibility impact: no shared runtime change in planning. Future permission/type/navigation changes require Tier A BA-001 through BA-014.
+- Required owner QA: CHECKLIST.md Part C CH-1; Part B live deployment remains separate.
+
+### Findings / Decisions / Blockers
+
+- Existing roles are static; proposed new tenant-owned chat permission controls require P1 approval.
+- Current Chatwoot official edition comparison reserves custom roles and branding for paid plans. P2 asks initial viewer Leads-only access versus first-release read-only Chatwoot requirement; no purchase authorized.
+- Found stale screenshot extraction paragraph in agent spec contradicting accepted exclusion; corrected in documentation.
+- Notification brand UUID array lacks composite tenant FK enforcement; plan replaces it with an additive junction.
+- No application P0/P1 defect found or fixed in this planning session.
+- Local Docker Linux engine unavailable in CH-0; actual isolated migration/tenant-isolation testing still required before CH-1 closure. Never use shared DB without explicit authorization.
+- Domain/live assets, branding/edition and new-business model/policy choices remain later-phase/before-live dependencies, not implied approval.
+
+### Phase Gate / Spend / Next
+
+- Can move to READY_FOR_CLOSURE: NO. CH-1 scope not implemented; P1/P2 and all phase QA remain.
+- Model API spend this session: USD 0. No model API, real message, shared migration, production setting, workflow activation, purchase, push/merge/deploy.
+- Next: receive P1/P2 answers, record approved decisions and IN_PROGRESS, implement pure schema/access/crypto rules with tests, then storage/commands, mock connector and setup UI. Continue using already granted local phase commit authority only after the gate passes.
+
+## Chat Session Update - 2026-10-21 - CH-1 resumed; access approved and release comparison
+
+### Date / Updated By / Phase / Branch
+
+- Date: 2026-10-21 (Asia/Calcutta). Updated by: Codex AI agent.
+- Current phase: CH-1 Foundation. Status: PLANNED; P1/P2 now approved, baseline integration decision pending before shared-code implementation.
+- Worktree: D:/Develop/os-plus-chat-ch0. Branch: codex/chat-ch1-foundation; no upstream.
+- Actual HEAD: 4f74bd6d6c311225623d74cb99d6bfe3c4406208. CH-0 remains CLOSED.
+- Actual initial dirty state exactly matched handoff: 03_Agent_Spec.md, 06_Decision_Log.md, project_summary.md and untracked CH1_IMPLEMENTATION_PLAN.md. Full diff and untracked plan read and preserved.
+- No applicable AGENTS.md found in the worktree or D:/ / D:/Develop ancestors.
+- Existing CH-0 deployment/backup kit, synthetic unpublished pack and schema audit remain usable. Historical local evidence is retained; service startup/restore and live setup remain unproved.
+
+### Resumption / Decisions / Files
+
+- Read existing module startup prompt, requirements, phase plan, architecture, rules, checklist, schema audit and foundation plan; latest explicit owner instructions and CHAT-D025 override historical routing/commit wording.
+- Owner approved P1: owner/admin full module access/settings; manager lead management and contact details; viewer/finance denied by default with separate owner-granted read access and PII; chat reports owner/admin-only.
+- Owner approved P2: configurable read-only Leads first; viewers excluded from Chatwoot until equivalent restrictions are proved. No paid edition purchase implied. Recorded CHAT-D026/D027.
+- Planning changes this session: docs_chat/06_Decision_Log.md, CH1_IMPLEMENTATION_PLAN.md, 02_Architecture_and_Data_Model.md, 01_PRD.md, CHECKLIST.md and this project_summary.md. Preserved prior 03_Agent_Spec.md correction.
+- Corrected remaining PRD screenshot-task contradiction to CHAT-D023 and checklist's obsolete CH-0/uncommitted status. No runtime behavior changed.
+- New implementation/migrations: none yet. Migrations applied locally/shared/production: none.
+
+### Released-main comparison and separate Shopify dependencies
+
+- Locally available origin/main and the read-only release checkout both identify c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a. No network fetch or new deployment verification performed; local saved release evidence reports Vercel Ready and successful Test settings/Orders smoke.
+- Read local release summary plus docs/46, 47, 48 and 49 in C:/Users/abhij/OneDrive/Documents/New project 2/os-plus-shopify-auto-release-20261019, including uncommitted status updates. That checkout and all other worktrees remain untouched.
+- Git divergence: Chat contains one unique CH-0 commit; released main contains 18 later commits. Full tree comparison spans 299 paths, including Chat-only documentation/kit.
+- Shared tenant, permission, Supabase and core command files and package-lock are unchanged between these commits.
+- Relevant changed contracts: raw orders now support Shopify drafts with nullable customer/delivery, external financial management and source currency; local_operational_orders/operational_orders projections protect older consumers; shared database types compose Shopify tables/functions; settings adds owner-only Shopify entry; middleware exempts only exact authenticated-by-provider POST ingress routes.
+- Later Chat integration must consume retained business data, preserve source buyer versus linked customer identity, respect draft/setup/production/delivery distinctions, and never infer messaging consent or create local receipts from Shopify source payment facts.
+- Shopify manual flow has scoped hosted acceptance; OAuth has local tests plus owner-applied/read-only-verified SQL and released code, but activation/hosted approval/renewal and broader multi-store acceptance remain open. Historical SQL must not be reapplied to shared Supabase.
+- Shopify n8n, automatic sync and scheduled raw cleanup remain separate deferred work. Chat's isolated new n8n plan is not workflow activation authority.
+- Recommended local integration, detailed in CH1_IMPLEMENTATION_PLAN.md: byte-preserving backup plus explicit documentation checkpoint, then merge exact released c686337 into this same branch, reconcile summary history without dropping Chat records, verify released runtime preservation and rerun gates. Requires owner's explicit local checkpoint/merge instruction; no silent merge/rebase performed.
+
+### Automated baseline / QA / Regression
+
+| Command | Result |
+|---|---|
+| npm run typecheck | PASS |
+| npm run lint | PASS |
+| npm run build | PASS; 42/42 static generation steps |
+| npm run test:roles | PASS; one suite, no individual count reported |
+| npm run test:v2 | PASS; four suites, no individual count reported |
+| npm run test:chat | NOT AVAILABLE; CH-1 introduction still required |
+| docker version --format server | BLOCKED; Docker Desktop Linux engine pipe missing |
+| WSL Ubuntu PostgreSQL availability | No psql/postgres found; no installation performed |
+
+- These checks ran on the existing Chat baseline, not on a merged release or completed CH-1 implementation.
+- Manual QA this session: repository, documentation and shared-contract inspection only. No browser or hosted data action.
+- Boutique compatibility impact: no shared runtime edit. Tier A BA-001..BA-014 remains required after foundation permissions/types/navigation changes.
+- Tenant isolation, migration transactions/concurrency and mobile/desktop role QA remain unexecuted. PGlite evidence from Shopify is not real multi-session PostgreSQL evidence.
+- Owner acceptance still required: docs_chat/CHECKLIST.md Part C CH-1, two local synthetic tenants. Live service setup remains Part B with separate authority.
+
+### Bugs / Gate / Spend / Next
+
+- Documentation defects corrected: stale payment-screenshot task scope and CH-0 checklist status. No application defect fixed or introduced.
+- Remaining gate: explicit local baseline integration decision; actual CH-1 implementation and all phase-specific SQL/crypto/permission/mock/UI QA. Docker/local PostgreSQL availability must be resolved for real transaction/concurrency checks.
+- READY_FOR_CLOSURE: NO. No phase advancement, phase commit, push, merge, deployment, hosted migration, live message, model API call or scheduler activation this session.
+- Model API spend: USD 0.
+- Next small slice after baseline integration: add pure knowledge-pack validation and versioned tenant-bound encryption with synthetic tests/test:chat, then approved access rules; record IN_PROGRESS before coding. Continue storage/commands/mock connector/UI in verified increments.
+
+### Resumption final verification
+
+- Seven pre-edit planning files were copied byte-for-byte to ignored outputs/chat-ch1/resume-20261021-55c1f87214dd4cab8d7a1779cca2233f; all seven SHA-256 checks passed. This is a local recovery copy, not a commit or phase closure.
+- Final planning diff whitespace check PASS. Runtime/index/HEAD unchanged; no merge performed. Reviewed tracked diff plus preserved untracked CH1_IMPLEMENTATION_PLAN.md.
+- P1/P2 recorded as accepted CHAT-D026/D027. Only I1 (explicit local preservation checkpoint and released-main integration) remains pending before shared-code work.
+- Docker service is stopped and no Docker backend process or native PostgreSQL command was found. No service was started, software installed, or database touched in this resumption check.
+
+## Chat Session Update - 2026-10-21 - Approved local preservation and baseline integration
+
+- Updated by: Codex AI agent. Phase: CH-1 Foundation; status PLANNED while the approved integration is verified.
+- Owner approved CHAT-D028: local planning checkpoint and exact c686337 merge in codex/chat-ch1-foundation, retaining both summary histories. No public push/merge/deployment or shared migration.
+- Pre-integration HEAD 4f74bd6; seven reviewed Chat planning documents are the checkpoint scope. Original planning recovery copy and hashes verified in the prior entry.
+- Baseline from immediately preceding resumption: typecheck/lint/build (42/42)/test:roles (one suite)/test:v2 (four suites) PASS. No test:chat yet.
+- No new migration or runtime code; no browser/manual phase acceptance, no hosted action. Model API spend USD 0.
+- Next: review staged checkpoint, commit locally, merge without committing, reconcile summary, verify released runtime tree and relevant regressions, then record IN_PROGRESS before foundation coding.

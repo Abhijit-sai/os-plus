@@ -128,3 +128,21 @@ The owner explicitly authorised local commits after each phase passes its closur
 None. O3 is centrally provider-managed Meta onboarding (CHAT-D022); O6 excludes screenshots (CHAT-D023); O7 selects new n8n beside Chatwoot (CHAT-D024).
 
 Later-phase/deployment dependencies remain: selected domain/DNS/TLS, new infrastructure and Meta assets, fresh credentials/SMTP, validated login/proxy path behavior, Chatwoot viewer capability parity, new-business knowledge/language/workflows and production models. These are not inferred from the reference.
+
+## Resolved - CH-1 access decisions
+
+### CHAT-D026 — Foundation role defaults
+**Status:** ACCEPTED (owner, 2026-10-21; resolves P1)
+Owner/admin has full Chat & Leads access/settings; managers can view/manage leads and see contact details. Viewer and finance start without module access; owner/admin can separately grant read-only lead viewing and PII visibility. PII is not a standalone entry grant. Chat reports and configuration stay owner/admin-only; other modules' permissions are unchanged. Grants are tenant-owned, audited and enforced server-side.
+
+### CHAT-D027 — Viewer Leads first
+**Status:** ACCEPTED (owner, 2026-10-21; resolves P2)
+Initial viewer access is configurable read-only Leads. Viewer Chatwoot entry stays disabled until equivalent restrictions are proved. No paid edition purchase, full-agent fallback or read-only Chatwoot capability claim is implied.
+
+
+### CHAT-D028 — Preserve planning and integrate released baseline locally
+**Status:** ACCEPTED (owner, 2026-10-21; resolves I1)
+Owner explicitly approved the local documentation preservation checkpoint and merge of exact released c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a into the existing codex/chat-ch1-foundation branch/worktree. Preserve both summary histories, review and verify before coding. This is a specific mid-phase commit exception, not CH-1 closure or public release authority.
+
+## Open - CH-1
+No unresolved product/access or local baseline-integration decisions. Implementation/environment/QA dependencies remain in the current plan and summary.

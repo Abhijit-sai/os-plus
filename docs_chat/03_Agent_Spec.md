@@ -120,7 +120,7 @@ Branch facts (address, map link, pins, hours overrides) come from `chat_brand_lo
 ## 6. Voice notes and images
 
 - Voice note: transcribe (`CHAT_MODEL_TRANSCRIBE`), post the transcript as a private note in Chatwoot, store it in `chat_messages.transcript`, and run the turn on the transcript.
-- Image: if it may be a payment screenshot (optional phase CH-8): one vision read → structured fields (amount, date, reference/UTR, payee, status) → code checks (payee matches the tenant's configured UPI/payee, success status, recent date, reference never seen before) → task `VERIFY_PAYMENT_CLAIM` worded "looks genuine — verify before posting", never "verified". The customer still gets the locked payment-claim sentence. A burst of photos makes one task, not one per photo.
+- Payment screenshot extraction, vision verification and verification tasks are excluded (CHAT-D023). Inquiry-only unsupported media follows the new business's approved handoff policy; no financial workflow is inherited.
 - Unreadable or unsupported media → `unreadableHandoff`.
 
 ## 7. Draft mode in Chatwoot

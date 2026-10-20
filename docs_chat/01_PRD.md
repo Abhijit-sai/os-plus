@@ -94,7 +94,7 @@ Proposed guarded-agent capabilities (see `03_Agent_Spec.md`). Business-specific 
 - Broadcast / marketing campaigns. (Transactional outbound remains the existing communications foundation.)
 - Telephony / missed-call leads.
 - Website **voice** bot.
-- Auto-posting payments from screenshots (a verification *task* is in scope as an optional phase; posting money is not).
+- Payment screenshot extraction/verification tasks and automatic payment posting are excluded (CHAT-D023).
 - Replacing Chatwoot, or building a native inbox.
 - Self-serve tenant signup for the module (super admin enables it).
 

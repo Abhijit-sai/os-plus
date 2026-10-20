@@ -25,7 +25,7 @@ Parts:
 - [ ] A2.1 Choose the platform domain (O1). Once selected, connect the platform domain and use one `chat.<domain>` hostname for both Chats and Leads. OS PLUS remains on Vercel; final path routing/authentication must be verified. Domain selection can follow placeholder-based local preparation.
 - [ ] A2.2 OpenRouter: create a fresh key for the new platform, set a monthly credit limit.
 - [ ] A2.3 Telegram → @BotFather → `/newbot` → platform bot name and username → keep the token for `TELEGRAM_BOT_TOKEN`. Create a private "Platform alerts" group, add the bot, and keep its chat id.
-- [x] A2.4 Owner approved an isolated CH-0 worktree from deployed origin/main and copying its untracked `docs_chat` files. Use `D:\Develop\os-plus-chat-ch0`; original Shopify and documentation worktrees remain untouched. No merge or commit performed.
+- [x] A2.4 Owner approved an isolated CH-0 worktree from deployed origin/main and copying its untracked `docs_chat` files. Use `D:\Develop\os-plus-chat-ch0`; original Shopify and documentation worktrees remain untouched. CH-0 closed and committed locally as 4f74bd6; current branch is codex/chat-ch1-foundation. No public release implied.
 
 ---
 
@@ -50,12 +50,12 @@ For **every** phase:
 1. Open Codex in the current approved chat worktree (`D:\Develop\os-plus-chat-ch0` for CH-0) → paste `07_Codex_Build_Prompt.md` (the part between the lines).
 2. Answer the decisions Codex lists.
 3. Do the "You" steps for that phase below.
-4. When Codex reports `READY_FOR_CLOSURE`: read its report, try the feature yourself, then tell it to commit.
+4. When Codex reports `READY_FOR_CLOSURE`: read its report, try the feature yourself, complete the required owner acceptance; CHAT-D025 already authorizes local phase commits after all gates pass.
 5. Apply the phase's migrations to the database yourself (or explicitly authorise Codex to), then deploy.
 
 | ☐ | Phase | You |
 |---|---|---|
-| [ ] | **CH-0** Baseline, decisions, deploy kit | O3/O6/O7 resolved; domain selection may follow local placeholder-based preparation. Review `deploy/chatwoot/` and `examples/new-business.pack.json`. Then do Part B. |
+| [x] | **CH-0** Baseline, decisions, deploy kit | O3/O6/O7 resolved; domain selection may follow local placeholder-based preparation. Review `deploy/chatwoot/` and `examples/new-business.pack.json`. Then do Part B. |
 | [ ] | **CH-1** Foundation | Super admin: enable the module for a **test tenant** and a **second test tenant**. Create one brand + two branches. Paste a pack and publish it. |
 | [ ] | **CH-2** Chatwoot connector | In Chatwoot, create the test tenant's account (or let Codex's onboarding do it); connect one **test WhatsApp number**; paste the two webhook URLs Codex shows. Send a message → check it appears in OS PLUS. |
 | [ ] | **CH-3** Contacts & leads | Message from two phones, one of them an existing test customer. Check: two contacts, two leads, one linked to the customer. Try Convert to customer. |
