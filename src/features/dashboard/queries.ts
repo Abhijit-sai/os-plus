@@ -12,7 +12,7 @@ export async function getDashboardPageData() {
   const [orders, orderPayments, items, workflowInstances, stageInstances, workflows, stages, workLogs, workers, expenses, dues, attendance] =
     await Promise.all([
       supabase
-        .from("orders")
+        .from("local_operational_orders")
         .select("id, order_number, customer_id, order_date, promised_delivery_date, total_amount, amount_paid, payment_status, order_status")
         .eq("tenant_id", context.tenant.id)
         .is("deleted_at", null)

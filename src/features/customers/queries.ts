@@ -70,7 +70,7 @@ export async function getCustomersPageData(search?: string | null) {
   const customerIds = customerRows.map((customer) => customer.id);
   const orders = customerIds.length
     ? await supabase
-        .from("orders")
+        .from("local_operational_orders")
         .select("id, customer_id, order_date, total_amount, amount_paid, order_status")
         .eq("tenant_id", context.tenant.id)
         .in("customer_id", customerIds)
@@ -182,7 +182,7 @@ export async function getCustomerDetailPageData(customerId: string) {
       .is("deleted_at", null)
       .order("sort_order"),
     supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("*")
       .eq("tenant_id", context.tenant.id)
       .eq("customer_id", customerId)

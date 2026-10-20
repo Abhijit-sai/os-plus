@@ -2,6 +2,12 @@ import Link from "next/link";
 import { Route } from "lucide-react";
 
 import { getOrderDetailPageData } from "@/features/orders/queries";
+import { getImportedShopifyOrders,getRetainedShopifyBusinessOrder,getShopifyDraftPreviews } from "@/features/orders/shopify-imported";
+import { ShopifyImportedOrder } from "@/components/orders/shopify-imported-order";
+import { ShopifyDraftSetupForm } from "@/components/orders/shopify-draft-setup-form";
+import { getShopifyManagerSetup } from "@/features/orders/shopify-setup";
+import {shopifyDraftSetupAction,searchShopifySetupOptions} from "@/features/orders/shopify-setup-actions";
+import { localOrderReceivable } from "@/features/orders/financial-display";
 import { AttachmentPanel } from "@/components/attachments/attachment-panel";
 import { OrderMessageDialog } from "@/components/communications/order-message-dialog";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -10,6 +16,7 @@ import { ItemTypeIcon } from "@/components/item-types/item-type-icon";
 import { CommandBar } from "@/components/layout/command-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
+import { ShopifyPaymentPanel } from "@/components/orders/shopify-payment-panel";
 import { AddOrderItemsDialog } from "@/components/orders/add-order-items-dialog";
 import { CustomerContextSheet } from "@/components/orders/customer-context-sheet";
 import { EditOrderDialog } from "@/components/orders/edit-order-dialog";
@@ -74,11 +81,6 @@ function formatMeasurementEntries({
     });
 }
 
-function isDeliveryStageName(stageName: string | undefined) {
-  const normalized = stageName?.toLowerCase() ?? "";
-  return normalized.includes("deliver") || normalized.includes("handoff");
-}
-
 function StageStatusIndicator({ status }: { status: string }) {
   return <StatusBadge value={status} />;
 }
@@ -89,8 +91,18 @@ export default async function OrderDetailPage({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = await params;
+  const [imported] = await getImportedShopifyOrders(orderId);
+  if (imported) {
+    const setup=imported.availability==="available"?await getShopifyManagerSetup(orderId):null;
+    const display=setup?await getShopifyDraftPreviews(imported,setup):imported;
+    return <ShopifyImportedOrder order={display} setup={setup&&display.availability==="available"
+      ?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={display.lines} sourceCustomerName={display.customer.name} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>
+      :<p role="status" className="text-sm text-muted-foreground">Manager setup becomes available after the complete order details have been synced.</p>}/>;
+  }
   const {
     context,
+    shopifySummary,
+    shopifyPayment,
     order,
     customer,
     items,
@@ -119,6 +131,7 @@ export default async function OrderDetailPage({
     orderMessages,
     standardSizes
   } = await getOrderDetailPageData(orderId);
+  const retainedSource=order.source==="shopify"?await getRetainedShopifyBusinessOrder(orderId):null;
   const itemTypeById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
   const workflowById = new Map(workflows.map((workflow) => [workflow.id, workflow]));
   const paymentModeById = new Map(paymentModes.map((paymentMode) => [paymentMode.id, paymentMode]));
@@ -147,27 +160,14 @@ export default async function OrderDetailPage({
     stagesByItemId.set(stageInstance.order_item_id, existing);
   });
 
-  const outstandingAmount = Math.max(order.total_amount - order.amount_paid, 0);
+  const isShopify = order.source === "shopify";
+  const outstandingAmount = localOrderReceivable(order);
   const trackingPath = `/track/${order.tracking_token}`;
   const trackingUrl = trackingPath;
   const effectivelyDeliveredItemIds = new Set(
     items
-      .filter((item) => {
-        if (item.item_status === "delivered") {
-          return true;
-        }
-
-        const itemStages = (stagesByItemId.get(item.id) ?? []).sort((a, b) => a.sequence_number - b.sequence_number);
-        const finalStage = itemStages.at(-1);
-        const finalStageName = finalStage ? stageById.get(finalStage.stage_master_id)?.name : undefined;
-
-        return (
-          Boolean(itemStages.length) &&
-          itemStages.every((stage) => ["completed", "skipped"].includes(stage.status)) &&
-          finalStage?.status === "completed" &&
-          isDeliveryStageName(finalStageName)
-        );
-      })
+      // Delivery is recorded by the workflow transition, never inferred from editable stage names.
+      .filter((item) => item.item_status === "delivered")
       .map((item) => item.id)
   );
   const deliveredItems = effectivelyDeliveredItemIds.size;
@@ -204,7 +204,7 @@ export default async function OrderDetailPage({
         description={`Order source: ${order.source.replace("_", " ")}`}
         actions={
           <>
-            <AddOrderItemsDialog
+            {!isShopify ? <><AddOrderItemsDialog
               orderId={order.id}
               customerId={order.customer_id}
               orderStatus={order.order_status}
@@ -223,15 +223,20 @@ export default async function OrderDetailPage({
               measurements={customerMeasurements}
               standardSizes={standardSizes}
             />
-            <Button asChild variant="outline">
+            </> : null}
+            {!isShopify ? <Button asChild variant="outline">
               <Link href={trackingPath}>Open tracking</Link>
-            </Button>
+            </Button> : null}
             <Button asChild variant="outline">
               <Link href="/orders">Back to orders</Link>
             </Button>
           </>
         }
       />
+      {isShopify && shopifySummary?.held !== false ? <div role="alert" className="rounded-md border border-destructive/30 p-4 text-sm">
+        <p className="font-medium">Production is on hold for owner review</p>
+        <p className="mt-1 text-muted-foreground">Shopify source changes require an owner decision. Existing assignments and history are preserved; new starts and completions are blocked.</p>
+      </div> : null}
       <CommandBar>
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           <span>Customer</span>
@@ -249,7 +254,7 @@ export default async function OrderDetailPage({
         ) : null}
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           <span>Payment</span>
-          <StatusBadge value={order.payment_status} />
+          {isShopify ? "Shopify-managed" : <StatusBadge value={order.payment_status} />}
         </span>
         <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           {deliveredItems}/{items.length} items delivered
@@ -258,7 +263,12 @@ export default async function OrderDetailPage({
           Promised {order.promised_delivery_date ?? "not set"}
         </span>
       </CommandBar>
-      <Card>
+      {isShopify ? (
+        <div className="rounded-md border bg-muted/30 p-4 text-sm">
+          <p className="font-medium">Shopify-managed order</p>
+          <p className="mt-1 text-muted-foreground">Payments, shipping and source tax remain in Shopify. The values below describe accepted production merchandise only, not a local invoice or collectible balance. Automatic messages are disabled.</p>
+        </div>
+      ) : <Card>
         <CardHeader>
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
@@ -328,15 +338,15 @@ export default async function OrderDetailPage({
             </div>
           </CardContent>
         ) : null}
-      </Card>
+      </Card>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
-          label="Order total"
+          label={isShopify ? "Production merchandise" : "Order total"}
           value={`₹${formatMoney(order.total_amount)}`}
-          hint={order.gst_amount > 0 ? `Includes GST ₹${formatMoney(order.gst_amount)}` : `Discount ₹${formatMoney(order.discount_amount)}`}
+          hint={isShopify ? "Accepted source merchandise after discount; excludes shipping and tax" : order.gst_amount > 0 ? `Includes GST ₹${formatMoney(order.gst_amount)}` : `Discount ₹${formatMoney(order.discount_amount)}`}
         />
-        <MetricCard label="Amount paid" value={`₹${formatMoney(order.amount_paid)}`} hint={order.payment_status.replace("_", " ")} />
-        <MetricCard label="Receivable" value={`₹${formatMoney(outstandingAmount)}`} hint="Derived from order payments" />
+        {!isShopify ? <><MetricCard label="Amount paid" value={`₹${formatMoney(order.amount_paid)}`} hint={order.payment_status.replace("_", " ")} />
+        <MetricCard label="Receivable" value={`₹${formatMoney(outstandingAmount)}`} hint="Derived from order payments" /></> : null}
         <MetricCard label="Production" value={`${productionCompleteItems}/${items.length}`} hint="Production-complete items" />
         <MetricCard label="Delivery" value={`${deliveredItems}/${items.length}`} hint={fulfillmentLabel.replaceAll("_", " ")} />
       </div>
@@ -380,7 +390,7 @@ export default async function OrderDetailPage({
               </div>
             </CardContent>
           </Card>
-          <Card>
+          {!isShopify ? <Card>
             <CardHeader>
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
@@ -485,9 +495,11 @@ export default async function OrderDetailPage({
                 </details>
               ) : null}
             </CardContent>
-          </Card>
+          </Card> : <ShopifyPaymentPanel payment={shopifyPayment ?? { availability: "unavailable" }} />}
       </div>
       <div className="space-y-6">
+          {retainedSource&&<details className="rounded-lg border p-4"><summary className="cursor-pointer py-2 font-medium">Shopify order details</summary>
+            <div className="mt-4"><ShopifyImportedOrder order={retainedSource} embedded/></div></details>}
           <Card>
             <CardHeader>
               <CardTitle>Production items</CardTitle>
@@ -498,15 +510,26 @@ export default async function OrderDetailPage({
                 const itemStages = (stagesByItemId.get(item.id) ?? []).sort((a, b) => a.sequence_number - b.sequence_number);
                 const workflowInstance = workflowInstanceByItemId.get(item.id);
                 const currentStage =
-                  itemStages.find((stage) => stage.id === workflowInstance?.current_stage_instance_id) ??
+                  itemStages.find((stage) => stage.id === workflowInstance?.current_stage_instance_id &&
+                    !["completed", "skipped"].includes(stage.status)) ??
                   itemStages.find((stage) => ["ready_to_start", "in_progress", "paused", "blocked"].includes(stage.status)) ??
                   null;
                 const activeLog = currentStage ? activeLogByStageId.get(currentStage.id) : null;
                 const activeWorker = activeLog ? workerById.get(activeLog.worker_id) : null;
                 const completedStageCount = itemStages.filter((stage) => stage.status === "completed").length;
                 const stageProgress = itemStages.length ? Math.round((completedStageCount / itemStages.length) * 100) : 0;
-                const customerStatus = item.customer_status_id ? customerStatusById.get(item.customer_status_id)?.name : null;
+                const customerStatus = item.customer_status_id ? customerStatusById.get(item.customer_status_id) : null;
                 const effectiveItemStatus = effectivelyDeliveredItemIds.has(item.id) ? "delivered" : item.item_status;
+                // The final stage's mapping is selected when it becomes ready, before delivery.
+                const publicStatus = customerStatus && (!customerStatus.is_final_status || effectiveItemStatus === "delivered")
+                  ? customerStatus.name
+                  : effectiveItemStatus;
+                const workflowComplete = workflowInstance?.status === "completed" ||
+                  ["completed", "delivered"].includes(effectiveItemStatus) ||
+                  (itemStages.length > 0 && itemStages.every((stage) => ["completed", "skipped"].includes(stage.status)));
+                const internalStageLabel = currentStage
+                  ? stageById.get(currentStage.stage_master_id)?.name ?? "Unknown"
+                  : workflowComplete ? "Completed" : effectiveItemStatus === "not_started" ? "Not started" : "No active stage";
                 const linkedMeasurement = item.customer_measurement_id ? customerMeasurementById.get(item.customer_measurement_id) : null;
                 const linkedStandardSize = item.standard_size_id ? standardSizeById.get(item.standard_size_id) : null;
                 const linkedMeasurementEntries = linkedMeasurement ? getMeasurementEntries(linkedMeasurement.measurement_data_json) : [];
@@ -547,14 +570,14 @@ export default async function OrderDetailPage({
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge value={customerStatus ?? effectiveItemStatus} />
+                        <StatusBadge value={publicStatus} />
                       </div>
                     </div>
                     <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                       <div>
                         <p className="font-medium">Internal stage</p>
                         <p className="text-muted-foreground">
-                          {currentStage ? stageById.get(currentStage.stage_master_id)?.name ?? "Unknown" : "Not started"}
+                          {internalStageLabel}
                         </p>
                       </div>
                       <div>
@@ -563,7 +586,7 @@ export default async function OrderDetailPage({
                       </div>
                       <div>
                         <p className="font-medium">Public status</p>
-                        <p className="text-muted-foreground">{customerStatus ?? effectiveItemStatus.replace("_", " ")}</p>
+                        <p className="text-muted-foreground">{publicStatus.replaceAll("_", " ")}</p>
                       </div>
                       <div>
                         <p className="font-medium">Expected</p>
@@ -648,6 +671,7 @@ export default async function OrderDetailPage({
                               <ItemWorkflowPanel
                                 item={item}
                                 order={order}
+                                shopifySummary={shopifySummary}
                                 workflow={workflowById.get(item.workflow_id) ?? null}
                                 workflows={workflows}
                                 itemType={itemTypeById.get(item.item_type_id) ?? null}

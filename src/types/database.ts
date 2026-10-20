@@ -1,3 +1,5 @@
+import type { ShopifyIntakeTables, ShopifyIntakeFunctions } from "./shopify-intake.ts";
+
 export type TenantStatus = "active" | "inactive" | "suspended";
 export type TenantBillingPaymentStatus = "pending" | "partially_paid" | "paid" | "overdue" | "waived" | "cancelled";
 export type TenantVerticalKey = "boutique" | "laundry";
@@ -11,10 +13,15 @@ export type WorkerStatus = "active" | "inactive";
 export type WorkerWageType = "hourly" | "daily" | "weekly" | "monthly" | "per_piece" | "hybrid";
 export type CustomerGender = "female" | "male" | "other" | "not_specified";
 export type ItemTypeIconKind = "emoji" | "lucide";
-export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other";
+export type OrderSource = "walk_in" | "shopify_manual" | "whatsapp" | "other" | "shopify";
 export type DeliveryType = "store_pickup" | "self_delivery" | "courier";
 export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "refunded";
 export type OrderStatus = "confirmed" | "in_progress" | "ready" | "partially_delivered" | "completed" | "delivered" | "cancelled";
+// Commercial reads can include incomplete imported orders. Keep operational
+// Order readers narrower so production code cannot accidentally accept drafts.
+export type CommercialOrder = Omit<Order, "order_status" | "customer_id" | "delivery_type"> & {
+  order_status: OrderStatus | "draft"; customer_id: string | null; delivery_type: DeliveryType | null;
+};
 export type OrderRuntimeModel = "legacy_item_v1" | "work_unit_v2";
 export type OrderLineType = "service" | "product" | "fee" | "discount" | "other";
 export type WorkUnitStatus = "not_started" | "in_progress" | "blocked" | "production_complete" | "cancelled";
@@ -1140,7 +1147,7 @@ type TenantRelationship = {
 
 export type Database = {
   public: {
-    Tables: {
+    Tables: ShopifyIntakeTables & {
       tenants: {
         Row: Tenant;
         Insert: Omit<Tenant, "id" | "created_at" | "updated_at"> & {
@@ -1389,7 +1396,14 @@ export type Database = {
         Relationships: [TenantRelationship];
       };
       orders: {
-        Row: Order;
+        Row: Omit<Order, "customer_id" | "delivery_type" | "source" | "order_status"> & {
+          customer_id: string | null;
+          delivery_type: DeliveryType | null;
+          source: OrderSource | "shopify";
+          order_status: OrderStatus | "draft";
+          financial_management: "local" | "external_shopify";
+          source_currency_code: string;
+        };
         Insert: TenantOwnedInsertBase & {
           order_number?: string;
           reference_order_id?: string | null;
@@ -2346,8 +2360,107 @@ export type Database = {
         Relationships: [TenantRelationship];
       };
     };
-    Views: Record<string, never>;
-    Functions: {
+    // The view's predicates plus database checks establish non-null operational
+    // customer/delivery fields; raw orders can contain unresolved Shopify drafts.
+    Views: {
+      local_operational_orders: { Row: Order; Relationships: [TenantRelationship] };
+      operational_orders: { Row: Order; Relationships: [TenantRelationship] };
+      operational_order_items: { Row: OrderItem; Relationships: [TenantRelationship] };
+      shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
+    };
+    Functions: ShopifyIntakeFunctions & {
+      list_shopify_commercial_orders: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string;
+          p_search?: string | null; p_source?: string | null; p_status?: string | null; p_payment?: string | null;
+          p_view?: string; p_limit?: number; p_offset?: number };
+        Returns: CommercialOrder[];
+      };
+      read_shopify_commercial_summaries: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_ids: string[] };
+        Returns: Json;
+      };
+      import_shopify_retained_draft: {
+        Args: { p_input: Json; p_recovery_only?: boolean };
+        Returns: Json;
+      };
+      approve_shopify_business_retention: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_actor_id: string; p_consent: boolean };
+        Returns: undefined;
+      };
+      read_shopify_retained_order: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string };
+        Returns: Json;
+      };
+      read_shopify_retained_business_order: {
+        Args: {p_tenant_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_order_id:string};
+        Returns: Json;
+      };
+      read_shopify_retained_payment: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string };
+        Returns: Json;
+      };
+      purge_expired_shopify_raw: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_shop_domain: string; p_app_ref: string; p_limit?: number };
+        Returns: Json;
+      };
+      save_shopify_manager_draft_setup: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_domain: string; p_app_ref: string; p_actor_id: string;
+          p_order_id: string; p_source_revision_id: string; p_expected_version: number; p_request_key: string; p_choices: Json };
+        Returns: Json;
+      };
+      read_shopify_manager_draft_setup: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string };
+        Returns: Json;
+      };
+      complete_shopify_manager_setup: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_domain: string; p_app_ref: string; p_actor_id: string;
+          p_order_id: string; p_setup_id: string; p_request_key: string; p_connection_revision: number;
+          p_source_updated_at: string; p_verified_at: string };
+        Returns: Json;
+      };
+      recover_shopify_manager_setup: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_domain: string; p_app_ref: string; p_actor_id: string;
+          p_order_id: string; p_setup_id: string; p_request_key: string };
+        Returns: Json;
+      };
+      search_shopify_setup_options: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string;
+          p_kind: string; p_search: string; p_offset?: number };
+        Returns: Json;
+      };
+      enable_shopify_unified_imports: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_request_key:string;p_expected_revision:number;p_consent:boolean}; Returns:Json;
+      };
+      read_shopify_unified_workspace: {
+        Args: {p_tenant_id:string;p_actor_id:string;p_domain:string;p_app_ref:string}; Returns:Json;
+      };
+      read_shopify_unified_policy: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_domain:string;p_app_ref:string}; Returns:Json;
+      };
+      shopify_authorized_cutoff: {
+        Args: {p_tenant:string;p_connection:string;p_order_gid:string;p_default:string}; Returns:string;
+      };
+      save_shopify_import_preview: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_request_key:string;p_start:string;p_end:string;p_rows:Json}; Returns:Json;
+      };
+      commit_shopify_import_preview: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_preview_id:string;p_request_key:string}; Returns:Json;
+      };
+      receive_shopify_unified_event: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_envelope:Json}; Returns:Json;
+      };
+      set_shopify_unified_automatic: {
+        Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_request_key:string;p_enabled:boolean;p_verified_at:string|null}; Returns:Json;
+      };
+      preview_shopify_order_matches: {
+        Args: { p_tenant_id: string; p_connection_id: string; p_actor_id: string; p_domain: string;
+          p_app_ref: string; p_shop_gid: string; p_orders: Json };
+        Returns: Json;
+      };
+      read_shopify_imported_orders: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id?: string | null; p_search?: string | null };
+        Returns: Json;
+      };
       create_salary_period_with_calculations: {
         Args: {
           p_tenant_id: string;
@@ -2890,10 +3003,10 @@ export type Database = {
       worker_status: WorkerStatus;
       worker_wage_type: WorkerWageType;
       customer_gender: CustomerGender;
-      order_source: OrderSource;
+      order_source: OrderSource | "shopify";
       delivery_type: DeliveryType;
       payment_status: PaymentStatus;
-      order_status: OrderStatus;
+      order_status: OrderStatus | "draft";
       item_status: ItemStatus;
       item_workflow_status: ItemWorkflowStatus;
       item_stage_status: ItemStageStatus;

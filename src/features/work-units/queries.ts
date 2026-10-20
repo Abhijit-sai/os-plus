@@ -29,7 +29,8 @@ function compactStrings(values: Array<string | null | undefined>) {
 }
 
 async function loadLookupRows<T extends { id: string }>(
-  tableName: Parameters<ReturnType<typeof createSupabaseServiceRoleClient>["from"]>[0],
+  tableName: "local_operational_orders" | "order_lines" | "workflows" | "work_unit_workflow_instances"
+    | "tenant_locations" | "work_unit_stage_instances" | "customers" | "stage_master" | "workers" | "workgroups",
   tenantId: string,
   ids: string[],
   select = "*"
@@ -39,8 +40,8 @@ async function loadLookupRows<T extends { id: string }>(
   }
 
   const supabase = createSupabaseServiceRoleClient();
-  const result = await supabase
-    .from(tableName)
+  const query = tableName === "local_operational_orders" ? supabase.from("local_operational_orders") : supabase.from(tableName);
+  const result = await query
     .select(select)
     .eq("tenant_id", tenantId)
     .in("id", ids)
@@ -50,7 +51,9 @@ async function loadLookupRows<T extends { id: string }>(
     throw new Error(`Unable to load ${String(tableName)}: ${result.error.message}`);
   }
 
-  return (result.data ?? []) as T[];
+  // The existing helper selects variable projections; preserve its explicitly
+  // supplied result contract without relying on Supabase's last (view) overload.
+  return (result.data ?? []) as unknown as T[];
 }
 
 export type WorkUnitQueueItem = {
@@ -103,7 +106,7 @@ export async function getWorkUnitQueueData(options?: {
 
   const [orders, orderLines, workflows, workflowInstances, locations] = await Promise.all([
     loadLookupRows<Pick<Order, "id" | "order_number" | "customer_id" | "promised_delivery_date" | "runtime_model" | "vertical_key">>(
-      "orders",
+      "local_operational_orders",
       context.tenant.id,
       orderIds,
       "id, order_number, customer_id, promised_delivery_date, runtime_model, vertical_key"
@@ -199,7 +202,7 @@ export async function getWorkUnitDetailData(workUnitId: string) {
     workLogs
   ] = await Promise.all([
     supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("*")
       .eq("tenant_id", context.tenant.id)
       .eq("id", workUnit.data.order_id)

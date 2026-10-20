@@ -1,5 +1,82 @@
 # OS PLUS Project Summary
 
+## Shopify deployment checks 21 October 2026
+
+Owner reports the OAuth SQL, Shopify callback version and two Vercel encryption
+settings saved. A read-only catalogue check verifies the applied function matches
+the exact package, RLS/permissions are correct, and Test automatic sync, pending
+jobs and leased jobs are all zero. No OAuth credential exists yet. The Test
+settings page is accessible; local OAuth/manual regressions and build pass.
+This is not hosted OAuth acceptance. No production business data or chat/CRM
+changes. Detailed status: [OAuth package](docs/48_Shopify_Tenant_OAuth_Approval.md).
+
+## Tenant-specific Shopify approval package — local, not activated
+
+20 October 2026: implemented the owner-selected Shopify approval flow, encrypted
+per-connection offline credentials, refresh/reconnect protections and tenant-
+bound manual import and manager draft wiring. Local OAuth suite: 29 backend
+checks plus 1 UI check pass; unified manual suite: 50 pass; lint and build pass.
+These suites overlap and their totals must not be added as unique test cases.
+
+No shared SQL was applied, no live Shopify approval was performed, and this
+package was not pushed/deployed. Hosted validation remains pending in Phantom
+Threads Test only. The exact proposed SQL, checksum, configuration, acceptance
+and recovery gates are in
+[tenant OAuth activation package](docs/48_Shopify_Tenant_OAuth_Approval.md).
+Current app distribution eligibility must be checked before claiming that
+unrelated stores can connect. Broader tenant rollout and n8n remain pending.
+No production-tenant data or chat/CRM branch was changed.
+
+## Shopify manual import acceptance and handoff 20 October 2026
+
+The real deployed manual Shopify import flow passed end-to-end in Phantom Threads
+Test. This is the shipping implementation, not a disposable prototype. The tenant
+used for validation and its simulated workflow events are Test-only; the shared
+application is deployed on Vercel. Latest verified release: `92f1858`.
+
+- Completed: date-range import sheet, repeat-import duplicate protection, one
+  Orders list, editable manager drafts, per-garment setup, normal workflow through
+  delivery, and the three reported status/filter UI corrections.
+- The actual live path and the isolated edge-case suite are distinguished in
+  [manual import acceptance](docs/46_Shopify_Manual_Import_Acceptance.md).
+- **Not complete:** independent tenant/store onboarding. Current server gates
+  restrict access to one configured Test tenant and store. Do not describe this
+  as self-service multi-store onboarding or change global credentials to add a
+  second tenant.
+- n8n, automatic imports/updates, retries and scheduled cleanup are explicitly
+  deferred by the owner. Until scheduling exists, an owner must perform manual
+  raw-payload cleanup after 24 hours. Orders/customer records remain retained.
+- [Pending work](docs/47_Shopify_Pending_Work.md) records acceptance criteria,
+  remaining hosted checks, rollout restrictions and chat/CRM integration rules.
+- No new SQL is needed for the UI fixes. Do not rerun the historical migration
+  package or claim a fresh shared-database audit from this documentation update.
+- Chat/CRM development can resume against the retained order model. It must not
+  send live messages, create local Shopify payment receipts, enable automatic
+  sync, activate another tenant or bypass draft completion.
+
+This update supersedes older “hosted manual acceptance pending” and “exactly one
+approved order” status notes for the currently enabled unified Test manual flow.
+Historical release and migration records below remain historical.
+
+### 2026-10-19 — Owner-triggered Test webhook registration and signed-delivery check
+
+- Built from released main 5a3e722 in the isolated Shopify checkout. No SQL, production-tenant data, source Shopify order or Chat/CRM changes.
+- Adds protected setup commands using existing Vercel runtime credentials: list/create missing/verify three exact-order filtered subscriptions, and send/replay a synthetic signed notification to the fixed application endpoint.
+- Rechecks active owner, configured Test binding, verified connection, live one-order policy, worker gates and Shopify app/store identity. Conflicting subscriptions fail closed; never overwritten/deleted. No secrets or upstream error payloads returned to the browser.
+- 23 focused webhook checks and 26 automatic-order checks pass (overlapping suites); 66 probe regressions and role/client/owner/order boundaries pass. Lint/typecheck and optimized build pass.
+- Public hosted unsigned request returns 401. Actual subscription registration, signed hosted processing and genuine Shopify delivery are separate pending acceptance steps, not inferred from local tests.
+- See docs/40_Shopify_Test_Webhook_Setup.md for exact owner clicks and limitations. Existing one-day retention and exact-one-order scope are unchanged.
+
+### 2026-10-19 — Automatic Shopify Test-order visibility and webhook worker
+
+- Owner approved this scoped migration/deployment and webhook test in Phantom Threads Test only. Production business data and Chat/CRM are excluded.
+- Release built from live main a62edd9 in a clean isolated checkout; excludes the separate customer fix and all unrelated dirty work.
+- Shopify webhook schedules the existing lease-protected worker after durable receipt. Imported commercial orders are visible in Orders/detail without mapping/review/release under SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED and the existing Test binding.
+- The one-order policy remains unchanged. Unrestricted new-order ingestion, multi-store onboarding and broader retention authorization remain separate unfinished work; do not claim these complete.
+- Applied ONLY 20261019160000_shopify_imported_order_reads.sql after explicit approval. Exact SHA-256 f93414687f8c9d5ee3d21c37503898c375fa263e507954ccbcb985bf0350e1aa. Transaction verified all 113 pre-existing functions unchanged, anonymous/authenticated execute denied, service_role execute granted, unauthorized actor returns no rows. No business row or production-tenant mutation.
+- Focused local verification: 14 server/SQL and 10 rendered UI tests pass. Prior regression: 75 memory SQL tests; lint/typecheck/optimized build pass. Hosted delivery, production deployment status and authenticated UI verification must be checked separately; no acceptance claim from local tests.
+- See docs/39_Shopify_Automatic_Order_Creation.md for scope, rollout and rollback. Existing source retention is not silently extended. No messages, local payment posting or production workflow creation.
+
 ## 1. Product Context
 
 OS PLUS is a multi-tenant, white-label WorkOS for boutiques and small manufacturing businesses.
@@ -12948,3 +13025,58 @@ PLANNED - discovery performed; implementation awaits phase decisions.
 - Baseline from immediately preceding resumption: typecheck/lint/build (42/42)/test:roles (one suite)/test:v2 (four suites) PASS. No test:chat yet.
 - No new migration or runtime code; no browser/manual phase acceptance, no hosted action. Model API spend USD 0.
 - Next: review staged checkpoint, commit locally, merge without committing, reconcile summary, verify released runtime tree and relevant regressions, then record IN_PROGRESS before foundation coding.
+
+## Historical Shopify entries retained during Chat baseline integration
+
+### 2026-10-07 — Shopify read-only authentication slice prepared
+
+- Latest released main is `c701ec346aeb1fb38a364f4da231bff2a9a0232e` (PR #4); original `D:\Develop\os-plus\project_summary.md` records verified October 5 Production deployment. This isolated branch `codex/shopify-connection-probe-20261007` starts from that release, not the original dirty `c881102` checkout. Original planning/source and the other chat worktrees remain preserved.
+- Owner authorized this backend slice and confirmed that the installed same-organization Shopify app targets the actual Phantom Threads production store, `n1djr1-99.myshopify.com`. API `2026-10` is approved. Phantom Threads Test is the initial diagnostic context; Boutique is the eventual permanent importer destination. Other tenants remain isolated; simultaneous fan-out and duplicate customer messages are not authorized.
+- Owner reports Client ID/secret saved to Vercel Production, sync false and a Ready redeployment. No secret values were read or logged; these environment values and live authenticated Shopify access remain independently unverified.
+- Prepared `POST /api/integrations/shopify/test-connection`, gated by fresh canonical active owner/admin membership, selected diagnostic tenant, configured same-origin request and Production-only environment fences. It reads only shop identity and granted scopes via bounded client-credentials/GraphQL transport, uses memory-only expiry-aware single-flight tokens, rejects browser-supplied connection/query data and redacts failures. It deliberately avoids the existing tenant-context helper's invitation-link mutation.
+- No Settings button, durable connection, import, webhook subscription, queue, scheduler, source customer/order copying, local financial change or messaging is implemented/activated. Protected customer-field access explicitly remains unverified. Test messages must stay off. Recommended later flow is webhook-first with owner-proposed 30-minute n8n recovery, a reviewed single active destination and creation cutoff; any real-data Test copy requires explicit authorization and retention review.
+- Reproduced/fixed a local extracted GraphQL helper return-type widening error with an explicit return contract. Final narrowed scope passes all 29 offline package test scripts, including 47 actual-path connection probe cases; full lint, TypeScript, optimized Next.js 16.3.8 webpack build (43 routes), and whitespace checks pass. Existing QA workbook inspected read-only for role/tenant coverage; database mutation/live smoke scripts not run. Independent Standards/Spec review is underway against owner-selected `c701ec3`, including all uncommitted files.
+- Environment changes are isolated worktree/dependency junctions only. No commit, push, deployment, Vercel configuration, migrations, secrets retrieval, live Shopify call, production business-data write or messaging occurred. Seoul remains unchanged. Scope/configuration/testing details are in `docs/16_Shopify_Read_Only_Connection_Slice.md`.
+- Exact next actions: finish review; seek separate explicit approval for selected commit/push/deployment and Production-only diagnostic settings; verify exact Test tenant UUID and authenticated owner context; run read-only live token/store/scope test with sync false. Then separately implement/review protected fields, durable intake, additive schema, atomic import, mappings, shared accounting guards, cutover and CRM consent/template/deduplication. Offline tests do not close those activation gates.
+
+#### Review scope correction and final checks — 2026-10-07
+
+- Initial Standards review had zero actionable findings. Spec review found one P2 scope issue: dormant encryption, monetary reconciliation, webhook HMAC and general sync helpers were copied into the diagnostic batch despite belonging to later integration work. Removed only these isolated copies and their foundation test/future configuration; original files in `D:\Develop\os-plus` remain intact and recoverable. No original user file was deleted or overwritten.
+- Extracted only the bounded stream reader needed by diagnostics. Added eight applicable transport regression cases, retaining timeout, chunked overflow, HTTP/GraphQL classification, response caps, SSRF-host and outbound authority checks without shipping future accounting/storage/webhook code.
+- Final narrowed batch: 47 probe cases and all 29 remaining offline package test scripts pass; TypeScript, full ESLint and rebuilt optimized 43-route Next.js 16.3.8 webpack build pass. Validation counts above now refer only to the final diagnostic scope. Re-review is underway; no commit, push, deployment, migration, production business-data change or environment activation.
+
+- Final independent review against `c701ec3`: Standards 0 remaining actionable findings; Spec 0 remaining actionable findings. Also corrected the new summary's stale pre-narrowing test counts (P3); historical foundation evidence in original older entries remains preserved. Standards independently reran 47/47 probe cases and whitespace checks. The prepared uncommitted slice is ready for a separate release approval, not live import activation. Next actions remain owner-approved commit/push/PR merge/deployment and scoped Production diagnostic configuration, exact Test tenant UUID verification, then authenticated metadata-only connection testing with sync/messages off.
+
+#### Diagnostic-only release authorized — 2026-10-07
+
+- Owner explicitly approved the selected commit/push, PR merge and deployment after the precise scope request. No permission for order imports or customer messaging is inferred. Chats/CRM branches `docs/chat-leads-module` and `codex/chat-ch0-discovery` remain untouched; remote main remains the reviewed `c701ec3` baseline. Git-authenticated metadata verifies the target repository is private and permits writes.
+- Re-read branch/HEAD/status and selected only this isolated diagnostic batch. Fresh probe rerun passes 47/47. Existing full 29-script, lint/typecheck, optimized 43-route build and independent review evidence remains applicable; source has not changed since that review.
+- Exact-name active-tenant read-only lookup resolves one Phantom Threads Test row, slug `phantom-threads`, UUID `7be40f50-94a0-46c5-af57-7eea5e36ea8a`. No customer/order fields or business records were read or changed. This UUID belongs in Production diagnostic configuration, never hardcoded in the route.
+- Browser tooling failed twice at initialization (`windows sandbox failed: helper_unknown_error: setup refresh had errors`); standard Vercel CLI auth/token and project link are unavailable. Git/PR deployment can proceed, but changing Production diagnostic settings and authenticated owner/Test execution remain blocked by this access limitation. Do not retrieve Shopify secrets or forge Clerk identity to bypass it. No Vercel settings or region changes have occurred; diagnostics default false and sync/messages remain off in the implementation.
+- Next actions: inspect selected staged diff and known-secret/whitespace guards; commit/push only this slice; create/attach the release PR; require unchanged reviewed main and successful Preview before merge; verify actual Production deployment and public/protected-route smoke behavior. Record deployment evidence separately. Owner must complete the documented Production-only diagnostic settings and signed-in metadata check if browser access remains unavailable.
+
+### 2026-10-07 — Secret-free Shopify configuration instrumentation
+
+- Owner explicitly authorized preparation, tests and deployment of a Shopify-only diagnostic patch after the canonical live POST returned HTTP 503 `CONFIGURATION_INVALID`, while owner reports all custom settings correct and Vercel system-variable access enabled. Exact live cause is unverified; do not classify this as Shopify credential rejection or relax safeguards.
+- Isolated clean checkout switched to `codex/shopify-probe-diagnostics-20261007` from freshly fetched released main `bfde44cb012c6a9a49209edc99c00aff2d9a943e`. Original dirty D checkout and chats/CRM worktrees are not modified by this code batch. Previous owner-selected review baseline `c701ec3` remains applicable; reviewers will also inspect this patch's incremental diff from `bfde44c`.
+- Added typed fixed check labels and server-only `[DEBUG-osplus-shopify-config-v1]` logging for origin, Vercel environment, deployment fence, sync-off flag, API version, diagnostic UUID and credential presence/format. No values, IDs, tokens, request data, errors or upstream messages are logged or returned. Public error response remains generic; logging errors cannot alter the fail-closed response. Existing predicates and order of checks are preserved. No imports, messages, migrations, durable connections, UI, dependency or unrelated code changes.
+- Wrote actual-handler diagnostic regressions first and observed 12 missing-label failures, then implemented diagnostics. New coverage verifies every label, zero outbound calls for configuration failure, no additional response fields, unauthorized-context behavior, logging failure isolation, actual production-log privacy, corrupted-label suppression and success/cross-site silence. All 64 probe cases and TypeScript pass. A reproduced Node strip-only parameter-property syntax error was corrected with an explicit class field/assignment; no runner or dependency changes. Lint/build/final review are pending at this entry.
+- Cleanup gate: after the failing live check is observed, repair only that cause and verify the authenticated Test probe. Remove temporary logging/tag after success, preserving meaningful fail-closed/privacy coverage. Do not claim root-cause repair, successful Shopify authentication, or Production deployment until corresponding evidence exists. Configuration/log dashboard access remains unavailable in this agent session; no production values were retrieved or changed.
+
+- Final validation: 64/64 probe cases, all 29 offline package scripts, full ESLint, TypeScript, optimized Next.js 16.3.8 webpack build (43 routes), and working-tree whitespace checks pass. Independent Standards review: 0 findings; independent Spec review: 0 findings. Both reviewers independently ran 64/64 probe cases and checked whitespace. No production smoke or authenticated live Shopify success is claimed.
+- Release preflight found changed external state: Git-authenticated GitHub repository metadata now reports `private=false`, default branch main, push permission true; confirmed in two read-only checks. Earlier authorization/release assumed a private repository. No commit, push, PR, merge or deployment has occurred for this six-file instrumentation patch. Obtain explicit owner authorization to publish this patch's source/documentation to the now-public repository, or have the owner restore private visibility, before publication. Do not change repository visibility or bypass this gate. Remote main remains `bfde44c`. The other chat checkout has independently progressed to `codex/chat-ch1-foundation`; no file/branch there was touched by this patch.
+
+- Owner explicitly authorized public publishing of this six-file diagnostic patch, requesting visibility be addressed later. Owner reports making the repository public because an earlier private-repository Vercel redeploy failed; the exact integration/plan/access cause of that failure is not diagnosed. Fresh Git-authenticated metadata confirms public/write access, and fetched main remains `bfde44c`. Keep repository visibility and Vercel settings unchanged. Proceed only with the already-reviewed diagnostic feature branch, normal PR/main release, and distinct Production verification. No customer import/messages or chats/CRM work is authorized by this release.
+
+## Chat Session Update - 2026-10-21 - Released baseline integrated and verified
+
+- Phase CH-1 Foundation; baseline integration complete, implementation starts next. Branch codex/chat-ch1-foundation, same worktree.
+- Preservation checkpoint: 1619c61. Merged exact released c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a with both summary histories retained; Chat deployment/docs remain present.
+- Before maintenance fixes, merged application src/, package manifests, environment template and migrations matched c686337 exactly. No Shopify feature rebuilt or enabled.
+- Required gates: typecheck PASS; full lint initially failed on inherited test-shopify-oauth-ui.mjs local variable named module. Renamed only that test-local binding, rendered UI test 1/1 PASS, full lint PASS. Build PASS, 49/49 static-generation steps. Role suite PASS; four V2 suites PASS.
+- Relevant offline regression: Shopify OAuth 29 backend plus 1 rendered UI PASS; unified foundation 50 PASS. Suites overlap; do not add counts as distinct coverage. PGlite actual SQL/application tests, not hosted or independent-session evidence.
+- Removed trailing blank EOF lines in three inherited docs/shopify-*.json evidence files solely to pass staged whitespace review; JSON content unchanged. No other Shopify runtime change.
+- Manual QA: merge/code/history review only; no browser or hosted data action. No new/application migration applied. Existing released migrations added to this checkout by merge only.
+- Docker Desktop started hidden for disposable local tests; engine now responds as 29.7.2 with existing PostgreSQL images. This resolves the old engine availability blocker; no database container or shared service mutation performed yet.
+- CH-1 not READY_FOR_CLOSURE: foundation implementation and phase SQL/concurrency/UI/Tier A/owner acceptance remain. Model API spend USD 0.
+- Next: local merge commit under CHAT-D028; append IN_PROGRESS with exact merged HEAD; implement approved foundation in test-first increments.

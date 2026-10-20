@@ -1,0 +1,98 @@
+{
+  "kind": "osplus-shopify-readonly-preflight-redacted-v1",
+  "status": "INSPECTED_NOT_APPROVED",
+  "productionConnection": true,
+  "productionWrites": false,
+  "migrationsExecuted": false,
+  "mayApply": false,
+  "mayDeploy": false,
+  "mayActivate": false,
+  "projectRef": "dxiyihrdfismbuqdmhit",
+  "snapshotTime": "2026-10-15T07:32:38.224Z",
+  "serverVersion": 170006,
+  "readOnlyTransactionVerified": true,
+  "tableCount": 73,
+  "catalogueObjects": 2140,
+  "catalogueSha256": "84243ec9d28c9e236f4bbf50624f2082b65270d898288dc03f01402c42bc160b",
+  "unsupportedRelationCount": 0,
+  "externalForeignKeySchemas": [],
+  "permissionMetadataCounts": {
+    "memberships": 21,
+    "defaultprivileges": 6
+  },
+  "shopifyPreflight": {
+    "kind": "shopify-readonly-preflight-v1",
+    "scope": "shared-schema-all-tenant-aggregates-no-business-rows",
+    "readyForMigration": false,
+    "mayApply": false,
+    "mayDeploy": false,
+    "mayActivate": false,
+    "ownership": {
+      "database": "postgres",
+      "actor": "postgres",
+      "owner": "postgres",
+      "schemaCreate": true,
+      "databaseCreate": true
+    },
+    "historyPresent": false,
+    "orderSafety": {
+      "missing_customer_or_delivery": 0,
+      "invalid_customer_tenant_link": 0,
+      "existing_new_shopify_source": 0,
+      "existing_draft_status": 0
+    },
+    "missingPrerequisiteTables": [],
+    "setUpdatedAtPresent": true,
+    "customerIndexes": [
+      {
+        "name": "customers_pkey",
+        "sha256": "09bcf2424203693e43b0716b73d7de4eb45f824ebf95faa502707a7baa64ea76"
+      },
+      {
+        "name": "customers_tenant_created_at_idx",
+        "sha256": "ef885c3e8ff23f4532e32631f8d84673eb5d00d2b1d79f00fa846f0ded0d2860"
+      },
+      {
+        "name": "customers_tenant_id_id_unique",
+        "sha256": "366f2248a09201aa522d3813cc41c2f997271c9ebf9d7d9610086fd0abb2076e"
+      },
+      {
+        "name": "customers_tenant_name_idx",
+        "sha256": "39f12af5f7b34aeee6fe6ea7b44cc82319a0d48bf53d5fbcb5d3f195c2d077ee"
+      },
+      {
+        "name": "customers_tenant_normalized_phone_active_idx",
+        "sha256": "bc50eae206f85ca57392ea20209236d321c0b2015c06ac8636d79c68e4cfc3c2"
+      },
+      {
+        "name": "customers_tenant_phone_idx",
+        "sha256": "bea35700768a17c4ac778ad0bf70f307b60ac180438cb422a639601d1815fea4"
+      }
+    ],
+    "pilot": {
+      "matches": 1,
+      "active": true
+    },
+    "existingShopifyRelations": [],
+    "roles": [
+      {
+        "name": "anon",
+        "superuser": false,
+        "bypassrls": false
+      },
+      {
+        "name": "authenticated",
+        "superuser": false,
+        "bypassrls": false
+      },
+      {
+        "name": "service_role",
+        "superuser": false,
+        "bypassrls": true
+      }
+    ],
+    "limitation": "Inspection only; no rebuilt migration reference or full new compatibility verdict. Known drift remains subject to review."
+  },
+  "disposableCleanupComplete": true,
+  "limitation": "SELECT-only inspection, not full new schema-compatibility approval or a new migration rehearsal."
+}

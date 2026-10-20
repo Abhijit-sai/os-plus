@@ -112,6 +112,16 @@ async function getAuthorizedProductionContext() {
   return context;
 }
 
+// Imported work uses atomic credited-work commands. Historic multi-request
+// mutations/destructive workflow rollback must not partially rewrite it.
+async function assertLegacyProductionItem(tenantId: string, itemId: string) {
+  const db = createSupabaseServiceRoleClient();
+  const item = await db.from("order_items").select("order_id").eq("tenant_id", tenantId).eq("id", itemId).is("deleted_at", null).maybeSingle();
+  if (item.error || !item.data) throw new Error("Unable to verify the production item.");
+  const order = await db.from("local_operational_orders").select("id").eq("tenant_id", tenantId).eq("id", item.data.order_id).is("deleted_at", null).maybeSingle();
+  if (order.error || !order.data) throw new Error("Shopify production uses the credited-work editor. Legacy workflow changes and rollback are not supported.");
+}
+
 function toIsoDateTime(value: string | null) {
   return value ? new Date(value).toISOString() : null;
 }
@@ -184,7 +194,7 @@ async function syncOrderFulfillmentStatus(tenantId: string, orderItemId: string,
   }
 
   const order = await supabase
-    .from("orders")
+    .from("local_operational_orders")
     .select("id, tracking_token")
     .eq("tenant_id", tenantId)
     .eq("id", item.data.order_id)
@@ -239,6 +249,7 @@ export async function initializeItemWorkflowAction(formData: FormData) {
   const parsed = initializeWorkflowSchema.parse({
     orderItemId: formData.get("orderItemId")
   });
+  await assertLegacyProductionItem(context.tenant.id, parsed.orderItemId);
 
   const supabase = createSupabaseServiceRoleClient();
   const { data: item, error } = await supabase
@@ -269,6 +280,7 @@ export async function changeItemWorkflowAction(formData: FormData) {
     workflowId: formData.get("workflowId"),
     reason: formData.get("reason")
   });
+  await assertLegacyProductionItem(context.tenant.id, parsed.orderItemId);
   const supabase = createSupabaseServiceRoleClient();
   const [item, newWorkflow, activeWorkflowInstance] = await Promise.all([
     supabase
@@ -490,6 +502,8 @@ export async function startStageAction(formData: FormData) {
     throw new Error("Stage instance does not belong to this tenant.");
   }
 
+  await assertLegacyProductionItem(context.tenant.id, stageInstance.data.order_item_id);
+
   if (stageInstance.data.status !== "ready_to_start") {
     throw new Error("Only a ready stage can be started.");
   }
@@ -632,6 +646,7 @@ export async function completeStageAction(formData: FormData) {
   }
 
   const currentStage = stageInstance.data;
+  await assertLegacyProductionItem(context.tenant.id, currentStage.order_item_id);
   const [activeLogs, allStages] = await Promise.all([
     supabase
       .from("item_stage_work_logs")
@@ -810,6 +825,7 @@ export async function correctStageAction(formData: FormData) {
   }
 
   const currentStage = stageInstance.data;
+  await assertLegacyProductionItem(context.tenant.id, currentStage.order_item_id);
   let matchingWorkgroupId: string | null = null;
 
   if (parsed.workerId) {

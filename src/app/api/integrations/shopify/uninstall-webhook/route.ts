@@ -1,0 +1,8 @@
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { createShopifyApplicationIngress } from "@/integrations/shopify/application-ingress";
+export const runtime="nodejs";
+export const maxDuration=10;
+export async function POST(request:Request){
+  try{return await createShopifyApplicationIngress(createSupabaseServiceRoleClient()).uninstall(request);}
+  catch{return Response.json({error:"CONFIGURATION_INVALID"},{status:503,headers:{"Cache-Control":"private, no-store"}});}
+}

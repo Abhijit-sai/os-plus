@@ -105,7 +105,7 @@ assert.match(queries, /assertTenantVertical\(context, "laundry"\)/);
 assert.match(queries, /\.from\("laundry_pickup_requests"\)/);
 assert.match(queries, /\.from\("laundry_handling_units"\)/);
 assert.match(queries, /\.from\("laundry_service_lots"\)/);
-assert.match(queries, /\.from\("orders"\)[\s\S]*\.eq\("vertical_key", "laundry"\)[\s\S]*\.eq\("runtime_model", "work_unit_v2"\)/);
+assert.match(queries, /\.from\("local_operational_orders"\)[\s\S]*\.eq\("vertical_key", "laundry"\)[\s\S]*\.eq\("runtime_model", "work_unit_v2"\)/);
 
 assert.match(actions, /createUserCommandContext/);
 assert.match(actions, /normalizeIdempotencyKey/);

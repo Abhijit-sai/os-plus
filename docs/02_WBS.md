@@ -1,5 +1,25 @@
 # OS PLUS Work Breakdown Structure
 
+## Shopify status and pending work 20 October 2026
+
+- [x] Deployed manual date-range import, unified Orders, manager draft completion
+  and workflow-through-delivery acceptance in Phantom Threads Test.
+- [x] Fix and retest premature delivered label, completed-stage fallback and
+  filter Reset; release `92f1858`.
+- [ ] Manual raw-payload cleanup after 24 hours while scheduling is deferred.
+- [ ] Independent tenant/store onboarding and approved production rollout.
+- [x] Local tenant-bound Shopify approval and credential implementation;
+  manual import/draft regression checks pass.
+- [ ] Approve OAuth SQL/configuration and verify actual Test-only approval,
+  renewal and manual flow. See [activation package](48_Shopify_Tenant_OAuth_Approval.md).
+- [ ] n8n background processing, automatic imports/updates, retries and scheduled
+  raw cleanup — explicitly deferred by the owner.
+- [ ] Remaining hosted edge-case verification.
+
+The detailed, authoritative Shopify task list and completion criteria are in
+[Shopify pending work](47_Shopify_Pending_Work.md). Manual acceptance and its
+scope are in [Shopify manual import acceptance](46_Shopify_Manual_Import_Acceptance.md).
+
 ## 1. Project Setup
 
 ### 1.1 Repository Setup

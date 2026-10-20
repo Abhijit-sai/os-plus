@@ -1,0 +1,20 @@
+{
+  "name": "os-plus-shopify-disposable-db-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --conditions=react-server --test intake-db.test.mjs worker-db.test.mjs draft-import-db.test.mjs cleanup.test.mjs",
+    "verify:docker": "node --experimental-strip-types --conditions=react-server docker-db.mjs",
+    "test:private-backup": "node --test private-backup.test.mjs",
+    "test:schema-compatibility": "node --test schema-compatibility.test.mjs",
+    "test:private-rehearsal": "node --test private-rehearsal.test.mjs",
+    "test:blocker-repair": "node --test blocker-repair.test.mjs",
+    "verify:rehearsal-fictional": "node private-rehearsal-fictional.mjs",
+    "verify:schema-reference": "node schema-compatibility.mjs --reference-only",
+    "verify:private-backup-docker": "node private-backup-docker.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "pg": "8.23.1"
+  }
+}

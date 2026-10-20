@@ -25,7 +25,7 @@ export async function getGstReportData({
   const supabase = createSupabaseServiceRoleClient();
 
   let ordersQuery = supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("id, order_number, reference_order_id, customer_id, order_date, subtotal, discount_amount, gst_treatment, gst_rate, taxable_amount, gst_amount, total_amount")
       .eq("tenant_id", context.tenant.id)
       .gte("order_date", startDate)
@@ -124,7 +124,7 @@ export async function getFinancePageData(options: FinancePageDataOptions = {}) {
       .order("payment_date", { ascending: false })
       .limit(50),
     supabase
-      .from("orders")
+      .from("local_operational_orders")
       .select("id, order_number, reference_order_id, customer_id, order_date, gst_treatment, gst_rate, taxable_amount, gst_amount, total_amount, amount_paid, payment_status, promised_delivery_date")
       .eq("tenant_id", context.tenant.id)
       .is("deleted_at", null)
