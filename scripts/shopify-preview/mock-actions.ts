@@ -3,7 +3,7 @@ import type {ShopifyDraftActionState} from '../../src/integrations/shopify/draft
 export const fictionalId=(n:number)=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 let workspace:UnifiedWorkspace={workerConfigured:false,connection:{id:fictionalId(1),shopGid:'gid://shopify/Shop/1',status:'verified',revision:1,
   ready:true,unified:false,automatic:false,pilotOrderGid:null,pending:0,needsAttention:0}};
-let imported=false,version=0;
+let imported=false,version=0,lostImportKey:string|undefined;
 export function initialWorkspace(){return structuredClone(workspace);}
 export async function shopifyUnifiedAction(_state:UnifiedActionState,form:FormData):Promise<UnifiedActionState>{
   await new Promise(resolve=>setTimeout(resolve,100));
@@ -12,13 +12,22 @@ export async function shopifyUnifiedAction(_state:UnifiedActionState,form:FormDa
   if(c.action==='enable')connection.unified=true;
   if(c.action==='automatic')connection.automatic=c.enabled;
   if(c.action==='preview')return {status:'success',message:'Fictional preview ready.',view:structuredClone(workspace),preview:{previewId:fictionalId(4),
-    expiresAt:'2026-10-19T13:00:00Z',complete:true,from:c.from,through:c.through,rows:[
+    expiresAt:new Date(Date.now()+600000).toISOString(),complete:true,from:c.from,through:c.through,rows:[
       {orderGid:'gid://shopify/Order/11',reference:'PT-101',amount:'3902.20',currency:'INR',financialStatus:'PAID',status:imported?'already_imported':'new',orderIds:imported?[fictionalId(11)]:[]},
       {orderGid:'gid://shopify/Order/12',reference:'PT-102',amount:'1500.00',currency:'INR',financialStatus:'PENDING',status:'reference_match',orderIds:[fictionalId(12)]},
       {orderGid:'gid://shopify/Order/13',reference:'PT-103',amount:'2500.00',currency:'INR',financialStatus:'PAID',status:'conflict',orderIds:[]},
     ]}};
-  if(c.action==='import'){connection.pending=1;return {status:'success',message:'One fictional order queued; existing orders skipped.',view:structuredClone(workspace),
-    receipt:{status:'queued',previewId:fictionalId(4),rows:[]},continueProcessing:true};}
+  if(c.action==='import'){
+    if(new URLSearchParams(window.location.search).get('scenario')==='interrupted-import'){
+      if(!lostImportKey){lostImportKey=c.requestKey;connection.pending=1;throw new Error('Fictional response lost after queue commit');}
+      if(lostImportKey!==c.requestKey)throw new Error('Retry did not preserve its idempotency key');
+    }
+    connection.pending=1;return {status:'success',message:'One fictional order queued; existing orders skipped.',view:structuredClone(workspace),
+    receipt:{status:'queued',previewId:fictionalId(4),rows:[
+      {orderGid:'gid://shopify/Order/11',reference:'PT-101',status:'queued'},
+      {orderGid:'gid://shopify/Order/12',reference:'PT-102',status:'reference_match'},
+      {orderGid:'gid://shopify/Order/13',reference:'PT-103',status:'conflict'},
+    ]},continueProcessing:true};}
   if(c.action==='process'){connection.pending=0;imported=true;}
   if(c.action==='cleanup')return {status:'success',message:'Removed 0 expired raw payloads. Imported orders and customers are unchanged.',view:structuredClone(workspace)};
   workspace={...workspace,connection};

@@ -14,6 +14,6 @@ export type UnifiedWorkspace=z.infer<typeof unifiedWorkspaceSchema>&{workerConfi
 export const unifiedImportReceiptSchema=z.object({status:z.literal("queued"),previewId:id,rows:z.array(z.object({orderGid:z.string(),reference:z.string(),
   status:z.enum(["queued","already_queued","already_imported","reference_match","conflict"])}).strict()).max(2000)}).strict();
 export type UnifiedImportPreview={previewId:string|null;expiresAt:string|null;complete:boolean;from:string;through:string;
-  rows:Array<{orderGid:string;reference:string;amount:string;currency:string;financialStatus:string|null;status:"new"|"already_imported"|"reference_match"|"conflict";orderIds:string[]}>};
+  rows:Array<{orderGid:string;reference:string;amount:string;currency:string;financialStatus:string|null;status:"new"|"already_imported"|"reference_match"|"conflict";orderIds:string[];incomingReferenceConflict?:boolean}>};
 export type UnifiedActionState={status:"idle"|"success"|"error";message:string;view?:UnifiedWorkspace;
   preview?:UnifiedImportPreview;receipt?:z.infer<typeof unifiedImportReceiptSchema>;continueProcessing?:boolean};

@@ -18,4 +18,4 @@ export default function Page(){return <ShopifyImportedOrder order={{id:id(11),nu
   setupId:null,version:0,current:true,choices:null,customerId:id(5),customers:[{id:id(5),name:'Fictional buyer'}],
   itemTypes:[{id:id(6),name:'Pant'},{id:id(16),name:'Shirt'}],workflows:[{id:id(7),name:'Pant default workflow',itemTypeId:id(6)},{id:id(17),name:'Shirt default workflow',itemTypeId:id(16)}],
   sizes:[{id:id(8),name:'38',itemTypeId:id(6)},{id:id(18),name:'L',itemTypeId:id(16)}],customerSearchRequired:false}}
-  lines={lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>}/>;}
+  sourceCustomerName="Fictional buyer" lines={lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>}/>;}

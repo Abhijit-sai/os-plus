@@ -181,6 +181,25 @@ test('date range service previews, skips manual references, imports an older aut
     await assert.rejects(()=>service.execute(changedActor,{action:'cleanup',requestKey:randomUUID()},f.signal,f.env),/ACCESS_DENIED/);
 }));
 
+test('a different Shopify buyer name sharing an existing phone still creates a retained draft without renaming the customer',isolated(async f=>{
+  const existing=randomUUID();
+  f.source.order.phone='+919876543210';
+  await db.query("INSERT INTO customers(id,tenant_id,name,phone,normalized_phone_e164) VALUES($1,$2,'Existing family member','9876543210','+919876543210')",[existing,f.tenant]);
+  const {result,context,lease,source}=await retainedCopy(f);
+  assert.equal(result.status,'draft');
+  assert.equal(result.customerId,existing);
+  assert.equal(result.customerResolution,'reused');
+  assert.equal(await scalar('SELECT name AS result FROM customers WHERE id=$1',[existing]),'Existing family member');
+  const retained=await scalar('SELECT public.read_shopify_retained_order($1,$2,$3,$4,$5) AS result',
+    [f.tenant,f.actor.userId,f.env.SHOPIFY_SHOP_DOMAIN,f.env.SHOPIFY_CLIENT_ID,result.orderId]);
+  assert.equal(retained.details.customer.name,'Fictional Buyer','source buyer identity remains visible separately');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_payments WHERE tenant_id=$1',[f.tenant]),0);
+  const retry=await createShopifyDraftStore(adapter,{retainBusinessDetails:true}).recoverCommittedSnapshot(source.snapshot,context,lease,f.signal,f.env);
+  assert.equal(retry.orderId,result.orderId);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM customers WHERE tenant_id=$1',[f.tenant]),1);
+}));
+
 test('upgrading an existing pilot refreshes the same order into retained details without duplication',isolated(async f=>{
   const old=await copy(f),original=old.sources[0].orderId;
   Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true'});

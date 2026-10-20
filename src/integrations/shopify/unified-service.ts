@@ -70,7 +70,7 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
         }
         return {status:"success",message:result.complete?"Preview ready. Only new orders will be imported; matching references are left unchanged.":"This range has more than 2,000 orders. Choose a smaller range; nothing has been imported.",
           preview:{previewId:saved?.previewId??null,expiresAt:saved?.expiresAt??null,complete:result.complete,from:command.from,through:command.through,
-            rows:result.rows.map(row=>({orderGid:row.orderGid,reference:row.reference,amount:row.amount,currency:row.currency,financialStatus:row.financialStatus,status:row.status,orderIds:row.orderIds}))},view:state};
+            rows:result.rows.map(row=>({orderGid:row.orderGid,reference:row.reference,amount:row.amount,currency:row.currency,financialStatus:row.financialStatus,status:row.status,orderIds:row.orderIds,incomingReferenceConflict:row.incomingReferenceConflict}))},view:state};
       }
       if(command.action==="import"){
         const result=await db.rpc("commit_shopify_import_preview",{...args,p_preview_id:command.previewId,p_request_key:command.requestKey}).abortSignal(signal);

@@ -101,7 +101,7 @@ export default async function OrderDetailPage({
     const setup=imported.availability==="available"?await getShopifyManagerSetup(orderId):null;
     const display=setup?await getShopifyDraftPreviews(imported,setup):imported;
     return <ShopifyImportedOrder order={display} setup={setup&&display.availability==="available"
-      ?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={display.lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>
+      ?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={display.lines} sourceCustomerName={display.customer.name} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>
       :<p role="status" className="text-sm text-muted-foreground">Manager setup becomes available after the complete order details have been synced.</p>}/>;
   }
   const {

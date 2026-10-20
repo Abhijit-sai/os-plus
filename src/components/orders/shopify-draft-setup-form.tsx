@@ -12,7 +12,7 @@ type SearchOptions=(input:{orderId:string;kind:"customers"|"itemTypes"|"workflow
 const field="min-h-11 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring";
 // Search is paged and tenant-scoped on the server; no hidden first-100 ceiling.
 function Choice({label,kind,orderId,value,onChange,initial,itemTypeId,disabled,searchOptions}:{label:string;kind:"customers"|"itemTypes"|"workflows"|"sizes";
-  orderId:string;value:string|null;onChange:(id:string|null)=>void;initial:Option[];itemTypeId?:string|null;disabled:boolean;searchOptions:SearchOptions}){
+  orderId:string;value:string|null;onChange:(id:string|null,name?:string)=>void;initial:Option[];itemTypeId?:string|null;disabled:boolean;searchOptions:SearchOptions}){
   const id=useId(),[search,setSearch]=useState(""),[options,setOptions]=useState(initial),[offset,setOffset]=useState(0),
     [hasMore,setHasMore]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(""),[searched,setSearched]=useState(false);
   const [known,setKnown]=useState(()=>new Map(initial.map(option=>[option.id,option])));
@@ -27,7 +27,7 @@ function Choice({label,kind,orderId,value,onChange,initial,itemTypeId,disabled,s
     setOptions(result.rows);setHasMore(result.hasMore);setOffset(next);setSearched(true);
   }catch{setError("Search could not be completed. Retry shortly.");}finally{setLoading(false);}}
   return <div className="space-y-2"><label htmlFor={id} className="text-sm font-medium">{label}</label>
-    <select id={id} value={value??""} disabled={disabled||loading} onChange={e=>onChange(e.target.value||null)} className={field}>
+    <select id={id} value={value??""} disabled={disabled||loading} onChange={e=>onChange(e.target.value||null,known.get(e.target.value)?.name)} className={field}>
       <option value="">Not assigned</option>{value&&!selected&&<option value={value}>Saved selection — search to change</option>}
       {visible.map(x=><option value={x.id} key={x.id}>{x.name}</option>)}</select>
     <div className="flex gap-2">
@@ -45,7 +45,7 @@ function Choice({label,kind,orderId,value,onChange,initial,itemTypeId,disabled,s
     </div>;
 }
 
-export function ShopifyDraftSetupForm({view,lines,submitAction,searchOptions}:{view:ShopifyDraftSetupView;lines:Array<{id:string;title:string;variant:string|null;quantity:number;
+export function ShopifyDraftSetupForm({view,lines,sourceCustomerName,submitAction,searchOptions}:{view:ShopifyDraftSetupView;sourceCustomerName?:string|null;lines:Array<{id:string;title:string;variant:string|null;quantity:number;
   image?:ShopifyImageReference|null;sku?:string|null;unitCurrency?:string;unitPrice?:string;currentLineSubtotal?:string;currentQuantity?:number;properties?:Array<{name:string;value:string}>}>;
   submitAction:(state:ShopifyDraftActionState,form:FormData)=>Promise<ShopifyDraftActionState>;searchOptions:SearchOptions}){
   const router=useRouter();
@@ -56,6 +56,9 @@ export function ShopifyDraftSetupForm({view,lines,submitAction,searchOptions}:{v
       return saved??{lineGid:line.id,itemTypeId:null,workflowId:null,standardSizeId:null,expectedCompletionDate:null};})};
   const [choices,setChoices]=useState(initial),[version,setVersion]=useState(view.version),[setupId,setSetupId]=useState(view.current?view.setupId:null),
     [saved,setSaved]=useState(view.current&&view.setupId?JSON.stringify(initial):"");
+  const [customerName,setCustomerName]=useState(view.customers.find(customer=>customer.id===initial.customerId)?.name);
+  const normalizeName=(name:string)=>name.trim().replace(/\s+/g," ").toLowerCase();
+  const differentName=sourceCustomerName&&customerName&&normalizeName(sourceCustomerName)!==normalizeName(customerName);
   const intentRef=useRef<{intent:string;key:string}|null>(null);
   const [state,action,pending]=useActionState(async(previous:ShopifyDraftActionState,form:FormData)=>{
     const operation=form.get("action"),body=operation==="complete"?{orderId:view.orderId,connectionId:view.connectionId,setupId}:
@@ -98,9 +101,13 @@ export function ShopifyDraftSetupForm({view,lines,submitAction,searchOptions}:{v
       <p className="text-sm text-muted-foreground">Complete setup rechecks Shopify, creates the selected garment workflows and updates this same order to confirmed. It does not record a local payment or send a customer message.</p>
     </CardContent></Card>
     <Card><CardHeader><CardTitle>Order details</CardTitle></CardHeader><CardContent className="space-y-5">
+      {sourceCustomerName&&<div className="rounded-md border p-3 text-sm">
+        <p>Shopify buyer: <span className="font-medium">{sourceCustomerName}</span></p>
+        {differentName&&<p className="mt-2">The selected OS Plus customer has a different name: {customerName}. Shared phone numbers do not always mean the same person. Review the customer selection below; the imported order is kept and this form does not rename the customer.</p>}
+      </div>}
       <fieldset disabled={disabled} className="grid min-w-0 gap-5 sm:grid-cols-2">
         <legend className="sr-only">Customer and delivery</legend>
-        <div id={`${formId}-customer`} tabIndex={-1} className="scroll-mt-28"><Choice searchOptions={searchOptions} label="Customer" kind="customers" orderId={view.orderId} value={choices.customerId} onChange={customerId=>setChoices(c=>({...c,customerId}))} initial={view.customers} disabled={disabled}/></div>
+        <div id={`${formId}-customer`} tabIndex={-1} className="scroll-mt-28"><Choice searchOptions={searchOptions} label="Customer" kind="customers" orderId={view.orderId} value={choices.customerId} onChange={(customerId,name)=>{setChoices(c=>({...c,customerId}));setCustomerName(name);}} initial={view.customers} disabled={disabled}/></div>
         <div className="space-y-2 text-sm font-medium"><label htmlFor={deliveryId}>Delivery</label><select id={deliveryId} className={field} value={choices.deliveryType??""} onChange={e=>setChoices(c=>({...c,deliveryType:e.target.value as ShopifyDraftSetup["deliveryType"]||null}))}>
           <option value="">Not assigned</option><option value="store_pickup">Store pickup</option><option value="self_delivery">Self delivery</option><option value="courier">Courier</option></select></div>
         <label className="space-y-2 text-sm font-medium">Promised delivery date (optional)<input className={field} type="date" value={choices.promisedDeliveryDate??""} onChange={e=>setChoices(c=>({...c,promisedDeliveryDate:e.target.value||null}))}/></label>
