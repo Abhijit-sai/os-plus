@@ -28,11 +28,18 @@ expired raw payloads; repeat if the result says more remain. Payloads younger th
 are not deleted. Without a scheduler, expiry alone does not perform deletion:
 the owner must return after 24 hours and run this action.
 
-## Hosted acceptance — still pending
+## Hosted manual acceptance completed
 
-This session has no authenticated browser-control tool. A local fixture pass is
-not a hosted Phantom Threads Test pass. Use the signed-in UI, not a fabricated
-actor, direct database row edits or a production Shopify test order.
+The later authenticated 20 October run completed date-range import, duplicate
+re-preview, interrupted-job recovery, draft save, manager completion and normal
+workflow through delivery in Phantom Threads Test. Three UI defects found during
+that run were fixed, deployed as `92f1858` and retested live. See
+[document 46](46_Shopify_Manual_Import_Acceptance.md) for the scoped acceptance
+record and [document 47](47_Shopify_Pending_Work.md) for remaining work.
+
+The following is the reusable manual acceptance checklist. The 24-hour hosted
+cleanup observation and genuine webhook/scheduler checks are still open; do not
+treat completion of the core manual flow as proof of those separate paths.
 
 1. Verify the header says Phantom Threads Test. Open Settings → Shopify.
 2. Acknowledge data retention/manual cleanup and choose Verify and enable Test

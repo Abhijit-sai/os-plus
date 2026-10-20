@@ -18,7 +18,7 @@ export async function getOrdersPageData(search?: string | null, filters: {
   const trimmedSearch = search?.trim();
 
   const selected = (value?: string) => !value || value === "all" ? null : value;
-  const commercialScope = shopifyCommercialReadScope(context.tenant.id, context.membership.role, context.membership.clerk_user_id);
+  const commercialScope = await shopifyCommercialReadScope(context.tenant.id, context.membership.role, context.membership.clerk_user_id);
   const page = commercialScope && Number.isInteger(filters.page) && (filters.page ?? 0) >= 1 && (filters.page ?? 0) <= 201 ? filters.page! : 1;
   const listArguments = {
     p_tenant_id: context.tenant.id,

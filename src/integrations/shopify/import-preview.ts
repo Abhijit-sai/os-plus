@@ -32,7 +32,8 @@ const query = `query OSPlusImportOrders($search: String!, $after: String) {
 // Read-only source preview. No customer payload, arbitrary queries, callbacks,
 // tenant IDs or tokens come from the browser. The caller supplies shopGid from
 // its freshly verified DB connection. Never queue an incomplete preview.
-export function createShopifyImportPreviewReader(transport: typeof fetch = fetch, now = Date.now, maxPages = 20) {
+export function createShopifyImportPreviewReader(transport: typeof fetch = fetch, now = Date.now, maxPages = 20,
+  readAccessToken?: (actor: ShopifyProbeActor, signal: AbortSignal, env: NodeJS.ProcessEnv) => Promise<string>) {
   if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 20) throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
   const tokens = createShopifyTokenProvider(transport, now);
   return async (actor: ShopifyProbeActor, expectedShopGid: string, range: unknown, signal: AbortSignal,
@@ -44,7 +45,7 @@ export function createShopifyImportPreviewReader(transport: typeof fetch = fetch
     // Validate structure/calendar before any request. History permission is
     // evaluated only against the actual installation scopes below.
     buildShopifyImportWindow(range, observedAt, true);
-    const accessToken = await tokens.getToken(config);
+    const accessToken = readAccessToken ? await readAccessToken(actor, signal, env) : await tokens.getToken(config);
     signal.throwIfAborted();
     const request = { shopDomain: config.shopDomain, connectionEnvironment: "production" as const, accessToken, signal };
     const metadata = await readShopifyApplicationGraphQL({ ...request,

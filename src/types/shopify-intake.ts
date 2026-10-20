@@ -72,6 +72,10 @@ export type ShopifyIntakeTables = {
   };
 };
 export type ShopifyIntakeFunctions = {
+  shopify_oauth_storage: {
+    Args: { p_tenant_id: string; p_actor_id: string; p_action: string; p_input: Json };
+    Returns: Json;
+  };
   read_shopify_privacy_review: {Args:{p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_request_id:string};Returns:Json};
   purge_expired_shopify_pilot: {Args:{p_tenant_id:string;p_connection_id:string;p_actor_id?:string|null;p_limit?:number};Returns:Json};
   receive_shopify_pilot_event: {Args:{p_tenant_id:string;p_connection_id:string;p_envelope:Json};Returns:Json};

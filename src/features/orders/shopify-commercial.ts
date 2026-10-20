@@ -2,10 +2,14 @@ import "server-only";
 import { z } from "zod";
 import { canonicalShopDomain } from "@/integrations/shopify/config";
 import { importedShopifyOrdersVisible } from "@/integrations/shopify/imported-order";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { resolveShopifyTenantEnvironment } from "@/integrations/shopify/tenant-credentials";
 
 // The rollout remains Test-only. Other tenants retain their existing query.
-export function shopifyCommercialReadScope(tenantId: string, role: string, actorId: string, env: NodeJS.ProcessEnv = process.env) {
+export async function shopifyCommercialReadScope(tenantId: string, role: string, actorId: string, env: NodeJS.ProcessEnv = process.env) {
   if (!importedShopifyOrdersVisible(tenantId, role, env)) return null;
+  if(env.SHOPIFY_OAUTH_ENABLED==="true")
+    env=await resolveShopifyTenantEnvironment(createSupabaseServiceRoleClient(),tenantId,actorId,AbortSignal.timeout(5000),env);
   return { p_tenant_id: tenantId, p_actor_id: actorId,
     p_domain: canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN ?? ""),
     p_app_ref: z.string().min(1).max(256).parse(env.SHOPIFY_CLIENT_ID) };

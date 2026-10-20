@@ -1,6 +1,9 @@
 # Unified Shopify release — 20 October 2026 (India)
 
-This is the current status; documents 41–43 preserve the earlier approval package.
+Historical deployment record. For current manual acceptance and outstanding
+work, see [document 46](46_Shopify_Manual_Import_Acceptance.md) and
+[document 47](47_Shopify_Pending_Work.md). The pending-acceptance paragraph below
+describes the state at this original release, not the later completed live tests.
 
 Manual-import follow-up: [document 45](45_Shopify_Manual_Import_Test.md) records the
 application-only scheduler decoupling and pending hosted acceptance. The worker

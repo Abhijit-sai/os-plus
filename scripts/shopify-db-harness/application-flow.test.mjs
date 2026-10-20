@@ -20,6 +20,8 @@ import { readShopifyCommercialDetails } from '../../src/integrations/shopify/com
 import { createShopifyManagerService } from '../../src/integrations/shopify/manager-service.ts';
 import { createShopifyUnifiedService } from '../../src/integrations/shopify/unified-service.ts';
 import { runShopifyUnifiedWorker } from '../../src/integrations/shopify/unified-worker.ts';
+import { beginShopifyApproval } from '../../src/integrations/shopify/oauth.ts';
+import { sealShopifyCredential } from '../../src/integrations/shopify/oauth-crypto.ts';
 const db=new PGlite(),folder=new URL('../../supabase/migrations/',import.meta.url);
 before(async()=>{
   await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;CREATE SCHEMA storage;
@@ -29,6 +31,7 @@ before(async()=>{
   // Locally rehearse the separately proposed permission-only follow-up too.
   // This fixture is memory-only; the proposal is not an automatic migration.
   await db.exec(await readFile(new URL('../../docs/sql/20261015170000_shopify_trigger_permission_cleanup.proposed.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../docs/sql/20261020180000_shopify_oauth_credentials.proposed.sql',import.meta.url),'utf8'));
 });
 after(()=>db.close());
 const scalar=async(sql,args=[])=> (await db.query(sql,args)).rows[0]?.result;
@@ -214,6 +217,69 @@ test('upgrading an existing pilot refreshes the same order into retained details
     [f.tenant,f.actor.userId,f.env.SHOPIFY_SHOP_DOMAIN,f.env.SHOPIFY_CLIENT_ID,original]);
   assert.equal(retained.orderId,original);assert.equal(retained.details.sourceNumber,f.source.order.name);
   assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),1);
+}));
+
+test('OAuth connection drives manual preview and import from its own shop despite a different global shop setting',isolated(async f=>{
+  await f.run({action:'connect',cutoff:new Date(Date.now()-3600000).toISOString()});
+  Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true',
+    SHOPIFY_OAUTH_ENABLED:'true',SHOPIFY_SCHEDULED_WORKER_ENABLED:'false',SHOPIFY_CREDENTIAL_KEY_ID:'fictional',
+    SHOPIFY_CREDENTIAL_ENCRYPTION_KEYS_JSON:JSON.stringify({fictional:Buffer.alloc(32,17).toString('base64')})});
+  const domain=f.env.SHOPIFY_SHOP_DOMAIN,approval=beginShopifyApproval(f.actor,domain,f.env);
+  const storage=(action,input)=>scalar('SELECT shopify_oauth_storage($1,$2,$3,$4::jsonb) AS result',[f.tenant,f.actor.userId,action,JSON.stringify(input)]);
+  await storage('begin',approval.attempt);
+  const claim=await storage('claim',{stateHash:approval.attempt.stateHash});
+  const token={accessToken:'oauth-only-token',refreshToken:'fictional-refresh',accessExpiresAt:new Date(Date.now()+3600000).toISOString(),
+    refreshExpiresAt:new Date(Date.now()+86400000).toISOString(),scopes:['read_orders','read_products','read_customers']};
+  await storage('complete',{stateHash:approval.attempt.stateHash,claimToken:claim.claimToken,shopGid:'gid://shopify/Shop/101',
+    packet:sealShopifyCredential(token,approval.attempt,f.env),accessExpiresAt:token.accessExpiresAt,refreshExpiresAt:token.refreshExpiresAt});
+  f.env.SHOPIFY_SHOP_DOMAIN='wrong-global.myshopify.com';
+  const shop={id:'gid://shopify/Shop/101',myshopifyDomain:domain};
+  const transport=async(url,init)=>{
+    assert.equal(new URL(url).hostname,domain);assert.ok(!url.endsWith('/admin/oauth/access_token'),'must use saved OAuth credential');
+    assert.equal(init.headers['X-Shopify-Access-Token'],'oauth-only-token');
+    const query=JSON.parse(init.body).query;let data;
+    if(query.includes('OSPlusApproval')||query.includes('OSPlusImportScope')||query.includes('OSPlusPilotSetup'))
+      data={shop,currentAppInstallation:{accessScopes:token.scopes.map(handle=>({handle}))},orders:{nodes:[]}};
+    else if(query.includes('OSPlusImportOrders'))data={shop,orders:{nodes:[{id:f.source.order.id,name:f.source.order.name,
+      createdAt:f.source.order.createdAt,updatedAt:f.source.order.updatedAt,cancelledAt:null,displayFinancialStatus:'PAID',
+      currentTotalPriceSet:{shopMoney:{amount:'118.00',currencyCode:'INR'}}}],pageInfo:{hasNextPage:false,endCursor:null}}};
+    if(data)return Response.json({data},{headers:{'X-Shopify-API-Version':'2026-10'}});
+    return f.transport(url,init);
+  };
+  const rpcDb={...adapter,rpc(name,args){return {async abortSignal(signal){const result=await adapter.rpc(name,args).abortSignal(signal);
+    if(result.data instanceof Date)result.data=result.data.toISOString();return result;}};}};
+  const service=createShopifyUnifiedService(rpcDb,transport),run=command=>service.execute(f.actor,{requestKey:randomUUID(),manualCleanupAcknowledged:true,...command},f.signal,f.env);
+  const initial=await service.view(f.actor,f.signal,f.env);assert.equal(initial.connection.status,'pending');
+  await run({action:'enable',consent:true});
+  const range={from:new Date(Date.parse(f.source.order.createdAt)+330*60000).toISOString().slice(0,10),
+    through:new Date(Date.now()+330*60000).toISOString().slice(0,10)};
+  const preview=await service.execute(f.actor,{action:'preview',requestKey:randomUUID(),...range},f.signal,f.env);
+  assert.equal(preview.preview.rows[0].status,'new');
+  await run({action:'import',previewId:preview.preview.previewId});
+  await run({action:'process'});
+  const repeat=await service.execute(f.actor,{action:'preview',requestKey:randomUUID(),...range},f.signal,f.env);
+  assert.equal(repeat.preview.rows[0].status,'already_imported');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT order_status AS result FROM orders WHERE tenant_id=$1',[f.tenant]),'draft');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_payments WHERE tenant_id=$1',[f.tenant]),0);
+  assert.equal((await service.view(f.actor,f.signal,f.env)).connection.automatic,false);
+  const orderId=await scalar('SELECT id AS result FROM orders WHERE tenant_id=$1',[f.tenant]);
+  const manager={...f.actor,userId:'fictional-manager',membershipUserId:'fictional-manager',role:'manager'};
+  const drafts=createShopifyManagerService(rpcDb,transport),draft=await drafts.view(manager,orderId,f.signal,f.env);
+  assert.ok(draft);
+  const choices={customerId:draft.customerId,deliveryType:'store_pickup',promisedDeliveryDate:null,note:'Fictional OAuth manager setup',
+    lines:[{lineGid:f.source.lines[0].id,itemTypeId:f.itemType,workflowId:null,standardSizeId:null,expectedCompletionDate:null}]};
+  const partial=await drafts.save(manager,{orderId,sourceRevisionId:draft.sourceRevisionId,expectedVersion:0,requestKey:randomUUID(),choices},f.signal,f.env);
+  assert.equal(await scalar('SELECT order_status AS result FROM orders WHERE tenant_id=$1',[f.tenant]),'draft');
+  choices.lines[0].workflowId=f.workflow;
+  const ready=await drafts.save(manager,{orderId,sourceRevisionId:draft.sourceRevisionId,expectedVersion:partial.version,
+    requestKey:randomUUID(),choices},f.signal,f.env);
+  const complete={orderId,connectionId:draft.connectionId,setupId:ready.setupId,requestKey:randomUUID()};
+  const completed=await drafts.complete(manager,complete,f.signal,f.env);
+  assert.equal(completed.status,'setup_complete');
+  assert.deepEqual(await drafts.complete(manager,complete,f.signal,f.env),completed);
+  assert.equal(await scalar('SELECT order_status AS result FROM orders WHERE tenant_id=$1',[f.tenant]),'confirmed');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM item_workflow_instances WHERE tenant_id=$1',[f.tenant]),1);
 }));
 
 test('date-range commit rejects stale, foreign and expired previews and skips incoming reference clashes',isolated(async f=>{

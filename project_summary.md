@@ -1,5 +1,63 @@
 # OS PLUS Project Summary
 
+## Shopify deployment checks 21 October 2026
+
+Owner reports the OAuth SQL, Shopify callback version and two Vercel encryption
+settings saved. A read-only catalogue check verifies the applied function matches
+the exact package, RLS/permissions are correct, and Test automatic sync, pending
+jobs and leased jobs are all zero. No OAuth credential exists yet. The Test
+settings page is accessible; local OAuth/manual regressions and build pass.
+This is not hosted OAuth acceptance. No production business data or chat/CRM
+changes. Detailed status: [OAuth package](docs/48_Shopify_Tenant_OAuth_Approval.md).
+
+## Tenant-specific Shopify approval package — local, not activated
+
+20 October 2026: implemented the owner-selected Shopify approval flow, encrypted
+per-connection offline credentials, refresh/reconnect protections and tenant-
+bound manual import and manager draft wiring. Local OAuth suite: 29 backend
+checks plus 1 UI check pass; unified manual suite: 50 pass; lint and build pass.
+These suites overlap and their totals must not be added as unique test cases.
+
+No shared SQL was applied, no live Shopify approval was performed, and this
+package was not pushed/deployed. Hosted validation remains pending in Phantom
+Threads Test only. The exact proposed SQL, checksum, configuration, acceptance
+and recovery gates are in
+[tenant OAuth activation package](docs/48_Shopify_Tenant_OAuth_Approval.md).
+Current app distribution eligibility must be checked before claiming that
+unrelated stores can connect. Broader tenant rollout and n8n remain pending.
+No production-tenant data or chat/CRM branch was changed.
+
+## Shopify manual import acceptance and handoff 20 October 2026
+
+The real deployed manual Shopify import flow passed end-to-end in Phantom Threads
+Test. This is the shipping implementation, not a disposable prototype. The tenant
+used for validation and its simulated workflow events are Test-only; the shared
+application is deployed on Vercel. Latest verified release: `92f1858`.
+
+- Completed: date-range import sheet, repeat-import duplicate protection, one
+  Orders list, editable manager drafts, per-garment setup, normal workflow through
+  delivery, and the three reported status/filter UI corrections.
+- The actual live path and the isolated edge-case suite are distinguished in
+  [manual import acceptance](docs/46_Shopify_Manual_Import_Acceptance.md).
+- **Not complete:** independent tenant/store onboarding. Current server gates
+  restrict access to one configured Test tenant and store. Do not describe this
+  as self-service multi-store onboarding or change global credentials to add a
+  second tenant.
+- n8n, automatic imports/updates, retries and scheduled cleanup are explicitly
+  deferred by the owner. Until scheduling exists, an owner must perform manual
+  raw-payload cleanup after 24 hours. Orders/customer records remain retained.
+- [Pending work](docs/47_Shopify_Pending_Work.md) records acceptance criteria,
+  remaining hosted checks, rollout restrictions and chat/CRM integration rules.
+- No new SQL is needed for the UI fixes. Do not rerun the historical migration
+  package or claim a fresh shared-database audit from this documentation update.
+- Chat/CRM development can resume against the retained order model. It must not
+  send live messages, create local Shopify payment receipts, enable automatic
+  sync, activate another tenant or bypass draft completion.
+
+This update supersedes older “hosted manual acceptance pending” and “exactly one
+approved order” status notes for the currently enabled unified Test manual flow.
+Historical release and migration records below remain historical.
+
 ### 2026-10-19 — Owner-triggered Test webhook registration and signed-delivery check
 
 - Built from released main 5a3e722 in the isolated Shopify checkout. No SQL, production-tenant data, source Shopify order or Chat/CRM changes.

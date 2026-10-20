@@ -7,13 +7,16 @@ import { readShopifyDraftPreviews } from "@/integrations/shopify/imported-previe
 import type { ShopifyDraftSetupView } from "@/integrations/shopify/draft-setup";
 import { canonicalShopDomain } from "@/integrations/shopify/config";
 import { readShopifyCommercialDetails } from "@/integrations/shopify/commercial-order";
+import { resolveShopifyTenantEnvironment } from "@/integrations/shopify/tenant-credentials";
 
 export async function getRetainedShopifyBusinessOrder(orderId:string){
   const context=await requireTenantContext();
   if(!importedShopifyOrdersVisible(context.tenant.id,context.membership.role)||!z.string().uuid().safeParse(orderId).success)return null;
-  const result=await createSupabaseServiceRoleClient().rpc("read_shopify_retained_business_order",{
+  const db=createSupabaseServiceRoleClient();
+  const env=await resolveShopifyTenantEnvironment(db,context.tenant.id,context.membership.clerk_user_id,AbortSignal.timeout(5000));
+  const result=await db.rpc("read_shopify_retained_business_order",{
     p_tenant_id:context.tenant.id,p_actor_id:context.membership.clerk_user_id,p_order_id:orderId,
-    p_domain:canonicalShopDomain(process.env.SHOPIFY_SHOP_DOMAIN??""),p_app_ref:z.string().min(1).max(256).parse(process.env.SHOPIFY_CLIENT_ID),
+    p_domain:canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??""),p_app_ref:z.string().min(1).max(256).parse(env.SHOPIFY_CLIENT_ID),
   }).abortSignal(AbortSignal.timeout(5000));
   if(result.error)throw new Error("Unable to load Shopify order details. Please retry.");
   return result.data?readShopifyCommercialDetails(result.data,{tenantId:context.tenant.id,orderId}):null;
@@ -26,10 +29,11 @@ export async function getImportedShopifyOrders(orderId?: string, search?: string
   if (!importedShopifyOrdersVisible(context.tenant.id, context.membership.role)) return [];
   if (orderId && !z.string().uuid().safeParse(orderId).success) return [];
   const db = createSupabaseServiceRoleClient();
+  const env=await resolveShopifyTenantEnvironment(db,context.tenant.id,context.membership.clerk_user_id,AbortSignal.timeout(5000));
   const scope = {
     p_tenant_id: context.tenant.id, p_actor_id: context.membership.clerk_user_id,
-    p_domain: canonicalShopDomain(process.env.SHOPIFY_SHOP_DOMAIN ?? ""),
-    p_app_ref: z.string().min(1).max(256).parse(process.env.SHOPIFY_CLIENT_ID),
+    p_domain: canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN ?? ""),
+    p_app_ref: z.string().min(1).max(256).parse(env.SHOPIFY_CLIENT_ID),
   };
   if (orderId) {
     const retained = await db.rpc("read_shopify_retained_order", { ...scope, p_order_id: orderId }).abortSignal(AbortSignal.timeout(5000));

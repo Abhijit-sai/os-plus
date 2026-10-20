@@ -11,6 +11,9 @@ import {unifiedCommandSchema,unifiedWorkspaceSchema,unifiedImportReceiptSchema,t
 import {runShopifyUnifiedWorker} from "./unified-worker.ts";
 import {ShopifyIntegrationError} from "./errors.ts";
 import {registerShopifyUnifiedWebhooks} from "./webhook-registration.ts";
+import {resolveShopifyTenantEnvironment,readShopifyTenantConnection,readShopifyTenantToken,createShopifyTenantCredentialReader} from "./tenant-credentials.ts";
+import {createShopifyOAuthStorage} from "./oauth-store.ts";
+import {readShopifyApprovalIdentity} from "./client.ts";
 
 export function assertUnifiedRuntime(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv){
   const config=getShopifyApplicationConfig(actor,env);
@@ -26,8 +29,8 @@ function workerConfigured(env:NodeJS.ProcessEnv){
   return env.SHOPIFY_SCHEDULED_WORKER_ENABLED==="true"&&/^[A-Za-z0-9_-]{32,256}$/.test(env.SHOPIFY_WORKER_SECRET??"");
 }
 export function createShopifyUnifiedService(db:SupabaseClient<Database>,transport:typeof fetch=fetch,now=Date.now){
-  const previewSource=createShopifyImportPreviewService(db,createShopifyImportPreviewReader(transport,now));
   async function view(actor:ShopifyProbeActor,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedWorkspace>{
+    env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
     const config=assertUnifiedRuntime(actor,env);
     const result=await db.rpc("read_shopify_unified_workspace",{p_tenant_id:actor.tenantId,p_actor_id:actor.userId,p_domain:config.shopDomain,p_app_ref:config.clientId}).abortSignal(signal);
     if(result.error)fail(result.error.message);
@@ -35,6 +38,7 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
   }
   return {view,
     async execute(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedActionState>{
+      env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const config=assertUnifiedRuntime(actor,env),command=unifiedCommandSchema.parse(input),state=await view(actor,signal,env),c=state.connection;
       if(!c)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
       if(command.action==="automatic"&&command.enabled&&!workerConfigured(env))
@@ -44,6 +48,17 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
         throw new ShopifyIntegrationError("MANUAL_CLEANUP_REQUIRED");
       const args={p_tenant_id:actor.tenantId,p_connection_id:c.id,p_actor_id:actor.userId,p_domain:config.shopDomain,p_app_ref:config.clientId};
       if(command.action==="enable"){
+        const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal,env);
+        if(binding?.hasCredential){
+          const token=await readShopifyTenantToken(db,actor,signal,env,transport,now);
+          const proof=await readShopifyApprovalIdentity(actor,binding.shopDomain,token.accessToken,signal,env,transport,true);
+          if(proof.shopGid!==c.shopGid)throw new ShopifyIntegrationError("ACCESS_DENIED");
+          await createShopifyOAuthStorage(db)(actor,"enable_imports",{connectionId:c.id,revision:c.revision,
+            shopDomain:binding.shopDomain,appRef:binding.appRef,shopGid:proof.shopGid,verifiedAt:new Date(now()).toISOString(),
+            consent:true,requestKey:command.requestKey},signal);
+          return {status:"success",message:"Store verified. Choose dates to import orders as drafts. Automatic sync remains off.",
+            view:await view(actor,signal,env)};
+        }
         const proof=await createShopifyApplicationSource(transport,now)(actor,null,signal,env);
         if(proof.shopGid!==c.shopGid)throw new ShopifyIntegrationError("ACCESS_DENIED");
         const result=await db.rpc("enable_shopify_unified_imports",{...args,p_request_key:command.requestKey,p_expected_revision:c.revision,p_consent:command.consent}).abortSignal(signal);
@@ -61,6 +76,9 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
         return {status:"success",message:`Removed ${receipt.redactedCount} expired raw payloads. Imported orders and customers are unchanged. ${receipt.hasMore?"More expired payloads remain; run cleanup again.":"No more expired payloads remain. Payloads less than 24 hours old are not removed."}`,view:state};
       }
       if(command.action==="preview"){
+        const access=env.SHOPIFY_OAUTH_ENABLED==="true"?async(a:ShopifyProbeActor,s:AbortSignal,e:NodeJS.ProcessEnv)=>
+          (await readShopifyTenantToken(db,a,s,e,transport,now)).accessToken:undefined;
+        const previewSource=createShopifyImportPreviewService(db,createShopifyImportPreviewReader(transport,now,20,access));
         const result=await previewSource(actor,{connectionId:c.id,shopGid:c.shopGid},{from:command.from,through:command.through},signal,env);
         let saved:{previewId:string;expiresAt:string}|null=null;
         if(result.complete){
@@ -80,12 +98,14 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
           view:await view(actor,signal,env),continueProcessing:receipt.rows.some(x=>x.status==="queued"||x.status==="already_queued")};
       }
       if(command.action==="process"){
-        const result=await runShopifyUnifiedWorker(db,c.id,signal,env,transport),latest=await view(actor,signal,env);
+        const result=await runShopifyUnifiedWorker(db,c.id,signal,env,transport,
+          createShopifyTenantCredentialReader(db,actor,transport,now)),latest=await view(actor,signal,env);
         return {status:"success",message:result.status==="draft"||result.status==="observed"?"Order synced. You can open it in Orders.":
           result.status==="idle"?"No import is ready to process now. Any waiting retries are still retained.":"An import needs a retry or review. No duplicate order was created.",
           view:latest,continueProcessing:(result.status==="draft"||result.status==="observed")&&(latest.connection?.pending??0)>0};
       }
       let verifiedAt:string|null=null;
+      if(command.enabled&&env.SHOPIFY_OAUTH_ENABLED==="true")throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
       if(command.enabled){
         const check=async()=>{const fresh=(await view(actor,signal,env)).connection;
           if(!fresh||fresh.id!==c.id||!fresh.unified||fresh.status!=="verified")throw new ShopifyIntegrationError("ACCESS_DENIED");

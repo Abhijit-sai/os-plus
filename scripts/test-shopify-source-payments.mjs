@@ -7,6 +7,7 @@ import ts from 'typescript';
 import { projectShopifySourcePayment, decodeShopifySourcePayment } from '../src/integrations/shopify/source-payment.ts';
 import { readShopifyCommercialPayment } from '../src/integrations/shopify/commercial-order.ts';
 import { canonicalShopDomain } from '../src/integrations/shopify/config.ts';
+import { resolveShopifyTenantEnvironment } from '../src/integrations/shopify/tenant-credentials.ts';
 import { sealShopifySource } from '../src/integrations/shopify/source-crypto.ts';
 import { snapshot, bag, context } from './fixtures/shopify-draft.mjs';
 const orderId='70000000-0000-4000-8000-000000000001';
@@ -81,6 +82,7 @@ function loadPaymentReader(){
   const testModule={exports:{}};vm.runInNewContext(code,{module:testModule,exports:testModule.exports,require(name){
     if(name==='server-only')return {};if(name==='@/integrations/shopify/source-payment')return {decodeShopifySourcePayment};
     if(name==='@/integrations/shopify/commercial-order')return {readShopifyCommercialPayment};
+    if(name==='@/integrations/shopify/tenant-credentials')return {resolveShopifyTenantEnvironment};
     if(name==='@/integrations/shopify/config')return {canonicalShopDomain};throw Error(name);
   },AbortSignal});
   return testModule.exports;

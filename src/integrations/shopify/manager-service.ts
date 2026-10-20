@@ -10,6 +10,7 @@ import { createShopifyPilotCredentialReader } from "./pilot-credentials.ts";
 import { readShopifyHydrationGraphQL } from "./client.ts";
 import { shopifyTimestampInstant } from "./order-hydration.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
+import { resolveShopifyTenantEnvironment, createShopifyTenantCredentialReader } from "./tenant-credentials.ts";
 
 const completed = z.object({status:z.literal("setup_complete"),orderId:z.string().uuid(),
   sourceRevisionId:z.string().uuid(),itemCount:z.number().int().positive()}).strict();
@@ -31,6 +32,7 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
     return {p_tenant_id:actor.tenantId,p_actor_id:actor.userId,p_domain:config.shopDomain,p_app_ref:config.clientId};
   };
   async function view(actor:ShopifyProbeActor,orderId:string,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+    env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
     const args=scope(actor,env,"read");z.string().uuid().parse(orderId);
     const result=await db.rpc("read_shopify_manager_draft_setup",{...args,p_order_id:orderId}).abortSignal(signal);
     if(result.error)fail(result.error.message);
@@ -41,12 +43,14 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
   }
   return {view,
     async search(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+      env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const args=scope(actor,env,"read"),command=shopifySetupSearchSchema.parse(input);
       const result=await db.rpc("search_shopify_setup_options",{...args,p_order_id:command.orderId,p_kind:command.kind,p_search:command.search,p_offset:command.offset}).abortSignal(signal);
       if(result.error)fail(result.error.message);
       return shopifySetupOptionsSchema.parse(result.data);
     },
     async save(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+      env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const args=scope(actor,env),command=shopifySaveDraftSetupSchema.parse(input);
       const state=await view(actor,command.orderId,signal,env);
       if(!state)throw new ShopifyIntegrationError("ACCESS_DENIED");
@@ -59,6 +63,7 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
       return z.object({setupId:z.string().uuid(),version:z.number().int().positive().safe()}).strict().parse(result.data);
     },
     async complete(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+      env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const args=scope(actor,env),command=shopifyCompleteDraftSetupSchema.parse(input);
       const intent={...args,p_connection_id:command.connectionId,p_order_id:command.orderId,p_setup_id:command.setupId,p_request_key:command.requestKey};
       const recovered=await db.rpc("recover_shopify_manager_setup",intent).abortSignal(signal);
@@ -70,7 +75,7 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
       if(!state.current||state.setupId!==command.setupId)throw new ShopifyIntegrationError("STALE_REVISION");
       const context=await readShopifyWorkerContext(db,{tenantId:actor.tenantId,connectionId:state.connectionId,appRef:args.p_app_ref,environment:"production"},signal);
       if(context.shopDomain!==args.p_domain||context.shopGid!==state.shopGid)throw new ShopifyIntegrationError("ACCESS_DENIED");
-      const token=await credentials(context,signal,env);
+      const token=await (env.SHOPIFY_OAUTH_ENABLED==="true"?createShopifyTenantCredentialReader(db,actor,transport,now):credentials)(context,signal,env);
       const proof=await readShopifyHydrationGraphQL({shopDomain:context.shopDomain,connectionEnvironment:"production",accessToken:token.accessToken,
         query:`query OSPlusManagerFreshness($id: ID!) { shop { id myshopifyDomain } order(id: $id) { id updatedAt } }`,variables:{id:state.sourceOrderGid},
         schema:z.object({shop:z.object({id:z.string(),myshopifyDomain:z.string()}),order:z.object({id:z.string(),updatedAt:z.string().datetime({offset:true})}).nullable()}),

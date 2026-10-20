@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Inspect','BackupAndVerify','VerifyExisting','CheckSchema','CheckPostMigration','CheckOwnership','RehearseExisting','CheckUnified','ApplyUnified')][string]$Mode='Inspect',
+  [ValidateSet('Inspect','BackupAndVerify','VerifyExisting','CheckSchema','CheckPostMigration','CheckOwnership','RehearseExisting','CheckUnified','CheckOAuth','ApplyUnified')][string]$Mode='Inspect',
   [switch]$ExecuteApprovedUnifiedMigrations,
   [switch]$ExecuteApprovedBackup,
   [switch]$ExecuteApprovedRehearsal,
@@ -98,7 +98,7 @@ try{
   $backupSecurePassword=ConvertTo-SecureString -String $backupAccess.passwordDpapi
   $backupBstr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($backupSecurePassword)
   $backupPlainPassword=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($backupBstr)
-  $backupPayload=[ordered]@{mode=$(if($Mode -in @('CheckSchema','CheckPostMigration','CheckOwnership','CheckUnified','ApplyUnified')){'Inspect'}else{$Mode});approved=[bool]$ExecuteApprovedBackup;projectRef='dxiyihrdfismbuqdmhit';
+  $backupPayload=[ordered]@{mode=$(if($Mode -in @('CheckSchema','CheckPostMigration','CheckOwnership','CheckUnified','CheckOAuth','ApplyUnified')){'Inspect'}else{$Mode});approved=[bool]$ExecuteApprovedBackup;projectRef='dxiyihrdfismbuqdmhit';
     host='aws-1-ap-northeast-2.pooler.supabase.com';port=5432;database='postgres';user='postgres.dxiyihrdfismbuqdmhit';
     password=$backupPlainPassword;ca=[IO.File]::ReadAllText($backupCaPath);localRoot=$backupLocalRoot;
     privateRoot=$backupPrivateRoot;ownerSid=$backupOwnerSid.Value}
@@ -123,6 +123,7 @@ try{
   if($Mode -in @('CheckSchema','CheckPostMigration')){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\schema-compatibility.mjs'}
   if($Mode -eq 'CheckOwnership'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\ownership-check.mjs'}
   if($Mode -eq 'CheckUnified'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\unified-deployment-preflight.mjs'}
+  if($Mode -eq 'CheckOAuth'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\oauth-readonly-preflight.mjs'}
   if($Mode -eq 'ApplyUnified'){$backupRunner=Join-Path $PSScriptRoot 'shopify-db-harness\apply-unified-release.mjs'}
   $backupStart=[Diagnostics.ProcessStartInfo]::new()
   $backupStart.FileName=$backupNode

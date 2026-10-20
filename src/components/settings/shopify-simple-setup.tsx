@@ -6,8 +6,10 @@ import {Card,CardHeader,CardTitle,CardContent} from "@/components/ui/card";
 import {Dialog} from "@/components/ui/dialog";
 import {importDateError,importExplanation,importLabels as labels,previewExpired} from "@/integrations/shopify/import-presentation";
 import type {UnifiedWorkspace,UnifiedActionState,UnifiedImportPreview} from "@/integrations/shopify/unified-contract";
+import {ShopifyApprovalForm} from "./shopify-approval-form";
 
-export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>}){
+export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approval}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>;
+  approval?:{hasCredential:boolean;result?:string}}){
   const [view,setView]=useState(initial),[from,setFrom]=useState(today),[through,setThrough]=useState(today),[consent,setConsent]=useState(false),
     [preview,setPreview]=useState<UnifiedImportPreview|null>(null),[page,setPage]=useState(0),[running,setRunning]=useState(false),[processed,setProcessed]=useState(0);
   const [open,setOpen]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
@@ -73,12 +75,15 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
     <ol className="flex flex-wrap gap-4 text-sm" aria-label="Setup steps"><li>1. Connect</li><li>2. Import orders</li><li>3. Automatic sync</li></ol>
     {!open&&feedback}
     <Card><CardHeader><CardTitle>1. Connect your store</CardTitle></CardHeader><CardContent className="space-y-4">
-      <p>{c?.unified?"Connected for Test-account imports.":c?.ready?"Your store connection is verified. Confirm how Test data is kept to continue.":"This Test store connection needs administrator verification before importing."}</p>
+      {approval&&(c?.unified?<details open={approval.result==="failed"||approval.result==="approved"}><summary className="min-h-11 cursor-pointer py-2">Manage Shopify approval</summary>
+        <ShopifyApprovalForm shopDomain={shopDomain} hasCredential={approval.hasCredential} result={approval.result}/></details>:
+        <ShopifyApprovalForm shopDomain={c?shopDomain:undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
+      <p>{c?.unified?"Connected for Test-account imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how Test data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This Test store connection needs administrator verification before importing."}</p>
       {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
         <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
           <span>Keep imported Test orders and customers until removed. Temporary raw Shopify payloads expire after one day.
             {manual&&" With background cleanup off, I will return after 24 hours and run Remove expired raw payloads. Expiry alone does not delete them."}</span></label>
-        <Button disabled={disabled||!consent||!c?.ready}>{pending?"Checking…":"Verify and enable Test imports"}</Button></form>}
+        <Button disabled={disabled||!consent||(!c?.ready&&!approval?.hasCredential)}>{pending?"Checking…":"Verify and enable Test imports"}</Button></form>}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>2. Import existing orders</CardTitle></CardHeader><CardContent className="space-y-4">
       <p className="text-sm">Choose dates, review new orders and reference clashes, then import only the new orders as drafts.</p>
@@ -156,7 +161,7 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
       <p className="font-medium">{c?.automatic?"Automatic sync is on for Phantom Threads Test.":"Automatic sync is off."}</p>
       {manual&&<p className="text-sm">Background worker setup is deferred. You can import dates and complete drafts now; automatic sync stays unavailable until the worker is configured.</p>}
       {!manual&&<p className="text-sm">Worker endpoint configured. Confirm that the external retry and cleanup schedule is running before enabling automatic sync.</p>}
-      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified||manual&&!c?.automatic}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
+      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified||(manual||!!approval)&&!c?.automatic}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
     </CardContent></Card>
     <details className="rounded-lg border p-4"><summary className="min-h-11 cursor-pointer py-2">Connection details</summary>
       <p className="text-sm">Status: {c?.status??"Not connected"}. These settings apply only to Phantom Threads Test. Production tenants and chat/CRM are not enabled by this setup.</p></details>

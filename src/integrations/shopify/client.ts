@@ -5,6 +5,7 @@ import { canonicalShopDomain, SHOPIFY_API_VERSION } from "./config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 import { readBoundedBody } from "./bounded-body.ts";
 import { getShopifyApplicationConfig } from "./application-config.ts";
+import { getShopifyOAuthConfig, SHOPIFY_OAUTH_SCOPES } from "./oauth.ts";
 import {
   getShopifyProbeConfig,
   type ShopifyProbeActor,
@@ -150,6 +151,31 @@ export async function createShopifyApplicationWebhook<T>(input:Omit<ShopifyGraph
   return executeShopifyGraphQL({...input,query:webhookCreateQuery,variables:{topic:input.topic,subscription:{
     uri:`${config.origin}/api/integrations/shopify/orders-webhook`,format:"JSON",
     filter:`id:${input.orderGid.split("/").at(-1)}`,includeFields:["id","admin_graphql_api_id","updated_at"]}}},transport,true);
+}
+
+// A fixed metadata query for a newly approved shop; cannot query customer/order
+// data or accept a browser-supplied GraphQL query before a connection exists.
+export async function readShopifyApprovalIdentity(actor:ShopifyProbeActor,shopDomain:string,accessToken:string,
+  signal:AbortSignal,env:NodeJS.ProcessEnv,transport:typeof fetch=fetch,protectedFields=false){
+  getShopifyOAuthConfig(actor,env);
+  const schema=z.object({shop:z.object({id:z.string().regex(/^gid:\/\/shopify\/Shop\/[1-9][0-9]{0,31}$/),myshopifyDomain:z.string()}),
+    currentAppInstallation:z.object({accessScopes:z.array(z.object({handle:z.string()})).max(512)})});
+  const text=z.string().nullable();
+  const fieldsSchema=schema.extend({orders:z.object({nodes:z.array(z.object({id:z.string(),email:text,phone:text,
+    customer:z.object({id:z.string(),firstName:text,lastName:text,email:text,phone:text}).nullable(),
+    shippingAddress:z.object({firstName:text,lastName:text,phone:text,address1:text,address2:text,city:text,province:text,countryCodeV2:text,zip:text}).nullable(),
+  })).max(1)})});
+  const result=await executeShopifyGraphQL({shopDomain,accessToken,connectionEnvironment:"production",signal,
+    query:protectedFields?`query OSPlusApprovalProtectedFields { shop { id myshopifyDomain } currentAppInstallation { accessScopes { handle } }
+      orders(first: 1, sortKey: CREATED_AT, reverse: true) { nodes { id email phone customer { id firstName lastName email phone }
+      shippingAddress { firstName lastName phone address1 address2 city province countryCodeV2 zip } } } }`:
+      "query OSPlusApprovalIdentity { shop { id myshopifyDomain } currentAppInstallation { accessScopes { handle } } }",
+    schema:protectedFields?fieldsSchema:schema},transport);
+  if(result.data.shop.myshopifyDomain!==canonicalShopDomain(shopDomain))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const scopes=new Set(result.data.currentAppInstallation.accessScopes.map(s=>s.handle));
+  if(SHOPIFY_OAUTH_SCOPES.some(scope=>!scopes.has(scope)&&!scopes.has(scope.replace("read_","write_"))))
+    throw new ShopifyIntegrationError("ACCESS_DENIED");
+  return {shopGid:result.data.shop.id};
 }
 
 async function executeShopifyGraphQL<T>(

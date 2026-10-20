@@ -6,19 +6,22 @@ import { getShopifyManagerConfig } from "@/integrations/shopify/application-conf
 import { createShopifyManagerService } from "@/integrations/shopify/manager-service";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { ShopifyIntegrationError } from "@/integrations/shopify/errors";
+import { resolveShopifyTenantEnvironment } from "@/integrations/shopify/tenant-credentials";
 import type { ShopifyDraftActionState } from "@/integrations/shopify/draft-setup";
 
 async function authorized() {
   const actor=await getShopifyProbeActor();
   if(!actor)throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
-  const config=getShopifyManagerConfig(actor),h=await headers();
+  const db=createSupabaseServiceRoleClient();
+  const env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,AbortSignal.timeout(5000));
+  const config=getShopifyManagerConfig(actor,env),h=await headers();
   if(h.get("origin")!==config.origin||h.get("sec-fetch-site")==="cross-site")throw new ShopifyIntegrationError("ACCESS_DENIED");
-  return {actor,service:createShopifyManagerService(createSupabaseServiceRoleClient())};
+  return {actor,service:createShopifyManagerService(db)};
 }
 function message(error:unknown){
   const code=error instanceof ShopifyIntegrationError?error.code:error instanceof Error&&error.name==="ZodError"?"REQUEST_INVALID":"UNKNOWN";
   const messages:Record<string,string>={
-    AUTHENTICATION_REQUIRED:"Sign in again. Your draft has not been submitted.",
+    AUTHENTICATION_REQUIRED:"Sign in again. If your OS Plus session is active, ask the owner to reauthorize Shopify in Settings. Your draft has not been submitted.",
     ACCESS_DENIED:"This action is available to an active owner or manager in Phantom Threads Test only.",
     STALE_REVISION:"This order or its setup changed. Refresh the order and review the latest choices.",
     SOURCE_CHANGED:"Shopify changed since this draft was imported. Sync the latest order before completing setup.",
