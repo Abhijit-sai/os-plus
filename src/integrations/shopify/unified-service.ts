@@ -7,7 +7,7 @@ import {getShopifyApplicationConfig} from "./application-config.ts";
 import {createShopifyApplicationSource} from "./application-source.ts";
 import {createShopifyImportPreviewReader} from "./import-preview.ts";
 import {createShopifyImportPreviewService} from "./import-preview-service.ts";
-import {unifiedCommandSchema,unifiedWorkspaceSchema,unifiedImportReceiptSchema,type UnifiedActionState} from "./unified-contract.ts";
+import {unifiedCommandSchema,unifiedWorkspaceSchema,unifiedImportReceiptSchema,type UnifiedActionState,type UnifiedWorkspace} from "./unified-contract.ts";
 import {runShopifyUnifiedWorker} from "./unified-worker.ts";
 import {ShopifyIntegrationError} from "./errors.ts";
 import {registerShopifyUnifiedWebhooks} from "./webhook-registration.ts";
@@ -21,21 +21,27 @@ function fail(message:string):never{
   throw new ShopifyIntegrationError(message==="SHOPIFY_STALE_REVISION"?"STALE_REVISION":message==="SHOPIFY_IDEMPOTENCY_CONFLICT"?"IDEMPOTENCY_CONFLICT":
     message==="SHOPIFY_ACCESS_DENIED"?"ACCESS_DENIED":"UPSTREAM_UNAVAILABLE");
 }
+function workerConfigured(env:NodeJS.ProcessEnv){
+  // Endpoint configuration is NOT proof that an external schedule is running.
+  return env.SHOPIFY_SCHEDULED_WORKER_ENABLED==="true"&&/^[A-Za-z0-9_-]{32,256}$/.test(env.SHOPIFY_WORKER_SECRET??"");
+}
 export function createShopifyUnifiedService(db:SupabaseClient<Database>,transport:typeof fetch=fetch,now=Date.now){
   const previewSource=createShopifyImportPreviewService(db,createShopifyImportPreviewReader(transport,now));
-  async function view(actor:ShopifyProbeActor,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+  async function view(actor:ShopifyProbeActor,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedWorkspace>{
     const config=assertUnifiedRuntime(actor,env);
     const result=await db.rpc("read_shopify_unified_workspace",{p_tenant_id:actor.tenantId,p_actor_id:actor.userId,p_domain:config.shopDomain,p_app_ref:config.clientId}).abortSignal(signal);
     if(result.error)fail(result.error.message);
-    return unifiedWorkspaceSchema.parse(result.data);
+    return {...unifiedWorkspaceSchema.parse(result.data),workerConfigured:workerConfigured(env)};
   }
   return {view,
     async execute(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedActionState>{
       const config=assertUnifiedRuntime(actor,env),command=unifiedCommandSchema.parse(input),state=await view(actor,signal,env),c=state.connection;
       if(!c)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
-      if((command.action==="enable"||command.action==="automatic"&&command.enabled)&&
-        (env.SHOPIFY_SCHEDULED_WORKER_ENABLED!=="true"||!/^[A-Za-z0-9_-]{32,256}$/.test(env.SHOPIFY_WORKER_SECRET??"")))
-        throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
+      if(command.action==="automatic"&&command.enabled&&!workerConfigured(env))
+        throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
+      if((command.action==="enable"||command.action==="import"||command.action==="process")&&
+        !workerConfigured(env)&&command.manualCleanupAcknowledged!==true)
+        throw new ShopifyIntegrationError("MANUAL_CLEANUP_REQUIRED");
       const args={p_tenant_id:actor.tenantId,p_connection_id:c.id,p_actor_id:actor.userId,p_domain:config.shopDomain,p_app_ref:config.clientId};
       if(command.action==="enable"){
         const proof=await createShopifyApplicationSource(transport,now)(actor,null,signal,env);
@@ -47,6 +53,13 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
           continueProcessing:(latest.connection?.pending??0)>0};
       }
       if(!c.unified)throw new ShopifyIntegrationError("ACCESS_DENIED");
+      if(command.action==="cleanup"){
+        const result=await db.rpc("purge_expired_shopify_raw",{p_tenant_id:actor.tenantId,p_connection_id:c.id,
+          p_shop_domain:config.shopDomain,p_app_ref:config.clientId,p_limit:100}).abortSignal(signal);
+        if(result.error)fail(result.error.message);
+        const receipt=z.object({redactedCount:z.number().int().min(0).max(100),hasMore:z.boolean()}).strict().parse(result.data);
+        return {status:"success",message:`Removed ${receipt.redactedCount} expired raw payloads. Imported orders and customers are unchanged. ${receipt.hasMore?"More expired payloads remain; run cleanup again.":"No more expired payloads remain. Payloads less than 24 hours old are not removed."}`,view:state};
+      }
       if(command.action==="preview"){
         const result=await previewSource(actor,{connectionId:c.id,shopGid:c.shopGid},{from:command.from,through:command.through},signal,env);
         let saved:{previewId:string;expiresAt:string}|null=null;

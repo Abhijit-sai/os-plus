@@ -1,13 +1,14 @@
 import type {UnifiedActionState,UnifiedWorkspace} from '../../src/integrations/shopify/unified-contract';
 import type {ShopifyDraftActionState} from '../../src/integrations/shopify/draft-setup';
 export const fictionalId=(n:number)=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-let workspace:UnifiedWorkspace={connection:{id:fictionalId(1),shopGid:'gid://shopify/Shop/1',status:'verified',revision:1,
+let workspace:UnifiedWorkspace={workerConfigured:false,connection:{id:fictionalId(1),shopGid:'gid://shopify/Shop/1',status:'verified',revision:1,
   ready:true,unified:false,automatic:false,pilotOrderGid:null,pending:0,needsAttention:0}};
 let imported=false,version=0;
 export function initialWorkspace(){return structuredClone(workspace);}
 export async function shopifyUnifiedAction(_state:UnifiedActionState,form:FormData):Promise<UnifiedActionState>{
   await new Promise(resolve=>setTimeout(resolve,100));
   const c=JSON.parse(String(form.get('command'))),connection=workspace.connection!;
+  if(['enable','import','process'].includes(c.action)&&c.manualCleanupAcknowledged!==true)return {status:'error',message:'Manual cleanup acknowledgement missing.'};
   if(c.action==='enable')connection.unified=true;
   if(c.action==='automatic')connection.automatic=c.enabled;
   if(c.action==='preview')return {status:'success',message:'Fictional preview ready.',view:structuredClone(workspace),preview:{previewId:fictionalId(4),
@@ -19,7 +20,8 @@ export async function shopifyUnifiedAction(_state:UnifiedActionState,form:FormDa
   if(c.action==='import'){connection.pending=1;return {status:'success',message:'One fictional order queued; existing orders skipped.',view:structuredClone(workspace),
     receipt:{status:'queued',previewId:fictionalId(4),rows:[]},continueProcessing:true};}
   if(c.action==='process'){connection.pending=0;imported=true;}
-  workspace={connection};
+  if(c.action==='cleanup')return {status:'success',message:'Removed 0 expired raw payloads. Imported orders and customers are unchanged.',view:structuredClone(workspace)};
+  workspace={...workspace,connection};
   return {status:'success',message:c.action==='process'?'Import finished. Open Orders to complete the draft.':'Fictional setup saved.',view:structuredClone(workspace)};
 }
 export async function shopifyDraftSetupAction(_state:ShopifyDraftActionState,form:FormData):Promise<ShopifyDraftActionState>{

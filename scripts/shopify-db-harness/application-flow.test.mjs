@@ -101,6 +101,8 @@ async function retainedCopy(f){
 
 test('date range service previews, skips manual references, imports an older authorized order and appears in ordinary Orders',isolated(async f=>{
   await authorize(f);Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true'});
+  // Manual owner actions must not depend on an external scheduler or its secret.
+  delete f.env.SHOPIFY_SCHEDULED_WORKER_ENABLED;delete f.env.SHOPIFY_WORKER_SECRET;
   f.source.order.createdAt=new Date(Date.now()-3*86400000).toISOString();
   const customer=randomUUID();await db.query("INSERT INTO customers(id,tenant_id,name) VALUES($1,$2,'Existing fictional buyer')",[customer,f.tenant]);
   await db.query("INSERT INTO orders(tenant_id,customer_id,order_number,tracking_token,reference_order_id) VALUES($1,$2,'EXISTING','existing-test-ref',' #manual-1 ')",[f.tenant,customer]);
@@ -116,8 +118,14 @@ test('date range service previews, skips manual references, imports an older aut
   const checkedAdapter={...adapter,rpc(name,args){return {async abortSignal(signal){const result=await adapter.rpc(name,args).abortSignal(signal);assert.equal(result.error,null,`${name}: ${result.error?.message}`);
     // PostgREST serializes timestamp-returning RPCs; PGlite returns Date objects.
     if(result.data instanceof Date)result.data=result.data.toISOString();return result;}};}};
-  const service=createShopifyUnifiedService(checkedAdapter,transport),run=command=>service.execute(f.actor,{requestKey:randomUUID(),...command},f.signal,f.env);
+  const service=createShopifyUnifiedService(checkedAdapter,transport),run=command=>service.execute(f.actor,{requestKey:randomUUID(),
+    ...(['enable','import','process'].includes(command.action)?{manualCleanupAcknowledged:true}:{}),...command},f.signal,f.env);
+  await assert.rejects(()=>service.execute(f.actor,{action:'enable',requestKey:randomUUID(),consent:true},f.signal,f.env),/MANUAL_CLEANUP_REQUIRED/);
   await run({action:'enable',consent:true});assert.equal((await service.view(f.actor,f.signal,f.env)).connection.automatic,false);
+  assert.equal((await service.view(f.actor,f.signal,f.env)).workerConfigured,false);
+  const beforeAutomatic=f.calls.length;
+  await assert.rejects(()=>run({action:'automatic',enabled:true}),/WEBHOOK_SETUP_REQUIRED/);
+  assert.equal(f.calls.length,beforeAutomatic,'automatic enable must fail before Shopify calls');
   const day=new Date(Date.parse(f.source.order.createdAt)+330*60000).toISOString().slice(0,10);
   const preview=(await run({action:'preview',from:day,through:day})).preview;
   assert.equal(preview.rows[0].status,'new');assert.equal(preview.rows[1].status,'reference_match');
@@ -141,6 +149,36 @@ test('date range service previews, skips manual references, imports an older aut
     [f.tenant,connection,f.env.SHOPIFY_SHOP_DOMAIN,f.env.SHOPIFY_CLIENT_ID,randomUUID(),'a'.repeat(64)]),/SHOPIFY_COPY_APPROVAL_REQUIRED/);
   await db.exec('ROLLBACK TO SAVEPOINT unapproved_source');
   assert.equal(await scalar('SELECT count(*)::int AS result FROM shopify_sync_jobs WHERE tenant_id=$1',[f.tenant]),1);
+  // Follow the same imported order through the actual manager service, not a
+  // separately seeded retained draft. Only Shopify HTTP remains synthetic.
+  const orderId=await scalar("SELECT id AS result FROM orders WHERE tenant_id=$1 AND source='shopify'",[f.tenant]);
+  const manager={...f.actor,userId:'fictional-manager',membershipUserId:'fictional-manager',role:'manager'};
+  const managerService=createShopifyManagerService(checkedAdapter,transport),draft=await managerService.view(manager,orderId,f.signal,f.env);
+  const customerId=await scalar('SELECT customer_id AS result FROM orders WHERE id=$1',[orderId]);
+  const choices={customerId,deliveryType:'store_pickup',promisedDeliveryDate:null,note:'Manual import test',
+    lines:[{lineGid:f.source.lines[0].id,itemTypeId:f.itemType,workflowId:f.workflow,standardSizeId:null,expectedCompletionDate:null}]};
+  const saved=await managerService.save(manager,{orderId,sourceRevisionId:draft.sourceRevisionId,expectedVersion:0,requestKey:randomUUID(),choices},f.signal,f.env);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_items WHERE tenant_id=$1',[f.tenant]),0);
+  const completion={orderId,connectionId:connection,setupId:saved.setupId,requestKey:randomUUID()};
+  const completed=await managerService.complete(manager,completion,f.signal,f.env);
+  assert.equal(completed.status,'setup_complete');
+  assert.deepEqual(await managerService.complete(manager,completion,f.signal,f.env),completed);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM item_workflow_instances WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_payments WHERE tenant_id=$1',[f.tenant]),0);
+  const cleanup=await run({action:'cleanup'});assert.match(cleanup.message,/Removed 0 expired/);
+  // Historical raw payload in the disposable fixture only: exercise the real
+  // owner action and expiry RPC, without altering any live observation clock.
+  await db.query(`INSERT INTO shopify_source_revisions SELECT (jsonb_populate_record(null::shopify_source_revisions,
+    to_jsonb(r)||jsonb_build_object('id',gen_random_uuid(),'generation',1000,
+      'observed_at',clock_timestamp()-interval '25 hours'))).*
+    FROM shopify_source_revisions r WHERE r.tenant_id=$1 AND r.generation=1`,[f.tenant]);
+  assert.match((await run({action:'cleanup'})).message,/Removed 1 expired/);
+  assert.match((await run({action:'cleanup'})).message,/Removed 0 expired/);
+  assert.equal(await scalar("SELECT count(*)::int AS result FROM shopify_source_revisions WHERE tenant_id=$1 AND sealed_source ? 'ciphertext'",[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM shopify_commercial_details WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),2);
+  for(const changedActor of [{...f.actor,role:'manager'},{...f.actor,tenantId:randomUUID()}])
+    await assert.rejects(()=>service.execute(changedActor,{action:'cleanup',requestKey:randomUUID()},f.signal,f.env),/ACCESS_DENIED/);
 }));
 
 test('upgrading an existing pilot refreshes the same order into retained details without duplication',isolated(async f=>{

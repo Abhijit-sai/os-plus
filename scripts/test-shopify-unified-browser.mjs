@@ -31,10 +31,10 @@ try{
   await page.getByRole('button',{name:'Preview orders'}).click();
   await page.getByRole('heading',{name:'3 orders found · 0 new'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Import 0 new orders'}).isDisabled(),true);checks++;
-  await page.getByRole('button',{name:'Set up automatic sync'}).click();
-  await page.getByText('Automatic sync is on for Phantom Threads Test.').waitFor();checks++;
-  await page.getByRole('button',{name:'Turn off automatic sync'}).click();
+  assert.equal(await page.getByRole('button',{name:'Set up automatic sync'}).isDisabled(),true);checks++;
   await page.getByText('Automatic sync is off.',{exact:true}).waitFor();checks++;
+  await page.getByRole('button',{name:'Remove expired raw payloads'}).click();
+  await page.getByText('Removed 0 expired raw payloads. Imported orders and customers are unchanged.',{exact:true}).waitFor();checks++;
   await page.setViewportSize({width:375,height:812});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:'outputs/shopify-unified/setup-mobile.png',fullPage:true});checks++;

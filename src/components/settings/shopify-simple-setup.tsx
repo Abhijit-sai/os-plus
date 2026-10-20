@@ -14,9 +14,10 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
     const raw=form.get("operation"),operation=typeof raw==="string"?raw:"";
     const body=operation==="preview"?{action:operation,from,through}:operation==="import"?{action:operation,previewId:preview?.previewId}:
       operation==="enable"?{action:operation,consent}:operation==="automatic"?{action:operation,enabled:!view.connection?.automatic}:{action:operation};
-    const encoded=JSON.stringify(body);
+    const command={...body,...(!view.workerConfigured&&consent&&["enable","import","process"].includes(operation)?{manualCleanupAcknowledged:true}:{})};
+    const encoded=JSON.stringify(command);
     if(intent.current?.body!==encoded||operation==="preview"||operation==="process")intent.current={body:encoded,key:crypto.randomUUID()};
-    const input=new FormData();input.set("command",JSON.stringify({...body,requestKey:intent.current.key}));
+    const input=new FormData();input.set("command",JSON.stringify({...command,requestKey:intent.current.key}));
     let result:UnifiedActionState;
     try{result=await submitAction(previous,input);}catch{result={status:"error",message:"The connection was interrupted. Retry the same action safely."};}
     if(result.view)setView(result.view);
@@ -35,6 +36,7 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
     return ()=>clearTimeout(timer);
   },[running,pending,processed,action]);
   const c=view.connection,disabled=pending||running&&processed<100,newCount=preview?.rows.filter(r=>r.status==="new").length??0;
+  const manual=!view.workerConfigured,importDisabled=disabled||manual&&!consent;
   const field="min-h-11 w-full rounded-md border bg-background px-3 py-2";
   return <div className="mx-auto max-w-5xl space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Shopify</h1>
@@ -46,10 +48,14 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
       <p>{c?.unified?"Connected for Test-account imports.":c?.ready?"Your store connection is verified. Confirm how Test data is kept to continue.":"This Test store connection needs administrator verification before importing."}</p>
       {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
         <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
-          Keep imported Test orders and customers until removed. Delete temporary raw Shopify payloads after one day.</label>
+          <span>Keep imported Test orders and customers until removed. Temporary raw Shopify payloads expire after one day.
+            {manual&&" With background cleanup off, I will return after 24 hours and run Remove expired raw payloads. Expiry alone does not delete them."}</span></label>
         <Button disabled={disabled||!consent||!c?.ready}>{pending?"Checking…":"Verify and enable Test imports"}</Button></form>}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>2. Import existing orders</CardTitle></CardHeader><CardContent className="space-y-4">
+      {manual&&<div className="space-y-3 rounded-lg border p-4 text-sm"><p>Manual mode: keep this page open while importing. If you close it, return and select Continue import. n8n is not needed for this test.</p>
+        {c?.unified&&<label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
+          I will return after 24 hours and run Remove expired raw payloads. Background cleanup is off; expiry alone does not delete them. Imported orders and customers will remain.</label>}</div>}
       <form action={action} className="flex flex-wrap items-end gap-3"><input type="hidden" name="operation" value="preview"/>
         <label className="space-y-2 text-sm">From (India time)<input type="date" required className={field} value={from} max={today} disabled={disabled||!c?.unified}
           onChange={e=>{setFrom(e.target.value);setPreview(null);}}/></label>
@@ -66,18 +72,22 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
               {row.orderIds.map(id=><Link key={id} className="ml-2 underline" href={`/orders/${id}`}>Open existing order</Link>)}</td></tr>)}</tbody></table></div>}
         <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous</Button>
           <span>Page {page+1} of {Math.max(1,Math.ceil(preview.rows.length/50))}</span><Button variant="outline" disabled={(page+1)*50>=preview.rows.length} onClick={()=>setPage(p=>p+1)}>Next</Button></div>
-        <form action={action}><input type="hidden" name="operation" value="import"/><Button disabled={disabled||!preview.complete||!preview.previewId||!newCount}>Import {newCount} new orders</Button></form>
+        <form action={action}><input type="hidden" name="operation" value="import"/><Button disabled={importDisabled||!preview.complete||!preview.previewId||!newCount}>Import {newCount} new orders</Button></form>
         <p className="text-sm text-muted-foreground">Preview expires after 10 minutes. References are checked again when orders are created.</p>
       </div>}
       {!!c?.pending&&<div role="status" className="space-y-3 rounded-lg border p-4"><p>{c.pending} orders waiting to finish importing. {running&&processed<100?"Importing…":"You can safely continue this import."}</p>
-        <form action={action}><input type="hidden" name="operation" value="process"/><Button variant="outline" disabled={disabled} onClick={()=>setProcessed(0)}>Continue import</Button></form>
+        <form action={action}><input type="hidden" name="operation" value="process"/><Button variant="outline" disabled={importDisabled} onClick={()=>setProcessed(0)}>Continue import</Button></form>
         <p className="text-sm">Completed orders are available in Orders even while the rest are processing.</p></div>}
       {!!c?.needsAttention&&<p role="alert">{c.needsAttention} imports need administrator review. They have not been reported as completed.</p>}
+      {c?.unified&&<div className="space-y-3 border-t pt-4"><p className="text-sm">Raw-payload cleanup removes only temporary payloads older than 24 hours, up to 100 per click. It does not delete orders or customers.</p>
+        <form action={action}><input type="hidden" name="operation" value="cleanup"/><Button variant="outline" disabled={disabled}>Remove expired raw payloads</Button></form></div>}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>3. Automatic sync</CardTitle></CardHeader><CardContent className="space-y-4">
       <p>When enabled, new Shopify orders become drafts automatically. Updates refresh Shopify details without overwriting your team&apos;s workflow choices.</p>
       <p className="font-medium">{c?.automatic?"Automatic sync is on for Phantom Threads Test.":"Automatic sync is off."}</p>
-      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
+      {manual&&<p className="text-sm">Background worker setup is deferred. You can import dates and complete drafts now; automatic sync stays unavailable until the worker is configured.</p>}
+      {!manual&&<p className="text-sm">Worker endpoint configured. Confirm that the external retry and cleanup schedule is running before enabling automatic sync.</p>}
+      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified||manual&&!c?.automatic}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
     </CardContent></Card>
     <details className="rounded-lg border p-4"><summary className="min-h-11 cursor-pointer py-2">Connection details</summary>
       <p className="text-sm">Status: {c?.status??"Not connected"}. These settings apply only to Phantom Threads Test. Production tenants and chat/CRM are not enabled by this setup.</p></details>

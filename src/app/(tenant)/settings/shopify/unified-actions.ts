@@ -27,7 +27,8 @@ export async function shopifyUnifiedAction(_previous:UnifiedActionState,form:For
       IDEMPOTENCY_CONFLICT:"This request no longer matches the original action. Refresh and preview again; existing orders will not be duplicated.",
       WEBHOOK_SETUP_REQUIRED:"Automatic sync setup is not ready yet. Date-range imports remain available.",
       CONNECTION_UNAVAILABLE:"An administrator needs to connect this Test tenant to the Shopify store first.",
-      CONFIGURATION_INVALID:"The background import and cleanup worker must be configured before enabling Test imports. Ask the administrator to finish the deployment checklist.",
+      MANUAL_CLEANUP_REQUIRED:"Confirm manual cleanup of temporary payloads after 24 hours before importing. Imported orders and customers will remain.",
+      CONFIGURATION_INVALID:"The Test import configuration is incomplete. Ask the administrator to check its credentials and import settings; n8n is not required for manual imports.",
     };
     return {status:"error",message:messages[code]??"The result could not be confirmed. Retry the same action; duplicate protection remains active."};
   }

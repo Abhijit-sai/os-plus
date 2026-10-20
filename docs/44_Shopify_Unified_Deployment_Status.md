@@ -2,6 +2,10 @@
 
 This is the current status; documents 41–43 preserve the earlier approval package.
 
+Manual-import follow-up: [document 45](45_Shopify_Manual_Import_Test.md) records the
+application-only scheduler decoupling and pending hosted acceptance. The worker
+dependency below describes the original release, before that correction.
+
 ## Shared database
 
 The owner approved the seven migrations and Git deployment. All seven files in
