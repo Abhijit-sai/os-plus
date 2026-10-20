@@ -97,6 +97,19 @@ try{
   assert.equal(await page.getByRole('button',{name:'Retry same import'}).isDisabled(),false);checks++;
   await page.getByRole('button',{name:'Retry same import'}).click();
   await page.getByText('Import finished. Open Orders to complete the draft.').waitFor();checks++;
+  // A range with no new orders must not hide consent needed to resume other jobs.
+  await page.goto(origin+'/simple?scenario=pending-elsewhere');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button',{name:'Verify and enable Test imports'}).click();
+  await page.getByText('Connected for Test-account imports.').waitFor();
+  await page.getByRole('button',{name:'Import orders',exact:true}).click();
+  await page.getByRole('button',{name:'Preview orders',exact:true}).click();
+  await page.getByRole('heading',{name:'3 orders found · 0 new'}).waitFor();
+  await page.getByRole('dialog').getByRole('checkbox').uncheck();
+  assert.equal(await page.getByRole('button',{name:'Continue import',exact:true}).isDisabled(),true);checks++;
+  await page.getByRole('dialog').getByRole('checkbox').check();
+  await page.getByRole('button',{name:'Continue import',exact:true}).click();
+  await page.getByText('Import finished. Open Orders to complete the draft.').waitFor();checks++;
   await page.goto(origin+'/manager');
   await page.getByRole('heading',{name:'Pending actions'}).waitFor();
   const pant=page.getByRole('group',{name:'Fictional test pants × 1',exact:true});

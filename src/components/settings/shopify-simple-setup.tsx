@@ -128,7 +128,7 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction}:{init
               {row.orderIds.map((id,index)=><Link key={id} className="mt-2 inline-flex min-h-11 items-center underline" href={`/orders/${id}`} target="_blank" rel="noopener noreferrer">Compare existing order{row.orderIds.length>1?` ${index+1}`:""} (new tab)</Link>)}</td></tr>)}</tbody></table></div>}
         {filtered.length>50&&<div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous</Button>
           <span>Page {page+1} of {Math.ceil(filtered.length/50)} · {filtered.length} matching rows</span><Button variant="outline" disabled={(page+1)*50>=filtered.length} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
-        {newCount>0&&cleanupConsent}
+        {(newCount>0||!!c?.pending)&&cleanupConsent}
         <form action={action}><input type="hidden" name="operation" value="import"/><Button disabled={importDisabled||expired&&!retryImport||!preview.complete||!preview.previewId||!newCount}>{retryImport?"Retry same import":`Import ${newCount} new orders`}</Button></form>
         <p className="text-sm">Imports all {newCount} new orders in the preview, not just the filtered rows. Customer phone matches do not prevent order creation; managers can review customer links in each draft.</p>
         {expired?<p role="alert">{retryImport?"The preview expired after an attempted import. Retry same import to recover its result; the server will reject it if it was not accepted before expiry.":"This preview expired. Select Preview orders again to refresh the matches before importing."}</p>:

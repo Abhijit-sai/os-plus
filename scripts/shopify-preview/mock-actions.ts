@@ -11,6 +11,7 @@ export async function shopifyUnifiedAction(_state:UnifiedActionState,form:FormDa
   if(['enable','import','process'].includes(c.action)&&c.manualCleanupAcknowledged!==true)return {status:'error',message:'Manual cleanup acknowledgement missing.'};
   if(c.action==='enable')connection.unified=true;
   if(c.action==='automatic')connection.automatic=c.enabled;
+  if(c.action==='preview'&&new URLSearchParams(window.location.search).get('scenario')==='pending-elsewhere'){connection.pending=1;imported=true;}
   if(c.action==='preview')return {status:'success',message:'Fictional preview ready.',view:structuredClone(workspace),preview:{previewId:fictionalId(4),
     expiresAt:new Date(Date.now()+600000).toISOString(),complete:true,from:c.from,through:c.through,rows:[
       {orderGid:'gid://shopify/Order/11',reference:'PT-101',amount:'3902.20',currency:'INR',financialStatus:'PAID',status:imported?'already_imported':'new',orderIds:imported?[fictionalId(11)]:[]},
