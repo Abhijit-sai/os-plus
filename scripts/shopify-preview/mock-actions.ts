@@ -32,5 +32,6 @@ export async function shopifyDraftSetupAction(_state:ShopifyDraftActionState,for
   return {status:'saved',message:'Draft saved. No workflow has started.',version:++version,setupId:fictionalId(9)};
 }
 export async function searchShopifySetupOptions(input:{kind:string;search:string;offset:number}){
-  return {status:'success' as const,rows:[{id:fictionalId(20),name:`Fictional ${input.search||'additional choice'}`}],hasMore:false};
+  if(input.search==='fail')return {status:'error' as const,message:'Fictional search unavailable. Retry.'};
+  return {status:'success' as const,rows:[{id:fictionalId(20+input.offset),name:`Fictional ${input.search||'additional choice'} ${input.offset}`}],hasMore:input.offset===0};
 }

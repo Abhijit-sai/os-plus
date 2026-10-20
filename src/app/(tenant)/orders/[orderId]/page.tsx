@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Route } from "lucide-react";
 
 import { getOrderDetailPageData } from "@/features/orders/queries";
-import { getImportedShopifyOrders,getRetainedShopifyBusinessOrder } from "@/features/orders/shopify-imported";
+import { getImportedShopifyOrders,getRetainedShopifyBusinessOrder,getShopifyDraftPreviews } from "@/features/orders/shopify-imported";
 import { ShopifyImportedOrder } from "@/components/orders/shopify-imported-order";
 import { ShopifyDraftSetupForm } from "@/components/orders/shopify-draft-setup-form";
 import { getShopifyManagerSetup } from "@/features/orders/shopify-setup";
@@ -99,10 +99,10 @@ export default async function OrderDetailPage({
   const [imported] = await getImportedShopifyOrders(orderId);
   if (imported) {
     const setup=imported.availability==="available"?await getShopifyManagerSetup(orderId):null;
-    return <div className="space-y-5"><ShopifyImportedOrder order={imported}/>
-      {setup&&imported.availability==="available"?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={imported.lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>:
-        <p role="status" className="text-sm text-muted-foreground">Manager setup becomes available after the complete order details have been synced.</p>}
-    </div>;
+    const display=setup?await getShopifyDraftPreviews(imported,setup):imported;
+    return <ShopifyImportedOrder order={display} setup={setup&&display.availability==="available"
+      ?<ShopifyDraftSetupForm key={`${setup.sourceRevisionId}:${setup.version}`} view={setup} lines={display.lines} submitAction={shopifyDraftSetupAction} searchOptions={searchShopifySetupOptions}/>
+      :<p role="status" className="text-sm text-muted-foreground">Manager setup becomes available after the complete order details have been synced.</p>}/>;
   }
   const {
     context,

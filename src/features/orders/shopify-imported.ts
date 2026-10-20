@@ -2,7 +2,9 @@ import "server-only";
 import { z } from "zod";
 import { requireTenantContext } from "@/lib/tenant/context";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { importedShopifyOrdersVisible, projectImportedShopifyOrderSafely } from "@/integrations/shopify/imported-order";
+import { importedShopifyOrdersVisible, projectImportedShopifyOrderSafely, type ImportedShopifyOrder } from "@/integrations/shopify/imported-order";
+import { readShopifyDraftPreviews } from "@/integrations/shopify/imported-previews";
+import type { ShopifyDraftSetupView } from "@/integrations/shopify/draft-setup";
 import { canonicalShopDomain } from "@/integrations/shopify/config";
 import { readShopifyCommercialDetails } from "@/integrations/shopify/commercial-order";
 
@@ -40,4 +42,12 @@ export async function getImportedShopifyOrders(orderId?: string, search?: string
   }).abortSignal(AbortSignal.timeout(5000));
   if (error) throw new Error("Unable to load imported orders. Please retry.");
   return z.array(z.unknown()).max(50).parse(data).map(row => projectImportedShopifyOrderSafely(row, context.tenant.id));
+}
+
+// Called only with the same request's permission-checked manager view. The
+// retained import has its own expiry; the old pilot reader is not applicable.
+export async function getShopifyDraftPreviews(order:ImportedShopifyOrder,view:ShopifyDraftSetupView) {
+  const context=await requireTenantContext();
+  if(!importedShopifyOrdersVisible(context.tenant.id,context.membership.role)||view.tenantId!==context.tenant.id)return order;
+  return readShopifyDraftPreviews(createSupabaseServiceRoleClient(),order,view,AbortSignal.timeout(4000));
 }

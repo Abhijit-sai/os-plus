@@ -16,8 +16,13 @@ function load(path,imports){
 }
 const cards=load('../src/components/ui/card.tsx',{'@/lib/utils':{cn:(...values)=>values.filter(Boolean).join(' ')}});
 const payment=load('../src/components/orders/shopify-payment-panel.tsx',{'@/components/ui/card':cards});
+const utils={'@/lib/utils':{cn:(...values)=>values.filter(Boolean).join(' ')}};
 const {ShopifyImportedOrder,ShopifyImportedOrderList}=load('../src/components/orders/shopify-imported-order.tsx',{
   '@/components/ui/card':cards,'@/components/orders/shopify-payment-panel':payment,
+  '@/components/layout/page-header':load('../src/components/layout/page-header.tsx',utils),
+  '@/components/layout/command-bar':load('../src/components/layout/command-bar.tsx',utils),
+  '@/components/dashboard/metric-card':load('../src/components/dashboard/metric-card.tsx',{...utils,'@/components/ui/card':cards}),
+  '@/components/orders/shopify-image-preview':{ShopifyImagePreview:()=>null},
   'next/link':{__esModule:true,default:({children,...props})=>React.createElement('a',props,children)},
   '@/components/ui/button':{Button:({children})=>children},
 });
@@ -41,6 +46,14 @@ test('completed order can embed retained source details without a false draft he
   assert.ok(html.includes('Test pants'));assert.ok(html.includes('fictional-shipping-phone'));
   assert.ok(!html.includes('Draft — needs setup'));assert.ok(!html.includes('Back to orders'));
   assert.ok(!html.includes('No workflow or worker has been assigned'));
+});
+test('draft setup is before commercial details and replaces the duplicate source item list',()=>{
+  const html=renderToStaticMarkup(React.createElement(ShopifyImportedOrder,{order,
+    setup:React.createElement('form',null,'Pending actions','Editable garment cards')}));
+  assert.ok(html.includes('Pending actions'));
+  assert.ok(html.indexOf('Pending actions')<html.indexOf('Shipping address'));
+  assert.ok(!html.includes('Items from Shopify'));
+  assert.ok(html.includes('Reference order ID'));
 });
 test('expired/partial/unavailable imports render clearly without leaking prior customer or source details',()=>{
   for(const availability of ['expired','partial','unavailable']){

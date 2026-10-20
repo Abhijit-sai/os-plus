@@ -10,6 +10,9 @@ let checks=0;
 try{
   const context=await browser.newContext({viewport:{width:1440,height:1000}});
   await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+  // Fulfill a fictional CDN image in memory; no real image download or saved copy.
+  await context.route('https://cdn.shopify.com/s/files/1/fictional.png',route=>route.fulfill({contentType:'image/svg+xml',
+    body:'<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#e5e7eb"/><text x="8" y="50" font-size="12">Test preview</text></svg>'}));
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(origin+'/simple');
@@ -39,7 +42,16 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:'outputs/shopify-unified/setup-mobile.png',fullPage:true});checks++;
   await page.goto(origin+'/manager');
-  await page.getByRole('heading',{name:'Finish order setup'}).waitFor();
+  await page.getByRole('heading',{name:'Pending actions'}).waitFor();
+  const pant=page.getByRole('group',{name:'Fictional test pants × 1',exact:true});
+  const shirt=page.getByRole('group',{name:'Fictional test shirt × 1',exact:true});
+  assert.equal(await page.locator('details').count(),0);checks++;
+  assert.equal(await page.getByLabel('Delivery',{exact:true}).count(),1);checks++;
+  const sections=await page.locator('h3').allTextContents();
+  assert.ok(sections.indexOf('Pending actions')<sections.indexOf('Commercial summary'));checks++;
+  assert.equal(await page.getByText('5 choices needed',{exact:true}).count(),1);checks++;
+  await page.getByRole('link',{name:'Choose delivery method',exact:true}).click();
+  assert.equal(await page.getByLabel('Delivery',{exact:true}).evaluate(el=>el===document.activeElement),true);checks++;
   assert.equal(await page.getByRole('button',{name:'Complete setup'}).isDisabled(),true);
   await page.getByRole('button',{name:'Save draft'}).click();
   await page.getByText('Draft saved. No workflow has started.').waitFor();checks++;
@@ -49,8 +61,35 @@ try{
   assert.equal(await page.getByLabel('Team setup note (optional)').inputValue(),'simulate network error');checks++;
   await page.getByLabel('Team setup note (optional)').fill('Fictional end-to-end check');
   await page.getByLabel('Delivery',{exact:true}).selectOption('store_pickup');
-  await page.getByLabel('Garment type',{exact:true}).selectOption({label:'Pant'});
-  await page.getByLabel('Workflow',{exact:true}).selectOption({label:'Pant default workflow'});
+  await pant.getByLabel('Garment type',{exact:true}).selectOption({label:'Pant'});
+  await pant.getByLabel('Workflow',{exact:true}).selectOption({label:'Pant default workflow'});
+  await pant.getByLabel('Standard size (optional)',{exact:true}).selectOption({label:'38'});
+  assert.equal(await shirt.getByLabel('Workflow',{exact:true}).isDisabled(),true);checks++;
+  await shirt.getByLabel('Garment type',{exact:true}).selectOption({label:'Shirt'});
+  assert.equal(await shirt.getByLabel('Workflow',{exact:true}).locator('option').filter({hasText:'Pant default workflow'}).count(),0);checks++;
+  await shirt.getByLabel('Workflow',{exact:true}).selectOption({label:'Shirt default workflow'});
+  await shirt.getByLabel('Standard size (optional)',{exact:true}).selectOption({label:'L'});
+  // Changing one garment invalidates only its dependent choices.
+  await pant.getByLabel('Garment type',{exact:true}).selectOption({label:'Shirt'});
+  assert.equal(await pant.getByLabel('Workflow',{exact:true}).inputValue(),'');
+  assert.equal(await pant.getByLabel('Standard size (optional)',{exact:true}).inputValue(),'');
+  assert.equal(await shirt.getByLabel('Workflow',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000017');checks+=3;
+  await pant.getByLabel('Garment type',{exact:true}).selectOption({label:'Pant'});
+  await pant.getByLabel('Workflow',{exact:true}).selectOption({label:'Pant default workflow'});
+  // Paged search stays visible; paging/error never clears a selected value.
+  await page.getByLabel('Search customer',{exact:true}).fill('buyer');
+  await page.getByRole('button',{name:'Search customer choices',exact:true}).click();
+  await page.getByLabel('Customer',{exact:true}).selectOption({label:'Fictional buyer 0'});
+  await page.getByRole('button',{name:'More results',exact:true}).click();
+  await page.getByRole('button',{name:'Previous results',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Customer',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000020');checks++;
+  assert.equal(await page.getByLabel('Customer',{exact:true}).locator('option:checked').textContent(),'Fictional buyer 0');checks++;
+  await page.getByLabel('Search customer',{exact:true}).fill('fail');
+  await page.getByRole('button',{name:'Search customer choices',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'Fictional search unavailable'}).waitFor();
+  assert.equal(await page.getByLabel('Customer',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000020');checks++;
+  await page.getByLabel('Search customer',{exact:true}).fill('');
+  await page.getByRole('button',{name:'Search customer choices',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Complete setup'}).isDisabled(),true);
   await page.getByRole('button',{name:'Save draft'}).click();
   await page.getByText('Draft saved. No workflow has started.').waitFor();
@@ -58,12 +97,24 @@ try{
   // Wait for the committed client action state, not only the repeated message.
   await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Complete setup'&&!b.disabled));checks++;
   assert.equal(await page.getByLabel('Delivery',{exact:true}).inputValue(),'store_pickup');
-  assert.equal(await page.getByLabel('Garment type',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000006');
-  assert.equal(await page.getByLabel('Workflow',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000007');checks+=3;
+  assert.equal(await pant.getByLabel('Garment type',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000006');
+  assert.equal(await pant.getByLabel('Workflow',{exact:true}).inputValue(),'10000000-0000-4000-8000-000000000007');checks+=3;
+  assert.equal(await page.getByText('All required details saved — ready to complete setup.',{exact:true}).count(),1);checks++;
+  const preview=pant.getByRole('img',{name:'Fictional garment preview'});
+  await preview.scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>[...document.images].some(img=>img.alt==='Fictional garment preview'&&img.naturalWidth===96));
+  assert.equal(await preview.getAttribute('src'),'https://cdn.shopify.com/s/files/1/fictional.png');
+  assert.equal(await preview.getAttribute('referrerpolicy'),'no-referrer');
+  assert.equal(await shirt.getByText('Preview unavailable',{exact:true}).count(),1);checks+=3;
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);checks++;
   await page.screenshot({path:'outputs/shopify-unified/manager-mobile.png',fullPage:true});
   await page.setViewportSize({width:1440,height:1000});
   await page.screenshot({path:'outputs/shopify-unified/manager-desktop.png',fullPage:true});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:812,height:375});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);checks++;
+  await preview.evaluate(img=>img.dispatchEvent(new Event('error')));
+  await pant.getByText('Preview unavailable',{exact:true}).waitFor();checks++;
   await page.getByRole('button',{name:'Complete setup'}).click();
   await page.getByText('Setup complete. Fictional Pant workflow started.').waitFor();
   assert.equal(await page.getByRole('button',{name:'Complete setup'}).isDisabled(),true);checks++;

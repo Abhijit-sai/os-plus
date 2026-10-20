@@ -31,6 +31,15 @@ type ConnectionRelationship<Name extends string> = {
   referencedRelation: "shopify_connections"; referencedColumns: ["tenant_id", "id"];
 };
 export type ShopifyIntakeTables = {
+  shopify_commercial_details: {
+    Row: {tenant_id:string;source_order_id:string;revision_id:string;schema_version:number;details:Json;raw_expires_at:string;created_at:string};
+    Insert:never;Update:never;Relationships:[];
+  };
+  shopify_source_revisions: {
+    Row: {id:string;tenant_id:string;source_order_id:string;job_id:string;generation:number;source_updated_at:string;observed_at:string;
+      source_digest:string;sealed_source:Json;review_reasons:Json;completeness:"partial"|"complete";source_customer_gid:string|null;created_at:string};
+    Insert:never;Update:never;Relationships:[];
+  };
   shopify_connections: {
     Row: ShopifyConnectionRecord;
     Insert: never;
