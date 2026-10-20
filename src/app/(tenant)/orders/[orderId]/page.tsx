@@ -81,11 +81,6 @@ function formatMeasurementEntries({
     });
 }
 
-function isDeliveryStageName(stageName: string | undefined) {
-  const normalized = stageName?.toLowerCase() ?? "";
-  return normalized.includes("deliver") || normalized.includes("handoff");
-}
-
 function StageStatusIndicator({ status }: { status: string }) {
   return <StatusBadge value={status} />;
 }
@@ -171,22 +166,8 @@ export default async function OrderDetailPage({
   const trackingUrl = trackingPath;
   const effectivelyDeliveredItemIds = new Set(
     items
-      .filter((item) => {
-        if (item.item_status === "delivered") {
-          return true;
-        }
-
-        const itemStages = (stagesByItemId.get(item.id) ?? []).sort((a, b) => a.sequence_number - b.sequence_number);
-        const finalStage = itemStages.at(-1);
-        const finalStageName = finalStage ? stageById.get(finalStage.stage_master_id)?.name : undefined;
-
-        return (
-          Boolean(itemStages.length) &&
-          itemStages.every((stage) => ["completed", "skipped"].includes(stage.status)) &&
-          finalStage?.status === "completed" &&
-          isDeliveryStageName(finalStageName)
-        );
-      })
+      // Delivery is recorded by the workflow transition, never inferred from editable stage names.
+      .filter((item) => item.item_status === "delivered")
       .map((item) => item.id)
   );
   const deliveredItems = effectivelyDeliveredItemIds.size;
@@ -529,15 +510,26 @@ export default async function OrderDetailPage({
                 const itemStages = (stagesByItemId.get(item.id) ?? []).sort((a, b) => a.sequence_number - b.sequence_number);
                 const workflowInstance = workflowInstanceByItemId.get(item.id);
                 const currentStage =
-                  itemStages.find((stage) => stage.id === workflowInstance?.current_stage_instance_id) ??
+                  itemStages.find((stage) => stage.id === workflowInstance?.current_stage_instance_id &&
+                    !["completed", "skipped"].includes(stage.status)) ??
                   itemStages.find((stage) => ["ready_to_start", "in_progress", "paused", "blocked"].includes(stage.status)) ??
                   null;
                 const activeLog = currentStage ? activeLogByStageId.get(currentStage.id) : null;
                 const activeWorker = activeLog ? workerById.get(activeLog.worker_id) : null;
                 const completedStageCount = itemStages.filter((stage) => stage.status === "completed").length;
                 const stageProgress = itemStages.length ? Math.round((completedStageCount / itemStages.length) * 100) : 0;
-                const customerStatus = item.customer_status_id ? customerStatusById.get(item.customer_status_id)?.name : null;
+                const customerStatus = item.customer_status_id ? customerStatusById.get(item.customer_status_id) : null;
                 const effectiveItemStatus = effectivelyDeliveredItemIds.has(item.id) ? "delivered" : item.item_status;
+                // The final stage's mapping is selected when it becomes ready, before delivery.
+                const publicStatus = customerStatus && (!customerStatus.is_final_status || effectiveItemStatus === "delivered")
+                  ? customerStatus.name
+                  : effectiveItemStatus;
+                const workflowComplete = workflowInstance?.status === "completed" ||
+                  ["completed", "delivered"].includes(effectiveItemStatus) ||
+                  (itemStages.length > 0 && itemStages.every((stage) => ["completed", "skipped"].includes(stage.status)));
+                const internalStageLabel = currentStage
+                  ? stageById.get(currentStage.stage_master_id)?.name ?? "Unknown"
+                  : workflowComplete ? "Completed" : effectiveItemStatus === "not_started" ? "Not started" : "No active stage";
                 const linkedMeasurement = item.customer_measurement_id ? customerMeasurementById.get(item.customer_measurement_id) : null;
                 const linkedStandardSize = item.standard_size_id ? standardSizeById.get(item.standard_size_id) : null;
                 const linkedMeasurementEntries = linkedMeasurement ? getMeasurementEntries(linkedMeasurement.measurement_data_json) : [];
@@ -578,14 +570,14 @@ export default async function OrderDetailPage({
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge value={customerStatus ?? effectiveItemStatus} />
+                        <StatusBadge value={publicStatus} />
                       </div>
                     </div>
                     <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                       <div>
                         <p className="font-medium">Internal stage</p>
                         <p className="text-muted-foreground">
-                          {currentStage ? stageById.get(currentStage.stage_master_id)?.name ?? "Unknown" : "Not started"}
+                          {internalStageLabel}
                         </p>
                       </div>
                       <div>
@@ -594,7 +586,7 @@ export default async function OrderDetailPage({
                       </div>
                       <div>
                         <p className="font-medium">Public status</p>
-                        <p className="text-muted-foreground">{customerStatus ?? effectiveItemStatus.replace("_", " ")}</p>
+                        <p className="text-muted-foreground">{publicStatus.replaceAll("_", " ")}</p>
                       </div>
                       <div>
                         <p className="font-medium">Expected</p>

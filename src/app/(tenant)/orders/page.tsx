@@ -211,7 +211,8 @@ export default async function OrdersPage({
         })}
       </div>
 
-      <form>
+      {/* Remount uncontrolled inputs when navigation changes the applied filters. */}
+      <form key={JSON.stringify([search, paymentFilter, statusFilter, sourceFilter, viewFilter])}>
         <CommandBar className="items-end">
           <div className="min-w-[220px] flex-1">
               <Label htmlFor="q" className="sr-only">
