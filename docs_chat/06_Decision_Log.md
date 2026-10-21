@@ -209,3 +209,14 @@ An open SALES lead is hot only while its latest customer activity is within the 
 ### CHAT-D038 — CH-3 local acceptance, real-phone deferral and CH-4 authorised
 **Status:** ACCEPTED exception (owner,2026-10-21)
 Owner answered “Accept local CH-3; defer real phones; continue CH-4” to the evidence-linked phase acceptance question. Accept local six gates/Chat100/provider10/CRM2/Boutique14/restore evidence and their documented scope. Defer CHECKLIST PartC CH-3 two-real-phone/WhatsApp owner exercise until Meta resumes; preserve it as an unexecuted production-release blocker, never PASS. Authorises final local CH3 closure/commit under D025 then CH4. No shared migration, live message, purchase/public tunnel, production enablement, push/merge/deployment or n8n authority.
+
+
+## Resolved — CH-4 local closure alignment,2026-10-22 (CHAT-D039)
+**C4-O1 — ACCEPTED under CHAT-D039; proposal history below retained.** CH4_IMPLEMENTATION_PLAN.md stages existing stored suggestion text/knowledge version in CH4, richer generated provenance in CH5 and Create booking/actions in CH6. Original WBS CH4.2 bundles these; its checkbox remains partial. Request explicit sequencing acceptance with the full local CH4 gate in CH4_OWNER_ACCEPTANCE.md C4-L4/L5 before READY_FOR_CLOSURE/commit/CH5. No new business policy, purchase or model run approved.
+
+Factual owner-assisted QA: owner replied "saved" to the conversation10 Dashboard App exercise. Actual persisted stage/owner/note and audit verified, fresh matching-account card displays the values. This is one verified save, not evidence of two saves or full phase acceptance. CH4_QA.md records complete local gates and limits. Meta/two-phone deferral remains release-blocking under D038; no external readiness implied.
+
+
+### CHAT-D039 — CH-4 local acceptance and dependency sequencing
+**Status:** ACCEPTED (owner,2026-10-22)
+Owner answered "Accept local CH-4 and sequencing; continue to CH-5 planning" to the evidence-linked full phase question. C4-L1–L5 local acceptance satisfied: six gates/Chat119, actual card save, role/tenant/privacy/narrow checks, Boutique14 and local migration/restore evidence within CH4_QA.md limits. Explicitly accepts C4-O1 sequencing: CH4 stored suggestion text/recorded knowledge version; richer generated provenance CH5; booking actions CH6. CH4.2 is complete only for that accepted local scope, not evidence those later features exist. Authorises final local closure/commit under D025 and CH5 planning. Meta/two-phone proof stays deferred and production-release blocking. No paid model run, purchase, shared SQL, public tunnel, real external message, n8n activation, push/merge/deployment or production enablement authority.

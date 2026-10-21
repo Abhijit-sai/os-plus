@@ -1,5 +1,5 @@
 # CH-3 owner acceptance — local only
-Status: pending owner, 2026-10-21. Technical evidence [CH3_QA.md](CH3_QA.md), [Boutique14](CH3_BOUTIQUE_QA.md), [upgrade/restore](CH3_LOCAL_UPGRADE.md).
+Status: ACCEPTED LOCAL under CHAT-D038,2026-10-21; committed0d22491f14eb82f246d2d17f50b9c97c4269a0a0. Header reconciled2026-10-22; exercise instructions below retained for history. Technical evidence [CH3_QA.md](CH3_QA.md), [Boutique14](CH3_BOUTIQUE_QA.md), [upgrade/restore](CH3_LOCAL_UPGRADE.md).
 
 CH-3 builds contacts/leads storage and audited commands. Leads/Contacts pages arrive in CH-4; the current Chat setup is owner configuration. Staff still reply in Chatwoot. No AI replies yet.
 

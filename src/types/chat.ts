@@ -229,6 +229,7 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_crm_read: {Args:{p_context:Json;p_view:string;p_input:Json};Returns:Json;};
   chat_lead_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

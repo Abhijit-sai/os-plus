@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { reportingScheduleSchema } from "../leads/reporting-hours.ts";
 
 const text = z
   .string()
@@ -44,6 +45,7 @@ export const knowledgePackSchema = z
     schemaVersion: z.literal(1),
     crm: z
       .object({
+        reportingSchedule: reportingScheduleSchema.optional(),
         intentPriorities: z.record(key, z.number().int().min(0).max(10000)),
         hotIntents: z.array(key).max(100).optional(),
         typicalBasket: z

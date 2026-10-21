@@ -34,7 +34,7 @@ Owner actions that unblock phases are in `CHECKLIST.md`; the "Needs from owner" 
 
 ## CH-1 — Foundation
 
-2026-10-21: implementation/QA and owner acceptance complete (CHAT-D030; CH1_AUTHENTICATED_QA.md). CLOSED at local commit8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50; CH-2 is QA_BLOCKED pending the remaining acceptance evidence; see CH2_QA.md.
+2026-10-21: implementation/QA and owner acceptance complete (CHAT-D030; CH1_AUTHENTICATED_QA.md). CLOSED at local commit8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50; CH-2 CLOSED LOCAL under CHAT-D034; live Meta acceptance remains deferred/release-blocking. Current CH-4 evidence/owner gate: CH4_QA.md.
 - [x] CH-1.1 Migration: `tenant_modules`, `chat_settings`, `chat_workspaces`, `chat_brands`, `chat_brand_locations`, `chat_knowledge_packs`, `chat_channels`, `chat_role_permissions`, `chat_staff_links`, `chat_notification_targets`, `chat_summary_runs` (02 §4.1–4.4, 4.8), RLS + indexes.
 - [x] CH-1.2 Permissions `leads:view`, `leads:manage`, `leads:pii`, `chat_settings:manage`; module guard helper; tenant-owned viewer access/PII settings with audited owner/admin controls; extend `test:roles` without changing existing module permissions.
 - [x] CH-1.3 Secrets helper (AES-256-GCM, key versioning) + tests.
@@ -58,7 +58,7 @@ Local phase CLOSED under CHAT-D034; runtime tasks below completed. Live Meta/cha
 **Acceptance:** real messages to a test inbox appear in `chat_messages` under the right tenant within seconds.
 
 ## CH-3 — Contacts, leads, customer link/convert
-Runtime tasks implemented and locally tested; phase QA_BLOCKED pending owner C3-L1–L4 and local-only real-phone deferral (CH3_OWNER_ACCEPTANCE.md). See CH3_QA.md/Boutique evidence. No CH4 start or phase commit yet.
+CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b9c97c4269a0a0. CH3_OWNER_ACCEPTANCE.md and CH3_QA.md record passed local evidence; real-phone proof remains unexecuted/release-blocking. CH-4 is now IN_PROGRESS.
 - [x] CH-3.1 Migration: `chat_contacts`, `chat_contact_identities`, `leads`, `lead_events`; `tasks` check extensions (02 §4.9).
 - [x] CH-3.2 Pure rules (`src/features/leads/rules.ts`): channel from payload, ref codes, intent ranking (never downgrade), kind, stage machine, hot, SLA clocks, value estimate (repeat customer's median order value, else the pack's typical basket; service leads carry none). Write synthetic tests for the new business's approved rules; reference test structure only.
 - [x] CH-3.3 Capture: identity resolution (E.164 on WhatsApp; platform ids otherwise), one open lead per conversation, clocks, first staff reply → owner via `chat_staff_links`.
@@ -70,13 +70,14 @@ Runtime tasks implemented and locally tested; phase QA_BLOCKED pending owner C3-
 **Acceptance:** every captured conversation has a contact and a lead; a WhatsApp number matching an existing customer links automatically.
 
 ## CH-4 — Pages, lead card, permissions/PII
-- [ ] CH-4.1 Leads nav (module-gated): inbox with counters, filters (brand, branch, channel, stage, owner), SLA clocks, hot / needs-a-person flags.
-- [ ] CH-4.2 Lead detail: conversation mirror, unsent suggestion, "what it drew on" chips from `chat_turns`, stage/owner/notes, history, Open in Chatwoot, Convert to customer, Create booking.
-- [ ] CH-4.3 Contacts list + record (identities, prefs, leads, customer, orders, value; merge/split).
-- [ ] CH-4.4 Performance page + dashboard widget "N enquiries waiting for a reply".
-- [ ] CH-4.5 PII masking in server DTOs for roles without `leads:pii`.
-- [ ] CH-4.6 `/chat/panel` Dashboard App: origin-checked `fetch-info` handshake, session check in the iframe (02 §7), lead card with actions. Record the iframe session result.
-- [ ] CH-4.7 Mobile (375 px) and accessibility pass per `PRODUCT.md`.
+2026-10-22: local implementation/technical QA complete; full owner phase acceptance pending (CH4_OWNER_ACCEPTANCE.md C4-L1–L5). Checked tasks mean locally implemented/tested within CH4_QA.md limits, not production acceptance. CH4.2 remains partial pending explicit C4-L4 sequencing: stored draft text/knowledge version now, generation/richer provenance CH5 and booking CH6. Mobile evidence is authenticated375px frame/layout/control testing, not physical-device or independent screen-reader certification.
+- [x] CH-4.1 Leads nav (module-gated): inbox with counters, filters (brand, branch, channel, stage, owner), SLA clocks, hot / needs-a-person flags.
+- [x] CH-4.2 Lead detail: conversation mirror, unsent suggestion, "what it drew on" chips from `chat_turns`, stage/owner/notes, history, Open in Chatwoot, Convert to customer, Create booking.
+- [x] CH-4.3 Contacts list + record (identities, prefs, leads, customer, orders, value; merge/split).
+- [x] CH-4.4 Performance page + dashboard widget "N enquiries waiting for a reply".
+- [x] CH-4.5 PII masking in server DTOs for roles without `leads:pii`.
+- [x] CH-4.6 `/chat/panel` Dashboard App: origin-checked `fetch-info` handshake, session check in the iframe (02 §7), lead card with actions. Record the iframe session result.
+- [x] CH-4.7 Mobile (375 px) and accessibility pass per `PRODUCT.md`.
 
 **Acceptance:** owner/manager can work every lead end to end; viewer denied when disabled, sees permitted/masked data only when configured; panel works inside Chatwoot or falls back safely.
 
@@ -128,3 +129,7 @@ Runtime tasks implemented and locally tested; phase QA_BLOCKED pending owner C3-
 - [ ] CH-10.4 Run `CHECKLIST.md` Part D end to end for a second test tenant without code changes; fix the runbook where it is wrong.
 - [ ] CH-10.5 Go-live for the first client in draft mode; auto mode per channel after drafts-sent-unchanged ≥ 70 % for a week.
 - CH-10.6 removed from scope by owner (2026-10-06): no Fundry cutover, migration, account changes, data transfer or service changes.
+
+
+### CH-4 accepted local scope —2026-10-22
+CHAT-D039 supersedes the earlier pending-owner note. C4-L1–L5 accepted; CH4 READY_FOR_CLOSURE LOCAL. CH4.2 checked for accepted implemented scope: mirror/stored draft text/knowledge version/audited edits/native customer links. Richer generated provenance is CH5, Create booking CH6; original requirement wording retained for traceability, not a claim these dependencies are built. Meta/two-phone remains deferred/release-blocking. Final local commit before CH5 planning.

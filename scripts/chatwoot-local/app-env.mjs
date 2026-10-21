@@ -9,6 +9,7 @@ export async function localChatwootEnvironment(){
  if(typeof accounts.platformToken!=="string"||!accounts.platformToken)throw new Error("Local platform token missing");
  await readFile(path.join(runtime,"ca.crt"),"utf8");
  return {
+  CHATWOOT_BROWSER_ORIGIN:"http://localhost:4141",
   CHATWOOT_BASE_URL:"https://localhost:4444",
   CHAT_WEBHOOK_ORIGIN:"https://osplus-bridge",
   CHATWOOT_PLATFORM_TOKEN:accounts.platformToken,

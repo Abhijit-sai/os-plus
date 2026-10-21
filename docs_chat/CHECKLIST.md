@@ -58,8 +58,8 @@ For **every** phase:
 | [x] | **CH-0** Baseline, decisions, deploy kit | O3/O6/O7 resolved; domain selection may follow local placeholder-based preparation. Review `deploy/chatwoot/` and `examples/new-business.pack.json`. Then do Part B. |
 | [x] | **CH-1** Foundation | Local implementation and automated evidence are in [CH1_QA.md](CH1_QA.md); real Clerk owner-a setup and all 14 local Boutique Tier A paths now pass ([authenticated QA](CH1_AUTHENTICATED_QA.md)); independent owner-b/platform denial passes, authenticated390px iframe evidence accepted, and owner acceptance CHAT-D030 recorded. The isolated local database/API is now available; follow [CH1_LOCAL_QA.md](CH1_LOCAL_QA.md) for private Clerk keys, test logins and accepted owner checklist C1–C8. Super admin: enable the module for a **test tenant** and a **second test tenant**. Create one brand + two branches. Paste a pack and publish it. |
 | [x] | **CH-2** Chatwoot connector (LOCAL closure CHAT-D034; Meta deferred) | Local two-account connector and owner reply acceptance complete: [CH2_QA.md](CH2_QA.md), CHAT-D034. Still pending production gate: connect approved test WhatsApp and capture real channels via [CH2_META_TESTING.md](CH2_META_TESTING.md). |
-| [ ] | **CH-3** Contacts & leads | Message from two phones, one of them an existing test customer. Check: two contacts, two leads, one linked to the customer. Try Convert to customer. |
-| [ ] | **CH-4** Pages & lead card | Click through Leads, a lead, Contacts (merge/split), Performance on phone and laptop. Add the Dashboard App using the verified lead-panel route under `chat.<domain>` and check the lead card. Test viewer access disabled and enabled in tenant role settings, including server-side PII masking. |
+| [x] | **CH-3** Contacts & leads — CLOSED LOCAL, CHAT-D038 | Owner accepted local evidence and explicitly deferred two-real-phone/WhatsApp proof until Meta resumes. Commit0d22491; [CH3_QA.md](CH3_QA.md). Real-phone proof remains unexecuted/release-blocking, not PASS. |
+| [x] | **CH-4** Pages & lead card — ACCEPTED LOCAL, CHAT-D039 | [CH4_OWNER_ACCEPTANCE.md](CH4_OWNER_ACCEPTANCE.md) C4-L1–L5 covers complete local QA, saved card and CH4.2 dependency alignment.  Click through Leads, a lead, Contacts (merge/split), Performance on phone and laptop. Add the Dashboard App using the verified lead-panel route under `chat.<domain>` and check the lead card. Test viewer access disabled and enabled in tenant role settings, including server-side PII masking. |
 | [ ] | **CH-5** Agent (draft) | Approve the cheap-model test cost. Use **Try the bot**. Send real test messages → drafts appear with Send as is / Edit (needs B8). |
 | [ ] | **CH-6** Actions & auto | Book a test pickup/appointment by chat → booking record at the first ask, task when needed. Ask for dues, claim a payment, complain → check the locked replies and handoffs. Switch the test channel to auto and repeat. |
 | [ ] | **CH-7** Telegram & summary | Settings → Notifications → link your DM and a staff group with `/start <code>`. Set the summary time 10 minutes ahead → check it arrives once. Set up the selected independent hourly scheduler (O7), without changing any existing business's infrastructure. |
@@ -141,7 +141,18 @@ Owner confirmed reply works. Actual private-note privacy, owner-a inbox sync,10/
 
 ## CH-3 local technical checkpoint — 2026-10-21
 Agent-executed local technical evidence: [CH3_QA.md](CH3_QA.md), [Boutique regression](CH3_BOUTIQUE_QA.md). Three migrations applied only to isolated LOCAL15437 with real pre/post restores; Chat100/100, provider10/10, CRM2/2, Boutique14/14 owner scenario and7 persistence groups PASS. Desktop/authenticated390px iframe smoke PASS, with documented limits.
-- [ ] Owner C3-L1–L4: [CH3_OWNER_ACCEPTANCE.md](CH3_OWNER_ACCEPTANCE.md).
-- [ ] Explicit local-progression deferral of PartC CH-3 two-real-phone exercise, if continuing before Meta. Prior D034 approved CH2 local closure/CH3 start only; do not silently extend it.
+- [x] Owner C3-L1–L4: accepted under CHAT-D038; [CH3_OWNER_ACCEPTANCE.md](CH3_OWNER_ACCEPTANCE.md).
+- [x] Explicit local-progression deferral of PartC CH-3 two-real-phone exercise: CHAT-D038. Exercise remains unexecuted/release-blocking.
 - [ ] Actual Meta/WhatsApp/IG/FB wire and channel acceptance before production release. Still deferred/unexecuted, never PASS.
-No new Clerk keys needed; existing owner-a session works. Leads/Contacts UI is CH4. No phase transition/commit until applicable owner gate passes.
+No new Clerk keys needed; existing owner-a session works. CH3 owner gate passed under D038 and local commit0d22491 completed; earlier pending/QA_BLOCKED CH2/CH3 checkpoints above are historical and superseded by D034/D038.
+
+
+## CH-4 local technical checkpoint — 2026-10-22
+[CH4_QA.md](CH4_QA.md), [Boutique14](CH4_BOUTIQUE_QA.md), [local upgrade/restore](CH4_LOCAL_UPGRADE.md).
+- [x] Six automated gates; latest Chat119/119, provider10/10, anonymous ingress6/6; counts overlap.
+- [x] Only20261021140000_chat_crm_reads.sql applied to isolated LOCAL15437;128 existing-table manifests preserved and both real dumps restored/ACL checked. No shared SQL.
+- [x] Owner/manager and configurable viewer/finance privacy, native record boundaries, two-tenant selector/copied URLs,375px authenticated layout/edit and actual Chatwoot card render/save/fallback tested within recorded limits.
+- [x] Owner replied "saved"; persisted stage/owner/note and audit verified. A second save or full phase acceptance is not inferred.
+- [x] Boutique14/14 owner scenario and7/7 persistence; workbook14 dated notes repaired with package/style/value preservation and visual checks. Renderer exits1 after valid export/previews, independently validated.
+- [x] Full owner CH4 acceptance under CHAT-D039 including CH4.2 generation/provenance CH5 and booking CH6 dependency alignment: [CH4_OWNER_ACCEPTANCE.md](CH4_OWNER_ACCEPTANCE.md) C4-L1–L5. Gate satisfied; final local commit before CH5 planning.
+- [ ] Existing Meta/two-real-phone/channel production-release proof remains deferred/unexecuted, never PASS. Separate Shopify hosted OAuth/renewal and n8n remain pending.

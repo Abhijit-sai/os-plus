@@ -1,5 +1,5 @@
 # CH-3 QA record
-Status: READY_FOR_CLOSURE — LOCAL acceptance CHAT-D038, 2026-10-21. Branch codex/chat-ch1-foundation; base00718d6e395ea652eb2a7ceb79b39ae1471e863c. No CH-3 commit or external release.
+Status: CLOSED LOCAL — owner acceptance CHAT-D038, local commit0d22491f14eb82f246d2d17f50b9c97c4269a0a0. Branch codex/chat-ch1-foundation; base00718d6e395ea652eb2a7ceb79b39ae1471e863c. No external release. Header reconciled2026-10-22.
 
 Implemented: tenant-owned contacts/scoped identities/conflict candidates, exact automatic existing-customer link, one open inquiry lead, callback-order-safe public reply clocks and eligible automatic ownership with manual provenance; audited atomic link/convert/edit/record/merge/split commands; explicit record stage refresh/inactivity; optional published CRM configuration; configured hot/value/SLA rules and idempotent historical backfill. Leads pages are CH-4; no model replies, SSO, Meta, notification delivery or scheduler activation.
 
@@ -34,6 +34,6 @@ Reports: outputs/chatwoot-local/qa-report.json and outputs/chat-local/ch3-provid
 No real WhatsApp/IG/FB/Telegram/model traffic.
 
 ## Remaining gate evidence
-Post-upgrade Boutique Tier A PASS14/14 in owner scenario; persistence7/7; tenant B copied A-order404; desktop/authenticated390px iframe smoke PASS. See CH3_BOUTIQUE_QA.md for limits and workbook14-note preservation evidence. Final local launcher HTTP200 on IPv4/IPv6 and authenticated reload PASS; final diff/check PASS; owner acceptance C3-L1–L4 pending in CH3_OWNER_ACCEPTANCE.md.
-Meta stays deferred under D033/D034, a production-release blocker. Real channel wire fixtures and two-phone owner acceptance are NOT PASS. CH-3 local owner checkpoint must explicitly carry that boundary before CH-4.
+Post-upgrade Boutique Tier A PASS14/14 in owner scenario; persistence7/7; tenant B copied A-order404; desktop/authenticated390px iframe smoke PASS. See CH3_BOUTIQUE_QA.md for limits and workbook14-note preservation evidence. Final local launcher HTTP200 on IPv4/IPv6 and authenticated reload PASS; final diff/check PASS; owner acceptance C3-L1–L4 satisfied under CHAT-D038 in CH3_OWNER_ACCEPTANCE.md.
+Meta stays deferred under D033/D034, a production-release blocker. Real channel wire fixtures and two-phone owner acceptance are NOT PASS. CHAT-D038 explicitly carries that boundary for local closure/CH4 progression.
 Model/API spend USD0.

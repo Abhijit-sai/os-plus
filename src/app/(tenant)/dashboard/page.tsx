@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { ChatWaitingWidget } from "@/components/leads/waiting-widget";
 import {
   Activity,
   ArrowUpRight,
@@ -466,6 +468,8 @@ export default async function DashboardPage({
         title="Dashboard"
         description={`${data.context.tenant.store_name} business command center: sales, production control, worker productivity, finance pressure, and alerts.`}
       />
+
+      <Suspense fallback={null}><ChatWaitingWidget/></Suspense>
 
       <CommandBar className="justify-between">
         <div className="flex flex-wrap items-center gap-2">
