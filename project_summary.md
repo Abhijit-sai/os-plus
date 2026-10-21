@@ -13080,3 +13080,351 @@ PLANNED - discovery performed; implementation awaits phase decisions.
 - Docker Desktop started hidden for disposable local tests; engine now responds as 29.7.2 with existing PostgreSQL images. This resolves the old engine availability blocker; no database container or shared service mutation performed yet.
 - CH-1 not READY_FOR_CLOSURE: foundation implementation and phase SQL/concurrency/UI/Tier A/owner acceptance remain. Model API spend USD 0.
 - Next: local merge commit under CHAT-D028; append IN_PROGRESS with exact merged HEAD; implement approved foundation in test-first increments.
+
+## Chat Session Update - 2026-10-21 - CH-1 foundation implementation started
+
+- Updated by Codex AI agent. Phase CH-1 Foundation; status IN_PROGRESS.
+- Branch codex/chat-ch1-foundation; merged base 24a0af7140c51fd061f2f2054c046a325999a298, including released c686337. Same worktree D:/Develop/os-plus-chat-ch0.
+- Scope and file inventory: docs_chat/CH1_IMPLEMENTATION_PLAN.md. P1/P2/I1 resolved under CHAT-D026/D027/D028; no remaining product decision before foundation coding.
+- Build order: pure knowledge/encryption/access modules and actual behavior tests; additive tenant-owned storage/atomic commands; mock Chatwoot admin API; owner/super-admin setup UI.
+- Expected migrations: timestamped chat_foundation and chat_foundation_commands; new tables/RPCs only, no existing-table modification in CH-1.
+- Compatibility risk: shared database type composition, permission declarations and setup navigation; Boutique Tier A BA-001..BA-014 required. Preserve all newer Shopify guards and source-money/retention/consent boundaries.
+- Baseline before coding PASS: typecheck, full lint (test-local inherited variable fixed), build 49/49, role suite, four V2 suites, Shopify OAuth 29+1 and unified 50 (overlap). No phase tests yet.
+- Docker engine now available. Real isolated PostgreSQL application and independent-session concurrency tests will use synthetic tenants; no shared migration or hosted data access.
+- UI/manual acceptance remains CHECKLIST Part C CH-1, plus Tier A and mobile/desktop role checks. No phase closure claimed.
+- Tests/migrations/runtime implementation at this start: pending. Model API spend USD 0.
+
+## Chat Session Update - 2026-10-21 - CH-1 pure foundation rules verified
+
+### Date / Updated By / Phase / Status
+2026-10-21 / Codex / CH-1 Foundation / IN_PROGRESS.
+
+### Branch / Base
+codex/chat-ch1-foundation at local merge 24a0af7, including released c686337. Prior histories preserved.
+
+### What Was Built / Decisions
+- Added src/features/chat/knowledge-pack.ts: strict knowledge boundary, unique keys, declared service references, safe HTTPS links, placeholder rejection, and publication checks against server-resolved brand branches/capabilities. The synthetic example remains unpublished.
+- Added src/features/chat/secrets.ts: server-only AES-256-GCM with tenant/workspace/purpose AAD, random nonce, call-time versioned key lookup and safe errors.
+- Added src/features/chat/permissions.ts: approved D026/D027 defaults, active-tenant/member/module gating, separate read-only viewer/finance view and PII grants. Existing platform roles/routes unchanged.
+- Added scripts/test-chat-{knowledge,secrets,permissions}.mjs and package.json test:chat. Added private rotation configuration documentation to .env.example.
+- No new product decision; accepted policies implemented as pure rules, not yet connected to routes or storage.
+
+### Migrations Added / Applied
+None yet. No shared database changes.
+
+### Automated Tests / Regression
+Test-first missing behavior failures observed, then npm run test:chat PASS 8/8; npm run typecheck PASS. Earlier released-baseline platform and Shopify checks remain recorded above; no runtime shared-code change in this slice.
+
+### Manual QA / Gate / Bugs / Next Step
+No UI exists yet to exercise. CHECKLIST Part C CH-1 and Boutique Tier A remain pending. Phase cannot close. Invalid pack references and wrong-context secret access are rejected in tests. Next: actual additive migrations and atomic commands in a disposable local Docker PostgreSQL database, then connector/setup interface. No paid model calls; USD 0.
+
+## Chat Session Update - 2026-10-21 - CH-1 schema and atomic commands tested locally
+
+### Date / Updated By / Phase / Status
+2026-10-21 / Codex / CH-1 Foundation / IN_PROGRESS, acceptance incomplete.
+
+### Branch / Base / Changes
+codex/chat-ch1-foundation, baseline 24a0af7 including released c686337.
+- Added supabase/migrations/20261021100000_chat_foundation.sql: 12 new tenant-owned tables (11 planned plus normalized notification target/brand junction), composite foreign keys, RLS, explicit ACLs, immutable knowledge revisions, one published revision per brand, module disabled by default and channels draft/no booking/no statement.
+- Added supabase/migrations/20261021101000_chat_foundation_commands.sql: service-role-only owner-authorized configuration RPC for brand save, branch map, knowledge revision/save/publish, role grants and channel mapping. Tenant advisory transaction lock serializes configuration; existing command_idempotency and domain_events commit atomically. No existing tables altered.
+- Added scripts/chat-db-harness/database.mjs and scripts/test-chat-database.mjs. Harness reuses the repository's locked pg dependency under scripts/shopify-db-harness, starts only a uniquely labeled disposable PostgreSQL 17 container, binds an ephemeral loopback port, uses random in-memory credentials and tmpfs, and verifies its label before cleanup. No app environment files or shared URLs are read.
+- Publication currently rejects booking capabilities because CH-1 does not activate them. No later-phase behavior enabled.
+
+### Migrations Applied / Tests
+Applied all 73 actual repository migrations (71 released + 2 new) to disposable local PostgreSQL only. Existing optional handover dependency shape is explicitly synthetic, following the inherited local harness; this does not claim handover acceptance.
+npm run test:chat PASS 15/15: real schema/FK/ACL/RLS checks, active owner and wrong-tenant denial, encrypted context/rotation, strict knowledge rules, concurrent revision/publish and same-key retry, plus injected audit-insert failure proves configuration/idempotency rollback. Owned test containers removed after runs.
+Fixed test-discovered knowledge publication SQL alias collision; verified corrected behavior. Earlier typecheck PASS; full final gates not yet rerun.
+
+### Manual QA / Regression / Gate / Decisions / Next
+No UI/browser or owner acceptance yet; CHECKLIST Part C CH-1 and Boutique Tier A remain pending. Workspace provisioning, mock connector, server adapters/types and setup UI still required. No new product decisions; phase cannot move to READY_FOR_CLOSURE. Shopify hosted OAuth/n8n pending work remains separate as recorded above. Next: guarded workspace setup and mock admin integration, then UI and regression. Model API spend USD 0.
+
+## Chat Session Update - 2026-10-21 - CH-1 guarded setup and first full gate run
+
+### Date / Updated By / Phase / Status
+2026-10-21 / Codex / CH-1 Foundation / IN_PROGRESS; owner acceptance not complete.
+
+### Implementation
+- Extended the two uncommitted Chat migrations with platform workspace preparation, one-attempt remote-create reservation, reconciliation/linking, secret rotation, suspension and explicit enablement; all writes/audits are atomic locally. Brand archive retains history and disables channels.
+- Added src/integrations/chatwoot/admin-client.ts with bounded response reads, timeouts, redirect refusal, account identity checks, supported inbox projection and provisioning marker validation. Only local HTTP mocks called. Review corrected the header to api-access-token per docs_chat/04; Rails normalizes this for the pinned v4.18.0 token lookup. Provider credentials present in remote inbox responses are discarded.
+- Added src/features/chat/{schemas,module,queries,connection,commands,platform-commands,actions}.ts, src/types/chat.ts and additive database type composition preserving Shopify. Tenant and platform guards remain distinct; no caller-supplied tenant authority in tenant forms.
+- Added src/components/chat/{setup-form,knowledge-editor,setup-panel,platform-panel}.tsx, tenant /settings/chat and platform /super-admin/chat-workspaces routes. Narrow settings/super-admin links are gated by CHAT_FOUNDATION_ENABLED (default false); tenant setup also requires module enablement and owner access.
+- Extended scripts/test-role-route-policy.mjs for guarded Chat integration; introduced strict form boundary tests. Added scripts/chat-preview for isolated synthetic browser QA without auth, database or remote-service imports. Its simulated saves are explicitly not backend acceptance.
+- .env.example documents default-off foundation/live admin gates, dry-run, canonical provider origin and private keys. No deployed environment changed.
+
+### Tests / Migrations
+First complete implementation run: npm run typecheck PASS; npm run lint PASS; npm run build PASS (51/51 generation steps); npm run test:roles PASS legacy suite; npm run test:v2 PASS 4 suites; npm run test:chat PASS 22/22. Follow-up header/read-validation/role-test/UI dependency changes require final rerun.
+Both new migrations applied only to owned disposable PostgreSQL containers, never shared/production. No actual Chatwoot provisioning, bot/model calls, messages, n8n workflow, push or deployment.
+
+### QA / Regression / Gate / Next
+Browser QA started in local synthetic preview; failed brand save visibly preserves fields and shows an error. Remaining: wider UI checks, final diff review and rerun; authenticated two-tenant end-to-end and Boutique BA-001 through BA-014 plus owner CHECKLIST Part C CH-1 acceptance are not yet proven. Do not close or commit CH-1 until these gates pass. Shopify pending hosted OAuth/n8n work remains separate. No new product decision. Model API spend USD 0.
+
+## Chat Session Update - 2026-10-21 - CH-1 review fixes and server-path regression
+
+### Phase / Branch / Changes
+CH-1 Foundation IN_PROGRESS on codex/chat-ch1-foundation, integrated baseline 24a0af7 (includes released c686337). Review found and fixed retry identity, knowledge-history truncation and incomplete grant audits; no new product decision.
+- src/components/chat/setup-form.tsx retains a key for unchanged failed submissions; tenant setup remounts on tenant change.
+- src/features/chat/commands.ts resolves authorized completed receipts before draft-state/network checks. platform-commands.ts and 20261021101000_chat_foundation_commands.sql use stable logical hashes, suppress regenerated one-time URLs on replay, and recover token-link receipts before another remote check. Plaintext tokens are never persisted in receipts.
+- Grant audit events now atomically include role, permission, prior and new allowed values.
+- src/features/chat/{queries,actions}.ts and setup/knowledge UI now page metadata per brand, always include published metadata and load selected JSON through a fresh tenant/owner guard. Removed global 200-pack and display 10-pack limits.
+- scripts/chat-db-harness/server-adapter.mjs executes production server modules against real local PostgreSQL while injecting authentication context and the PostgREST transport only. Added regression scenarios in scripts/test-chat-database.mjs.
+
+### Tests / Migrations / QA
+Database suite PASS 14/14 after observed failing retry cases were repaired. All 73 actual migrations replayed in disposable local PostgreSQL only. Actual SQL rollback, concurrency, cross-tenant constraints and server command/read behavior exercised; the adapter tests do not claim Clerk/browser authentication acceptance. Typecheck passed; lint/final full gate in progress. Synthetic browser lost-response test in progress.
+Two review agents (standards/specification, as prescribed by review skill) found no demonstrated P0/P1 breach; their P2 findings are addressed in this slice and being reverified.
+
+### Gate / Remaining / Spend
+Owner CHECKLIST Part C CH-1, authenticated two-tenant end-to-end and Boutique Tier A remain pending. No phase closure or CH-1 commit yet. Shopify OAuth/n8n pending work remains separate. No shared migrations, real service calls, messages or deployment; model API spend USD 0. Next: finish browser checks, final gate, evidence documentation and closure-blocker handoff.
+
+## Chat Session Update - 2026-10-21 - CH-1 foundation implemented; closure QA blocked
+
+### Date / Updated By / Chat Phase / Phase Status
+2026-10-21 / Codex / CH-1 Foundation / **QA_BLOCKED**.
+
+### Branch / Base / Session Objective
+- Worktree: D:/Develop/os-plus-chat-ch0.
+- Branch: codex/chat-ch1-foundation; no upstream.
+- HEAD: 24a0af7140c51fd061f2f2054c046a325999a298, the approved local merge of exact released c686337 after preservation checkpoint 1619c61. Both summary histories and CH-0 deployment/audit/example assets remain.
+- Objective: resume the existing foundation plan, preserve the newer Shopify release and implement only CH-1. CH-1 changes remain uncommitted; CH-2 has not started.
+
+### What Was Built / Files Changed
+- Tenant-owned configuration for modules, workspaces, brands, branch/channel mappings, grants and knowledge revisions; 12 new tables including the normalized notification-target/brand junction.
+- Accepted role defaults, tenant/module guard, authenticated AES-256-GCM keyring, strict Zod boundaries, safe DTOs, per-brand paginated revision metadata and selected-pack reads.
+- Audited atomic service-only Domain Command RPCs, idempotent save/publish/platform retry receipts, remote-create reservation/reconciliation, one-time webhook URL preparation/rotation and module suspension/enablement.
+- Guarded tenant Settings → Chat and platform Chat workspaces UI; mock Chatwoot admin integration. No later-phase messaging, model, contact/customer, lead-page or SSO behavior.
+- Exact new runtime inventory: src/features/chat/{actions,commands,connection,knowledge-pack,module,permissions,platform-commands,queries,schemas,secrets}.ts; src/components/chat/{knowledge-editor,platform-panel,setup-form,setup-panel}.tsx; src/integrations/chatwoot/admin-client.ts; src/types/chat.ts; src/app/(tenant)/settings/chat/page.tsx; src/app/(super-admin)/super-admin/chat-workspaces/page.tsx.
+- Shared additions: src/types/database.ts; src/lib/permissions/roles.ts; src/app/(tenant)/settings/page.tsx; src/app/(super-admin)/layout.tsx; .env.example; package.json; eslint.config.mjs; scripts/test-role-route-policy.mjs.
+- Tests/preview: scripts/test-chat-{admin-client,boundaries,database,knowledge,permissions,secrets}.mjs; scripts/chat-db-harness/{database,server-adapter}.mjs + README.md; scripts/chat-preview/ app, configuration, README.md and generated-file ignore.
+- Documentation: docs_chat/{02_Architecture_and_Data_Model,06_Decision_Log,CH1_IMPLEMENTATION_PLAN,CHECKLIST,CH1_QA}.md; this same living project_summary.md. CH1_QA.md contains the full file/evidence inventory and exact pending acceptance steps.
+
+### Key Decisions
+CHAT-D026/D027 access approvals and CHAT-D028 preservation/integration authority implemented. No unresolved CH-1 product decisions. Versioned encryption env names are CHAT_SECRETS_KEYS plus CHAT_SECRETS_ACTIVE_VERSION; draft singular notation updated. Global foundation/live admin flags remain off by default and dry-run on. No deployed configuration changed.
+
+### Migrations Added / Applied
+- supabase/migrations/20261021100000_chat_foundation.sql
+- supabase/migrations/20261021101000_chat_foundation_commands.sql
+Applied all 73 actual repository migrations (71 released plus these two) to owned disposable local PostgreSQL 17 containers only. Existing optional handover dependency shape is explicitly synthetic. No existing table altered; no shared/production database migration or data change. Docker 29.7.2 now works, superseding the earlier unavailable-engine note.
+
+### Automated Tests Run
+| Command | Final result |
+|---|---|
+| npm run typecheck | PASS |
+| npm run lint | PASS, no errors/warnings |
+| npm run build | PASS, 51/51 generation steps |
+| npm run test:roles | PASS: legacy role-route suite and Chat guarded integration group |
+| npm run test:v2 | PASS: 4 existing suites |
+| npm run test:chat | PASS: 27/27, none skipped |
+| npm run test:shopify-oauth | PASS: 29 backend + 1 rendered UI |
+| npm run test:shopify-unified-foundation | PASS: 50/50 |
+
+Logs: outputs/chat-ch1/final-20261021/. Final migration/source diff and tracked whitespace checks reviewed. The Node module-type warning for stripped TypeScript is non-failing; package module semantics were not changed.
+
+### Phase-Specific / Tenant Isolation Checks
+Chat: 4 knowledge, 2 crypto, 2 permission, 1 boundary, 4 mock HTTP connector and 14 PostgreSQL/server-path tests.
+Actual independent PostgreSQL sessions prove concurrent allocation/publish and same-key retry. Forced audit failure rolls back mutation and receipt. ACL and independent default-deny RLS checks pass. Service direct writes are denied. Cross-tenant composite references, mutations and production knowledge reads are rejected. Fixture A has one brand/two mapped branches/published pack/channel; B cannot access those records.
+Production server adapters run against PostgreSQL with synthetic auth context/PostgREST wire adapter; this does not claim Clerk, live Supabase or browser-server-action acceptance.
+
+### Boutique Regression / Compatibility
+Required tier: **A** because shared permission types, database types and navigation changed.
+BA-001 through BA-014 are **NOT RUN / BLOCKED**, not passed by the automated suites. No isolated authenticated app environment with approved test identities was configured for those workflows.
+Released Shopify code/contracts are retained; existing platform and Shopify automated regressions pass. No Boutique/Laundry business behavior or existing table definition intentionally changed. Shopify hosted OAuth approval/renewal, broader multi-store acceptance and deferred n8n wiring remain separate pending work.
+
+### Manual QA
+Local in-app Chromium synthetic preview: owner controls; manager/viewer/finance setup denial; A/B UI state reset; failed save preserves inputs; malformed JSON feedback; lost-response retry produces no duplicate draft; explicit publication; branch mapping; inbox mapping stays draft; privileged synthetic URL display/hide.
+Phone/laptop iframe layout check: 375×812 and 1280×900 frames, measured clientWidth/scrollWidth 339/339 and 1243/1243 with scrollbar gutters, no horizontal overflow. Screenshot: outputs/chat-ch1/final-20261021/setup-responsive.png.
+Preview saves are simulated. Authenticated two-tenant end-to-end, physical device QA and owner CHECKLIST.md Part C → CH-1 acceptance remain unperformed.
+
+### Bugs Found / Fixed / Review
+Fixed review P2s: request-key churn; server validation/randomization preventing saved-command replay; one brand hiding another's knowledge history; grants missing prior/new audit values. Also fixed SQL publication alias collision, connector header and generated-preview lint configuration during implementation.
+Standards/specification review and focused re-review report no remaining actionable finding or demonstrated P0/P1 defect. No implementation defect intentionally deferred.
+
+### Pending Tasks / Blockers / Phase Gate
+- Configure an explicitly approved isolated authenticated acceptance environment and test identities; do not reuse production as a local database.
+- Complete CHECKLIST Part C CH-1 with owner acceptance, real authenticated tenant-A/B requests and the listed setup fixture.
+- Execute Boutique Tier A BA-001–BA-014, record evidence and complete closure review.
+- Can move to READY_FOR_CLOSURE: **NO**. Required owner/authenticated regression evidence is missing.
+- D025 allows local commit after successful closure gates; it does not allow committing this incomplete gate or beginning CH-2 now. No further commit made.
+
+### Spend / External Effects / Next Step
+External model/API spend USD 0. No live Chatwoot/admin call, customer message, Meta change, shared migration, purchase, n8n activation, public push/merge or deployment. Source documentation was read only.
+Next concrete step: owner review of docs_chat/CH1_QA.md and agreement on an isolated authenticated test environment, then complete the outstanding acceptance/regression before local phase commit.
+
+## Chat Session Update - 2026-10-21 - Isolated local acceptance environment authorized
+
+CH-1 remains QA_BLOCKED for Clerk/owner acceptance. The owner now authorizes an isolated local QA environment and all feasible local checks. Branch codex/chat-ch1-foundation / HEAD 24a0af7 and all existing work preserved.
+Plan: dedicated loopback PostgreSQL/PostgREST with a labeled persistent local volume, actual migrations, synthetic tenant/role/Boutique fixtures, a separate environment-clean app snapshot, real HTTP/SDK checks and a local dump/restore drill. No production env files or service credentials will be copied; Clerk remains real authentication and requires development keys plus human login.
+Docker 29.7.2 and required database/API images are already local. No configured Clerk keys found in this worktree. Shared migrations, production data/services, real messages, paid models and releases remain excluded. Next: create the local runner, seed, verify API/restore, then give exact Clerk/owner steps. Spend USD 0.
+
+## Chat Session Update - 2026-10-21 - Isolated database/API acceptance evidence
+
+- Same branch `codex/chat-ch1-foundation`, HEAD `24a0af7`; phase CH-1 remains IN_PROGRESS for local QA work, closure not yet approved.
+- Added `scripts/chat-local/{common,manage,gateway,seed,qa}.mjs`, `compose.yaml`, and extracted reusable actual migration replay into `scripts/chat-db-harness/migrate.mjs`. Three synthetic businesses, role memberships, two branches per enabled business, synthetic workspace/knowledge draft and Boutique order/workflow fixtures exist only in the owned local Docker database.
+- Applied all 73 repository SQL migrations (including the two CH-1 migrations) only to dedicated local PostgreSQL. No historical/shared migration was reapplied. Existing optional handover dependency uses the documented synthetic harness table shape; this is not handover acceptance.
+- Real PostgREST/Supabase SDK QA passed 8 groups: credential/ACL denial; production query DTO and tenant filtering; production permission gates; concurrent idempotent command/audit; cross-tenant/actor denial and rollback; knowledge save/publish/replay; three inherited Boutique database smokes; actual dump/restore. Evidence: `outputs/chat-local/qa-report.json` and per-smoke logs.
+- Boutique smokes passed: payment concurrency/audit/summary/isolation; workflow activation vs last-stage deactivation (12 race pairs); existing-order add-items. These are additional database regressions, not completion of the BA-001–BA-014 authenticated/manual tier.
+- Restore ran into a second database in the same isolated cluster and compared content hashes/counts for every public table; browser/Clerk, Supabase Storage and whole-host recovery are outside that evidence.
+- Startup findings fixed: Windows reserved 54327–54329; now loopback ports 15437–15439. Docker Desktop internal networks did not publish host ports; dedicated bridge network used with loopback-only host bindings. Startup SQL initialization now uses an advisory lock to prevent competing initializers.
+- No Clerk development keys present. Actual authenticated app acceptance awaits owner-supplied development keys and real test login; no auth bypass introduced. No real providers, customer messages, paid models, production changes or deployments; model/API spend $0.
+- Next: finish launcher guard tests, rerun required gates, document exact private Clerk setup and owner acceptance steps, and record final local environment status.
+
+## Chat Session Update - 2026-10-21 - Local acceptance environment ready; Clerk and owner QA pending
+
+- **Phase/status:** CH-1 Foundation **QA_BLOCKED**, not READY_FOR_CLOSURE. Branch remains `codex/chat-ch1-foundation`, HEAD `24a0af7140c51fd061f2f2054c046a325999a298`, no upstream. No phase commit, next-phase work, merge, push or deployment this session. Earlier “no isolated environment” blocker is superseded for database/API checks; authenticated browser and owner acceptance remain outstanding.
+- **Exact changes this local-environment session:** added `scripts/chat-local/common.mjs`, `manage.mjs`, `gateway.mjs`, `seed.mjs`, `qa.mjs`, `compose.yaml`; added `scripts/chat-db-harness/migrate.mjs` and reused it from `database.mjs`; added `scripts/test-chat-local.mjs`; added npm `chat:local` and `qa:chat-local` commands in `package.json`; excluded generated `outputs/` app snapshots in `tsconfig.json` and `eslint.config.mjs`. Added `docs_chat/CH1_LOCAL_QA.md`; updated `docs_chat/CH1_QA.md`, `docs_chat/CHECKLIST.md`, and this same summary. Existing CH-1 runtime implementation and unrelated worktrees preserved.
+- **Isolation/runtime:** dedicated Docker project `osplus-chat-local-8e8d10a9c1` and persistent local volume; PostgreSQL loopback15437, PostgREST15438, gateway15439. Three synthetic tenants; no production imports. Clean source snapshots under ignored `outputs/chat-local/app-<timestamp>`; only allowlisted process environment and explicit local/dev configuration reach Next. Actual app target localhost4131 is prepared but not started/authenticated because Clerk development keys are absent. No auth bypass. Service credentials and crypto keys are generated locally; private files ignored and not printed.
+- **Migrations:** no additional schema migrations authored for this environment. Replayed 71 released SQL files plus `20261021100000_chat_foundation.sql` and `20261021101000_chat_foundation_commands.sql` only in the owned fresh local database. Synthetic optional handover dependency shape remains explicitly documented; no handover acceptance claimed. No shared/production SQL.
+- **Automated gates:** `npm run typecheck` PASS; `npm run lint` PASS; `npm run build` PASS, 51/51 generation; `npm run test:roles` PASS (legacy + Chat group); `npm run test:v2` PASS (4 suites); `npm run test:chat` PASS **30/30**, 0 skipped. Final local-tool edits also passed targeted eslint and 3/3 launcher guards; `git diff --check` PASS. Logs under `outputs/chat-local/`; initial typecheck/lint output is retained in the session.
+- **New real integration/regression evidence:** `npm run qa:chat-local` PASS 8 groups through actual PostgREST/Supabase SDK, using production server modules with a synthetic identity context. Denials, secret-free DTOs, tenant filters, module/manager gates, concurrent replay, rollback, immutable publication tested. Inherited payment-integrity, workflow-stage concurrency (12 race pairs) and existing-order add-items DB smokes PASS against this local API. Previous Shopify OAuth 29 backend + 1 UI and unified foundation 50-test results remain recorded; no Shopify work rebuilt or completed.
+- **Restore:** actual pg_dump/pg_restore into `chat_restore_6462476b3286` in the isolated local cluster; all **117 public tables** match content hashes/counts, restored anon ACL denial and service access verified. Dump 1,245,250 bytes retained in ignored local outputs; manifest/hash in `outputs/chat-local/qa-report.json`. This is database restore, not whole-host/Clerk/Storage recovery.
+- **Lifecycle/manual observations:** real stop/start preserved tenant/brand/event counts; second up neither reseeded nor replayed migrations; app launch rejects missing Clerk keys. Evidence `outputs/chat-local/lifecycle-report.json`. Unused owned diagnostic network/volume removed after label/use checks. Services left running for the owner. Prior synthetic browser responsive/error checks remain valid; no new authenticated browser pass claimed.
+- **Bugs/findings:** corrected Windows reserved-port conflict and Docker internal-network host publishing; initializer now holds a database advisory lock; corrected synthetic fixture membership column and command-key contract before successful QA. No new product P0/P1 demonstrated. Local snapshot exclusions keep generated source/build output out of platform type/lint scans.
+- **Required human work:** see `docs_chat/CH1_LOCAL_QA.md` Clerk steps 1–6 and C1–C8. Owner must privately save development `pk_test_`/`sk_test_` keys, sign up/sign in to the supplied synthetic emails, and put owner-a's development Clerk user ID in the local superadmin allowlist. Then resume actual browser/Next-action tenant/role QA, Boutique Tier A BA-001–BA-014, and explicit owner acceptance. Provider sync remains blocked in local dry run; HTTP mock evidence is separate. No Leads pages/SSO were added early.
+- **Limits/dependencies:** this stack exposes database REST, not Supabase Storage/Auth/Realtime. Unsupported mandatory paths must be recorded and supported locally, not redirected to production. Domain/Meta/new isolated n8n and live Chatwoot remain later dependencies. Shopify hosted OAuth approval/renewal and deferred n8n remain separate pending work; retained order/customer boundaries remain intact.
+- **Spend/next step:** USD **0** external model/API spend; no purchase, message, production setting/data change or workflow activation. Await private development-key setup and real test login, then complete authenticated/owner gates and final closure review before the existing local commit authority is used.
+
+## Chat Session Update - 2026-10-21 - Clerk development keys supplied; login screens verified
+
+- Same worktree/branch/HEAD; CH-1 remains QA_BLOCKED pending authenticated role/tenant/Boutique checks and owner acceptance. User saved development keys privately in outputs/chat-local/clerk.env and reports the keys also exist in .env.local. The isolated launcher deliberately does not load/copy .env.local; its contents were not printed or changed.
+- Started the actual isolated app with development-prefix validation, generated local database credentials, CHAT_DRY_RUN=true and CHAT_ADMIN_LIVE_ENABLED=false. Clerk rendered Development mode; this validates the frontend initialization, not yet a completed authenticated session/backend identity lookup.
+- Found and fixed a local launcher hostname mismatch: Next listened as 127.0.0.1 while Clerk's request rewrite used localhost, causing self-proxy timeouts/500s. Changed only scripts/chat-local/manage.mjs --hostname to localhost. Restarted only the verified QA app process tree. Production source/authentication code unchanged.
+- Verification: reproduced the timeout in browser and direct local HTTP; after fix the actual /sign-in returned HTTP 200 and displayed the Clerk login form, and /sign-up displayed email/password fields plus Development mode. Scoped launcher lint and existing three local guard tests checked. No migrations or new schema, no shared data/provider action. Earlier full gates and 8-group database/API/restore evidence remain recorded.
+- App is running at http://localhost:4131. Next owner step: complete signup for owner-a+clerk_test@example.com with a test password and development verification code, then record its development Clerk user ID in the local superadmin allowlist. Human password entry is required; no test identity/session was fabricated. Authenticated browser, BA-001–BA-014 and owner acceptance remain unpassed.
+- No phase commit, push, deploy, live message, paid model call or n8n activation. Model/API spend USD 0. Continue QA after the user's real development login.
+
+## Chat Session Update - 2026-10-21 - Authenticated local QA resumed
+
+- Owner completed real Clerk development login and authorized continuation. Browser verified owner-a+clerk_test@example.com has active Owner/Admin memberships for Local QA A (chat-local-1) and Local QA B (chat-local-2).
+- Same branch codex/chat-ch1-foundation / HEAD 24a0af7; existing work preserved. Starting real browser/Next-action setup and Boutique Tier A QA against the isolated local database only. Phase remains QA_BLOCKED until required checks and explicit owner acceptance complete.
+- Configure only this isolated app's superadmin allowlist from the verified, already-linked development owner identity; no production roles/Clerk settings changed. No migrations, model spend, real messages, shared data changes or deployment.
+
+## Chat Session Update - 2026-10-21 - Authenticated setup passed; expected-denial UI corrected
+
+- Real Clerk/Next browser flow created Browser QA Inquiry, mapped north/south, retained invalid JSON, saved/published v1 and retained v1 publication while saving v2 draft. Independent viewer lead-view grant persisted with PII false and was restored to denied. Dry-run sync showed safe failure.
+- Prepared B's pending workspace locally and disabled its module via platform server action. Local launcher now includes reserved .invalid origins required for configuration, with live access still disabled. No remote account created.
+- Found expected module-off access raising an unhandled server error. Added ChatAccessError in src/features/chat/module.ts and narrowly mapped it to notFound in src/app/(tenant)/settings/chat/page.tsx; unrelated errors still propagate. Added scripts/test-chat-page.mjs (2 regression tests: RED then GREEN) and TSX support in scripts/chat-db-harness/server-adapter.mjs. Actual disabled-tenant browser page now shows clean 404. Refreshed only these two runtime files in the owned app snapshot; full gates pending after this fix.
+- Agent browser evidence is in docs_chat/CH1_AUTHENTICATED_QA.md; owner acceptance remains separate. Unused synthetic one-time webhook URLs are invalidated locally, not used against a provider.
+- Phase remains QA_BLOCKED; next checks are authenticated role/isolation, Boutique Tier A and responsive QA. No new migrations, external paid model/API spend, shared changes or release action.
+
+
+## Chat Session Update - 2026-10-21 - Authenticated regression checkpoint
+
+### Date / Updated By / Phase
+2026-10-21 / Codex / CH-1 Foundation — QA_BLOCKED pending remaining browser checks and explicit owner acceptance.
+
+### Branch / Base
+codex/chat-ch1-foundation at 24a0af7140c51fd061f2f2054c046a325999a298; released Shopify c686337 integrated earlier. No other worktree modified.
+
+### Progress
+Real Clerk owner-a login confirmed both local tenants chat-local-1/chat-local-2. Real Next actions passed brand, two-branch mapping, knowledge v1 publication/v2 draft, independent viewer grants, platform module toggling and A/B isolation. Stale owner forms were rejected after local membership changed to manager/viewer/finance or A disabled; original active owner memberships restored and unchanged brand confirmed in DB. No fake Clerk sessions were used. Separate role identities/non-superadmin platform denial remain unclaimed.
+
+Boutique UI created Browser QA Customer, default QA fit reference, ORD-000001 (reference CHAT-LOCAL-BROWSER-QA) with two items and separate workflows. Valid worker/workgroup start and completion passed; next stage ready. Remaining Tier A checks are in progress.
+
+### Fix / Files
+ChatAccessError in src/features/chat/module.ts; expected access denial maps to notFound in src/app/(tenant)/settings/chat/page.tsx. scripts/test-chat-page.mjs adds two regression tests; scripts/chat-db-harness/server-adapter.mjs supports TSX test loading. Local launcher supplies reserved invalid provider origins, dry run remains on. docs_chat/CH1_AUTHENTICATED_QA.md records live evidence. Snapshot runtime files refreshed locally.
+
+### Gates
+npm run typecheck PASS; npm run lint PASS; npm run build PASS; npm run test:roles PASS (route + Chat integration); npm run test:v2 PASS (four suites); npm run test:chat PASS 32/32, zero skipped. Logs outputs/chat-local/authenticated-*.log. No new migration or shared DB application; both CH1 migrations remain local-only. No production enablement, messages, purchases, push or deploy. Model/API spend USD 0.
+
+### Next
+Finish Boutique BA-009–014 and responsive/role gaps, update evidence and ask owner to review C1–C8. Shopify OAuth hosted activation/renewal and deferred n8n remain separate pending work. CH-1 is not READY_FOR_CLOSURE and no phase commit made.
+
+## Chat Session Update - 2026-10-21 - Authenticated local QA handoff
+
+### Date / Updated By / Chat Phase / Phase Status
+2026-10-21 / Codex / CH-1 Foundation / **QA_BLOCKED**.
+
+### Branch / Base
+- Existing codex/chat-ch1-foundation in D:\Develop\os-plus-chat-ch0, HEAD 24a0af7140c51fd061f2f2054c046a325999a298, no upstream.
+- Released Shopify c686337 baseline already integrated. No other worktree changed. Newer Shopify hosted OAuth activation/approval/renewal and deferred n8n remain separate pending work.
+
+### Session Objective and What Was Built
+Used the owner's real Clerk Development login to finish available isolated local QA. Both synthetic businesses are confirmed: Local QA A (chat-local-1) and Local QA B (chat-local-2).
+Fixed expected Chat access denial rendering: typed ChatAccessError maps to notFound instead of uncaught development error; unexpected page failures remain errors. Added two regression tests. Added reserved .invalid provider origins to local launcher; live administration remains false and dry run true. Refreshed two owned app snapshot files and manifest hashes. Existing .env.local untouched.
+
+### Exact Files / Records
+- src/features/chat/module.ts
+- src/app/(tenant)/settings/chat/page.tsx
+- scripts/test-chat-page.mjs
+- scripts/chat-db-harness/server-adapter.mjs
+- scripts/chat-local/manage.mjs
+- docs_chat/CH1_AUTHENTICATED_QA.md (full result/limitations and owner instructions)
+- docs_chat/CH1_LOCAL_QA.md, docs_chat/CH1_QA.md, docs_chat/CHECKLIST.md and this project_summary.md
+- Ignored local evidence: outputs/chat-local/authenticated-*.log, authenticated-write-report.json, boutique-browser-report.json; temporary role/DB assertion helpers and snapshot-manifest.json. No credentials added to tracked files.
+
+### Migrations Added / Applied
+None added or applied during this authenticated browser session. Existing 20261021100000_chat_foundation.sql and 20261021101000_chat_foundation_commands.sql were already applied only to isolated disposable databases as part of the 73-migration local replay. No shared or production migration.
+
+### Automated Tests Run
+| Command | Result |
+|---|---|
+| npm run typecheck | PASS |
+| npm run lint | PASS |
+| npm run build | PASS, 51/51 pages |
+| npm run test:roles | PASS, platform routes + Chat guarded integration |
+| npm run test:v2 | PASS, four suites |
+| npm run test:chat | PASS, 32/32, zero skipped |
+| git diff --check | PASS |
+| Local post-browser DB assertions | PASS: denied writes absent, memberships restored, v1 published/v2 draft, dry-run queue plus audit persisted |
+
+Earlier 8-group actual HTTP QA, database regression smokes, lifecycle checks and real 117-table pg_dump/restore remain valid recorded evidence, not newly rerun here. Earlier Shopify tests remain documented separately.
+
+### Manual / Browser QA and Regression
+Actual real-login Next actions passed brand creation, North/South branch mapping, invalid JSON retention, v1 publication/v2 draft, independent viewer grants, workspace preparation/module toggle, module-off clean404, A/B setup separation and stale-form denial under local manager/viewer/finance/A-disabled membership fixtures. Original owner memberships restored. Synthetic one-time pending webhook credential retired; no real provider contacted.
+
+All Boutique Tier A BA-001–BA-014 passed locally: sign-in/selection, customer create/search, measurement reuse, two-item order with separate workflows, eligible worker/workgroup start and completion/next ready, customer-safe public tracking, partial synthetic payment, Finance reconciliation, GST report, actual dry-run queue/audit and existing order edit. See the per-check matrix in docs_chat/CH1_AUTHENTICATED_QA.md. No Boutique source behavior changed.
+
+### Bugs Found / Fixed
+Fixed Chat module-off denial error page, with two regression tests and real browser404 verification. Inherited non-blocking measurement dialog reset/stay-open behavior recorded; saved measurement correct and no Boutique refactor performed. Browser screenshot capture failed; earlier authenticated screenshot was blank and is NOT valid visual evidence. Narrow DOM observation showed client/scroll widths401/401 with collapsed navigation, but exact390px/visual acceptance remains unclaimed. Temporary viewport override reset.
+
+### Open Decisions / Blockers / Phase Gate
+No product decision reopened. Required remaining checks: independent unallowlisted owner-b login/platform denial; actual desktop/390px visual owner review; explicit C1–C8 owner acceptance and final closure review. The real owner-a identity was locally platform-allowlisted throughout role-fixture tests, so no independent-role/platform-denial claim is made. The owner must create any required test password; no more Clerk keys needed. Follow docs_chat/CH1_LOCAL_QA.md and CH1_AUTHENTICATED_QA.md.
+
+CH-1 cannot yet move to READY_FOR_CLOSURE. No phase commit and no CH-2 work. Existing D025 authority is retained after gates/owner acceptance, not used prematurely.
+
+### External Actions / Model Spend / Next Concrete Step
+No shared DB changes, production enablement, live messages, paid purchase/model calls, public push/merge/deployment or n8n activation. Model/API spend **USD 0**.
+Local app remains available at http://localhost:4131/settings/chat for owner-a. Owner next signs into the same Development app as owner-b+clerk_test@example.com (code424242; never add to platform allowlist), then Codex verifies independent B-only/platform denial. Owner reviews C1–C7 and explicitly reports acceptance/failures for C8.
+
+## Chat Session Update - 2026-10-21 - Product experience clarification
+
+### Date / Updated By / Phase / Status
+2026-10-21 / Codex / CH-1 Foundation / QA_BLOCKED, unchanged.
+
+### Branch / Base
+codex/chat-ch1-foundation, HEAD24a0af7140c51fd061f2f2054c046a325999a298. Existing dirty CH-1 work preserved; released Shopify integration retained; no other worktree modified.
+
+### Objective / What Changed / Decisions
+Owner was confused by the foundation settings screen and reiterated the intended daily workflow: OS PLUS Chats entry opens Chatwoot in a new tab at chat.<domain>; Leads is an OS PLUS workspace module. Explain separately the inbox, guarded chatbot, CRM and owner configuration. Recorded CHAT-D029 in docs_chat/06_Decision_Log.md; it updates the earlier primary-navigation/domain requirement without introducing a second CRM or native inbox. One-login target, tenant isolation and approved role defaults remain in force. Current setup page is not acceptance evidence for a completed end-user chatbot/inbox.
+
+### Files / Migrations / Tests
+Documentation only: docs_chat/06_Decision_Log.md and this project_summary.md. No runtime changes; no new/applied migrations; no tests rerun for discussion. Prior six gates/32 Chat tests and 14 local Boutique paths remain the latest evidence, not new results. No regression introduced by these documentation additions.
+
+### Manual QA / Bugs / Blockers
+No new browser QA or login identity verification in this discussion. Previous independent owner-b/platform denial, exact phone visual review, explicit owner acceptance and final closure review remain outstanding. UX expectation gap identified: configuration was presented before the complete conversation/lead journey was available. No product defect inferred beyond the recorded presentation issue.
+
+### Next / Closure / Spend
+Explain staff journey and existing phase delivery order clearly; complete current foundation acceptance before CH-2 connector, CH-3 capture/CRM, CH-4 user-facing pages and login handoff integration, then CH-5/6 agent draft/auto behavior. Login handoff is an existing target whose implementation and validation must be explicitly tracked, not assumed delivered by domain placement.
+No phase closure/commit, deployment, shared DB changes, purchases, real messages or paid model calls. Model/API spendUSD0. Shopify hosted OAuth acceptance and deferred n8n remain separate.
+
+## Chat Session Update - 2026-10-21 - CH-1 acceptance and final closure checks
+
+### Date / Updated By / Phase / Status
+2026-10-21 / Codex / CH-1 Foundation / READY_FOR_CLOSURE, owner accepted; local commit next.
+
+### Branch / Base
+codex/chat-ch1-foundation, HEAD24a0af7140c51fd061f2f2054c046a325999a298; integrated released Shopify c686337 retained. Existing work preserved; no other worktree changes.
+
+### Built / Fixes / Exact Files
+Finished independent owner-b real-login QA and authenticated responsive evidence. Fixed final-review P2 findings in src/features/chat/module.ts (operational query failures), scripts/chat-local/common.mjs (local Docker endpoint validation/pinning; safe byte-length credential compare), scripts/chat-local/gateway.mjs; expanded scripts/test-chat-page.mjs and scripts/test-chat-local.mjs. Tests exercised real guard-to-page behavior, remote/cased Docker selectors and malformed credentials. Updated current docs_chat/CH1_AUTHENTICATED_QA.md, CH1_LOCAL_QA.md, CH1_QA.md, CH1_IMPLEMENTATION_PLAN.md, CHECKLIST.md, 05_Phase_Plan_WBS.md, 06_Decision_Log.md and this summary. Disposable390px wrapper exists only in ignored running snapshot.
+
+### Tests / Regression / Manual QA
+All six gates PASS: typecheck; lint; build51/51; roles platform+Chat; V2four suites; Chat37/37 zero skipped. Main gates reran after fixes; affected Chat/lint reran after final Windows-case hardening. Actual loopback malformed API/control requests returned401/501, health200; remote Docker override refused. Logs outputs/chat-local/final-*.log and review-live-check.json.
+Prior Boutique BA001–014 all locally passed; unchanged Boutique source, prior Shopify regression retained. Independent owner-b sees onlyB, cannot view A order or platform admin, and sees no A Chat configuration. Desktop capture recovered; actual signed-in390px iframe client/scroll363/363 with gutter, no horizontal overflow. This is not a physical-device/full viewport claim. Both standards/spec re-reviews found no unresolved actionable finding.
+
+### Decisions / Owner Acceptance / Gate
+CHAT-D030 records explicit owner response: “Accept CH-1 foundation; continue to CH-2 after final records/checks.” C1–C8 accepted with disclosed local and iframe limits. D029 product navigation confirmed. No remaining product decisions or P0/P1 defects identified for CH-1. Final diff hygiene and authorized local commit next; only after that start CH-2.
+
+### Migrations / Spend / External Effects
+No new/applied migrations during this follow-up. Two CH1 migrations already exercised only in isolated disposable databases; no shared changes. No purchases, paid model calls, real messages, production settings, n8n activation, public push/merge/deploy. Model/API spendUSD0. New local gateway was restarted and malformed-input failure reproduced before the fixed instance passed; local app remains available.
+
+### Next
+Commit the reviewed foundation locally, record hash/CLOSED, then plan and implement CH-2 connector/capture with mocks and synthetic tenants. Before hosted acceptance, owner supplies chosen domain/new server authority and approved Meta test assets/messages. These external dependencies do not grant access to existing business infrastructure. Shopify OAuth hosted acceptance and deferred n8n remain separate.

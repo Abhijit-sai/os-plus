@@ -33,12 +33,14 @@ Owner actions that unblock phases are in `CHECKLIST.md`; the "Needs from owner" 
 **Acceptance:** baseline recorded; decisions answered; deploy kit reviewed by the owner.
 
 ## CH-1 — Foundation
-- [ ] CH-1.1 Migration: `tenant_modules`, `chat_settings`, `chat_workspaces`, `chat_brands`, `chat_brand_locations`, `chat_knowledge_packs`, `chat_channels`, `chat_role_permissions`, `chat_staff_links`, `chat_notification_targets`, `chat_summary_runs` (02 §4.1–4.4, 4.8), RLS + indexes.
-- [ ] CH-1.2 Permissions `leads:view`, `leads:manage`, `leads:pii`, `chat_settings:manage`; module guard helper; tenant-owned viewer access/PII settings with audited owner/admin controls; extend `test:roles` without changing existing module permissions.
-- [ ] CH-1.3 Secrets helper (AES-256-GCM, key versioning) + tests.
-- [ ] CH-1.4 Super admin → Chat workspaces: enable module, link an existing Chatwoot account (base URL, account id, tokens) or create one via the Platform API; generate `workspace_key` + webhook secret; show the two webhook URLs once.
-- [ ] CH-1.5 Settings → Chat: brands CRUD, brand ↔ branch mapping, channels (sync inbox list from Chatwoot, map to brand/branch, mode default `draft`).
-- [ ] CH-1.6 Knowledge pack schema (Zod) + editor (JSON with validation is acceptable for v1, form later) + publish/version.
+
+2026-10-21: implementation/QA and owner acceptance complete (CHAT-D030; CH1_AUTHENTICATED_QA.md). Local phase commit pending.
+- [x] CH-1.1 Migration: `tenant_modules`, `chat_settings`, `chat_workspaces`, `chat_brands`, `chat_brand_locations`, `chat_knowledge_packs`, `chat_channels`, `chat_role_permissions`, `chat_staff_links`, `chat_notification_targets`, `chat_summary_runs` (02 §4.1–4.4, 4.8), RLS + indexes.
+- [x] CH-1.2 Permissions `leads:view`, `leads:manage`, `leads:pii`, `chat_settings:manage`; module guard helper; tenant-owned viewer access/PII settings with audited owner/admin controls; extend `test:roles` without changing existing module permissions.
+- [x] CH-1.3 Secrets helper (AES-256-GCM, key versioning) + tests.
+- [x] CH-1.4 Super admin → Chat workspaces: enable module, link an existing Chatwoot account (base URL, account id, tokens) or create one via the Platform API; generate `workspace_key` + webhook secret; show the two webhook URLs once.
+- [x] CH-1.5 Settings → Chat: brands CRUD, brand ↔ branch mapping, channels (sync inbox list from Chatwoot, map to brand/branch, mode default `draft`).
+- [x] CH-1.6 Knowledge pack schema (Zod) + editor (JSON with validation is acceptable for v1, form later) + publish/version.
 
 **Tests:** schema validation, secrets round-trip, role matrix, module guard, tenant isolation of settings.
 **Acceptance:** a test tenant has a workspace, one brand, two branches, a published pack, and channels mapped — all invisible to a second tenant.

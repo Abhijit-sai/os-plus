@@ -27,7 +27,7 @@ Chatwoot switch. Do not connect real inboxes as a way to test this deployment ki
   defaults for preparation; resolve **every image to a tested digest before live use**.
   Recheck releases/security advisories at deployment; never auto-upgrade.
 
-Both Chats and Leads are intended for `chat.<domain>`. `/crm` is reserved and returns
+CHAT-D029 updates navigation: Chats opens Chatwoot at `chat.<domain>`; Leads is an OS PLUS workspace module. The earlier proposed `/crm` namespace is reserved and returns
 a safe preparation response for now. No global basePath is added to OS PLUS. Before
 forwarding that namespace to Vercel, prove asset URLs, navigation, Clerk sessions,
 tenant switching, logout/revocation, proxy headers and server-action allowed origins.

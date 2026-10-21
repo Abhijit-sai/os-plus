@@ -1,3 +1,4 @@
+import { isChatFoundationEnabled } from "@/features/chat/module";
 import Link from "next/link";
 
 import { requireSuperAdminPageAccess } from "@/lib/auth/super-admin";
@@ -16,6 +17,7 @@ export default async function SuperAdminLayout({
           <Link href="/super-admin/tenants" className="font-semibold">
             OS PLUS Super Admin
           </Link>
+          {isChatFoundationEnabled() && <Link href="/super-admin/chat-workspaces" className="text-sm">Chat workspaces</Link>}
           <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
             Tenant app
           </Link>

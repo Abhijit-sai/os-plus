@@ -86,7 +86,7 @@ chat_workspaces                    -- one per tenant
   webhook_secret_hash, api_token_enc, bot_token_enc, agent_bot_id,
   status ('pending' | 'active' | 'suspended'), last_event_at, last_error, last_error_at
 ```
-Secrets are encrypted in the application (AES-256-GCM, key `CHAT_SECRETS_KEY`, versioned prefix so the key can rotate). Plain tokens never reach the client or logs.
+Secrets are encrypted in the application (AES-256-GCM, private JSON keyring `CHAT_SECRETS_KEYS` plus `CHAT_SECRETS_ACTIVE_VERSION`, versioned authenticated prefix so keys can rotate). Plain tokens never reach the client or logs.
 
 ### 4.3 Brands, branches, knowledge
 ```text
@@ -263,7 +263,8 @@ src/integrations/telegram/   bot client, link codes, formatting
 ## 8. Environment variables (new)
 
 ```text
-CHAT_SECRETS_KEY            32-byte key for token encryption (base64)
+CHAT_SECRETS_KEYS           JSON map of key version to 32-byte base64 encryption key
+CHAT_SECRETS_ACTIVE_VERSION Active key version (for example v1); retain old keys while ciphertext references them
 CHAT_CRON_SECRET            Bearer secret for /api/chat/cron/*
 CHATWOOT_PLATFORM_URL       https://chat.<platform-domain>
 CHATWOOT_PLATFORM_TOKEN     Chatwoot Platform App token (super admin onboarding)

@@ -146,3 +146,20 @@ Owner explicitly approved the local documentation preservation checkpoint and me
 
 ## Open - CH-1
 No unresolved product/access or local baseline-integration decisions. Implementation/environment/QA dependencies remain in the current plan and summary.
+
+## CH-1 implementation evidence — 21 October 2026
+
+Technical execution record, not a new product-policy approval: CHAT-D028 completed through preservation checkpoint 1619c61 and reviewed local merge 24a0af7. D026/D027 are implemented; acceptance remains QA_BLOCKED as detailed in [CH1_QA.md](CH1_QA.md).
+Versioned encryption uses the private JSON keyring CHAT_SECRETS_KEYS and active version CHAT_SECRETS_ACTIVE_VERSION. This replaces the singular draft env-name notation while retaining the approved AES-256-GCM/version-rotation design. No production keys were generated, configured or rotated.
+
+### CHAT-D029 — Clarify the daily staff experience versus foundation settings
+**Status:** OWNER CLARIFICATION (2026-10-21)
+The owner reiterates that the staff-facing Chats module opens the actual Chatwoot conversation interface in a new tab at chat.<chosen-domain>, while Leads is an OS PLUS workspace module holding captured inquiries and their CRM state. The current /settings/chat page is owner administration, not the staff inbox or a completed chatbot experience. Chatwoot owns channel inboxes, staff replies and assignment; OS PLUS maps them to tenant/brand/branch and owns guarded-agent configuration and lead/customer links.
+
+Use this latest statement for primary navigation: Chats -> Chatwoot new tab; Leads -> OS PLUS Leads module; Chat settings -> owner configuration. D013/D017's earlier requirement that both full surfaces must be on one chat hostname is superseded insofar as it would force Leads out of the OS PLUS workspace. Exact domain/proxy routing and optional embedded lead-card access still require implementation verification. Do not create another CRM database or native reply inbox. D014 one-login target and D026/D027 roles remain unchanged.
+
+No phase acceptance, new purchase, live Chatwoot deployment, domain selection or external access is implied by this clarification. The owner is reviewing the product direction; the latest login identity has not been independently checked in this discussion.
+
+### CHAT-D030 — Foundation accepted; continue to Chatwoot integration
+**Status:** ACCEPTED (owner, 2026-10-21)
+Owner accepted the CH-1 foundation results and instructed: “Accept CH-1 foundation; continue to CH-2 after final records/checks.” The acceptance question explicitly covered setup/publication, role/tenant isolation, all14 local Boutique paths, desktop plus390px authenticated iframe layout evidence, and that current settings are owner configuration while staff inbox/Leads/chatbot remain later phases. This satisfies C8 after documented checks/final review; D025 local phase-commit authority applies. D029 navigation is reconfirmed. External purchase, domain/DNS, shared migration, deployment, real messages and paid models still require concrete separate authorization.

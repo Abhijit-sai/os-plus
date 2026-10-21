@@ -1,9 +1,9 @@
 # CH-1 implementation plan — Foundation
 
-Date: 2026-10-07. Status: PLANNED; P1/P2 accepted on 2026-10-21, baseline integration decision pending. Historical proposals below are resolved by CHAT-D026/D027.
+Created: 2026-10-07. Updated: 2026-10-21. Status: QA_BLOCKED — foundation implemented and all automated gates pass; owner/authenticated acceptance and Boutique Tier A remain outstanding. P1/P2 and integration are resolved by CHAT-D026/D027/D028. Evidence: [CH1_QA.md](CH1_QA.md).
 Branch: codex/chat-ch1-foundation.
 Worktree: D:/Develop/os-plus-chat-ch0.
-Base: 4f74bd6d6c311225623d74cb99d6bfe3c4406208 (closed CH-0, dependent on deployed origin/main c701ec3).
+Current integrated base/HEAD: 24a0af7140c51fd061f2f2054c046a325999a298, local merge of released c686337 into the closed CH-0 baseline. Preservation checkpoint: 1619c61. CH-1 implementation remains uncommitted pending closure gates.
 Original Shopify and documentation worktrees remain untouched.
 
 ## Scope from 05_Phase_Plan_WBS.md
@@ -65,7 +65,7 @@ The broader CH0_SCHEMA_AUDIT.md also records customer-command, Laundry-task and 
 
 ## Access proposals from 7 October — accepted 21 October (CHAT-D026/D027)
 
-P1 — Role defaults: proposed owner/admin full access and settings; manager view/manage leads plus PII; viewer/finance denied initially with owner-configurable lead viewing and separate PII grant. Reports remain owner/admin-only. Viewers remain read-only. Finance grant behavior is a proposed extension, not approved merely by this document.
+P1 — Role defaults: proposed owner/admin full access and settings; manager view/manage leads plus PII; viewer/finance denied initially with owner-configurable lead viewing and separate PII grant. Reports remain owner/admin-only. Viewers remain read-only. Owner accepted the viewer/finance grants on 21 October (CHAT-D026).
 
 P2 — Viewer inbox access: proposed initial configurable read-only Leads in OS PLUS, Chatwoot entry disabled until equivalent read-only controls are verified. Alternatively, require read-only Chatwoot in the first release, which needs a capability/edition and cost decision before promising it.
 
@@ -90,13 +90,15 @@ Meaningful phase checks:
 
 Shared permissions/types/navigation require Boutique Tier A, BA-001 through BA-014 in docs_v2/10_Phase_Gate_QA_and_Commit_Policy.md. Do not substitute source assertions for browser/database evidence.
 
-Known environment limitation: local Docker Linux engine was unavailable during CH-0. Investigate or use an isolated local Postgres runtime; do not apply to a shared/production Supabase project. If actual migration/tenant isolation or required browser/Boutique QA cannot run, record QA_BLOCKED and stop phase closure.
+Historical environment limitation (resolved 21 October): local Docker Linux engine was unavailable during CH-0. Docker 29.7.2 now runs the actual migration/independent-session suite on disposable PostgreSQL 17. Investigate or use an isolated local Postgres runtime; do not apply to a shared/production Supabase project. If actual migration/tenant isolation or required browser/Boutique QA cannot run, record QA_BLOCKED and stop phase closure.
 
 Owner manual acceptance: CHECKLIST.md Part C → CH-1 (two test tenants, one brand/two branches, publish pack). Deployment/Meta setup is CHECKLIST Part B/A and can be prepared separately; no live action is performed implicitly.
 
 Local commits and continuing after successful gates are already authorized (CHAT-D025). Push/merge/deploy, shared migrations, real messages, paid model runs and n8n activation remain separately authorized actions.
 
-## Resumption and baseline integration — 21 October 2026
+## Historical resumption and baseline integration proposal — 21 October 2026
+
+Superseded by accepted CHAT-D028 and completed commits 1619c61/24a0af7; retained below as the original preservation plan. The current state and evidence are above and in CH1_QA.md.
 
 P1/P2 are now accepted as CHAT-D026/D027. Existing CH-0 HEAD is 4f74bd6; locally recorded released main is c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a. The branch has one unique Chat commit and is missing 18 later release commits. No merge/rebase has occurred.
 
@@ -127,3 +129,7 @@ This checkpoint/merge needs explicit approval because the current worktree is di
 After integration, record CH-1 IN_PROGRESS and use test-first synthetic cases for the knowledge-pack boundary and tenant/purpose-bound versioned encryption; introduce test:chat. Then add the approved access resolver. Database/UI work follows with actual isolated SQL and browser evidence.
 
 Docker was rechecked on 21 October: Linux engine pipe unavailable. Ubuntu WSL has no installed psql/postgres on PATH. Resolve an isolated local database runtime before migration/concurrency closure; PGlite alone cannot prove independent-session races.
+
+## Implemented scope and remaining gate
+
+All CH-1 foundation slices in this plan are implemented locally. See CH1_QA.md for the exact file inventory, two migration names, 37 passing Chat tests, API contract sources, browser evidence and limits. Owner acceptance and Boutique BA-001–BA-014 are complete; CH-2 starts after the local foundation commit. No shared database migration, external Chatwoot call, release or module enablement occurred.

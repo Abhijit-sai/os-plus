@@ -47,7 +47,7 @@ Needs the deploy kit from **CH-0** (`deploy/chatwoot/`).
 ## C. Build with Codex, phase by phase
 
 For **every** phase:
-1. Open Codex in the current approved chat worktree (`D:\Develop\os-plus-chat-ch0` for CH-0) → paste `07_Codex_Build_Prompt.md` (the part between the lines).
+1. Open Codex in the current approved chat worktree (`D:\Develop\os-plus-chat-ch0`, current branch `codex/chat-ch1-foundation`) → paste `07_Codex_Build_Prompt.md` (the part between the lines).
 2. Answer the decisions Codex lists.
 3. Do the "You" steps for that phase below.
 4. When Codex reports `READY_FOR_CLOSURE`: read its report, try the feature yourself, complete the required owner acceptance; CHAT-D025 already authorizes local phase commits after all gates pass.
@@ -56,7 +56,7 @@ For **every** phase:
 | ☐ | Phase | You |
 |---|---|---|
 | [x] | **CH-0** Baseline, decisions, deploy kit | O3/O6/O7 resolved; domain selection may follow local placeholder-based preparation. Review `deploy/chatwoot/` and `examples/new-business.pack.json`. Then do Part B. |
-| [ ] | **CH-1** Foundation | Super admin: enable the module for a **test tenant** and a **second test tenant**. Create one brand + two branches. Paste a pack and publish it. |
+| [x] | **CH-1** Foundation | Local implementation and automated evidence are in [CH1_QA.md](CH1_QA.md); real Clerk owner-a setup and all 14 local Boutique Tier A paths now pass ([authenticated QA](CH1_AUTHENTICATED_QA.md)); independent owner-b/platform denial passes, authenticated390px iframe evidence accepted, and owner acceptance CHAT-D030 recorded. The isolated local database/API is now available; follow [CH1_LOCAL_QA.md](CH1_LOCAL_QA.md) for private Clerk keys, test logins and accepted owner checklist C1–C8. Super admin: enable the module for a **test tenant** and a **second test tenant**. Create one brand + two branches. Paste a pack and publish it. |
 | [ ] | **CH-2** Chatwoot connector | In Chatwoot, create the test tenant's account (or let Codex's onboarding do it); connect one **test WhatsApp number**; paste the two webhook URLs Codex shows. Send a message → check it appears in OS PLUS. |
 | [ ] | **CH-3** Contacts & leads | Message from two phones, one of them an existing test customer. Check: two contacts, two leads, one linked to the customer. Try Convert to customer. |
 | [ ] | **CH-4** Pages & lead card | Click through Leads, a lead, Contacts (merge/split), Performance on phone and laptop. Add the Dashboard App using the verified lead-panel route under `chat.<domain>` and check the lead card. Test viewer access disabled and enabled in tenant role settings, including server-side PII masking. |
@@ -125,6 +125,6 @@ For **every** phase:
 - [ ] Bill or review each tenant's model cost.
 
 **When something changes**
-- [ ] Rotate a secret: Chatwoot tokens / webhook secret per workspace (super admin), Telegram token, OpenRouter key, `CHAT_SECRETS_KEY` (versioned — re-encrypt).
+- [ ] Rotate a secret: Chatwoot tokens / webhook secret per workspace (super admin), Telegram token, OpenRouter key, `CHAT_SECRETS_KEYS` + `CHAT_SECRETS_ACTIVE_VERSION` (retain old versions until ciphertext is re-encrypted and verified; see CH1_QA.md).
 - [ ] A client changes prices or hours → edit the pack → Try the bot → publish.
 - [ ] Meta tokens expire or a page is disconnected → reconnect the inbox in Chatwoot; the workspace health shows silence first.

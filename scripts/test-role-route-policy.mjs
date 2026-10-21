@@ -80,3 +80,25 @@ assert.match(
 );
 
 console.log("Role route policy tests passed");
+
+
+// Chat grants cannot bypass active tenant/module checks through the legacy role API.
+for (const role of Object.keys(expectedDefaults)) {
+ for (const permission of ["leads:view","leads:manage","leads:pii","chat_settings:manage","chat_reports:view"]) {
+  assert.equal(hasPermission(role,permission),false,role+": use the guarded Chat resolver");
+ }
+}
+const zod = await import("zod");
+const chatPolicyModule={exports:{}};
+const chatPolicySource=ts.transpileModule(fs.readFileSync("src/features/chat/permissions.ts","utf8"),{
+ compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}
+}).outputText;
+vm.runInNewContext(chatPolicySource,{module:chatPolicyModule,exports:chatPolicyModule.exports,require(name){
+ if(name==="zod")return zod;throw new Error("Unexpected Chat policy dependency");
+}});
+const tenantId="10000000-0000-4000-8000-000000000001";
+const chatAccess={tenantId,tenantActive:true,moduleEnabled:true,membership:{tenantId,status:"active",role:"manager"},grants:[]};
+assert.equal(chatPolicyModule.exports.canUseChat(chatAccess,"leads:manage"),true);
+assert.equal(chatPolicyModule.exports.canUseChat({...chatAccess,moduleEnabled:false},"leads:manage"),false);
+assert.equal(chatPolicyModule.exports.canUseChat(chatAccess,"chat_reports:view"),false);
+console.log("Chat guarded role integration tests passed");

@@ -1,6 +1,9 @@
+import type { ChatPermission } from "@/features/chat/permissions";
 import type { TenantUserRole } from "@/types/database";
 
+// Chat access must use requireChatPermission: legacy role arrays cannot bypass module or tenant grants.
 export type Permission =
+  | ChatPermission
   | "dashboard:view"
   | "orders:view"
   | "orders:manage"

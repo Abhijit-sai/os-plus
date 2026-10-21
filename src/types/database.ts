@@ -1,3 +1,4 @@
+import type { ChatTables, ChatFunctions } from "./chat.ts";
 import type { ShopifyIntakeTables, ShopifyIntakeFunctions } from "./shopify-intake.ts";
 
 export type TenantStatus = "active" | "inactive" | "suspended";
@@ -1147,7 +1148,7 @@ type TenantRelationship = {
 
 export type Database = {
   public: {
-    Tables: ShopifyIntakeTables & {
+    Tables: ShopifyIntakeTables & ChatTables & {
       tenants: {
         Row: Tenant;
         Insert: Omit<Tenant, "id" | "created_at" | "updated_at"> & {
@@ -2368,7 +2369,7 @@ export type Database = {
       operational_order_items: { Row: OrderItem; Relationships: [TenantRelationship] };
       shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
     };
-    Functions: ShopifyIntakeFunctions & {
+    Functions: ShopifyIntakeFunctions & ChatFunctions & {
       list_shopify_commercial_orders: {
         Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string;
           p_search?: string | null; p_source?: string | null; p_status?: string | null; p_payment?: string | null;
