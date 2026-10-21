@@ -1,0 +1,118 @@
+import { z } from "zod";
+
+const id = z.number().int().positive().safe();
+const sender = z.object({ id, type: z.string().max(40).optional() });
+const timestamp = z.union([
+  z
+    .number()
+    .finite()
+    .nonnegative()
+    .max(253402300799)
+    .transform((value) => new Date(value * 1000).toISOString()),
+  z
+    .string()
+    .datetime({ offset: true })
+    .transform((value) => new Date(value).toISOString()),
+]);
+const messageType = z
+  .union([
+    z.enum(["incoming", "outgoing", "activity", "template"]),
+    z.number().int().min(0).max(3),
+  ])
+  .transform((value) =>
+    typeof value === "number"
+      ? ["incoming", "outgoing", "activity", "template"][value]
+      : value,
+  );
+const schema = z.object({
+  event: z.literal("message_created"),
+  id,
+  account: z.object({ id }),
+  inbox: z.object({ id }),
+  conversation: z.object({
+    id,
+    account_id: id.optional(),
+    inbox_id: id,
+    status: z.enum(["open", "resolved", "pending", "snoozed"]),
+    channel: z.string().max(80).optional(),
+    additional_attributes: z
+      .object({ type: z.string().max(80).optional() })
+      .nullish(),
+    meta: z.object({ sender }).optional(),
+  }),
+  message_type: messageType,
+  private: z.boolean(),
+  content: z.string().max(150000).nullable(),
+  content_type: z.string().min(1).max(80),
+  created_at: timestamp,
+  sender: sender.nullish(),
+  attachments: z
+    .array(
+      z.object({
+        id,
+        file_type: z.string().max(80),
+        data_url: z.string().url().max(4096).optional(),
+      }),
+    )
+    .max(15)
+    .default([]),
+});
+const kinds = {
+  "Channel::Whatsapp": "whatsapp",
+  "Channel::Instagram": "instagram",
+  "Channel::FacebookPage": "facebook",
+  "Channel::WebWidget": "website",
+} as const;
+
+/** Project only transport facts. No business identity is resolved from this payload. */
+export function parseChatwootMessage(input: unknown) {
+  const data = schema.parse(input);
+  if (
+    (data.conversation.account_id !== undefined &&
+      data.conversation.account_id !== data.account.id) ||
+    data.conversation.inbox_id !== data.inbox.id
+  )
+    throw new Error("Invalid chat event.");
+  const type = data.message_type;
+  const senderType = data.sender?.type?.toLowerCase();
+  // Automatic greetings/templates have no human sender. Timing alone would misclassify a fast staff reply.
+  const author =
+    type === "activity"
+      ? "system"
+      : type === "incoming"
+        ? "customer"
+        : senderType === "agent_bot"
+          ? "bot"
+          : senderType === "user"
+            ? "staff"
+            : "system";
+  const contactId =
+    data.conversation.meta?.sender.id ??
+    (author === "customer" ? data.sender?.id : undefined);
+  if (
+    !contactId ||
+    (author === "customer" && data.sender && data.sender.id !== contactId)
+  )
+    throw new Error("Invalid chat event.");
+  const channelKind =
+    data.conversation.additional_attributes?.type === "instagram_direct_message"
+      ? "instagram"
+      : kinds[data.conversation.channel as keyof typeof kinds];
+  return {
+    messageId: data.id,
+    accountId: data.account.id,
+    inboxId: data.inbox.id,
+    conversationId: data.conversation.id,
+    contactId,
+    status: data.conversation.status,
+    channelKind: channelKind ?? null,
+    author,
+    private: data.private,
+    content: data.content,
+    contentType: data.content_type,
+    createdAt: data.created_at,
+    staffUserId: author === "staff" ? data.sender!.id : null,
+    attachments: data.attachments,
+  };
+}
+export type ChatwootMessage = ReturnType<typeof parseChatwootMessage>;

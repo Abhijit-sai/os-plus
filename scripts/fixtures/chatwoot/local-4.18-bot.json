@@ -1,0 +1,36 @@
+{
+  "provenance": "Whitelist projection of actual isolated Chatwoot4.18 CE Rails-authored synthetic AgentBot outgoing webhook_data, 2026-10-21. Not a model-generated reply or live Meta capture.",
+  "messages": [
+    {
+      "event": "message_created",
+      "id": 67,
+      "account": {
+        "id": 901
+      },
+      "inbox": {
+        "id": 901
+      },
+      "conversation": {
+        "id": 8,
+        "inbox_id": 901,
+        "status": "open",
+        "channel": "Channel::WebWidget",
+        "meta": {
+          "sender": {
+            "id": 12,
+            "type": "contact"
+          }
+        }
+      },
+      "message_type": "outgoing",
+      "private": false,
+      "content": "Synthetic local bot classification fixture",
+      "content_type": "text",
+      "created_at": "2026-10-21T12:08:52.905Z",
+      "sender": {
+        "id": 1,
+        "type": "agent_bot"
+      }
+    }
+  ]
+}

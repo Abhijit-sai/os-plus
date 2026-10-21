@@ -125,6 +125,18 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_transport_setup: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_capture: {
+    Args: { p_context: Json; p_kind: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_capture_issue: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
   chat_configure: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

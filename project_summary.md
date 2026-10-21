@@ -13428,3 +13428,222 @@ No new/applied migrations during this follow-up. Two CH1 migrations already exer
 
 ### Next
 Commit the reviewed foundation locally, record hash/CLOSED, then plan and implement CH-2 connector/capture with mocks and synthetic tenants. Before hosted acceptance, owner supplies chosen domain/new server authority and approved Meta test assets/messages. These external dependencies do not grant access to existing business infrastructure. Shopify OAuth hosted acceptance and deferred n8n remain separate.
+
+## Chat Session Update - 2026-10-21 - CH-1 CLOSED and CH-2 start
+
+### Date / Updated By / Phase / Status / Branch
+2026-10-21 / Codex. CH-1 CLOSED. CH-2 connector/capture IN_PROGRESS on existing codex/chat-ch1-foundation, base 8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50. Local-only phase commit: "Chat CH-1: add tenant-isolated foundation and verified local QA". Released Shopify c686337 remains integrated. No other worktree changed.
+
+### Closure evidence
+Scope complete, owner acceptance CHAT-D030, typecheck/lint PASS; build51/51; roles PASS; V2four suites PASS; Chat37/37 PASS; manual authenticated owner-a/independent owner-b PASS with documented390px iframe limit; Boutique Tier A BA001–014 PASS; tenant isolation PASS; final diff/migration and standards/spec reviews COMPLETE; no P0/P1 outstanding. Inherited nonblocking measurement-dialog behavior deferred without Boutique changes. Evidence docs_chat/CH1_AUTHENTICATED_QA.md.
+
+### Migrations / Deployment
+20261021100000_chat_foundation.sql and 20261021101000_chat_foundation_commands.sql are committed, applied only in isolated local/disposable DBs. Real117-table backup/restore evidence recorded. Production deployment still requires explicit migration/config/activation authority; nothing deployed/enabled externally.
+
+### CH-2 objective / Plan / Compatibility
+Plan docs_chat/CH2_IMPLEMENTATION_PLAN.md: validated transport, tenant-resolved atomic capture, four memory tables, silent skeleton and mock/onboarding integration. Expected migration20261021110000_chat_capture.sql. Shared ingress/types will require Boutique Tier A regression. No Boutique runtime change yet. Architectural contradictions and exact planned files recorded in plan; D029 navigation wording and stale unsigned-webhook assertion will be corrected.
+
+### Tests / Manual QA / Blockers / Spend / Next
+No CH-2 tests or migration yet. CH-1 results above are closure evidence, not CH-2 results. No new manual QA. CH-2 cannot move to READY_FOR_CLOSURE: implementation plus required real test-inbox acceptance pending. No new product decisions; existing roles unchanged. Next: parser tracer test, then atomic capture. Owner needs chosen domain/new dedicated server/private credentials and explicit test-inbox/message authorization for hosted acceptance (CHECKLIST B,C/CH-2). Shopify OAuth hosted acceptance and deferred n8n remain separate. Model/API spend USD0; no external purchases/messages/deployment.
+
+## Chat Session Update - 2026-10-21 - CH-2 first capture slice
+
+### Date / Updated By / Phase / Status / Branch
+2026-10-21 / Codex / CH-2 IN_PROGRESS; codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50. CH-1 remains CLOSED.
+
+### Built / Files / Migrations
+Added src/integrations/chatwoot/payload.ts, src/features/chat/ingress.ts and capture.ts, events/agent routes under src/app/api/chat/webhooks/chatwoot/[workspaceKey]/. Added typed RPC signatures in src/types/chat.ts and exact POST-only proxy exceptions (Shopify paths unchanged). Added label read/merge/write in admin-client.ts. Migration20261021110000_chat_capture.sql creates four tenant-owned tables and service-only capture/health domain commands; no existing business table changes. Applied only through74-migration disposable PostgreSQL replay, not persistent local app or shared database.
+
+### Evidence / Fixes
+Parser4tests PASS; actual capture PostgreSQL/HTTP8tests PASS; admin-client5tests PASS. Red phases included missing module/RPC/helper. Corrected synthetic fixture missing required workspace credential, future fixture timestamp, SQL dollar quoting in edit helper and pg bigint transport normalization. Capture tests include independent-connection concurrency, agent-first callback, tenant collision/composite FK, audit-trigger rollback, SQL privilege denial, module suspension and post-ack revocation. HTTP uses real network and production handler/adapter with a controlled after callback queue; it does not claim real Next after lifecycle, Chatwoot or captured live-channel evidence.
+Typecheck PASS before latest small additions; full six gates not yet rerun for this slice. No new browser/Boutique manual regression yet; Tier A remains required for CH-2 shared ingress. Previous CH-1 evidence is not reused as CH-2 acceptance.
+
+### Remaining / Blockers / Spend / Next
+Review in progress. Bot/user/account-webhook onboarding helpers, recovery and full mock E2E remain. Contact/lifecycle updates reserved for later capture expansion; only message_created subscribed in current slice. No AI/replies/SSO/Leads UI. Cannot close CH-2: implementation and live test-inbox evidence pending. Owner action remains CHECKLIST B,C/CH-2. USD0 model/API spend. No external mutation. Next: finish reviewed connector/onboarding behavior, full gates and update evidence.
+
+## Chat Session Update - 2026-10-21 - CH-2 local integration and QA evidence
+
+### Date / Updated By / Phase / Status / Branch
+2026-10-21 / Codex / CH-2 connector/capture / QA_BLOCKED. Existing codex/chat-ch1-foundation at 8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50, no upstream. CH-1 CLOSED and locally committed after CHAT-D030 acceptance; CH-2 remains uncommitted. Released Shopify c686337 remains integrated; other worktrees untouched.
+
+### Objective / Built / Decisions
+Implemented bounded Zod transport parsing, exact POST-only authenticated events/agent ingress, actual Next after capture, tenant-owned atomic conversation/message/state/silent-turn storage and idempotency, public-staff quiet timestamps, safe failure health, extended Chatwoot API helpers, and platform-only onboarding reconciliation with persistent reservations and fresh pre-write authority checks. No AI replies, contact conversion, Leads UI, SSO or live channel onboarding implemented. D029 navigation and approved roles retained. Corrected stale unsigned-webhook documentation against pinned v4.18.0 upstream; actual signature wire verification remains a deployment task. Fresh synthetic fixtures do not count as captured live-channel evidence.
+
+### Exact Files / Migrations Added
+- New src/integrations/chatwoot/payload.ts and onboarding.ts; modified admin-client.ts.
+- New src/features/chat/ingress.ts, capture.ts and transport-setup.ts.
+- New src/app/api/chat/webhooks/chatwoot/[workspaceKey]/events/route.ts and agent/route.ts.
+- Modified src/types/chat.ts and src/proxy.ts; existing Shopify exceptions preserved.
+- New scripts/test-chat-payload.mjs, test-chat-capture.mjs, test-chat-onboarding.mjs; modified scripts/test-chat-admin-client.mjs, test-role-route-policy.mjs and chat-db-harness/database.mjs.
+- New supabase/migrations/20261021110000_chat_capture.sql and 20261021111000_chat_transport_setup.sql. Four new tenant-owned tables; service-only atomic RPCs; no existing business-table changes.
+- New docs_chat/CH2_IMPLEMENTATION_PLAN.md and CH2_QA.md; updated 02_Architecture_and_Data_Model.md, 04_Rules_and_Pitfalls.md, 05_Phase_Plan_WBS.md, 06_Decision_Log.md, CHECKLIST.md and this same project_summary.md.
+
+### Migrations Applied / Backup / Runtime
+All 75 repository migrations replayed in disposable local PostgreSQL. The two CH-2 migrations were then applied incrementally only to owned osplus-chat-local-8e8d10a9c1 after verifying its prior 73-migration checksum and creating outputs/chat-local/before-ch2-upgrade.dump. No historical SQL reapplied; no shared or production database touched. Running local Next snapshot updated on localhost:4131; original .env.local untouched, dry-run retained, real-service writes disabled. Original two Clerk fixtures retained; one synthetic transport tenant added and left module-disabled.
+New actual pg_dump/pg_restore PASS: 121 public tables, row counts/content hashes matched, restored anon denial/service access verified. Report outputs/chat-local/ch2-restore-report.json; restored DB chat_restore_bce44417f3fa; dump 1,284,196 bytes. Database-only recovery in the same isolated cluster, not complete host/Clerk/storage disaster recovery.
+
+### Automated Tests
+| Command | Result |
+|---|---|
+| npm run typecheck | PASS |
+| npm run lint | PASS |
+| npm run build | PASS, 51/51 pages |
+| npm run test:roles | PASS, platform/Chat guards and 11 proxy cases |
+| npm run test:v2 | PASS, four suites |
+| npm run test:chat | PASS, 60/60, zero skipped |
+| git diff --check | PASS |
+
+Final logs: outputs/chat-local/ch2-final-*.log. Chat tests include parser5, admin6, onboarding6 and actual capture database/HTTP10, plus foundation suites. Independent SQL connections prove duplicates/order, tenant collision/composite FK denial, browser SQL denial, audit rollback, revocation and configuration-lock races. Mock provider covers unknown create outcomes, exact reconciliation, existing bot conflicts, callback changes, pre-write revocation and GET outage recovery.
+
+### Actual Runtime / Manual QA / Regression
+Actual Next HTTP checks (outputs/chat-local/ch2-next-report.json) PASS six groups: provider route without Clerk200, real after capture, callback duplicate idempotency, wrong secret/account404, protected GET/unrelated API, disabled module404. Reserved synthetic destinations only; no Chatwoot/Meta/model/Telegram traffic.
+Existing Boutique database scripts rerun PASS locally: smoke-payment-integrity.mjs, smoke-workflow-stage-concurrency.mjs, smoke-existing-order-add-items.mjs. Wrapper isolated their working directory so root .env.local was not loaded.
+Authenticated owner-b browser confirms B-only empty/pending Chat setup and normal Orders route after the upgrade; viewer/finance grants remain unchecked. Returned user tab to /settings/chat. No Chat UI layout changed in CH-2. The full 14-path Boutique Tier A remains CH-1 evidence before this shared proxy delta; a complete post-delta authenticated Tier A rerun is still required and has not been claimed. Current session is owner-b; the earlier full workflow fixtures are in owner-a's tenant.
+
+### Bugs / Review
+Fixed P1 capture/configuration lock inversion using shared chat-config advisory lock before row locks, with deterministic three-connection revocation tests. Fixed potential orphan bot creation after callback rotation, stale authorization after discovery, and transient discovery failures poisoning setup reservations. Both final narrow standards/spec re-reviews found no remaining actionable finding. This is not a claim of completed live phase review.
+
+### Gate / Open Decisions / Owner Action / Next
+CH-2 cannot move to READY_FOR_CLOSURE: full post-change Boutique browser regression, captured real-channel/test-inbox acceptance and owner CH-2 acceptance remain. See docs_chat/CH2_QA.md and CHECKLIST B/C (CH-2). No product decision reopened. Await chosen root domain and confirmation of a new dedicated server, or monthly hosting budget for a concrete proposal. Then obtain explicit server/deployment, hosted migration, named test tenant/inbox/number and test-message authority. No additional Clerk keys are needed; owner-a login may be needed for the remaining fixture-based browser regression.
+Next concrete work: complete the pending authenticated Boutique browser tier, then approved isolated Chatwoot deployment/test-inbox acceptance with private credentials. after() is not a durable queue; process loss after200 can lose work. Label merge lacks provider compare-and-swap; callback-secret rotation requires manual authorized reconciliation. These limits are recorded in CH2_QA.md.
+Shopify hosted OAuth approval/renewal acceptance and deferred Shopify n8n remain separate; no instance reused or workflow activated.
+
+### Model Spend / External Effects
+Model/API spend USD 0. No public push/merge/deployment, purchase, shared migration, production tenant mutation, real customer message, Chatwoot production setting change or n8n activation. CH-2 work and its evidence remain preserved locally for continuation.
+
+## Chat Session Update - 2026-10-21 - Hosting budget and local Chatwoot clarification
+
+### Date / Updated By / Phase / Branch / Status
+2026-10-21 / Codex / CH-2 / codex/chat-ch1-foundation at8eb7a8e / QA_BLOCKED for closure; local work can continue. Existing CH-2 dirty work preserved.
+
+### Decision / Inspection / Files
+Owner set a 2k/month hosting ceiling (interpreted INR2,000), has no server, and reconfirmed chat subdomain. Recorded CHAT-D031 in docs_chat/06_Decision_Log.md. Read existing deployment kit and official Chatwoot Docker guide: local Chatwoot requires neither purchased server nor domain. Current production Compose uses public Caddy/TLS and includes n8n; do not run it unchanged for local QA. New local Chatwoot project/loopback bindings with separate DB/Redis/storage and synthetic credentials is the next implementation slice. No new runtime built in this clarification; this same summary and decision log are the only changed files this turn.
+
+### Tests / Migrations / Manual QA / Regression / Bugs
+No tests rerun, no migrations applied, no browser/manual regression this turn. Prior six gates/60 Chat tests and121-table restore remain recorded evidence, not new results. No code defect fixed. Corrected planning implication that a paid server/domain was needed before further local real-Chatwoot testing. Local actual Chatwoot has not yet been booted or tested.
+
+### Gate / Next / Owner Actions / Spend
+Continue isolated local actual-Chatwoot integration plus remaining Boutique browser regression before requesting hosting purchase. Real Meta channel testing later needs an approved publicly reachable HTTPS callback (hosted or explicitly approved temporary tunnel), named test assets/message authority, and owner acceptance; local website/API conversations cannot substitute for that evidence. No purchase/domain action needed now. Pricing feasibility, taxes/backups and renewal costs must be researched before proposing any purchase within the ceiling. No vendor selected. CH-2 not READY_FOR_CLOSURE; no new commit. No external mutations or paid model calls; model/API spendUSD0. Separate Shopify pending work unchanged.
+
+## Chat Session Update - 2026-10-21 - Local Chatwoot setup started
+CH-2 local integration IN_PROGRESS; closure gate remains pending. Branch codex/chat-ch1-foundation, HEAD8eb7a8e, existing dirty work preserved. Owner explicitly authorized isolated local Chatwoot setup, OS PLUS connection and synthetic QA. Plan: scripts/chatwoot-local for a separate Docker project (own PostgreSQL/Redis/storage, loopback inbox port4141, private TLS callback bridge), synthetic two-account fixtures, production connector/capture checks, browser inbox acceptance. No n8n/Meta/SMTP or public tunnel. Local Docker Linux engine verified with approximately8GiB RAM; existing local OS PLUS services retained. Official pinned Chatwoot CE and Caddy images downloading; no Chatwoot DB prepared yet. No new migration/tests/QA complete in this slice; paid model spendUSD0. No additional owner decision needed before local work.
+
+## Chat Session Update - 2026-10-21 - Real local Chatwoot connected
+CH-2 IN_PROGRESS locally; closure still blocked by remaining phase acceptance. Existing codex/chat-ch1-foundation at8eb7a8e retained. Added scripts/chatwoot-local (isolated Docker DB/Redis/rails/worker, private TLS bridge, localhost visitor/relay, fixture seeding, connection and real QA) and local app --chatwoot launch option. Official v4.18.0-ce image downloaded/pinned to faaa58a911cda8f2ab9d717ddf8ca4332163b07da4c5da10711d896e5d667442. No n8n service started.
+Actual Chatwoot accounts/inboxes901 and902 map to existing local tenantsA/B. Native Chatwoot DB prepared only in a new owned volume; no new OS PLUS migration. Local synthetic workspace origins rebound from the reserved invalid placeholder to https://localhost:4444 with preserved prior origin and audit; tokens encrypted through existing commands. Local app-only API writes enabled against that TLS loopback endpoint; production env untouched, real channels absent, Rails/worker network has no internet egress. No global TLS verification disabled.
+Real provider revealed getInboxBot returns {} for an unassigned inbox. Added failing regression, fixed narrowly,13 client/onboarding tests passed. Actual local worker/capture QA10checks passed (incoming fixtures created through Rails, public staff/private notes via API); independent browser-widget inquiry19 and staff reply24 also passed both screens and OS PLUS capture. Browser owner-b Sync inboxes passes and exposes onlyB. Saved browser evidence under C:/Users/abhij/OneDrive/Documents/New project 2/chat-ch2-evidence. Actual redacted website/customer/system/staff payload fixture added;6 parser tests pass. Shared full gates passed after connector correction: build51/51/typecheck/lint/roles/V2four suites/Chat61. Later local guard/captured-fixture tests require final rerun.
+Standards review found exact-name Docker collisions and interrupted relay upload handling; both fixed,2 ownership tests pass. Spec review strengthened callback-order polling and non-null quiet-deadline assertions; real QA rerun pending. Current blockers are remaining external-channel payload evidence, full post-change Boutique Tier A browser regression and owner phase acceptance, not the ability to test the real local inbox. Restart/restore checks and final documentation next. SpendUSD0; no external deployment/messages/purchase/shared migration. No CH2 commit.
+
+
+## Chat Session Update - 2026-10-21 - Local Chatwoot ready for owner testing
+
+### Date / Updated By / Phase / Status / Branch
+2026-10-21 / Codex / CH-2 connector and capture / QA_BLOCKED for phase closure; actual local inbox ready. codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50. Existing CH-2 uncommitted work preserved; no branch change or commit. CH-1 remains CLOSED. This entry supersedes earlier no-actual-Chatwoot/website-evidence and B-pending statements.
+
+### What Changed / Exact Files
+Added scripts/chatwoot-local/{README.md,Caddyfile,compose.yaml,common.mjs,manage.mjs,seed.mjs,connect.mjs,app-env.mjs,relay.mjs,visitor.mjs,processes.mjs,qa.mjs,check-runtime.mjs,restore-qa.mjs,restore-check.mjs}. Separate owned Docker project, two synthetic accounts/inboxes, scoped private TLS callback bridge, local lifecycle, real-provider QA and restore tooling.
+Modified scripts/chat-local/manage.mjs for explicit --chatwoot mode and local snapshot URL-log suppression; src/integrations/chatwoot/admin-client.ts for actual unassigned-bot empty-object contract; scripts/test-chat-admin-client.mjs and test-chat-onboarding.mjs for that regression. Added scripts/test-chat-local-runtime.mjs (ownership2), scripts/fixtures/chatwoot/local-4.18-website.json and captured-shape case in scripts/test-chat-payload.mjs. Updated docs_chat/CH2_QA.md, CH2_IMPLEMENTATION_PLAN.md, CHECKLIST.md and this SAME summary. Production deploy kit and root .env.local unchanged.
+
+### Configuration / Migrations / Isolation
+Official Chatwoot v4.18.0-ce digest faaa58a911cda8f2ab9d717ddf8ca4332163b07da4c5da10711d896e5d667442. Owned osplus-chatwoot-local-8e8d10a9c1 has own PostgreSQL17/Redis/storage/private CA. Staff localhost4141; visitor4142/1 and/2; API TLS4444; callback relay4132. Account/inbox901 maps to tenantA;902 toB. Separate fixture users deny cross-account API inbox reads. Tokens encrypted through existing commands; synthetic-only workspace origin rebinding audited with previous origins retained privately.
+No new OS PLUS migration added or applied this turn; previously recorded CH-2 migrations remain local-only. Native Chatwoot migrations prepared only in its fresh owned volume. Actual native dump/restore100 tables and content hashes PASS (385496 bytes, cw_restore_f8dda742cf8e), writers stopped/restarted, browser reopened successfully. Scope excludes attachments/Redis/Clerk/host recovery. Prior OS PLUS121-table restore remains separate evidence.
+Local app-only CHAT_DRY_RUN=false/CHAT_ADMIN_LIVE_ENABLED=true targets owned loopback Chatwoot for actual local writes; it does not authorize real-service writes. Rails/worker internal network has no internet egress; Caddy bridges host callbacks. Private-network safe-fetch enabled only here. Scoped CA trust, no global TLS bypass. No real channels/n8n/SMTP/model/Telegram configured. Credentials/dumps ignored under outputs/chatwoot-local; never paste into chat.
+
+### Automated Tests / Review / Bugs
+All six gates PASS after provider contract fix: npm run typecheck; npm run lint (rerun on completed harness); npm run build51/51; npm run test:roles including11 proxy cases; npm run test:v2 four suites; final npm run test:chat64/64, zero skipped. Final suite log outputs/chat-local/ch2-final-chat.log; remaining logs outputs/chatwoot-local. git diff --check PASS.
+Actual provider qa.mjs10/10 PASS, including both tenants, independent event/agent deduplication, exact non-null staff quiet timestamp unchanged by private notes, preserving labels and denied other-account inboxes. Incoming in this script uses Rails fixtures; staff/private sends use API. check-runtime4/4 PASS (control/route denial, aborted body survival, subsequent fail-closed webhook, helper stop/restart). Actual restore100-table PASS.
+Fixed actual Chatwoot {} unassigned-bot response, exact-name foreign Docker resource collisions, interrupted relay-body crash risk, callback-order QA race and null-equals-null quiet assertion. Two focused independent standards/spec re-reviews found no unresolved actionable findings. A first rerun used the wrong local CA filename and failed before writes; corrected to ca.crt and completed10/10. No TLS verification disabled.
+
+### Browser QA / Boutique Regression
+Actual browser visitor inquiry19 -> staff Take over/reply24 -> visible visitor response PASS; both messages captured in correct OS PLUS tenant, system email prompts20/21 classified system. Sanitized actual website fixtures now available; Meta channel fixture acceptance remains pending.
+Embedded widget rendered; automation could not interact inside iframe, so exchange used its observed iframe URL as a separate tab. No embedded interaction automation claim. Screenshots C:/Users/abhij/OneDrive/Documents/New project 2/chat-ch2-evidence/{staff-reply.png,visitor-reply.png}. Authenticated OS PLUS owner-b Sync inboxes returned only Chat Local2 and active connection; viewer/finance grants remain off. Staff conversation remains visible after restore/restart.
+Boutique compatibility: no Boutique business runtime/table changes this turn. Prior CH-2 DB payment/workflow/order regressions PASS; CH-1 full14-path browser evidence predates shared CH-2 proxy changes. Full post-change Tier A remains pending, requiring owner-a sign-in for existing tenantA workflow fixtures. Do not substitute local inbox QA for that tier.
+
+### Owner Handoff / Gate / Next
+Open http://localhost:4141; local credentials in outputs/chatwoot-local/LOGIN.txt. Test visitor http://localhost:4142/1 (or/2 matching account). Choose All conversations/All statuses if pending inquiry hidden; Take over then reply. Detailed restart/test instructions scripts/chatwoot-local/README.md and CHECKLIST C/CH-2 checkpoint. No further Clerk keys required. Separate Chatwoot login for now; SSO/Chats CTA/Leads screens/AI are later phases.
+Can move to READY_FOR_CLOSURE: NO. Remaining: full post-proxy Boutique Tier A, approved Meta channel/test-inbox acceptance and owner CH-2 acceptance. Local actual website evidence is now complete within the documented scope. No new product decision required. Next: owner tries actual local chat; obtain owner-a OS PLUS sign-in for remaining fixture regression; separately plan approved hosted Meta validation. BudgetINR2,000/month, no server/root domain selected; no purchase needed for local testing.
+Separate Shopify hosted OAuth approval/renewal and deferred n8n stay pending; retained order/customer integration boundaries unchanged. No production data/shared migration/public push/merge/deployment/purchase/real customer messages. Model/API spend this session USD0.
+
+
+## Chat Session Update - 2026-10-21 - Post-CH-2 Boutique browser regression resumed
+CH-2 QA_BLOCKED for closure, codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50 (no upstream); prior dirty Chat work preserved. Owner authorized remaining Boutique checks and requested the CH-2 acceptance checklist. Read current summary/phase gate and prior14-path browser evidence. Refreshed actual OS PLUS localhost4131 session still identifies owner-b+clerk_test@example.com / Local QA B; Chatwoot localhost4141 is separately signed into Chat Local1. Requested owner-a OS PLUS login or identification of the browser where it was completed. No credentials requested in chat. Preparing the existing synthetic Tier A workflow and local-only communication checks while awaiting the correct session. No tests claimed complete, no migrations/runtime changes or spend in this resumption slice.
+
+
+### Resumption result / files / tests / next
+Added docs_chat/CH2_OWNER_ACCEPTANCE.md with six local owner steps, exact distinct OS PLUS/Chatwoot logins and the unwaived Meta/full-phase gates; updated docs_chat/CH2_QA.md and CHECKLIST.md. Refreshed OS PLUS identity remains owner-b / Local QA B. Actual browser navigation to known tenantA Boutique order f18f2e92-18fa-40b2-9cc0-9d1180744206 correctly returned404; captured screenshot in chat-ch2-evidence/boutique-a-denied-for-b.png and returned tab to settings/chat. This is one passing isolation check, not fourteen-path regression. No application code or migration changed; no automated suite rerun solely for docs. Earlier64 Chat tests/six gates remain prior evidence. No new defects fixed, shared/production effects or model/API spend (USD0). Phase remains QA_BLOCKED, not READY_FOR_CLOSURE, no commit. Await owner-a OS PLUS session or its browser location; next run BA-001–BA-014 and record new results, then owner local acceptance and separately approved Meta evidence. No new Clerk keys needed.
+
+
+### Owner-a session confirmed — 2026-10-21
+User completed the OS PLUS login. Fresh browser inspection now confirms owner-a+clerk_test@example.com / Local QA A on localhost4131; earlier identity blocker resolved. Chatwoot account901 is already signed in and the owner's synthetic conversation4 exchange/private note is visible. Beginning BA-001–BA-014 in a separate browser tab using only local synthetic fixtures. No new runtime/migration changes or spend; closure remains pending actual regression/acceptance.
+
+
+### Boutique regression progress — 2026-10-21
+Actual owner-a UI created CH2 Regression Customer (76e26e61-1ac6-47e3-baae-113b146aadff), exact name search returned one match, saved general and garment-specific default measurements, and created ORD-000002 / CHAT-CH2-BROWSER-QA (64addc61-ec0f-4286-8ace-d0e861c5b44e) with two items at1200+800 and distinct workflows. Both saved items show Chest37 fit reference. To cover distinct workflow choices, added only a second synthetic workflow definition and two stage definitions to the verified owned local tenantA DB in one transaction, following the existing fixture shape; no production data/schema or application changes. First item's QA prepare started with Synthetic QA worker/QA workgroup. Stage completion/payment/report/queue/tracking checks in progress.
+Correction: accessibility output incorrectly marked measurement options disabled; direct read-only DOM inspection showed enabled options and normal selection succeeded. No application guard/bug inferred from that AX label. Prior measurement-dialog-stays-open behavior repeats but persistence works; no Boutique refactor.
+
+## Chat Session Update - 2026-10-21 - Owner Boutique regression and local inbox handoff
+
+### Phase / branch / scope
+CH-2 QA_BLOCKED; codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50, no upstream. Existing dirty CH-2 work preserved. CH-1 remains CLOSED. This entry supersedes earlier owner-a-login and unexecuted Boutique critical-path blockers. No phase commit or transition.
+
+### Completed / files
+Owner-a login now verified. Executed BA-001–BA-014 policy critical paths in actual desktop browser, owner scenario, synthetic Local QA A. Detailed results/scope: docs_chat/CH2_BOUTIQUE_QA.md (new); updated CH2_OWNER_ACCEPTANCE.md, CH2_QA.md, CHECKLIST.md and this SAME summary. Customer/order/measurement/workflow fixture IDs and screenshots are in the new evidence document. Two items/different workflows; first stage start/complete/next ready; receipt300 on total2000; Finance balance1700; zero-GST report load; communication dry-run queue; safe tracking; edit persistence all passed.
+
+### Migrations / compatibility / data
+No migrations added/applied and no application/shared Boutique runtime code changed this turn. Added one alternate synthetic workflow and two stage templates only in verified owned local DB, in a transaction. Browser-created synthetic customer/measurements/order/payment and dry-run queue retained for inspection. No real money/message or production/shared data changes. Prior CH-2 migrations20261021110000_chat_capture.sql and20261021111000_chat_transport_setup.sql remain local-only as already recorded.
+
+### Tests / regression / QA
+node outputs/chat-local/ch2-boutique-assert.mjs: PASS7/7 persistence assertion groups after actual browser writes; outputs/chat-local/ch2-boutique-browser-report.json. Tier A policy critical paths: PASS14/14 within owner scenario; no independent Manager/Finance browser sessions, fresh anonymous public session, GST-bearing tax computation/export/filing, or mobile rerun claimed. User's existing Clerk authentication observed; tenant selection exercised. Prior owner-b->A order404 is separate isolation evidence.
+No six-gate suite rerun for this documentation/browser-fixture slice. Earlier npm run typecheck, lint, build51/51, test:roles including11 proxy cases, test:v2 four suites, test:chat64/64 remain earlier CH-2 evidence, not new runs. Screenshot paths in CH2_BOUTIQUE_QA.md.
+QA workbook remains unchanged: artifact export produced correct14 dated notes but altered1916 existing cell styles; preservation assertion failed, so replacement rejected. Two render attempts exited1 without image. Temporary output outside repo is not accepted QA tracker. Format-preserving tracker reconciliation remains before closure; historical PASS/persona statuses not relabeled.
+
+### Chat handoff / bugs
+Owner's “Hey you” message43 is visible in actual Chatwoot account901 conversation6. Staff tab left at localhost4141/app/accounts/901/conversations/6; visitor4142/1. Take over, select Reply rather than Private Note, then compare visitor. Screenshot your-inquiry.png saved. Separate local Chatwoot login owner1 remains expected; no SSO/Chats CTA implied.
+List-error toasts resolved after reloading exposed login and existing local owner1 credentials restored session. Repeated All-status filter then loaded6 conversations and correct inquiry. Stale/expired session inferred, no code/config fix. Existing P3 measurement modal stays open after successful save; persistence passes. No new P0/P1 identified in this slice.
+
+### Gate / owner action / next
+Can move to READY_FOR_CLOSURE: NO. Owner to perform/report CH2_OWNER_ACCEPTANCE L1–L5; agent to verify capture for unique test texts. Actual Meta channel fixtures and approved test WhatsApp inbox/HTTPS callback acceptance remain separately authorized requirements from CHECKLIST C/CH-2. Reconcile QA tracker notes without losing formatting before final diff/closure review. No further Clerk keys/login needed now.
+Shopify hosted OAuth approval/renewal and deferred n8n remain separate pending work. No purchase/public exposure/shared migration/push/merge/deployment/live message/model call. Model/API spend this sessionUSD0.
+
+
+## Chat Session Update - 2026-10-21 - Final local checks and Meta test preparation
+CH-2 QA_BLOCKED, same codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50/no upstream; dirty Chat work preserved. Owner confirmed the local reply works and authorized remaining local checks and QA workbook repair. No Meta connection/public exposure/message/deployment authority inferred. Local conversation6 messages43/46 each have one captured silent turn; staff48 is captured and sets quiet_until exactly60 minutes later; workspace last_error null. Browser also shows an agent-bot-error activity, so inspect/reproduce before declaring local checks complete. Prior workbook preservation failure was partly a verifier defect: comparing copied underlying styles shows0 cell-style changes, rather than1916; original source remains intact pending final feature/visual verification. Artifact render produces a valid PNG and RENDER_OK before process exit1, so prior no-image conclusion is superseded. No runtime changes/migrations/model spend yet in this slice.
+
+
+### Final result / exact files / migrations
+Completed remaining authorised local technical checks; owner specifically confirmed the reply works. Updated docs_v2/OS_PLUS_V2_QA_Test_Matrix.xlsx, docs_chat/CH2_QA.md, CH2_BOUTIQUE_QA.md, CH2_OWNER_ACCEPTANCE.md, CHECKLIST.md, scripts/chatwoot-local/README.md, CH2_IMPLEMENTATION_PLAN.md and this SAME summary. Added docs_chat/CH2_META_TESTING.md with owner steps, currently verified primary-source links, WhatsApp-first sequence and separate public-HTTPS/Meta/real-message approval boundary. No new runtime application changes, migrations, shared/production data changes or external configuration. Existing CH-2 SQL remains applied only in already-recorded local OS PLUS DB. New actual local provider QA contacts/conversations/messages retained as synthetic fixtures.
+
+### Tests / manual QA / regression / defects
+Provider qa.mjs rerun PASS10/10. outputs/chatwoot-local/pending-check.mjs PASS5/5: pending conv8/message64 captured once and remains pending beyond default5-second timeout; note49 private staff; unchanged quiet deadline; tenantB denial. Direct Rails SafeFetch callback replay succeeded290ms. Owner conversation43/46 each one turn; staff48 quiet deadline exactly60min; system44/45 no turns. Browser note49 visible to staff, hidden from visitor; returned Reply mode. Owner-a inbox sync only Local1 Website, active/draft mapping. Screenshots final-private-note.png/final-visitor.png/final-inbox-sync.png.
+Boutique helper rerun PASS7/7; prior14 owner-scenario critical paths retained. Additional cookie-free/auth-free default-Accept HTTP safe tracking200 and invalid-token404 PASS2/2. Accept:text/html triggers Clerk Development handshake307, so no fresh anonymous-browser evidence claimed. Independent Manager/Finance, GST-bearing calculation/export/filing and new mobile checks remain outside this slice.
+Earlier typecheck/lint/build51 pages/test:roles11 proxy/test:v2 four suites/test:chat64 remain prior PASS evidence; no redundant six-suite rerun for this docs/workbook slice. git diff --check final result recorded below.
+Workbook bug fixed: original1916 “style changes” came from StyleProxy identity comparison; copied underlying properties show0 changes. Artifact render writes valid PNG before exit1 at shutdown; images reviewed. Final tracker changes only14 dated evidence notes and14 row heights; historical statuses/personas preserved, all other package bytes unchanged. Output SHA256 d63cbae54a04df4b140abff3e035ee7bb3f7fb2b190a3939477a889d59d54171; installed after source-hash guard. Backup/report/previews in C:/Users/abhij/OneDrive/Documents/New project 2/outputs/chat-ch2-workbook.
+Historical Chatwoot bot-error activity47 seen, exact cause not recoverable from retained error-level logs. Current5/5 pending/replay checks pass, no new reproducible failure; no root-cause/fix claim. Embedded iframe send automation remains unsupported; cleared unsent draft, fresh pending fixture created through local Rails rather than falsely claiming embedded send. Existing P3 measurement dialog stays open after save; no Boutique refactor.
+
+### Owner action / gate / next / spend
+CH-2 remains QA_BLOCKED, not READY_FOR_CLOSURE. Workbook blocker resolved; local technical checks complete within recorded scopes. Owner's reply confirmation is partial local acceptance, not automatic entire phase closure. Remaining: actual WhatsApp/Instagram/Facebook plus required bot/template captured fixtures and approved real test-inbox acceptance; final owner phase acceptance and closure/diff review. No CH-2 commit or CH-3 start.
+Next owner steps: create fresh platform Meta app/business test assets, locate test WABA/PhoneNumber IDs and verify tester phone; prepare test Page/professional Instagram/tester roles; choose separate disposable HTTPS test environment (temporary tunnel or staging), then approve concrete endpoint/assets/recipients before connection/messages. Root domain/server not needed to prepare local/sandbox assets. Current local egress isolation remains enabled; no tunnel activated. Keep real-service OS PLUS CHAT_DRY_RUN=true. INR2000 ceiling is not purchase authority. No credentials in chat. Runbook CH2_META_TESTING.md.
+Separate Shopify OAuth hosted acceptance and deferred n8n remain pending, unchanged. Model/API spend this sessionUSD0.
+
+Final git diff --check: PASS (only line-ending notices). QA tracker installed SHA256 reverified. Same branch/HEAD/no upstream and prior dirty Chat work preserved; no local phase commit. Runtime sources unchanged in this slice. Next action: owner prepares Meta app/test assets and chooses the separate HTTPS test route from CH2_META_TESTING.md; complete scoped approval before external connection/messages.
+
+
+## Chat Session Update - 2026-10-21 - Meta app walkthrough and temporary tunnel choice
+CH-2 remains QA_BLOCKED on codex/chat-ch1-foundation, HEAD8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50/no upstream; dirty Chat work preserved. Owner chose a temporary HTTPS tunnel for Meta testing and requested guided Meta app/test-number setup. Recorded CHAT-D032 in docs_chat/06_Decision_Log.md; current owner step is new platform app/use case -> business portfolio -> WhatsApp API Setup -> Meta test number -> verified tester recipient. Secrets/OTPs stay private. User should reach API Setup before tunnel wiring or sending messages. Current official Chatwoot manual-flow guide checked; Meta direct docs still show login wall. No authenticated Meta account state inspected.
+Files: decision log, CH2_META_TESTING.md and this SAME summary. No runtime changes, migrations, local/hosted data writes, tunnel activation, purchase or real-message send this slice. Automated/manual runtime tests not rerun for guidance-only updates; prior local QA evidence stands. Boutique compatibility: no shared runtime changes. No new bugs fixed or acceptance claimed. Next: owner reports the actual Meta creation/API Setup screen and test-number availability; then prepare exact private test-copy tunnel routes and capture connection. Model/API spendUSD0. Phase cannot move to READY_FOR_CLOSURE until captured Meta evidence and owner acceptance/closure checks complete.
+
+
+## Chat Session Update - 2026-10-21 - Meta deferred; local phase transition decision
+CH-2 QA_BLOCKED on codex/chat-ch1-foundation at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50/no upstream, dirty Chat work preserved. Owner deferred Meta Business Manager connection and asked to complete remaining work. Recorded CHAT-D033; tunnel/app/number steps are now deferred, not a current owner action. Current local technical checks/workbook repair already pass within recorded scopes; live WhatsApp/Instagram/Facebook captures and real-inbox acceptance stay explicitly untested. Asked one combined exception: allow final local CH-2 review/commit under existing authority and proceed CH-3, carrying Meta as a release blocker, or keep original gate/phase open. Await that scope decision before any next-phase runtime implementation. Continue only safe CH-2 local evidence/review in the meantime. No migrations/runtime changes/tunnel/model calls this slice; test results not relabeled. Shopify/n8n separate pending work untouched. Model spendUSD0.
+
+
+### Owner exception accepted — 2026-10-21
+CHAT-D034 authorises final LOCAL CH-2 review/commit, deferring Meta gates, then CH-3. Current phase returns IN_PROGRESS for final local review; external channel readiness stays blocked and untested, never PASS. Six closure commands now running sequentially with logs outputs/chat-local/ch2-close-*.log. Finish review/records then commit before CH-3. Actual bot test message67 was eventually captured as bot with0 turns; initial15-second helper poll expired before capture, so this was not a dropped-message finding. Whitelisted actual provider bot fixture available for local parser evidence; no model called. No application fix or guaranteed-latency claim. Temporary scripts remain ignored; no migration or external effects. Model spendUSD0.
+
+
+### CH-2 final local gate — READY_FOR_CLOSURE (2026-10-21)
+Authority: CHAT-D034 explicitly accepts local-only closure and CH-3 progression, deferring live Meta acceptance as a production-release blocker. All local closure requirements reviewed. Six final commands PASS: npm run typecheck; lint; build; test:roles (including11 exact proxy cases); test:v2 (four suites); test:chat65/65,0 skipped after adding actual provider bot fixture/test. Logs outputs/chat-local/ch2-close-*.log and ch2-close-chat-with-bot.log.
+Independent final standards review0 actionable findings. Spec review P2 missing react-server startup condition reproduced and fixed in scripts/chatwoot-local/README.md using existing npm run chat:local alias; status command passes owned local gateway/DB/app. Narrow re-review0 unresolved findings.
+New fixture scripts/fixtures/chatwoot/local-4.18-bot.json is a whitelisted actual local synthetic provider payload; parser asserts bot/no staff id. Actual bot67 captured with0 turns after the initial15s poll expired; no dropped-message or guaranteed-latency claim. Website template/greeting captured fixture already exists, not equivalent to real WhatsApp template acceptance.
+Migrations20261021110000_chat_capture.sql and20261021111000_chat_transport_setup.sql reviewed additive/tenant-owned/service-only; already local-only, not reapplied. Prior75 replay/OSPLUS121-table restore/Chatwoot100-table restore retained evidence. No new migrations or shared runtime changes during closure slice. Boutique14 owner-scenario critical paths,7/7 persistence, exact persona/GST/browser limits and repaired tracker retained. Existing P3 measurement dialog and historical bot-error47 observation retained.
+Phase Status: READY_FOR_CLOSURE (LOCAL under D034). Final diff/migration review complete; no unresolved actionable P0/P1. Commit planned: Chat CH-2: add isolated connector and tenant capture. No push/deploy/channel enablement; Meta remains DEFERRED and production readiness blocked. SpendUSD0. Next: authorised local phase commit, record exact SHA, then CH-3 plan/current-code reconciliation and any genuinely new decisions before dependent implementation.

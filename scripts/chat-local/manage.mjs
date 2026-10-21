@@ -249,6 +249,12 @@ if (operation === "up") {
   await verifyContainer(s, "db");
   await verifyContainer(s, "rest");
   const target = await snapshot();
+  const chatwootEnv = process.argv.includes("--chatwoot")
+    ? await (await import("../chatwoot-local/app-env.mjs")).localChatwootEnvironment()
+    : {};
+  // Local callbacks contain credentials; disable incoming-request URL logs in the disposable snapshot only.
+  const configPath=path.join(target,"next.config.ts");
+  await writeFile(configPath,(await readFile(configPath,"utf8")).replace("const nextConfig: NextConfig = {","const nextConfig: NextConfig = {\n  logging: { incomingRequests: false },"));
   // Only allowlisted environment reaches Next: production environment files are never copied.
   const env = {
     ...cleanEnvironment(),
@@ -269,6 +275,7 @@ if (operation === "up") {
     NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: "/select-tenant",
     NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: "/select-tenant",
     NEXT_PUBLIC_APP_URL: "http://localhost:" + ports.app,
+    ...chatwootEnv,
   };
   const child = spawn(
     process.execPath,

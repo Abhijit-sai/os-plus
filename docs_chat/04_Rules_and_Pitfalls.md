@@ -39,7 +39,7 @@ These are structural/integration observations, not inherited business workflows.
 
 ### Chatwoot
 - Send the API auth header **hyphenated**: `api-access-token`. The underscore form is dropped by reverse proxies (401 through Caddy, 200 direct).
-- Agent Bot webhooks are **not HMAC-signed** — authenticate with a secret in the URL.
+- Authenticate using workspace key + URL secret. The old unsigned-webhook assertion is superseded: pinned v4.18.0 AgentBotListener supplies a signing secret to the job. Verify signing headers against the selected deployment before enforcing them; never drop the mandatory URL authentication.
 - The Agent Bot webhook carries **only the last message**; bot tokens can create messages but not read them. Keep our own `chat_messages` from the **account** webhook (`message_created` fires for customer, bot and staff messages).
 - Agent Bots are under **Settings → Bots**, not Integrations.
 - `POST /labels` **replaces** the label list — read, merge, write.

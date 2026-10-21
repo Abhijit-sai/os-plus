@@ -1,0 +1,25 @@
+{
+  admin off
+  auto_https disable_redirects
+}
+https://osplus-bridge {
+  tls internal
+  @capture {
+    method POST
+    path_regexp capture ^/api/chat/webhooks/chatwoot/[A-Za-z0-9_-]{32,128}/(events|agent)$
+  }
+  handle @capture {
+    reverse_proxy host.docker.internal:4132
+  }
+  handle {
+    respond "Not found" 404
+  }
+}
+
+http://:80 {
+  reverse_proxy rails:3000
+}
+https://localhost:4444 {
+  tls internal
+  reverse_proxy rails:3000
+}

@@ -163,3 +163,30 @@ No phase acceptance, new purchase, live Chatwoot deployment, domain selection or
 ### CHAT-D030 — Foundation accepted; continue to Chatwoot integration
 **Status:** ACCEPTED (owner, 2026-10-21)
 Owner accepted the CH-1 foundation results and instructed: “Accept CH-1 foundation; continue to CH-2 after final records/checks.” The acceptance question explicitly covered setup/publication, role/tenant isolation, all14 local Boutique paths, desktop plus390px authenticated iframe layout evidence, and that current settings are owner configuration while staff inbox/Leads/chatbot remain later phases. This satisfies C8 after documented checks/final review; D025 local phase-commit authority applies. D029 navigation is reconfirmed. External purchase, domain/DNS, shared migration, deployment, real messages and paid models still require concrete separate authorization.
+
+## CH-2 technical reconciliation — 2026-10-21
+No new product policy approval inferred. CH-1 CLOSED at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50 after D030. Current CH-2 plan/evidence: CH2_IMPLEMENTATION_PLAN.md and CH2_QA.md.
+- D029 navigation is now reflected in architecture/checklist (Chats external Chatwoot tab; Leads OS PLUS).
+- Pinned v4.18.0 passes signing secrets to webhook jobs; older unsigned assertion corrected. URL key+secret remains mandatory. Deployment signing enforcement remains a verified-wire task.
+- Contacts FK deferred until CH-3 table exists. Current capture subscribes message_created only, with fresh synthetic fixtures.
+- Existing bot identity is preserved on callback changes; manual authorized callback reconciliation is required, not replacement creation. Server-only setup remains dry-run/live gated. No external setup authority or CH-2 acceptance is implied.
+
+### CHAT-D031 — Hosting ceiling and local-first connector QA
+**Status:** ACCEPTED constraint / owner clarification (2026-10-21)
+Owner stated a maximum monthly hosting budget of 2k (interpreted as INR 2,000), no server exists, and production Chatwoot will use the chat subdomain. Root domain is not selected. No purchase or hosting provider approved. Price proposals must identify taxes, backup/storage and renewal costs; model/channel charges remain separately disclosed rather than assumed included.
+No server purchase or domain is required for local Chatwoot + OS PLUS synthetic integration. Prepare a separate loopback-only Chatwoot Docker project with its own database/Redis/storage and synthetic credentials; no Meta/SMTP/real inboxes, public tunnel, existing business infrastructure or n8n activation. The CH-0 production Compose needs an explicit local configuration (no public Caddy/TLS requirement), not unchanged execution. Local actual-Chatwoot evidence is still distinct from hosted Meta/channel and owner acceptance. Earlier notes implying server procurement must precede all further connector QA are superseded.
+
+
+### CHAT-D032 — Temporary HTTPS route selected for Meta QA
+**Status:** ACCEPTED direction (owner, 2026-10-21)
+Owner chose a temporary HTTPS tunnel for testing and requested a step-by-step walkthrough of creating the Meta app and WhatsApp test number. This resolves the test-route choice in CH2_META_TESTING.md. Prepare the separate disposable test copy and exact route/egress plan; keep existing loopback fixtures private. No public endpoint was activated by this guidance session. App/number/recipient identifiers and the concrete endpoint scope are still to be established before connection or real test sends. No purchase, production deployment, shared migration, public app release or phase acceptance is inferred.
+
+
+### CHAT-D033 — Meta onboarding and tunnel deferred by owner
+**Status:** ACCEPTED deferral (owner, 2026-10-21)
+Owner instructed: “we'll connect to the meta business manager later. Let's complete the other stuff putting this aside”. Stop Meta app/number onboarding and temporary tunnel activation for now. Preserve D032 as the preferred eventual test route, not an active task. Real-channel fixtures/acceptance remain untested, never marked PASS. The separate question of allowing local-only CH-2 closure/commit and advancement to CH-3 is presented explicitly because the current phase gate requires real-channel captures; no scope/closure exception is silently inferred. Existing local commit authority remains valid once the applicable approved gate is satisfied. No purchase/public exposure/real-message authority added.
+
+
+### CHAT-D034 — Local-only CH-2 closure and CH-3 progression authorised
+**Status:** ACCEPTED exception (owner, 2026-10-21)
+Owner explicitly answered “Approve local closure and CH-3; defer Meta (Recommended)” to the combined question permitting deferral of the live Meta acceptance gate, final local CH-2 review/commit under D025, then CH-3 Contacts & Leads. This overrides the CH-2 real-Meta-capture/real-test-inbox gate for LOCAL phase progression only. Existing passed local evidence and owner reply confirmation support this scoped acceptance; final local review/tests still must pass before commit. Preserve all missing WhatsApp/Instagram/Facebook and approved-channel template/captured acceptance as a production-release blocker, not PASS. No live-channel activation, public tunnel, shared migration, push/merge/deploy, real message or paid model authority is granted. Proceed with CH-3 only after the local CH-2 commit; keep platform features disabled until separately approved/enabled.

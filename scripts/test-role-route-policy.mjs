@@ -102,3 +102,26 @@ assert.equal(chatPolicyModule.exports.canUseChat(chatAccess,"leads:manage"),true
 assert.equal(chatPolicyModule.exports.canUseChat({...chatAccess,moduleEnabled:false},"leads:manage"),false);
 assert.equal(chatPolicyModule.exports.canUseChat(chatAccess,"chat_reports:view"),false);
 console.log("Chat guarded role integration tests passed");
+
+
+// Execute the actual proxy callback: only exact authenticated-provider POST routes bypass Clerk.
+const proxyModule={exports:{}};
+vm.runInNewContext(ts.transpileModule(proxySource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{
+ module:proxyModule,exports:proxyModule.exports,URL,
+ require(name){if(name==="@clerk/nextjs/server")return{clerkMiddleware:callback=>callback,createRouteMatcher:()=>()=>false};throw new Error("Unexpected proxy dependency");}
+});
+const hook="/api/chat/webhooks/chatwoot/"+"a".repeat(32);
+for(const [method,path,protectedRoute] of [
+ ["POST",hook+"/events",false],["POST",hook+"/agent",false],
+ ["GET",hook+"/events",true],["POST",hook+"/events/extra",true],
+ ["POST","/api/chat/webhooks/chatwoot/short/events",true],
+ ["POST","/api/chat/cron/hourly",true],["POST","/settings/chat",true],
+ ["POST","/api/integrations/shopify/orders-webhook",false],
+ ["POST","/api/integrations/shopify/worker",false],
+ ["GET","/api/integrations/shopify/worker",true],
+ ["POST","/api/integrations/shopify/orders-webhook/extra",true],
+]) {
+ let calls=0;await proxyModule.exports.default({protect:async()=>{calls++;}},new Request("https://app.example.invalid"+path,{method}));
+ assert.equal(calls,protectedRoute?1:0,method+" "+path);
+}
+console.log("Exact Chat/Shopify ingress proxy tests passed (11 cases)");

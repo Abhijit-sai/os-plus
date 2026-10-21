@@ -13,7 +13,7 @@ Everything here is a **proposal for the coding session to verify against the cur
 | Telegram bot | Telegram, webhook to OS PLUS | `src/integrations/telegram` |
 | Scheduler | New isolated n8n instance beside Chatwoot, with separate database/storage/credentials; calls the secret-guarded endpoint. No existing business scheduler is reused. | `/api/chat/cron/*` |
 
-The owner has not selected a production domain. Use placeholders for now. Once selected, both Chats and Leads must be presented under one `chat.<platform-domain>` hostname. OS PLUS remains on Vercel; Chatwoot runs on a new isolated server. Proposed routing sends a reserved `/crm/` namespace to a Vercel-served lead surface and normal Chatwoot paths to Chatwoot. Same-root-domain placement is preferred, but does not itself authenticate a Clerk user to Chatwoot. Verify assets, navigation, origin checks, server actions, session handoff and selected-tenant context before accepting the proxy design. The exact domain is a deployment dependency, not a reason to import an existing business's domain.
+The owner has not selected a production domain. CHAT-D029 supersedes the earlier shared-hostname mandate: OS PLUS Chats opens Chatwoot in a new tab at chat.<platform-domain>; Leads remains an OS PLUS workspace module. OS PLUS stays on Vercel; Chatwoot runs on a new isolated server. Domain placement does not authenticate Clerk to Chatwoot; secure one-login handoff remains separately implemented and verified.
 
 ## 2. Request flows
 
@@ -43,7 +43,7 @@ Chatwoot Agent Bot webhook (message_created, incoming, non-private)
       enrich lead from the understanding
 ```
 
-Chatwoot's Agent Bot webhook carries only the last message and is **not signed** — the shared secret in the URL is the authentication. Bot tokens may create messages but cannot read history; history comes from our own `chat_messages`.
+The pinned v4.18.0 message webhook carries the triggering message. AgentBotListener passes a signing secret to its webhook job; the older unsigned assertion is superseded. Our mandatory URL key/secret authentication remains in force; signature enforcement requires verified deployment wire evidence. Bot tokens may create messages but cannot read history; history comes from our own `chat_messages`.
 
 ### 2.3 Scheduled work — `/api/chat/cron/hourly` (Bearer secret)
 - Advance lead stages from linked records; close silent leads as lost.
@@ -234,7 +234,7 @@ The current platform uses a fixed `rolePermissions` map; configurable role setti
 
 ## 7. Surfaces and routes
 
-The source paths below are logical OS PLUS integration points, not a decision to put full Leads pages on the main hostname. The owner requires the lead surface and Chatwoot to share `chat.<platform-domain>`; final `/crm/` routing/build details require verification before implementation.
+CHAT-D029: Leads pages are OS PLUS workspace routes; Chats opens Chatwoot in a separate tab. Optional embedded lead-card routing is independently verified.
 
 ```text
 src/app/(tenant)/leads/                      lead inbox

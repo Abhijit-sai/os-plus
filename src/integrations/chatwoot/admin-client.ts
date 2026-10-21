@@ -2,6 +2,35 @@ import "server-only";
 import { z } from "zod";
 
 const id = z.number().int().positive().safe();
+const remoteUrl = z
+  .string()
+  .url()
+  .max(8192)
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" && !url.username && !url.password && !url.hash
+    );
+  });
+const botSchema = z.object({
+  id,
+  name: z.string().min(1).max(200),
+  account_id: id.nullable(),
+  outgoing_url: remoteUrl,
+  access_token: z.string().min(1).max(8192),
+});
+const webhookSchema = z.object({
+  id,
+  url: remoteUrl,
+  subscriptions: z.array(z.string().max(100)).max(100),
+});
+const projectBot = (bot: z.infer<typeof botSchema>) => ({
+  id: bot.id,
+  name: bot.name,
+  accountId: bot.account_id,
+  url: bot.outgoing_url,
+  token: bot.access_token,
+});
 const accountSchema = z.object({ id, name: z.string().trim().min(1).max(200) });
 const inboxSchema = z.object({
   id,
@@ -50,7 +79,11 @@ export class ChatwootAdminClient {
     this.token = z.string().min(1).max(8192).parse(options.token);
     this.timeoutMs = options.timeoutMs ?? 8000;
   }
-  private async request(path: string, body?: unknown): Promise<unknown> {
+  private async request(
+    path: string,
+    body?: unknown,
+    allowEmpty = false,
+  ): Promise<unknown> {
     try {
       const response = await fetch(this.origin + path, {
         method: body === undefined ? "GET" : "POST",
@@ -63,9 +96,13 @@ export class ChatwootAdminClient {
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(this.timeoutMs),
       });
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
         await response.body?.cancel();
         throw new Error("Request failed");
+      }
+      if (!response.body) {
+        if (allowEmpty) return null;
+        throw new Error("Empty response");
       }
       const reader = response.body.getReader(),
         chunks: Uint8Array[] = [];
@@ -81,6 +118,7 @@ export class ChatwootAdminClient {
       } finally {
         await reader.cancel();
       }
+      if (size === 0 && allowEmpty) return null;
       return JSON.parse(Buffer.concat(chunks).toString("utf8"));
     } catch {
       throw new Error("Chat connection unavailable.");
@@ -156,6 +194,152 @@ export class ChatwootAdminClient {
         const kind = kinds[inbox.channel_type];
         return kind ? [{ id: inbox.id, name: inbox.name, kind }] : [];
       });
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+
+  async addLabels(accountId: number, conversationId: number, added: string[]) {
+    try {
+      const labels = z.array(z.string().trim().min(1).max(100)).max(100);
+      const path =
+        "/api/v1/accounts/" +
+        id.parse(accountId) +
+        "/conversations/" +
+        id.parse(conversationId) +
+        "/labels";
+      const input = labels.parse(added);
+      const current = z
+        .object({ payload: labels })
+        .parse(await this.request(path));
+      const merged = [...new Set([...current.payload, ...input])];
+      // Chatwoot replaces all labels. Read/merge preserves unrelated labels in this snapshot.
+      // The remote API offers no compare-and-swap; concurrent external edits need reconciliation.
+      return z
+        .object({ payload: labels })
+        .parse(await this.request(path, { labels: merged })).payload;
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+
+  async createUser(name: string, email: string) {
+    try {
+      const input = z
+        .object({
+          name: z.string().trim().min(1).max(160),
+          email: z.string().email().max(254),
+        })
+        .parse({ name, email });
+      return z
+        .object({ id, name: z.string(), email: z.string().email() })
+        .parse(await this.request("/platform/api/v1/users", input));
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async listAgentBots() {
+    try {
+      return z
+        .array(botSchema)
+        .max(1000)
+        .parse(await this.request("/platform/api/v1/agent_bots"))
+        .map(projectBot);
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async createAgentBot(accountId: number, name: string, url: string) {
+    try {
+      const input = z
+        .object({
+          account_id: id,
+          name: z.string().trim().min(1).max(160),
+          outgoing_url: remoteUrl,
+        })
+        .parse({ account_id: accountId, name, outgoing_url: url });
+      const result = botSchema.parse(
+        await this.request("/platform/api/v1/agent_bots", input),
+      );
+      if (
+        result.account_id !== input.account_id ||
+        result.outgoing_url !== input.outgoing_url
+      )
+        throw new Error("Bot mismatch");
+      return projectBot(result);
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async listWebhooks(accountId: number) {
+    try {
+      return z
+        .object({
+          payload: z.object({ webhooks: z.array(webhookSchema).max(1000) }),
+        })
+        .parse(
+          await this.request(
+            "/api/v1/accounts/" + id.parse(accountId) + "/webhooks",
+          ),
+        ).payload.webhooks;
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async createWebhook(accountId: number, url: string) {
+    try {
+      const endpoint = remoteUrl.parse(url);
+      const result = z
+        .object({ payload: z.object({ webhook: webhookSchema }) })
+        .parse(
+          await this.request(
+            "/api/v1/accounts/" + id.parse(accountId) + "/webhooks",
+            { webhook: { url: endpoint, subscriptions: ["message_created"] } },
+          ),
+        ).payload.webhook;
+      if (
+        result.url !== endpoint ||
+        !result.subscriptions.includes("message_created")
+      )
+        throw new Error("Webhook mismatch");
+      return result;
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async getInboxBot(accountId: number, inboxId: number) {
+    try {
+      const result = z
+        .union([
+          z.object({ agent_bot: z.object({ id }).nullable() }),
+          // v4.18 Jbuilder omits the key when no bot is assigned. Reject other unknown shapes.
+          z.object({}).strict().transform(() => ({ agent_bot: null })),
+        ])
+        .parse(
+          await this.request(
+            "/api/v1/accounts/" +
+              id.parse(accountId) +
+              "/inboxes/" +
+              id.parse(inboxId) +
+              "/agent_bot",
+          ),
+        );
+      return result.agent_bot?.id ?? null;
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
+  async attachBot(accountId: number, inboxId: number, botId: number) {
+    try {
+      await this.request(
+        "/api/v1/accounts/" +
+          id.parse(accountId) +
+          "/inboxes/" +
+          id.parse(inboxId) +
+          "/set_agent_bot",
+        { agent_bot: id.parse(botId) },
+        true,
+      );
     } catch {
       throw new Error("Chat connection unavailable.");
     }

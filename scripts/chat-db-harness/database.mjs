@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { command } from "../chat-local/common.mjs";
 import { randomBytes } from "node:crypto";
 import { applyChatMigrations } from "./migrate.mjs";
 import pg from "../shopify-db-harness/node_modules/pg/lib/index.js";
@@ -13,30 +13,7 @@ export async function startChatDatabase() {
   const name = "osplus-chat-test-" + nonce,
     label = "osplus.chat.disposable";
   const clients = [];
-  const docker = (...args) =>
-    new Promise((resolve, reject) => {
-      const child = spawn("docker", args, {
-        windowsHide: true,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      let output = "",
-        error = "";
-      const timer = setTimeout(() => child.kill(), 60000);
-      child.stdout.on("data", (chunk) => (output += chunk));
-      child.stderr.on("data", (chunk) => (error += chunk));
-      child.on("error", () => {
-        clearTimeout(timer);
-        reject(new Error("Docker command unavailable"));
-      });
-      child.on("close", (code) => {
-        clearTimeout(timer);
-        code === 0
-          ? resolve(output.trim())
-          : reject(
-              new Error((error || output).split(password).join("[REDACTED]")),
-            );
-      });
-    });
+  const docker = (...args) => command("docker", args);
   let owned = false;
   const stop = async () => {
     await Promise.allSettled(clients.map((client) => client.end()));

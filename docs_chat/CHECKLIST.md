@@ -22,7 +22,7 @@ Parts:
 - [x] A1.6 O3 direction resolved: central provider-managed Meta onboarding with separately authorised business assets. Manual WhatsApp onboarding initially.
 
 ### A2. Accounts and names
-- [ ] A2.1 Choose the platform domain (O1). Once selected, connect the platform domain and use one `chat.<domain>` hostname for both Chats and Leads. OS PLUS remains on Vercel; final path routing/authentication must be verified. Domain selection can follow placeholder-based local preparation.
+- [ ] A2.1 Choose the platform domain (O1). Once selected, connect the platform domain and use `chat.<domain>` for Chatwoot, opened from OS PLUS Chats. Leads remains in OS PLUS (CHAT-D029). OS PLUS remains on Vercel; final path routing/authentication must be verified. Domain selection can follow placeholder-based local preparation.
 - [ ] A2.2 OpenRouter: create a fresh key for the new platform, set a monthly credit limit.
 - [ ] A2.3 Telegram → @BotFather → `/newbot` → platform bot name and username → keep the token for `TELEGRAM_BOT_TOKEN`. Create a private "Platform alerts" group, add the bot, and keep its chat id.
 - [x] A2.4 Owner approved an isolated CH-0 worktree from deployed origin/main and copying its untracked `docs_chat` files. Use `D:\Develop\os-plus-chat-ch0`; original Shopify and documentation worktrees remain untouched. CH-0 closed and committed locally as 4f74bd6; current branch is codex/chat-ch1-foundation. No public release implied.
@@ -128,3 +128,12 @@ For **every** phase:
 - [ ] Rotate a secret: Chatwoot tokens / webhook secret per workspace (super admin), Telegram token, OpenRouter key, `CHAT_SECRETS_KEYS` + `CHAT_SECRETS_ACTIVE_VERSION` (retain old versions until ciphertext is re-encrypted and verified; see CH1_QA.md).
 - [ ] A client changes prices or hours → edit the pack → Try the bot → publish.
 - [ ] Meta tokens expire or a page is disconnected → reconnect the inbox in Chatwoot; the workspace health shows silence first.
+
+### CH-2 local evidence checkpoint — 2026-10-21
+Local six gates, 64 Chat tests, actual Next capture and OS PLUS 121-table restore pass. Actual local Chatwoot website visitor/staff exchange, two-account isolation, authenticated inbox sync, helper restart and native Chatwoot 100-table restore also pass. See [CH2_QA.md](CH2_QA.md) and [local owner test instructions](../scripts/chatwoot-local/README.md). CH-2 acceptance remains unchecked: owner-scenario post-change Boutique critical paths now pass; real Meta channel evidence, formal owner phase acceptance remain pending; QA tracker reconciliation is now complete (see CH2_BOUTIQUE_QA.md). Server/domain is unnecessary for local testing; hosted Meta checks still require explicit authority.
+
+
+Owner-facing CH-2 local checks and the separate full-phase gate: [CH2_OWNER_ACCEPTANCE.md](CH2_OWNER_ACCEPTANCE.md). OS PLUS owner-a login is distinct from Chatwoot owner1 login. Owner-a session is now verified and all14 policy critical paths executed; see CH2_BOUTIQUE_QA.md for scope and evidence. User inquiry is open in Chatwoot account901 conversation6.
+
+### Final local / Meta preparation checkpoint — 2026-10-21
+Owner confirmed reply works. Actual private-note privacy, owner-a inbox sync,10/10 two-account runtime checks,5/5 pending/capture checks,7/7 Boutique persistence groups pass;14 owner-scenario critical paths are recorded. QA workbook repaired and preservation/visual checks complete. Follow [CH2_META_TESTING.md](CH2_META_TESTING.md) before A1/B5/B6/C-CH2: current Instagram Business Login replaces old Basic Display guidance; app-specific sandbox restrictions and required HTTPS endpoint approval must be checked. No server/domain purchase is needed just to prepare test assets; no public tunnel or real Meta test is authorised/active. Full phase remains QA_BLOCKED.

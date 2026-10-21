@@ -182,3 +182,171 @@ test("failed creation makes one request; reconciliation rejects another workspac
   );
   assert.equal(creates, 1);
 });
+
+test("conversation labels are read and merged before replacement; duplicates are removed", async () => {
+  let labels = ["existing"],
+    reads = 0;
+  await mock(
+    async (req, res) => {
+      assert.equal(req.headers["api-access-token"], "synthetic-token");
+      assert.equal(req.url, "/api/v1/accounts/12/conversations/8/labels");
+      if (req.method === "GET") {
+        reads++;
+        res.end(JSON.stringify({ payload: labels }));
+      } else {
+        let body = "";
+        for await (const chunk of req) body += chunk;
+        labels = JSON.parse(body).labels;
+        res.end(JSON.stringify({ payload: labels }));
+      }
+    },
+    async (origin) => {
+      const client = new ChatwootAdminClient({
+        origin,
+        token: "synthetic-token",
+        allowLocalMock: true,
+      });
+      await client.addLabels(12, 8, ["new", "existing"]);
+    },
+  );
+  assert.equal(reads, 1);
+  assert.deepEqual(labels, ["existing", "new"]);
+});
+
+test("onboarding API helpers validate bot scope, project user data and accept an empty attachment response", async () => {
+  const calls = [];
+  await mock(
+    async (req, res) => {
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      calls.push([req.method, req.url, body ? JSON.parse(body) : null]);
+      res.setHeader("Content-Type", "application/json");
+      if (req.url === "/platform/api/v1/users")
+        res.end(
+          JSON.stringify({
+            id: 21,
+            email: "staff@example.invalid",
+            name: "Synthetic staff",
+            access_token: "discard-user-token",
+          }),
+        );
+      else if (req.url === "/platform/api/v1/agent_bots")
+        res.end(
+          JSON.stringify(
+            req.method === "GET"
+              ? [
+                  {
+                    id: 31,
+                    name: "OS PLUS",
+                    account_id: 12,
+                    outgoing_url: "https://app.example.invalid/hook",
+                    access_token: "synthetic-bot-token",
+                  },
+                ]
+              : {
+                  id: 31,
+                  name: "OS PLUS",
+                  account_id: 12,
+                  outgoing_url: "https://app.example.invalid/hook",
+                  access_token: "synthetic-bot-token",
+                },
+          ),
+        );
+      else if (req.url === "/api/v1/accounts/12/webhooks")
+        res.end(
+          JSON.stringify(
+            req.method === "GET"
+              ? {
+                  payload: {
+                    webhooks: [
+                      {
+                        id: 41,
+                        url: "https://app.example.invalid/events",
+                        subscriptions: ["message_created"],
+                      },
+                    ],
+                  },
+                }
+              : {
+                  payload: {
+                    webhook: {
+                      id: 41,
+                      url: "https://app.example.invalid/events",
+                      subscriptions: ["message_created"],
+                    },
+                  },
+                },
+          ),
+        );
+      else if (req.url.endsWith("/agent_bot"))
+        res.end(JSON.stringify({ agent_bot: null }));
+      else if (req.url.endsWith("/set_agent_bot")) res.end();
+      else {
+        res.statusCode = 404;
+        res.end("{}");
+      }
+    },
+    async (origin) => {
+      const client = new ChatwootAdminClient({
+        origin,
+        token: "synthetic-token",
+        allowLocalMock: true,
+      });
+      const user = await client.createUser(
+        "Synthetic staff",
+        "staff@example.invalid",
+      );
+      assert.deepEqual(user, {
+        id: 21,
+        name: "Synthetic staff",
+        email: "staff@example.invalid",
+      });
+      assert.equal((await client.listAgentBots())[0].accountId, 12);
+      assert.equal(
+        (
+          await client.createAgentBot(
+            12,
+            "OS PLUS",
+            "https://app.example.invalid/hook",
+          )
+        ).id,
+        31,
+      );
+      assert.equal((await client.listWebhooks(12))[0].id, 41);
+      assert.equal(
+        (await client.createWebhook(12, "https://app.example.invalid/events"))
+          .id,
+        41,
+      );
+      assert.equal(await client.getInboxBot(12, 4), null);
+      await client.attachBot(12, 4, 31);
+    },
+  );
+  assert.deepEqual(calls.at(-1), [
+    "POST",
+    "/api/v1/accounts/12/inboxes/4/set_agent_bot",
+    { agent_bot: 31 },
+  ]);
+  assert.deepEqual(
+    calls.find((c) => c[0] === "POST" && c[1].endsWith("/webhooks"))[2],
+    {
+      webhook: {
+        url: "https://app.example.invalid/events",
+        subscriptions: ["message_created"],
+      },
+    },
+  );
+});
+
+test("pinned live Chatwoot returns an empty object for an unassigned inbox bot", async () => {
+  for (const [body, expected] of [[{}, null], [{agent_bot: null}, null], [{agent_bot:{id:42,name:"Local bot"}},42]]) {
+    await mock((req,res)=>res.end(JSON.stringify(body)),async(origin)=>{
+      const client=new ChatwootAdminClient({origin,token:"synthetic-only",allowLocalMock:true});
+      assert.equal(await client.getInboxBot(12,4),expected);
+    });
+  }
+  await mock((req,res)=>res.end(JSON.stringify({unexpected:true})),async(origin)=>{
+    const client=new ChatwootAdminClient({origin,token:"synthetic-only",allowLocalMock:true});
+    await assert.rejects(()=>client.getInboxBot(12,4),/Chat connection unavailable/);
+  });
+});
