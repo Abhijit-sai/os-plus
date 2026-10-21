@@ -55,7 +55,111 @@ export type ChatChannel = Owned & {
   whatsapp_number_e164: string | null;
   is_active: boolean;
 };
+export type ChatContact = Owned & {
+  display_name: string | null;
+  prefs_json: Json;
+  notes: string | null;
+  customer_id: string | null;
+  merged_into: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  version: number;
+  deleted_at: string | null;
+};
+export type ChatLead = Owned & {
+  ref_code: string;
+  brand_id: string;
+  location_id: string | null;
+  channel_id: string;
+  channel_kind: ChatChannel["kind"];
+  contact_id: string;
+  conversation_id: string;
+  customer_id: string | null;
+  kind: "sales" | "service" | "spam";
+  intent: string | null;
+  services: string[];
+  area: string | null;
+  stage: "new" | "engaged" | "booked" | "in_progress" | "won" | "lost";
+  lost_reason: string | null;
+  owner_tenant_user_id: string | null;
+  owner_source: "auto" | "manual" | null;
+  est_value: number | null;
+  currency: string;
+  gist: string | null;
+  handoff: boolean;
+  notes: string | null;
+  order_id: string | null;
+  booking_subject_type: "laundry_pickup_request" | "task" | null;
+  booking_subject_id: string | null;
+  booking_pickup_id: string | null;
+  booking_task_id: string | null;
+  first_customer_at: string;
+  first_response_at: string | null;
+  first_human_response_at: string | null;
+  last_customer_at: string;
+  last_reply_at: string | null;
+  closed_at: string | null;
+  version: number;
+};
 export type ChatTables = {
+  chat_contacts: Table<ChatContact>;
+  leads: Table<ChatLead>;
+  chat_contact_identities: Table<{
+    id: string;
+    tenant_id: string;
+    contact_id: string;
+    kind:
+      | "phone"
+      | "chatwoot_contact"
+      | "instagram"
+      | "facebook"
+      | "web_visitor";
+    value: string;
+    verified: boolean;
+    source: string;
+    created_at: string;
+  }>;
+  lead_events: Table<{
+    id: string;
+    tenant_id: string;
+    lead_id: string;
+    at: string;
+    kind: string;
+    from_value: Json | null;
+    to_value: Json | null;
+    actor_type: "USER" | "SYSTEM" | "AGENT" | "WEBHOOK";
+    actor_id: string | null;
+    source: string;
+    correlation_id: string;
+    meta_json: Json;
+  }>;
+  chat_identity_conflicts: Table<{
+    id: string;
+    tenant_id: string;
+    contact_id: string;
+    candidate_contact_id: string;
+    kind: string;
+    value: string;
+    created_at: string;
+  }>;
+  chat_contact_merges: Table<{
+    id: string;
+    tenant_id: string;
+    from_contact_id: string;
+    to_contact_id: string;
+    snapshot_json: Json;
+    after_hash: string;
+    created_at: string;
+    created_by: string;
+    split_at: string | null;
+    split_by: string | null;
+  }>;
+  chat_lead_capture_receipts: Table<{
+    tenant_id: string;
+    message_id: string;
+    at: string;
+  }>;
+
   tenant_modules: Table<
     Owned & {
       module_key: "chat_leads";
@@ -125,6 +229,18 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_lead_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_lead_refresh: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_lead_backfill: {
+    Args: { p_context: Json; p_after_id?: string | null };
+    Returns: Json;
+  };
   chat_transport_setup: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

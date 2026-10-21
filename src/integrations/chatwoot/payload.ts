@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 const id = z.number().int().positive().safe();
-const sender = z.object({ id, type: z.string().max(40).optional() });
+const sender = z.object({
+  id,
+  type: z.string().max(40).optional(),
+  name: z.string().trim().max(200).nullish(),
+  phone_number: z.string().trim().max(40).nullish(),
+  email: z.string().trim().max(320).nullish(),
+});
 const timestamp = z.union([
   z
     .number()
@@ -38,6 +44,13 @@ const schema = z.object({
     additional_attributes: z
       .object({ type: z.string().max(80).optional() })
       .nullish(),
+    contact_inbox: z
+      .object({
+        contact_id: id,
+        inbox_id: id,
+        source_id: z.string().min(1).max(512),
+      })
+      .optional(),
     meta: z.object({ sender }).optional(),
   }),
   message_type: messageType,
@@ -64,7 +77,7 @@ const kinds = {
   "Channel::WebWidget": "website",
 } as const;
 
-/** Project only transport facts. No business identity is resolved from this payload. */
+/** Project bounded provider facts; resolve business identity only after workspace authorization. */
 export function parseChatwootMessage(input: unknown) {
   const data = schema.parse(input);
   if (
@@ -94,6 +107,19 @@ export function parseChatwootMessage(input: unknown) {
     (author === "customer" && data.sender && data.sender.id !== contactId)
   )
     throw new Error("Invalid chat event.");
+  const ci = data.conversation.contact_inbox;
+  if (ci && (ci.contact_id !== contactId || ci.inbox_id !== data.inbox.id))
+    throw new Error("Invalid chat event.");
+  const profile =
+    author === "customer"
+      ? (data.sender ?? data.conversation.meta?.sender)
+      : data.conversation.meta?.sender;
+  const identity = {
+    displayName: profile?.name || null,
+    phone: profile?.phone_number || null,
+    email: profile?.email || null,
+    sourceId: ci?.source_id || null,
+  };
   const channelKind =
     data.conversation.additional_attributes?.type === "instagram_direct_message"
       ? "instagram"
@@ -113,6 +139,7 @@ export function parseChatwootMessage(input: unknown) {
     createdAt: data.created_at,
     staffUserId: author === "staff" ? data.sender!.id : null,
     attachments: data.attachments,
+    identity,
   };
 }
 export type ChatwootMessage = ReturnType<typeof parseChatwootMessage>;

@@ -1,5 +1,5 @@
 # CH-2 connector/capture QA
-Status: READY_FOR_CLOSURE — LOCAL under CHAT-D034, 2026-10-21. Final review/gates pass;65 Chat tests. Meta/channel production acceptance remains deferred and untested.
+Status: CLOSED — LOCAL under CHAT-D034, commit00718d6e395ea652eb2a7ceb79b39ae1471e863c, 2026-10-21. Meta/channel production acceptance remains deferred and untested.
 Base: CH-1 CLOSED at8eb7a8e2f4475fcd696c5ee41c52ea0e5435bf50 on codex/chat-ch1-foundation.
 
 ## Implemented locally

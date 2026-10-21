@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { captureIdentities } from "../leads/rules";
 import type { IngressDependencies } from "./ingress";
 
 export function chatCaptureDependencies(
@@ -56,6 +57,13 @@ export function chatCaptureDependencies(
       return c ? { id: c.id, kind: c.kind, mode: c.agent_mode } : null;
     },
     async capture(w, c, kind, message) {
+      const profile = captureIdentities({
+        workspaceId: w.id,
+        channelId: c.id,
+        kind: c.kind,
+        contactId: message.contactId,
+        ...message.identity,
+      });
       const { error } = await db.rpc("chat_capture", {
         p_context: {
           tenantId: w.tenantId,
@@ -69,6 +77,12 @@ export function chatCaptureDependencies(
           secretHash: w.secretHash,
           channelId: c.id,
           message,
+          identity: {
+            displayName: profile.displayName,
+            sourceId: message.identity.sourceId,
+            phoneE164:
+              profile.identities.find((i) => i.kind === "phone")?.value ?? null,
+          },
         },
       });
       if (error) throw new Error("Capture unavailable");

@@ -57,7 +57,7 @@ For **every** phase:
 |---|---|---|
 | [x] | **CH-0** Baseline, decisions, deploy kit | O3/O6/O7 resolved; domain selection may follow local placeholder-based preparation. Review `deploy/chatwoot/` and `examples/new-business.pack.json`. Then do Part B. |
 | [x] | **CH-1** Foundation | Local implementation and automated evidence are in [CH1_QA.md](CH1_QA.md); real Clerk owner-a setup and all 14 local Boutique Tier A paths now pass ([authenticated QA](CH1_AUTHENTICATED_QA.md)); independent owner-b/platform denial passes, authenticated390px iframe evidence accepted, and owner acceptance CHAT-D030 recorded. The isolated local database/API is now available; follow [CH1_LOCAL_QA.md](CH1_LOCAL_QA.md) for private Clerk keys, test logins and accepted owner checklist C1–C8. Super admin: enable the module for a **test tenant** and a **second test tenant**. Create one brand + two branches. Paste a pack and publish it. |
-| [ ] | **CH-2** Chatwoot connector | In Chatwoot, create the test tenant's account (or let Codex's onboarding do it); connect one **test WhatsApp number**; paste the two webhook URLs Codex shows. Send a message → check it appears in OS PLUS. |
+| [x] | **CH-2** Chatwoot connector (LOCAL closure CHAT-D034; Meta deferred) | Local two-account connector and owner reply acceptance complete: [CH2_QA.md](CH2_QA.md), CHAT-D034. Still pending production gate: connect approved test WhatsApp and capture real channels via [CH2_META_TESTING.md](CH2_META_TESTING.md). |
 | [ ] | **CH-3** Contacts & leads | Message from two phones, one of them an existing test customer. Check: two contacts, two leads, one linked to the customer. Try Convert to customer. |
 | [ ] | **CH-4** Pages & lead card | Click through Leads, a lead, Contacts (merge/split), Performance on phone and laptop. Add the Dashboard App using the verified lead-panel route under `chat.<domain>` and check the lead card. Test viewer access disabled and enabled in tenant role settings, including server-side PII masking. |
 | [ ] | **CH-5** Agent (draft) | Approve the cheap-model test cost. Use **Try the bot**. Send real test messages → drafts appear with Send as is / Edit (needs B8). |
@@ -137,3 +137,11 @@ Owner-facing CH-2 local checks and the separate full-phase gate: [CH2_OWNER_ACCE
 
 ### Final local / Meta preparation checkpoint — 2026-10-21
 Owner confirmed reply works. Actual private-note privacy, owner-a inbox sync,10/10 two-account runtime checks,5/5 pending/capture checks,7/7 Boutique persistence groups pass;14 owner-scenario critical paths are recorded. QA workbook repaired and preservation/visual checks complete. Follow [CH2_META_TESTING.md](CH2_META_TESTING.md) before A1/B5/B6/C-CH2: current Instagram Business Login replaces old Basic Display guidance; app-specific sandbox restrictions and required HTTPS endpoint approval must be checked. No server/domain purchase is needed just to prepare test assets; no public tunnel or real Meta test is authorised/active. Full phase remains QA_BLOCKED.
+
+
+## CH-3 local technical checkpoint — 2026-10-21
+Agent-executed local technical evidence: [CH3_QA.md](CH3_QA.md), [Boutique regression](CH3_BOUTIQUE_QA.md). Three migrations applied only to isolated LOCAL15437 with real pre/post restores; Chat100/100, provider10/10, CRM2/2, Boutique14/14 owner scenario and7 persistence groups PASS. Desktop/authenticated390px iframe smoke PASS, with documented limits.
+- [ ] Owner C3-L1–L4: [CH3_OWNER_ACCEPTANCE.md](CH3_OWNER_ACCEPTANCE.md).
+- [ ] Explicit local-progression deferral of PartC CH-3 two-real-phone exercise, if continuing before Meta. Prior D034 approved CH2 local closure/CH3 start only; do not silently extend it.
+- [ ] Actual Meta/WhatsApp/IG/FB wire and channel acceptance before production release. Still deferred/unexecuted, never PASS.
+No new Clerk keys needed; existing owner-a session works. Leads/Contacts UI is CH4. No phase transition/commit until applicable owner gate passes.

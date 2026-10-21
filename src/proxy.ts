@@ -12,8 +12,11 @@ const isShopifyIngress=(request:Request)=>request.method==="POST"&&[
 const isChatIngress = (request: Request) => request.method === "POST" &&
   /^\/api\/chat\/webhooks\/chatwoot\/[a-zA-Z0-9_-]{32,128}\/(events|agent)$/.test(new URL(request.url).pathname);
 
+// Exact stage-maintenance POST authenticates with its own call-time bearer secret.
+const isChatMaintenance = (request:Request) => request.method==="POST" && new URL(request.url).pathname==="/api/chat/cron/stages";
+
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)&&!isShopifyIngress(req)&&!isChatIngress(req)) {
+  if (!isPublicRoute(req)&&!isShopifyIngress(req)&&!isChatIngress(req)&&!isChatMaintenance(req)) {
     await auth.protect();
   }
 });

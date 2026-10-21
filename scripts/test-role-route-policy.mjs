@@ -115,7 +115,7 @@ for(const [method,path,protectedRoute] of [
  ["POST",hook+"/events",false],["POST",hook+"/agent",false],
  ["GET",hook+"/events",true],["POST",hook+"/events/extra",true],
  ["POST","/api/chat/webhooks/chatwoot/short/events",true],
- ["POST","/api/chat/cron/hourly",true],["POST","/settings/chat",true],
+ ["POST","/api/chat/cron/stages",false],["GET","/api/chat/cron/stages",true],["POST","/api/chat/cron/stages/extra",true],["POST","/api/chat/cron/hourly",true],["POST","/settings/chat",true],
  ["POST","/api/integrations/shopify/orders-webhook",false],
  ["POST","/api/integrations/shopify/worker",false],
  ["GET","/api/integrations/shopify/worker",true],
@@ -124,4 +124,4 @@ for(const [method,path,protectedRoute] of [
  let calls=0;await proxyModule.exports.default({protect:async()=>{calls++;}},new Request("https://app.example.invalid"+path,{method}));
  assert.equal(calls,protectedRoute?1:0,method+" "+path);
 }
-console.log("Exact Chat/Shopify ingress proxy tests passed (11 cases)");
+console.log("Exact Chat/Shopify ingress proxy tests passed (14 cases)");

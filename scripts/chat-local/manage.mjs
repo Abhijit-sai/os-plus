@@ -29,6 +29,7 @@ import {
 } from "./common.mjs";
 import { applyChatMigrations } from "../chat-db-harness/migrate.mjs";
 import { seed } from "./seed.mjs";
+import { startOwnedLoopbackApp } from "./ipv4-bridge.mjs";
 const operation = process.argv[2] ?? "status";
 const s = await state(operation === "up");
 async function ownedResources() {
@@ -250,11 +251,19 @@ if (operation === "up") {
   await verifyContainer(s, "rest");
   const target = await snapshot();
   const chatwootEnv = process.argv.includes("--chatwoot")
-    ? await (await import("../chatwoot-local/app-env.mjs")).localChatwootEnvironment()
+    ? await (
+        await import("../chatwoot-local/app-env.mjs")
+      ).localChatwootEnvironment()
     : {};
   // Local callbacks contain credentials; disable incoming-request URL logs in the disposable snapshot only.
-  const configPath=path.join(target,"next.config.ts");
-  await writeFile(configPath,(await readFile(configPath,"utf8")).replace("const nextConfig: NextConfig = {","const nextConfig: NextConfig = {\n  logging: { incomingRequests: false },"));
+  const configPath = path.join(target, "next.config.ts");
+  await writeFile(
+    configPath,
+    (await readFile(configPath, "utf8")).replace(
+      "const nextConfig: NextConfig = {",
+      "const nextConfig: NextConfig = {\n  logging: { incomingRequests: false },",
+    ),
+  );
   // Only allowlisted environment reaches Next: production environment files are never copied.
   const env = {
     ...cleanEnvironment(),
@@ -277,21 +286,59 @@ if (operation === "up") {
     NEXT_PUBLIC_APP_URL: "http://localhost:" + ports.app,
     ...chatwootEnv,
   };
-  const child = spawn(
-    process.execPath,
-    [
-      path.join(root, "node_modules/next/dist/bin/next"),
-      "dev",
-      "--webpack",
-      "--hostname",
-      "localhost",
-      "--port",
-      String(ports.app),
-    ],
-    { cwd: target, env, windowsHide: true, stdio: "inherit" },
-  );
-  child.on("exit", (code) => {
-    process.exitCode = code ?? 1;
+  await startOwnedLoopbackApp({
+    port: ports.app,
+    async start() {
+      let resolveReady, rejectReady, resolveExit;
+      const ready = new Promise((resolve, reject) => {
+        resolveReady = resolve;
+        rejectReady = reject;
+      });
+      const exited = new Promise((resolve) => {
+        resolveExit = resolve;
+      });
+      const child = spawn(
+        process.execPath,
+        [
+          path.join(root, "node_modules/next/dist/bin/next"),
+          "dev",
+          "--webpack",
+          "--hostname",
+          "localhost",
+          "--port",
+          String(ports.app),
+        ],
+        {
+          cwd: target,
+          env,
+          windowsHide: true,
+          stdio: ["inherit", "pipe", "inherit"],
+        },
+      );
+      let startup = "";
+      child.stdout.on("data", (chunk) => {
+        process.stdout.write(chunk);
+        startup = (startup + chunk.toString()).slice(-8192);
+        if (startup.includes("Ready in")) resolveReady();
+      });
+      child.once("error", () => {
+        rejectReady(new Error("Local app could not start"));
+        resolveExit();
+        process.exitCode = 1;
+      });
+      child.once("exit", (code) => {
+        rejectReady(new Error("Local app exited before readiness"));
+        resolveExit();
+        process.exitCode = code ?? 1;
+      });
+      return {
+        ready,
+        exited,
+        stop: async () => {
+          child.kill();
+        },
+      };
+    },
   });
 } else if (operation === "stop") {
   await ownedResources();

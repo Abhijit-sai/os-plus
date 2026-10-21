@@ -100,7 +100,7 @@ test("capture atomically stores one message, conversation, state and audit; agen
   assert.equal(
     (
       await local.db.query(
-        "select count(*)::int n from domain_events where tenant_id=$1",
+        "select count(*)::int n from domain_events where tenant_id=$1 and event_type in ('chat.message.captured','chat.turn.silent')",
         [tenant],
       )
     ).rows[0].n,
@@ -392,6 +392,7 @@ test("actual HTTP ingress resolves URL authority, acknowledges before work, and 
     {
       zod: await import("zod"),
       "node:crypto": await import("node:crypto"),
+      "../leads/rules": await import("../src/features/leads/rules.ts"),
       "@/lib/supabase/server": {
         createSupabaseServiceRoleClient: () => adapter,
       },

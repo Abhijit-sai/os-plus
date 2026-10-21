@@ -42,6 +42,21 @@ const service = z
 export const knowledgePackSchema = z
   .object({
     schemaVersion: z.literal(1),
+    crm: z
+      .object({
+        intentPriorities: z.record(key, z.number().int().min(0).max(10000)),
+        hotIntents: z.array(key).max(100).optional(),
+        typicalBasket: z
+          .object({
+            amount: z.number().finite().nonnegative().max(1_000_000_000),
+            currency: z.string().regex(/^[A-Z]{3}$/),
+          })
+          .strict()
+          .nullable()
+          .optional(),
+      })
+      .strict()
+      .optional(),
     brand: z
       .object({
         displayName: text,
@@ -136,6 +151,16 @@ export const knowledgePackSchema = z
   })
   .strict()
   .superRefine((pack, ctx) => {
+    if (
+      pack.crm?.hotIntents?.some(
+        (intent) => pack.crm?.intentPriorities[intent] === undefined,
+      )
+    )
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["crm", "hotIntents"],
+        message: "Declare each high-interest intent in intent priorities.",
+      });
     const unique = (values: string[], path: string) => {
       if (
         new Set(values.map((value) => value.toLowerCase())).size !==

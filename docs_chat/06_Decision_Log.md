@@ -190,3 +190,22 @@ Owner instructed: “we'll connect to the meta business manager later. Let's com
 ### CHAT-D034 — Local-only CH-2 closure and CH-3 progression authorised
 **Status:** ACCEPTED exception (owner, 2026-10-21)
 Owner explicitly answered “Approve local closure and CH-3; defer Meta (Recommended)” to the combined question permitting deferral of the live Meta acceptance gate, final local CH-2 review/commit under D025, then CH-3 Contacts & Leads. This overrides the CH-2 real-Meta-capture/real-test-inbox gate for LOCAL phase progression only. Existing passed local evidence and owner reply confirmation support this scoped acceptance; final local review/tests still must pass before commit. Preserve all missing WhatsApp/Instagram/Facebook and approved-channel template/captured acceptance as a production-release blocker, not PASS. No live-channel activation, public tunnel, shared migration, push/merge/deploy, real message or paid model authority is granted. Proceed with CH-3 only after the local CH-2 commit; keep platform features disabled until separately approved/enabled.
+
+
+### CHAT-D035 — Record-driven lead stages approved
+**Status:** ACCEPTED (owner, 2026-10-21; P3-1)
+Confirmed booking -> booked; explicitly linked real order -> in_progress; that order fully paid OR actually delivered -> won. Imported drafts, production completion and unrelated old customer orders never advance the lead. Manual stage changes remain audited. No payment receipt, order/delivery mutation or messaging is implied.
+
+### CHAT-D036 — Configurable inactivity closure approved
+**Status:** ACCEPTED (owner, 2026-10-21; P3-2)
+Eligible new/engaged SALES leads automatically become lost after the tenant's configured customer-silence period (currently7 days), excluding active linked bookings/orders. Service/spam and already terminal leads are excluded. This approves stage refresh only, not n8n activation or outbound reminders.
+
+
+### CHAT-D037 — Hot lead definition approved
+**Status:** ACCEPTED (owner, 2026-10-21; P3-3)
+An open SALES lead is hot only while its latest customer activity is within the tenant's configured hot_hours AND its intent belongs to the brand knowledge pack's configured high-interest intent list. Routine inquiries are not hot by default. No business intent taxonomy is prefilled; an empty/missing list means no hot leads. Won/lost/service/spam and future-dated activity are excluded.
+
+
+### CHAT-D038 — CH-3 local acceptance, real-phone deferral and CH-4 authorised
+**Status:** ACCEPTED exception (owner,2026-10-21)
+Owner answered “Accept local CH-3; defer real phones; continue CH-4” to the evidence-linked phase acceptance question. Accept local six gates/Chat100/provider10/CRM2/Boutique14/restore evidence and their documented scope. Defer CHECKLIST PartC CH-3 two-real-phone/WhatsApp owner exercise until Meta resumes; preserve it as an unexecuted production-release blocker, never PASS. Authorises final local CH3 closure/commit under D025 then CH4. No shared migration, live message, purchase/public tunnel, production enablement, push/merge/deployment or n8n authority.

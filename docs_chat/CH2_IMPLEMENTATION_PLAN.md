@@ -1,5 +1,5 @@
 # CH-2 implementation plan
-Status: READY_FOR_CLOSURE — LOCAL under CHAT-D034, 2026-10-21. Final six gates/reviews pass; Meta production-readiness checks deferred, not passed.
+Status: CLOSED — LOCAL under CHAT-D034, commit00718d6e395ea652eb2a7ceb79b39ae1471e863c, 2026-10-21. Deferred Meta checks remain a production-release blocker.
 Branch: codex/chat-ch1-foundation (existing approved worktree; continuing locally).
 
 ## Scope

@@ -46,23 +46,25 @@ Owner actions that unblock phases are in `CHECKLIST.md`; the "Needs from owner" 
 **Acceptance:** a test tenant has a workspace, one brand, two branches, a published pack, and channels mapped — all invisible to a second tenant.
 
 ## CH-2 — Chatwoot connector + capture
-- [ ] CH-2.1 `src/integrations/chatwoot`: client (hyphenated header, timeouts, label read-merge-write), payload parser (new parser fixtures covering both message-type encodings), Platform API helpers (account, user, agent bot, account webhook).
-- [ ] CH-2.2 Events webhook: resolution + assertions (02 §3), idempotent insert into `chat_conversations` / `chat_messages`, system greeting classification, quiet clock on staff reply, workspace `last_event_at`.
-- [ ] CH-2.3 Migration: `chat_conversations`, `chat_messages`, `chat_state`, `chat_turns`.
-- [ ] CH-2.4 Agent webhook skeleton: resolution, mode check, records a `chat_turns` row with outcome `silent` (engine arrives in CH-5).
-- [ ] CH-2.5 Onboarding helper: create agent bot + account webhook for a workspace; attach bot to inboxes whose mode ≠ off.
-- [ ] CH-2.6 Build a new mock Chatwoot for E2E from transport contracts; no production-business fixtures.
+Local phase CLOSED under CHAT-D034; runtime tasks below completed. Live Meta/channel fixtures and acceptance remain deferred production blockers, never PASS. See CH2_QA.md.
+- [x] CH-2.1 `src/integrations/chatwoot`: client (hyphenated header, timeouts, label read-merge-write), payload parser (new parser fixtures covering both message-type encodings), Platform API helpers (account, user, agent bot, account webhook).
+- [x] CH-2.2 Events webhook: resolution + assertions (02 §3), idempotent insert into `chat_conversations` / `chat_messages`, system greeting classification, quiet clock on staff reply, workspace `last_event_at`.
+- [x] CH-2.3 Migration: `chat_conversations`, `chat_messages`, `chat_state`, `chat_turns`.
+- [x] CH-2.4 Agent webhook skeleton: resolution, mode check, records a `chat_turns` row with outcome `silent` (engine arrives in CH-5).
+- [x] CH-2.5 Onboarding helper: create agent bot + account webhook for a workspace; attach bot to inboxes whose mode ≠ off.
+- [x] CH-2.6 Build a new mock Chatwoot for E2E from transport contracts; no production-business fixtures.
 
 **Tests:** parser fixtures (real captured payloads: WhatsApp, Instagram, Facebook, website, staff, bot, template, greeting), wrong secret / wrong account / unknown inbox / other tenant's key → rejected, duplicate delivery → one row.
 **Acceptance:** real messages to a test inbox appear in `chat_messages` under the right tenant within seconds.
 
 ## CH-3 — Contacts, leads, customer link/convert
-- [ ] CH-3.1 Migration: `chat_contacts`, `chat_contact_identities`, `leads`, `lead_events`; `tasks` check extensions (02 §4.9).
-- [ ] CH-3.2 Pure rules (`src/features/leads/rules.ts`): channel from payload, ref codes, intent ranking (never downgrade), kind, stage machine, hot, SLA clocks, value estimate (repeat customer's median order value, else the pack's typical basket; service leads carry none). Write synthetic tests for the new business's approved rules; reference test structure only.
-- [ ] CH-3.3 Capture: identity resolution (E.164 on WhatsApp; platform ids otherwise), one open lead per conversation, clocks, first staff reply → owner via `chat_staff_links`.
-- [ ] CH-3.4 Commands: link contact ↔ customer (exact E.164), convert contact → customer (platform customer rules), merge/split contacts, change stage/owner/notes — each with domain events and `lead_events`.
-- [ ] CH-3.5 Stage advance from linked records (booking, order, payment/delivery) and lost-after-silence; runs from cron and on lead page view.
-- [ ] CH-3.6 Ref-code merge: a WhatsApp message quoting an Instagram/Facebook lead's ref links the identities to one contact.
+Runtime tasks implemented and locally tested; phase QA_BLOCKED pending owner C3-L1–L4 and local-only real-phone deferral (CH3_OWNER_ACCEPTANCE.md). See CH3_QA.md/Boutique evidence. No CH4 start or phase commit yet.
+- [x] CH-3.1 Migration: `chat_contacts`, `chat_contact_identities`, `leads`, `lead_events`; `tasks` check extensions (02 §4.9).
+- [x] CH-3.2 Pure rules (`src/features/leads/rules.ts`): channel from payload, ref codes, intent ranking (never downgrade), kind, stage machine, hot, SLA clocks, value estimate (repeat customer's median order value, else the pack's typical basket; service leads carry none). Write synthetic tests for the new business's approved rules; reference test structure only.
+- [x] CH-3.3 Capture: identity resolution (E.164 on WhatsApp; platform ids otherwise), one open lead per conversation, clocks, first staff reply → owner via `chat_staff_links`.
+- [x] CH-3.4 Commands: link contact ↔ customer (exact E.164), convert contact → customer (platform customer rules), merge/split contacts, change stage/owner/notes — each with domain events and `lead_events`.
+- [x] CH-3.5 Stage advance from linked records (booking, order, payment/delivery) and lost-after-silence; guarded cron adapter and future CH4 page-view hook implemented; scheduler not activated.
+- [x] CH-3.6 Ref-code review: a WhatsApp message quoting an Instagram/Facebook lead's ref records an exact candidate. Never automatically merge two existing contacts; guarded manual merge/split applies (non-negotiable and CH3_IMPLEMENTATION_PLAN reconciliation).
 
 **Tests:** rules suite; two-tenant same-phone fixture; convert respects duplicate-phone rule; merge/split reversible and audited.
 **Acceptance:** every captured conversation has a contact and a lead; a WhatsApp number matching an existing customer links automatically.

@@ -112,3 +112,10 @@ test("publication requires the brand's own active branches and enabled capabilit
     pack,
   );
 });
+
+test("optional CRM policy validates currency, value and tenant-defined intent priorities while older packs stay valid",()=>{
+ const crm={intentPriorities:{question:1,booking:3},typicalBasket:{amount:250,currency:"INR"}};
+ assert.deepEqual(parseKnowledgePack({...example,crm}).crm,crm);
+ assert.throws(()=>parseKnowledgePack({...example,crm:{...crm,typicalBasket:{amount:-1,currency:"INR"}}}));
+ assert.throws(()=>parseKnowledgePack({...example,crm:{...crm,intentPriorities:{bad:-1}}}));
+});

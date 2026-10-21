@@ -140,3 +140,14 @@ test("captured local AgentBot output stays bot-authored and never becomes a staf
   assert.equal(message.channelKind, "website");
   assert.equal(message.private, false);
 });
+
+test("contact profile and source are bounded and owned by this conversation, never a staff sender",()=>{
+ const base=fixture();
+ const payload={...base,sender:{id:91,type:"contact",name:"Synthetic",phone_number:"+919876543210",email:"test@example.invalid"},
+  conversation:{...base.conversation,contact_inbox:{contact_id:91,inbox_id:4,source_id:"919876543210"}}};
+ const parsed=parseChatwootMessage(payload);
+ assert.deepEqual(parsed.identity,{displayName:"Synthetic",phone:"+919876543210",email:"test@example.invalid",sourceId:"919876543210"});
+ assert.throws(()=>parseChatwootMessage({...payload,conversation:{...payload.conversation,contact_inbox:{contact_id:92,inbox_id:4,source_id:"919876543210"}}}));
+ const staff=parseChatwootMessage({...payload,message_type:"outgoing",sender:{id:9,type:"user",name:"Private employee"}});
+ assert.equal(staff.identity.displayName,null);
+});
