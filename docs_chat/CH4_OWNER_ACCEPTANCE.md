@@ -12,3 +12,6 @@ All six gates pass; Chat119/119, actual provider10/10, anonymous ingress6/6, Bou
 
 ## Accepted —CHAT-D039
 Owner accepted local CH4 and sequencing, authorising final local closure/commit and CH5 planning. C4-L1–L5 satisfied through evidence review and actual card exercise. Optional second save not inferred. Meta/two-phone remains unexecuted/release-blocking. No paid run or external release authority.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.

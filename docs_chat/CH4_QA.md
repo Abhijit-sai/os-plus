@@ -1,5 +1,5 @@
 # CH-4 QA — local technical evidence complete
-Status: READY_FOR_CLOSURE LOCAL under owner acceptance CHAT-D039,2026-10-22; CH4.2 dependency alignment accepted. Branch codex/chat-ch1-foundation, base0d22491. No CH4 commit/deployment/production enablement.
+Status: CLOSED LOCAL under CHAT-D039, commitf9d195c02388bdcf17c8fb25a294dac32bbe9fe3,2026-10-22; CH4.2 sequencing accepted. Branch codex/chat-ch1-foundation, base0d22491. No deployment/production enablement.
 
 ## Built
 - Leads inbox/detail with exact scoped counters/pagination, brand/branch/channel/stage/owner/priority filters, clocks/high interest, public conversation mirror/history and versioned audited edits. Existing stored suggestions expose text and recorded knowledge version only.
@@ -55,3 +55,6 @@ Owner phase acceptance still pending: CH4_OWNER_ACCEPTANCE.md C4-L1–L5, CHECKL
 
 ## Accepted closure checkpoint —2026-10-22
 CHAT-D039 satisfies the full owner C4-L1–L5 gate, including generated provenance CH5 and booking CH6 sequencing. Earlier pending-gate statements above are superseded. READY_FOR_CLOSURE LOCAL; final local commit next. External release blockers remain unchanged.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.

@@ -220,3 +220,32 @@ Factual owner-assisted QA: owner replied "saved" to the conversation10 Dashboard
 ### CHAT-D039 — CH-4 local acceptance and dependency sequencing
 **Status:** ACCEPTED (owner,2026-10-22)
 Owner answered "Accept local CH-4 and sequencing; continue to CH-5 planning" to the evidence-linked full phase question. C4-L1–L5 local acceptance satisfied: six gates/Chat119, actual card save, role/tenant/privacy/narrow checks, Boutique14 and local migration/restore evidence within CH4_QA.md limits. Explicitly accepts C4-O1 sequencing: CH4 stored suggestion text/recorded knowledge version; richer generated provenance CH5; booking actions CH6. CH4.2 is complete only for that accepted local scope, not evidence those later features exist. Authorises final local closure/commit under D025 and CH5 planning. Meta/two-phone proof stays deferred and production-release blocking. No paid model run, purchase, shared SQL, public tunnel, real external message, n8n activation, push/merge/deployment or production enablement authority.
+
+
+## Open — CH-5 planning,2026-10-22
+P5-1 configurable inquiry/session/quiet defaults; P5-2 genuine budget ceiling vs continued draft inference; P5-3 mock-only build with live model/key selection deferred. Proposed recommendations and exact tradeoffs: CH5_IMPLEMENTATION_PLAN.md §Open decisions. No dependent code or paid call before answers. CH4 is CLOSED LOCAL atf9d195c under D039; original CH4 closure-alignment proposal is resolved. No external release or new production business policy inferred.
+
+
+### CHAT-D040 — Configurable inquiry/session defaults
+**Status:** ACCEPTED (owner,2026-10-22; P5-1)
+Continuing within30min, resumed30min–24h, fresh after24h; use each tenant's saved quiet interval after public human replies (currently60min). Bare acknowledgements are silent only with no open request. Languages/wording from the reviewed brand pack; first tests synthetic inquiries only. Defaults remain configurable, no existing ledger/pack overwrite or CH6 business-action approval.
+
+### CHAT-D041 — Genuine model budget ceiling
+**Status:** ACCEPTED (owner,2026-10-22; P5-2)
+Stop new paid calls at the tenant's configured model budget limit; retain a safe draft/status for staff. Changing public auto replies to paid draft generation is insufficient. Atomically reserve conservative call maxima, do not treat missing cost as free or retry with new paid calls automatically. No paid model run authorised.
+
+### CHAT-D042 — Mock-only CH-5 first
+**Status:** ACCEPTED (owner,2026-10-22; P5-3)
+Build/test with synthetic fixtures and mock models first; production model IDs unset and engine disabled. Live model selection, private fresh platform key and explicitly priced smoke approval later. No live fallback/model API call or real-message authority; eventual paid/live phase acceptance not waived.
+
+## Open — CH-5 after P5 approvals
+P5-1/P5-2/P5-3 resolved byD040–D042. No unresolved policy blocks the approved mock-only inquiry build. Live model choice/cost/key, real Meta/WhatsApp acceptance and later business-action policy remain explicit future dependencies, not inferred approvals.
+
+### CHAT-D043 — Automatic local mock suggestions for fresh chats
+**Status:** ACCEPTED (owner,2026-10-22)
+Owner explicitly requested enabling free synthetic suggestions for fresh chats and completing the stage soon. This refines D042's engine-disabled default ONLY for the owned isolated local test setup: launch with --chatwoot --mock-suggestions, exact loopback transport, existing synthetic Local QA A/B. Mock worker/private draft delivery and their local tenant gates may be enabled; paid/live model execution stays disabled, model IDs/key blank. The mock currently uses a fixed opening-hours demonstration scenario, not arbitrary language understanding. Staff chooses any public Send; human quiet and other existing gates still apply. No real WhatsApp/Meta/external message, shared migration, production/public enablement or paid run. Full CH5 owner acceptance and original paid/live/WhatsApp gate deferral are NOT inferred from “complete this stage soon.”
+
+### CHAT-D044 — CH-5 local acceptance and explicit live-gate deferral
+**Status:** ACCEPTED exception (owner,2026-10-22)
+Owner answered “Accept local CH-5; defer live gates and close locally” to the evidence-linked local closure question (six gates/Chat168,fresh-provider5,browser widget→private suggestion→approved reply). Accepts the documented combined local mock results and authorises local closure/commit under D025. This is acceptance of local evidence, not a claim the owner personally executed every C5-L step.
+Explicitly defer the cheap paid-model smoke and realWhatsApp acceptance: they remain unexecuted, untested and production-release blocking. D044 closes the accepted LOCAL mock scope only; it does not claim real model accuracy, paid/live worker enablement or real-channel readiness. Existing Meta/two-phone deferral remains release-blocking. No paid run/purchase/key selection, real external messages, shared migration, tunnel, production change, push/merge/deployment or n8n activation authorised. No CH6 implementation in this closure session.

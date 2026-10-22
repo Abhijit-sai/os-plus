@@ -123,19 +123,32 @@ export default async function LeadDetailPage({
           {data.draft ? (
             <Card>
               <CardHeader>
-                <CardTitle>Unsent suggestion</CardTitle>
+                <CardTitle>Suggested reply</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap break-words">
                   {data.draft.text}
                 </p>
+                {data.draft.sourceRefs.length ? (
+                  <p className="mt-3 break-words text-sm">
+                    Sources: {data.draft.sourceRefs.join(", ")}
+                  </p>
+                ) : null}
                 {data.draft.knowledgeVersion ? (
                   <p className="mt-3 text-xs">
                     Knowledge version {data.draft.knowledgeVersion}
                   </p>
                 ) : null}
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Review and send only in Chatwoot.
+                  {data.draft.mock ? "Synthetic mock draft. " : ""}
+                  {data.draft.dryRun
+                    ? "Dry run — nothing sent. "
+                    : data.draft.privateNoteStatus === "posted"
+                      ? "Posted as a private staff note. "
+                      : data.draft.privateNoteStatus === "uncertain"
+                        ? "Private-note delivery is unconfirmed. "
+                        : "Not confirmed as posted to Chatwoot. "}
+                  Check the current conversation and send only in Chatwoot.
                 </p>
               </CardContent>
             </Card>

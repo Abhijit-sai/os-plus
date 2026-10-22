@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import {
   ChatForm,
   ChatInput,
@@ -14,12 +15,14 @@ import type { ChatInbox } from "@/integrations/chatwoot/admin-client";
 
 export function ChatSetupPanel({
   data,
+  previewEnabled = false,
   save,
   sync,
   loadKnowledge,
 }: {
   loadKnowledge: (input: unknown) => Promise<ChatActionResult>;
   data: ChatSetup;
+  previewEnabled?: boolean;
   save: (input: unknown, key: string) => Promise<ChatActionResult>;
   sync: () => Promise<ChatActionResult>;
 }) {
@@ -38,6 +41,14 @@ export function ChatSetupPanel({
           Staff replies stay in Chatwoot. Conversation processing and automatic
           replies are not enabled by this setup.
         </p>
+        {previewEnabled ? (
+          <Link
+            className="mt-3 inline-flex min-h-11 items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+            href="/settings/chat/try"
+          >
+            Try the bot — mock preview
+          </Link>
+        ) : null}
       </header>
       <ChatSection
         title="Brands"

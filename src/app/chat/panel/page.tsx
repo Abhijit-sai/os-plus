@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentClerkUserId } from "@/lib/auth/super-admin";
 import { getChatPanelConfig } from "@/features/leads/queries";
+import { DraftBridge } from "@/components/leads/draft-bridge";
 import { PanelHost } from "@/components/leads/panel-host";
 import { linkClass } from "@/components/leads/workspace";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ export default async function ChatPanelPage() {
   return (
     <main className="mx-auto max-w-xl space-y-4 p-4">
       <h1 className="text-sm font-semibold">OS PLUS · Enquiry card</h1>
+      {config && process.env.CHAT_STAFF_DRAFT_SEND_ENABLED === "true" ? (
+        <DraftBridge origin={config.origin} accountId={config.accountId} />
+      ) : null}
       {config ? (
         <PanelHost
           key={config.origin + ":" + config.accountId}

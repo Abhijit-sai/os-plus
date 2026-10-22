@@ -34,3 +34,6 @@ Closure alignment C4-L4 is explicit: existing suggestion/knowledge version displ
 
 ## Owner closure accepted —2026-10-22
 CHAT-D039 explicitly accepts local results and CH4.2 dependency alignment: stored draft text/knowledge version now; generation/richer provenance CH5; booking CH6. Supersedes pending-owner notes above. READY_FOR_CLOSURE LOCAL; commit before CH5 planning.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.

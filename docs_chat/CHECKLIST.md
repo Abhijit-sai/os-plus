@@ -156,3 +156,24 @@ No new Clerk keys needed; existing owner-a session works. CH3 owner gate passed 
 - [x] Boutique14/14 owner scenario and7/7 persistence; workbook14 dated notes repaired with package/style/value preservation and visual checks. Renderer exits1 after valid export/previews, independently validated.
 - [x] Full owner CH4 acceptance under CHAT-D039 including CH4.2 generation/provenance CH5 and booking CH6 dependency alignment: [CH4_OWNER_ACCEPTANCE.md](CH4_OWNER_ACCEPTANCE.md) C4-L1–L5. Gate satisfied; final local commit before CH5 planning.
 - [ ] Existing Meta/two-real-phone/channel production-release proof remains deferred/unexecuted, never PASS. Separate Shopify hosted OAuth/renewal and n8n remain pending.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.
+
+
+2026-10-22 CH5 interim: IN_PROGRESS, mock-only rules/runtime/preview source; latest automated evidence and pending implementation/owner gates in [CH5_QA.md](CH5_QA.md). PartC CH5 and B8 remain unchecked. Retained app still CH4; no owner action/new keys required yet, no live-model/Meta readiness claim.
+
+
+## CH-5 local mock checkpoint —2026-10-22
+Supersedes earlier CH4-retained/interim wording. [Current QA](CH5_QA.md),[Boutique14](CH5_BOUTIQUE_QA.md),[owner test C5-L1–L6](CH5_OWNER_ACCEPTANCE.md).
+- [x] Six final gates,Chat168/168 after native-composer correction and fresh-chat mock opt-in,provider10/10,actualbrowserSend/Edit+verifiedcapture2/2,anonymousHTTP7/7.
+- [x] Four exact additive SQL files applied ONLY ownedLOCAL15437 with actual pre/postrestores,128existingtable manifests preserved; appliedbytesfrozen.
+- [x] Ownerpreview/fallback,managerdraftread/edit and report/previewdenial,viewermasking/revocation,financedefaultdenial,two-tenantURLs,authenticated375pxpreview/provenance within documented limits.
+- [x] FreshBoutiqueTierA14/14 owner scenario,persistence7/7;QAworkbook14datednotes/height-only preservation and visualchecks.
+- [x] B8 LOCAL ONLY: reviewed script installed in previouslyempty owned4.18 DASHBOARD_SCRIPTS; actual native controlsendtestsPASS. OriginalB8productionstep remainsunchecked.
+- [x] Owner local C5-L1–L7 evidence acceptance under CHAT-D044; A14 verified sent; A15 unsent; C5-L7 enables fresh synthetic enquiries under CHAT-D043. ExistingClerklogin,no newkeys.
+- [ ] PartC CH5 cheap paid-model smoke and realWhatsAppdraft acceptance remainunexecuted and release-blocking, explicitly deferred for LOCAL closure under CHAT-D044. LiveAIoff; local mock engine/private drafts opt-in under D043;USD0.
+- [ ] Meta/two-phoneproductionproof and separateShopifyhostedOAuth/renewal/deferredn8n remainpending. Noexternalreleaseauthority.
+
+### CH5 local closure — 2026-10-22
+Owner accepts combined local C5-L1–L7 evidence and explicitly defers paid/live/realWhatsApp under CHAT-D044. Six gates168/168, actualfresh5/browser2, frozen4LOCALSQL/restore, priorTierA14/persistence7 and focused final reviewers PASS. CH5 CLOSED LOCAL; local phase commit under D025/D044. PartC paid/live/realWhatsApp and B8production remain unchecked/release-blocking. No CH6 work or external release.

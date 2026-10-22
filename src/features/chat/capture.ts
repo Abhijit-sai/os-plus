@@ -7,6 +7,12 @@ import type { IngressDependencies } from "./ingress";
 
 export function chatCaptureDependencies(
   schedule: IngressDependencies["after"],
+  agent?: (job: {
+    workspace: import("./ingress").CaptureWorkspace;
+    channel: import("./ingress").CaptureChannel;
+    conversationId: string;
+    triggerMessageId: string;
+  }) => Promise<void>,
 ): IngressDependencies {
   const db = createSupabaseServiceRoleClient();
   return {
@@ -64,7 +70,7 @@ export function chatCaptureDependencies(
         contactId: message.contactId,
         ...message.identity,
       });
-      const { error } = await db.rpc("chat_capture", {
+      const { data, error } = await db.rpc("chat_capture", {
         p_context: {
           tenantId: w.tenantId,
           actor: { type: "WEBHOOK", id: "chatwoot" },
@@ -86,6 +92,22 @@ export function chatCaptureDependencies(
         },
       });
       if (error) throw new Error("Capture unavailable");
+      if (kind === "agent" && agent) {
+        const captured = z
+          .object({
+            conversationId: z.string().uuid(),
+            messageId: z.string().uuid(),
+          })
+          .passthrough()
+          .safeParse(data);
+        if (captured.success)
+          await agent({
+            workspace: w,
+            channel: c,
+            conversationId: captured.data.conversationId,
+            triggerMessageId: captured.data.messageId,
+          });
+      }
     },
     async issue(w, code) {
       const { error } = await db.rpc("chat_capture_issue", {

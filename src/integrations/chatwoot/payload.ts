@@ -59,6 +59,7 @@ const schema = z.object({
   content_type: z.string().min(1).max(80),
   created_at: timestamp,
   sender: sender.nullish(),
+  content_attributes: z.unknown().optional(),
   attachments: z
     .array(
       z.object({
@@ -124,7 +125,21 @@ export function parseChatwootMessage(input: unknown) {
     data.conversation.additional_attributes?.type === "instagram_direct_message"
       ? "instagram"
       : kinds[data.conversation.channel as keyof typeof kinds];
+  const source = z
+    .object({
+      osplus_source_draft_id: z.string().uuid(),
+      osplus_source_note_id: id,
+    })
+    .safeParse(data.content_attributes);
+  const sourceDraft =
+    author === "staff" && !data.private && source.success
+      ? {
+          draftId: source.data.osplus_source_draft_id,
+          noteId: source.data.osplus_source_note_id,
+        }
+      : null;
   return {
+    ...(sourceDraft ? { sourceDraft } : {}),
     messageId: data.id,
     accountId: data.account.id,
     inboxId: data.inbox.id,

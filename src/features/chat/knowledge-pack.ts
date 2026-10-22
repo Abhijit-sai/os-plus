@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sessionPolicySchema } from "./agent/session.ts";
 import { reportingScheduleSchema } from "../leads/reporting-hours.ts";
 
 const text = z
@@ -43,6 +44,13 @@ const service = z
 export const knowledgePackSchema = z
   .object({
     schemaVersion: z.literal(1),
+    agent: z
+      .object({
+        session: sessionPolicySchema.optional(),
+        indicativeLabel: text.optional(),
+      })
+      .strict()
+      .optional(),
     crm: z
       .object({
         reportingSchedule: reportingScheduleSchema.optional(),

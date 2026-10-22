@@ -255,6 +255,20 @@ if (operation === "up") {
         await import("../chatwoot-local/app-env.mjs")
       ).localChatwootEnvironment()
     : {};
+  const { mockSuggestionEnvironment, enableOwnedMockSuggestions } =
+    await import("./mock-suggestions.mjs");
+  const mockEnv = mockSuggestionEnvironment(
+    process.argv.includes("--mock-suggestions"),
+    chatwootEnv,
+  );
+  if (mockEnv.CHAT_AGENT_ENABLED === "true") {
+    const result = await enableOwnedMockSuggestions(s);
+    console.log(
+      "LOCAL MOCK suggestions enabled for " +
+        result.tenants +
+        " synthetic tenants; live AI disabled, no model spend.",
+    );
+  }
   // Local callbacks contain credentials; disable incoming-request URL logs in the disposable snapshot only.
   const configPath = path.join(target, "next.config.ts");
   await writeFile(
@@ -272,6 +286,17 @@ if (operation === "up") {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: s.anon,
     SUPABASE_SERVICE_ROLE_KEY: s.service,
     CHAT_FOUNDATION_ENABLED: "true",
+    CHAT_MOCK_PREVIEW_ENABLED: "true",
+    CHAT_STAFF_DRAFT_SEND_ENABLED: "false",
+    CHAT_AGENT_ENABLED: "false",
+    CHAT_AGENT_MODEL_MODE: "",
+    CHAT_DRAFT_DELIVERY_ENABLED: "false",
+    CHAT_MODEL_LIVE_ENABLED: "false",
+    CHAT_MODEL_UNDERSTAND: "",
+    CHAT_MODEL_CLASSIFY: "",
+    CHAT_MODEL_WRITE: "",
+    CHAT_MODEL_PROVIDER: "",
+    OPENROUTER_API_KEY: "",
     CHATWOOT_BASE_URL: "https://chatwoot.example.invalid",
     CHAT_WEBHOOK_ORIGIN: "https://app.example.invalid",
     CHAT_DRY_RUN: "true",
@@ -285,6 +310,7 @@ if (operation === "up") {
     NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: "/select-tenant",
     NEXT_PUBLIC_APP_URL: "http://localhost:" + ports.app,
     ...chatwootEnv,
+    ...mockEnv,
   };
   await startOwnedLoopbackApp({
     port: ports.app,

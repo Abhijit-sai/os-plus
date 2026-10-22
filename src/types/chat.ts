@@ -229,7 +229,35 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
-  chat_crm_read: {Args:{p_context:Json;p_view:string;p_input:Json};Returns:Json;};
+  chat_staff_draft_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_draft_read: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_dry_run: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_target: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_load: { Args: { p_context: Json; p_input: Json }; Returns: Json };
+  chat_agent_run: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_crm_read: {
+    Args: { p_context: Json; p_view: string; p_input: Json };
+    Returns: Json;
+  };
   chat_lead_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

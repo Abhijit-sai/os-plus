@@ -11,6 +11,9 @@ function page(failure) {
   return loadServerModule("src/app/(tenant)/settings/chat/page.tsx", {
     "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
     "@/features/chat/actions": {},
+    "@/features/chat/agent/preview-server": {
+      isMockPreviewEnabled: () => false,
+    },
     "next/navigation": {
       notFound: () => {
         throw marker;
@@ -84,6 +87,9 @@ test("permission-query outages propagate through the real guard and page as safe
         {
           "react/jsx-runtime": { jsx: () => null },
           "@/features/chat/actions": {},
+          "@/features/chat/agent/preview-server": {
+            isMockPreviewEnabled: () => false,
+          },
           "next/navigation": {
             notFound: () => {
               throw marker;

@@ -82,13 +82,14 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 **Acceptance:** owner/manager can work every lead end to end; viewer denied when disabled, sees permitted/masked data only when configured; panel works inside Chatwoot or falls back safely.
 
 ## CH-5 — Agent engine (draft mode)
-- [ ] CH-5.1 `src/integrations/openrouter`: JSON-mode calls, cost + timing capture, timeouts, model ids from env.
-- [ ] CH-5.2 Context loader (03 §2), tenant id mandatory on every query.
-- [ ] CH-5.3 Implement the new guarded pipeline: order, session, ledger, quiet, closing (before models), understand, classify, gates, write, check/repair, repeat and code-filled links — with fresh unit tests and the new brand's approved language/script/workflow configuration.
-- [ ] CH-5.4 Delivery as private-note drafts; `osplus-reply.js` buttons + markup harness tests.
-- [ ] CH-5.5 Budget guard; `CHAT_DRY_RUN`.
-- [ ] CH-5.6 Settings → Try the bot (sandbox, `mode = 'sandbox'`, no Chatwoot, no writes beyond the turn log).
-- [ ] CH-5.7 Lead enrichment from the understanding.
+2026-10-22: CLOSED LOCAL under owner acceptance/explicit exception CHAT-D044. Checked tasks mean implemented and tested in local mock scope. Live model IDs/key selection, paid-model smoke and realWhatsApp acceptance remain unexecuted and production-release blocking. See CH5_QA.md/CH5_OWNER_ACCEPTANCE.md. No CH6 implementation or external release.
+- [x] CH-5.1 `src/integrations/openrouter`: JSON-mode calls, cost + timing capture, timeouts, model ids from env.
+- [x] CH-5.2 Context loader (03 §2), tenant id mandatory on every query.
+- [x] CH-5.3 Implement the new guarded pipeline: order, session, ledger, quiet, closing (before models), understand, classify, gates, write, check/repair, repeat and code-filled links — with fresh unit tests and the new brand's approved language/script/workflow configuration.
+- [x] CH-5.4 Delivery as private-note drafts; `osplus-reply.js` buttons + markup harness tests.
+- [x] CH-5.5 Budget guard; `CHAT_DRY_RUN`.
+- [x] CH-5.6 Settings → Try the bot (sandbox, `mode = 'sandbox'`, no Chatwoot, no writes beyond the turn log).
+- [x] CH-5.7 Lead enrichment from the understanding.
 
 **Tests:** gates/checks/context suites; E2E with stubbed model; cheap-model smoke on the synthetic new-business pack (state cost first).
 **Acceptance:** a real WhatsApp message gets a correct draft with buttons in Chatwoot; the turn is logged with cost and timings.
@@ -133,3 +134,10 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 
 ### CH-4 accepted local scope —2026-10-22
 CHAT-D039 supersedes the earlier pending-owner note. C4-L1–L5 accepted; CH4 READY_FOR_CLOSURE LOCAL. CH4.2 checked for accepted implemented scope: mirror/stored draft text/knowledge version/audited edits/native customer links. Richer generated provenance is CH5, Create booking CH6; original requirement wording retained for traceability, not a claim these dependencies are built. Meta/two-phone remains deferred/release-blocking. Final local commit before CH5 planning.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.
+
+
+### CH-5 local mock implementation checkpoint —2026-10-22
+CH5.1–5.7 localmockimplementation/tests complete and local phase checkboxes accepted under CHAT-D044; Currentevidence CH5_QA.md (168/168,sixgates,4frozenLOCALSQL/prepostrestore,actualprovider/browsercontrols/provenance/privacy and automatic local mock fresh-chat checks); CH5_BOUTIQUE_QA.md14/14; ownersteps CH5_OWNER_ACCEPTANCE.md. Live modelID/keyselection/paid smoke and original realWhatsApp acceptance remainunexecuted and notwaived by D040–D042. CH5 CLOSED LOCAL under explicit D044 acceptance/deferral; local phase commit authorised. No CH6 implementation/push/deployment.

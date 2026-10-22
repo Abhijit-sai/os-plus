@@ -4,6 +4,7 @@ import {
   loadChatKnowledgeAction,
 } from "@/features/chat/actions";
 import { notFound } from "next/navigation";
+import { isMockPreviewEnabled } from "@/features/chat/agent/preview-server";
 import {
   ChatAccessError,
   isChatFoundationEnabled,
@@ -23,6 +24,7 @@ export default async function ChatSettingsPage() {
     <ChatSetupPanel
       key={data.tenantId}
       data={data}
+      previewEnabled={isMockPreviewEnabled()}
       save={saveChatAction}
       sync={syncChatInboxesAction}
       loadKnowledge={loadChatKnowledgeAction}

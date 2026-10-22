@@ -166,6 +166,34 @@ export async function getLeadDetail(input: unknown) {
       }),
     })
     .parse(result.data).details;
+  const draftRead = page.permissions.pii
+    ? await db.rpc("chat_agent_draft_read", {
+        p_context: { ...createUserCommandContext(context) },
+        p_input: { id },
+      })
+    : { data: null, error: null };
+  if (draftRead.error) throw new Error("This suggestion could not be loaded.");
+  const draft = z
+    .object({
+      text: z.string().max(6000),
+      knowledgeVersion: z.number().int().positive().nullable(),
+      sourceRefs: z
+        .array(
+          z
+            .string()
+            .regex(
+              /^(?:hours|about|service:[a-z][a-z0-9_]{0,63}|policy:[0-9]{1,3}|price:[0-9]{1,3})$/,
+            ),
+        )
+        .max(100),
+      dryRun: z.boolean(),
+      mock: z.boolean(),
+      privateNoteStatus: z.enum(["pending", "posted", "uncertain", "none"]),
+      createdAt: z.string().datetime({ offset: true }),
+    })
+    .strict()
+    .nullable()
+    .parse(draftRead.data);
   const { projectMessage, projectHistory } = await import("./pii");
   return {
     lead: projectLead(raw.item, { pii: page.permissions.pii, now: page.asOf }),
@@ -177,7 +205,7 @@ export async function getLeadDetail(input: unknown) {
     history: details.history.map(projectHistory),
     historyCount: details.historyCount,
     owners: details.owners,
-    draft: page.permissions.pii ? details.draft : null,
+    draft,
     asOf: page.asOf,
   };
 }
