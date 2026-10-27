@@ -1984,6 +1984,7 @@ test("a staff handoff drains its label intent immediately without an agent or an
     "../knowledge-pack": {},
     "../connection": {},
     "./label-worker": worker,
+    "../notifications/trigger": { scheduleNotificationCheck: async () => {} },
   });
   try {
     Object.assign(process.env, {

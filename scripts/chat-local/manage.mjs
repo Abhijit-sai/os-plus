@@ -275,6 +275,9 @@ if (operation === "up") {
         " synthetic tenants; live AI disabled, no model spend.",
     );
   }
+  const {localNotificationEnvironment,startLocalNotificationMock}=await import("./mock-notifications.mjs");
+  const notificationEnv=localNotificationEnvironment(s,process.argv.includes("--mock-notifications"));
+  const notificationMock=process.argv.includes("--mock-notifications")?await startLocalNotificationMock(notificationEnv):null;
   // Local callbacks contain credentials; disable incoming-request URL logs in the disposable snapshot only.
   const configPath = path.join(target, "next.config.ts");
   await writeFile(
@@ -318,6 +321,7 @@ if (operation === "up") {
     ...chatwootEnv,
     ...mockEnv,
     ...actionEnv,
+    ...notificationEnv,
   };
   await startOwnedLoopbackApp({
     port: ports.app,
@@ -360,6 +364,7 @@ if (operation === "up") {
         process.exitCode = 1;
       });
       child.once("exit", (code) => {
+        void notificationMock?.close();
         rejectReady(new Error("Local app exited before readiness"));
         resolveExit();
         process.exitCode = code ?? 1;

@@ -393,6 +393,7 @@ test("actual HTTP ingress resolves URL authority, acknowledges before work, and 
       zod: await import("zod"),
       "node:crypto": await import("node:crypto"),
       "../leads/rules": await import("../src/features/leads/rules.ts"),
+      "./notifications/trigger": { scheduleNotificationCheck: async () => {} },
       "@/lib/supabase/server": {
         createSupabaseServiceRoleClient: () => adapter,
       },

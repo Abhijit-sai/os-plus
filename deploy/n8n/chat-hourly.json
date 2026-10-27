@@ -1,0 +1,62 @@
+{
+  "name": "OS PLUS Chat notifications — inactive template",
+  "active": false,
+  "nodes": [
+    {
+      "id": "chat-notification-schedule",
+      "name": "Every five minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "chat-notification-tick",
+      "name": "Protected notification tick",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "https://replace-with-os-plus-domain.invalid/api/chat/cron/hourly",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Every five minutes": {
+      "main": [
+        [
+          {
+            "node": "Protected notification tick",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  },
+  "pinData": {},
+  "tags": []
+}

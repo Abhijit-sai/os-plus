@@ -66,3 +66,32 @@ test("rotation preserves old envelopes until revocation and rejects tampering wi
     message: "Chat secret unavailable.",
   });
 });
+
+test("notification recipient and retry code envelopes bind tenant, target and purpose independently", () => {
+  process.env.CHAT_SECRETS_KEYS = JSON.stringify({
+    v1: randomBytes(32).toString("base64"),
+  });
+  process.env.CHAT_SECRETS_ACTIVE_VERSION = "v1";
+  const recipient = { ...context, purpose: "notification_recipient" };
+  const link = { ...context, purpose: "notification_link" };
+  const envelope = encryptChatSecret(
+    '{"chatId":"123","senderId":"123"}',
+    recipient,
+  );
+  assert.equal(
+    decryptChatSecret(envelope, recipient),
+    '{"chatId":"123","senderId":"123"}',
+  );
+  assert.throws(() => decryptChatSecret(envelope, link), {
+    message: "Chat secret unavailable.",
+  });
+  assert.throws(() =>
+    decryptChatSecret(envelope, {
+      ...recipient,
+      workspaceId: "10000000-0000-4000-8000-000000000004",
+    }),
+  );
+  const code = encryptChatSecret("x".repeat(43), link);
+  assert.equal(decryptChatSecret(code, link), "x".repeat(43));
+  assert.throws(() => decryptChatSecret(code, recipient));
+});

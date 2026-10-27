@@ -229,6 +229,29 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_platform_alert: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_notification_tenants: { Args: { p_limit?: number }; Returns: Json };
+  chat_notification_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_notification_read: { Args: { p_context: Json }; Returns: Json };
+  chat_notification_resolve: { Args: { p_hash: string }; Returns: Json };
+  chat_notification_link: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_notification_preview: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_notification_dispatch: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
   chat_supplemental_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

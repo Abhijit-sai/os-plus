@@ -107,11 +107,11 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 **Accepted acceptance (CHAT-D045–D049):** first ask creates a provisional chat request. Current complete customer-confirmed details plus explicit staff approval materialize an operational pickup or callback task atomically; callback tasks do not reserve appointments or independently mark a lead booked. Pending edits/withdrawals are versioned; operational changes become handoffs. D047 defers statements. Verify other CH6.2/6.4–6.7 gates and the safety set before closure. This supersedes the original first-ask operational-booking wording.
 
 ## CH-7 — Telegram + daily summary
-- [ ] CH-7.1 Platform bot client, webhook with secret header, `/start <code>` linking, target management UI.
-- [ ] CH-7.2 Instant alerts per target and event; platform failure alerts.
-- [ ] CH-7.3 New inquiry-focused daily summary builder (structural reference only: chats, messages, replies, real reply time, handoffs by reason, bookings, payment claims, tasks, new leads, won value, errors, cost, judge rating with the worst chat linked) — per tenant, per brand section when > 1 brand.
-- [ ] CH-7.4 `/api/chat/cron/hourly` (Bearer secret) + inactive n8n workflow export for the new platform instance; idempotent per tenant per local date.
-- [ ] CH-7.5 Preview script that prints a summary without sending.
+- [x] CH-7.1 Platform bot client, webhook with secret header, `/start <code>` linking, target management UI.
+- [x] CH-7.2 Instant alerts per target and event; platform failure alerts.
+- [x] CH-7.3 New inquiry-focused daily summary builder (structural reference only: chats, messages, replies, real reply time, handoffs by reason, bookings, payment claims, tasks, new leads, won value, errors, cost, judge rating with the worst chat linked) — per tenant, per brand section when > 1 brand.
+- [x] CH-7.4 `/api/chat/cron/hourly` (Bearer secret) + inactive n8n workflow export for the new platform instance; idempotent per tenant per local date.
+- [x] CH-7.5 Preview script that prints a summary without sending.
 
 **Acceptance:** two test tenants with different summary times each receive exactly one correct summary.
 
@@ -142,3 +142,11 @@ CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294da
 
 ### CH-5 local mock implementation checkpoint —2026-10-22
 CH5.1–5.7 localmockimplementation/tests complete and local phase checkboxes accepted under CHAT-D044; Currentevidence CH5_QA.md (168/168,sixgates,4frozenLOCALSQL/prepostrestore,actualprovider/browsercontrols/provenance/privacy and automatic local mock fresh-chat checks); CH5_BOUTIQUE_QA.md14/14; ownersteps CH5_OWNER_ACCEPTANCE.md. Live modelID/keyselection/paid smoke and original realWhatsApp acceptance remainunexecuted and notwaived by D040–D042. CH5 CLOSED LOCAL under explicit D044 acceptance/deferral; local phase commit authorised. No CH6 implementation/push/deployment.
+
+
+### CH-7 engineering checkpoint — 2026-10-27
+CH7.1–7.5 implemented/tested locally under D053/D054, but phase boxes remain unchecked pending CH7 owner acceptance and explicit live-gate decision. CH7_QA.md records six gates/Chat234/234,15 actualDB, two distinct tenant summary times each one confirmed loopback mock delivery, authenticated role/tenant/375CSSpx and focused BoutiqueTierB. Frozen five local-only SQL/native restores: CH7_LOCAL_UPGRADE.md. Owner steps CH7_OWNER_ACCEPTANCE.md C7-L1–L7. LiveAI/judge/realTelegram disabled/untested; inactive n8n source export is not runtime acceptance. D050 waived CH6 gates only. No CH7 closure/commit/CH8 or deployment implied.
+
+
+### CH-7 accepted local scope — 2026-10-27
+CHAT-D055 supersedes the pending-owner checkpoint above. Owner accepts local CH7 results/D053–D054 and authorizes local phase commit, then CH8 planning. CH7.1–7.5 boxes indicate accepted LOCAL implementation only. Original judge/worst-chat and real Telegram acceptance remain explicitly deferred/unexecuted/release-blocking; unrated is not a judge PASS. No n8n runtime/activation or production release authority. Six gates/234Chat/15DB/TierB/native restores documented in CH7_QA.md. Commit result recorded in project_summary.md.

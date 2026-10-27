@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { captureIdentities } from "../leads/rules";
 import type { IngressDependencies } from "./ingress";
+import { scheduleNotificationCheck } from "./notifications/trigger";
 
 export function chatCaptureDependencies(
   schedule: IngressDependencies["after"],
@@ -108,6 +109,7 @@ export function chatCaptureDependencies(
             triggerMessageId: captured.data.messageId,
           });
       }
+      await scheduleNotificationCheck(w.tenantId);
     },
     async issue(w, code) {
       const { error } = await db.rpc("chat_capture_issue", {

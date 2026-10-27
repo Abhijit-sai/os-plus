@@ -6,7 +6,14 @@ const contextSchema = z
   .object({
     tenantId: z.string().uuid(),
     workspaceId: z.string().uuid(),
-    purpose: z.enum(["account_token", "bot_token"]),
+    // The historical workspaceId AAD slot is the target UUID for notification purposes.
+    purpose: z.enum([
+      "account_token",
+      "bot_token",
+      "notification_recipient",
+      "notification_link",
+      "platform_notification_recipient",
+    ]),
   })
   .strict();
 export type ChatSecretContext = z.infer<typeof contextSchema>;

@@ -17,6 +17,7 @@ import {
 import { parseKnowledgePack } from "../knowledge-pack";
 import { accountClient } from "../connection";
 import { deliverHandoffLabel } from "./label-worker";
+import { scheduleNotificationCheck } from "../notifications/trigger";
 export const chatActionsEnabled = () =>
   process.env.CHAT_ACTIONS_ENABLED === "true";
 function enabled() {
@@ -37,7 +38,9 @@ export async function runRequestCommand(raw: unknown, key: string) {
     p_input: request.input,
   });
   if (response.error) throw new Error("Request not saved.");
-  return requestReceiptSchema.parse(response.data);
+  const receipt = requestReceiptSchema.parse(response.data);
+  await scheduleNotificationCheck(context.tenant.id);
+  return receipt;
 }
 export async function runRequestWorkflow(raw: unknown, key: string) {
   enabled();
@@ -60,6 +63,7 @@ export async function runRequestWorkflow(raw: unknown, key: string) {
       { requestId: request.input.id },
       { tenantId: context.tenant.id },
     );
+  await scheduleNotificationCheck(context.tenant.id);
   return receipt;
 }
 export async function runChatTask(raw: unknown, key: string) {
@@ -122,6 +126,7 @@ export async function runChatTask(raw: unknown, key: string) {
       { leadId: request.input.leadId },
       { tenantId: context.tenant.id },
     );
+  await scheduleNotificationCheck(context.tenant.id);
   return receipt;
 }
 export async function getLeadActions(raw: unknown) {
