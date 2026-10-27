@@ -15,6 +15,8 @@ import { ChatActionSettingsPanel } from "@/components/chat/action-settings";
 import { getChatActionSettings } from "@/features/chat/actions/settings";
 import { getNotificationSettings } from "@/features/chat/notifications/commands";
 import { ChatNotificationSettings } from "@/components/chat/notification-settings";
+import { getVoiceSettings } from "@/features/chat/voice/commands";
+import { ChatVoiceSettings } from "@/components/chat/voice-settings";
 export default async function ChatSettingsPage() {
   if (!isChatFoundationEnabled()) notFound();
   let data: Awaited<ReturnType<typeof getChatSetup>>;
@@ -26,6 +28,7 @@ export default async function ChatSettingsPage() {
   }
   const actionSettings = await getChatActionSettings();
   const notificationSettings = await getNotificationSettings();
+  const voiceSettings = await getVoiceSettings();
   return (
     <div className="space-y-6">
       <ChatSetupPanel
@@ -38,6 +41,12 @@ export default async function ChatSettingsPage() {
       />
       {actionSettings ? (
         <ChatActionSettingsPanel data={actionSettings} />
+      ) : null}
+      {voiceSettings ? (
+        <ChatVoiceSettings
+          key={"voice:" + voiceSettings.tenantId}
+          data={voiceSettings}
+        />
       ) : null}
       {notificationSettings ? (
         <ChatNotificationSettings

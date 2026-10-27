@@ -16,6 +16,10 @@ export type MockTurnStore = {
   load(): Promise<unknown>;
   run(action: string, input: unknown): Promise<unknown>;
   dryRun(result?: TurnResult): Promise<unknown>;
+  prepare?(
+    capability: { runId: string; leaseToken: string },
+    data: unknown,
+  ): Promise<{ status: string; data?: unknown; result?: TurnResult }>;
   publicDelivery?(capability: {
     runId: string;
     leaseToken: string;
@@ -58,10 +62,17 @@ export async function runStoredMockTurn(
   const capability = { runId: lease.runId, leaseToken: lease.leaseToken };
   let completed = { status: claim.status };
   if (claim.status === "claimed") {
-    const result = await runAgentTurn(
-      { scope: input.scope, now: input.now, data: lease.context },
-      model,
-    );
+    const prepared = store.prepare
+      ? await store.prepare(capability, lease.context)
+      : { status: "ready", data: lease.context };
+    if (!["ready", "unreadable"].includes(prepared.status))
+      return { status: prepared.status };
+    const result =
+      prepared.result ??
+      (await runAgentTurn(
+        { scope: input.scope, now: input.now, data: prepared.data },
+        model,
+      ));
     completed = statusSchema.parse(
       await store.run("complete", { ...capability, result }),
     );

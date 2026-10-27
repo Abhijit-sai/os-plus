@@ -20,6 +20,17 @@ export type AgentScope = z.infer<typeof agentScopeSchema>;
 
 const dataSchema = agentScopeSchema
   .extend({
+    voice: z
+      .object({
+        required: z.boolean(),
+        incompleteAudio: z.boolean(),
+        enabled: z.boolean(),
+        maxBytes: z.number().int(),
+        maxSeconds: z.number().int(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
     actions: z
       .object({
         tenantId: uuid,
@@ -128,6 +139,8 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
     messages: publicMessages,
     policy: pack.agent?.session,
   });
+  const lastReply = session.messages.findLastIndex(m => ["staff","bot"].includes(m.author));
+  const pendingVoice = session.messages.slice(lastReply + 1).filter(m => m.author === "customer" && m.voicePending);
   const ledger = inquiryLedger(
     data.ledger,
     session,
@@ -137,6 +150,8 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
   return {
     scope,
     brandId: data.brandId,
+    incompleteVoice: pendingVoice.some(m => m.id !== scope.triggerMessageId),
+    pendingVoice: pendingVoice.length > 0,
     channelKind: data.channelKind,
     pack,
     packVersion: data.pack.version,

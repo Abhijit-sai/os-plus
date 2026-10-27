@@ -102,6 +102,11 @@ export async function runAgentTurn(
   };
   // Global ordering protects against newer messages; closing only considers this session.
   const globalFence = preflight({ ...fenceInput, openRequest: true });
+  if (!globalFence.reason && ctx.pendingVoice) {
+    const repeated = ctx.session.messages.some(m => ["staff","bot"].includes(m.author) && m.content === ctx.pack.locked.unreadableHandoff);
+    return turnResultSchema.parse({...result,ledger:{...ctx.ledger,handoff:true},outcome:repeated?"silent":"handoff",replyText:repeated?null:ctx.pack.locked.unreadableHandoff,
+      understanding:{signals:[{kind:"unreadable"}]},decision:{mock:true,handoff:true,reason:"unreadable_voice"},checks:["voice_requires_review"]});
+  }
   const fence = globalFence.reason
     ? globalFence
     : preflight({ ...fenceInput, messages: ctx.session.messages });

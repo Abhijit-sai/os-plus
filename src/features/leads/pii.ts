@@ -163,6 +163,7 @@ export function projectMessage(input: unknown, pii: boolean) {
       author: z.enum(["customer", "staff", "bot", "system"]),
       private: z.boolean(),
       content: text,
+      transcript: z.string().max(6000).nullable().optional(),
       created_at: time,
     })
     .parse(input);
@@ -173,6 +174,7 @@ export function projectMessage(input: unknown, pii: boolean) {
     author: row.author,
     at: row.created_at,
     content: pii ? row.content : null,
+    ...(pii && row.transcript ? { transcript: row.transcript } : {}),
   };
 }
 export function projectHistory(input: unknown) {

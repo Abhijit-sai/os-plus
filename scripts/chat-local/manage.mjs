@@ -275,9 +275,20 @@ if (operation === "up") {
         " synthetic tenants; live AI disabled, no model spend.",
     );
   }
-  const {localNotificationEnvironment,startLocalNotificationMock}=await import("./mock-notifications.mjs");
-  const notificationEnv=localNotificationEnvironment(s,process.argv.includes("--mock-notifications"));
-  const notificationMock=process.argv.includes("--mock-notifications")?await startLocalNotificationMock(notificationEnv):null;
+  const { localNotificationEnvironment, startLocalNotificationMock } =
+    await import("./mock-notifications.mjs");
+  const notificationEnv = localNotificationEnvironment(
+    s,
+    process.argv.includes("--mock-notifications"),
+  );
+  const notificationMock = process.argv.includes("--mock-notifications")
+    ? await startLocalNotificationMock(notificationEnv)
+    : null;
+  const { mockVoiceEnvironment } = await import("./mock-voice.mjs");
+  const voiceEnv = mockVoiceEnvironment(
+    process.argv.includes("--mock-voice"),
+    chatwootEnv,
+  );
   // Local callbacks contain credentials; disable incoming-request URL logs in the disposable snapshot only.
   const configPath = path.join(target, "next.config.ts");
   await writeFile(
@@ -301,6 +312,12 @@ if (operation === "up") {
     CHAT_AGENT_MODEL_MODE: "",
     CHAT_DRAFT_DELIVERY_ENABLED: "false",
     CHAT_MODEL_LIVE_ENABLED: "false",
+    CHAT_VOICE_ENABLED: "false",
+    CHAT_TRANSCRIPTION_MODE: "",
+    CHAT_TRANSCRIPTION_LIVE_ENABLED: "false",
+    CHAT_MODEL_TRANSCRIBE: "",
+    CHAT_VOICE_MEDIA_MOCK_ENABLED: "false",
+    CHAT_VOICE_MEDIA_ORIGINS: "[]",
     CHAT_MODEL_UNDERSTAND: "",
     CHAT_MODEL_CLASSIFY: "",
     CHAT_MODEL_WRITE: "",
@@ -322,6 +339,7 @@ if (operation === "up") {
     ...mockEnv,
     ...actionEnv,
     ...notificationEnv,
+    ...voiceEnv,
   };
   await startOwnedLoopbackApp({
     port: ports.app,

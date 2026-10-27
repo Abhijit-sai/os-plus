@@ -115,8 +115,8 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 
 **Acceptance:** two test tenants with different summary times each receive exactly one correct summary.
 
-## CH-8 — Voice notes and images
-- [ ] CH-8.1 Voice: transcribe → private note → `chat_messages.transcript` → turn.
+## CH-8 — Voice notes (payment screenshots excluded)
+- [x] CH-8.1 Voice: transcribe → private note → `chat_messages.transcript` → turn. Accepted LOCAL mock scope under CHAT-D058; live speech/WhatsApp gates deferred.
 - CH-8.2 excluded by owner (2026-10-07): no payment screenshot extraction, verification task or vision flow.
 
 ## CH-9 — Website chat
@@ -150,3 +150,13 @@ CH7.1–7.5 implemented/tested locally under D053/D054, but phase boxes remain u
 
 ### CH-7 accepted local scope — 2026-10-27
 CHAT-D055 supersedes the pending-owner checkpoint above. Owner accepts local CH7 results/D053–D054 and authorizes local phase commit, then CH8 planning. CH7.1–7.5 boxes indicate accepted LOCAL implementation only. Original judge/worst-chat and real Telegram acceptance remain explicitly deferred/unexecuted/release-blocking; unrated is not a judge PASS. No n8n runtime/activation or production release authority. Six gates/234Chat/15DB/TierB/native restores documented in CH7_QA.md. Commit result recorded in project_summary.md.
+
+
+CH7 post-commit record2026-10-27: CLOSED LOCAL445770b8d1e98784c287eb8a955fbe296d23a392 underD055, clean immediately afterward. CH8 PLANNED; CH8_IMPLEMENTATION_PLAN.md records acceptedD056 typed-confirmation/staff-approval andD057 single120s/10MB voice limits. CH8 boxes remain unchecked; no voice runtime/SQL/test implemented or applied yet. LiveAI disabled; realTelegram/judge/Meta gates remain unexecuted/release-blocking.
+
+## CH8 local implementation checkpoint — 2026-10-27
+Supersedes CH8 PLANNED/no-runtime statements above. CH8 IN_PROGRESS, engineering local scope implemented and sixgates PASS: Chat254/254, voiceDB15/15, HTTP/pure, actual native provider3/3, role/tenant/stale-form/375px AX checks and BoutiqueTierB/native restores. See CH8_QA.md, CH8_LOCAL_UPGRADE.md, CH8_BOUTIQUE_QA.md and owner C8-L1–L7. CH8.1 remains unchecked pending owner acceptance and explicit live speech/WhatsApp gate decision. Synthetic tones/hash-only local transcriber are not speech-accuracy certification. LiveAI/STT disabled, USD0; no CH8 commit, CH9, external release or sharedSQL.
+
+
+### CH8 accepted local scope — 28 October 2026
+CHAT-D058 supersedes the pending-owner checkpoint. CH8.1 checked for accepted hash-only synthetic LOCAL implementation and254/254/sixgates/TierB/native restore evidence; real speech/WhatsApp gates remain deferred/unexecuted/release-blocking. Local phase commit authorized, then CH9 website chat plus owner-requested Chat settings UX simplification. Domain/server/Meta later, liveAI/STT disabled. Commit result in root summary.

@@ -503,7 +503,7 @@ function MessageSelect({
         {data.messages.map((message) => (
           <option key={message.id} value={message.id}>
             {message.content?.slice(0, 90) || "Customer attachment"} ·{" "}
-            {new Date(message.created_at).toLocaleString()}
+            {new Date(message.created_at).toLocaleString("en-IN", {timeZone:"UTC"})} UTC
           </option>
         ))}
       </select>

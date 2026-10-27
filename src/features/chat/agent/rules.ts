@@ -9,6 +9,9 @@ export const agentMessageSchema = z
     private: z.boolean(),
     content: z.string().max(150000).nullable(),
     at: instant,
+    inputSource: z.enum(["typed", "voice"]).optional(),
+    voicePending: z.boolean().optional(),
+    originalContent: z.string().max(150000).nullable().optional(),
   })
   .strict();
 export type AgentMessage = z.infer<typeof agentMessageSchema>;

@@ -106,6 +106,16 @@ export default async function LeadDetailPage({
                           ? "Attachment or non-text message. Open Chatwoot to view."
                           : "Message text hidden")}
                     </p>
+                    {m.transcript ? (
+                      <div className="mt-3 border-t pt-3">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Automatic transcript — local mock
+                        </p>
+                        <p className="whitespace-pre-wrap break-words text-sm">
+                          {m.transcript}
+                        </p>
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ol>

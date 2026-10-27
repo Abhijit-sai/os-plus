@@ -1,5 +1,5 @@
 # CH7 owner acceptance — local mocks
-Owner accepted local results and authorized closure/commit under CHAT-D055 (2026-10-27). This retained exercise documents local notification/report behavior. No real Telegram bot, Meta setup, paid model, server/domain purchase or new Clerk key is required. LiveAI stays disabled.
+Owner accepted local results under CHAT-D055; CH7 CLOSED LOCAL at445770b8d1e98784c287eb8a955fbe296d23a392 (2026-10-27). This retained exercise documents local notification/report behavior. No real Telegram bot, Meta setup, paid model, server/domain purchase or new Clerk key is required. LiveAI stays disabled.
 
 Use http://localhost:4131/settings/chat as owner-a in Chat Local1 / Local QA A. Staff replies remain in Chatwoot: http://localhost:4141/app/accounts/901/conversations/32. The settings page configures notifications, not a replacement inbox.
 

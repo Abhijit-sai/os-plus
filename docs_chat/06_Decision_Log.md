@@ -306,3 +306,20 @@ Alert authorization rechecks current brand activity and target brand filter imme
 ### CHAT-D055 — CH7 local acceptance, commit and CH8 planning
 **Status:** ACCEPTED explicit owner instruction (2026-10-27).
 Owner: “Accept local CH-7 results. Defer real Telegram and judge testing, commit locally and continue with CH-8 planning. Keep live AI disabled.” Accepts the reported local engineering results and D053/D054 behavior; authorizes local CH7 closure/commit and CH8 planning on the existing branch. C7-L7 local acceptance is satisfied by this explicit instruction, not evidence that the owner independently performed every C7-L1–L6 action. Real Telegram linking/scheduled delivery/group membership and paid/live judge testing remain unexecuted and production-release blocking. n8n remains inactive/source-reviewed only. No paid AI/transcription, real message, shared migration, purchase, public tunnel, push/merge/deployment or production enablement is authorized. CH8 payment screenshot processing remains excluded under D023.
+
+
+### CHAT-D056 — Voice evidence is provisional, confirmation stays typed
+**Status:** ACCEPTED explicit owner answer (2026-10-27, CH8-P1).
+Voice transcripts may support inquiry suggestions and provisional requests. Operational bookings still require a separate typed customer confirmation plus staff approval under D045/D046. A transcription cannot verify phone ownership, payment, date/address accuracy or act as exact typed confirmation. Preserve original message and provenance; SQL and code must enforce the distinction. Later voice/customer activity must invalidate stale approval just as another customer change does. No liveAI/transcription authority.
+
+### CHAT-D057 — Initial bounded voice-note scope
+**Status:** ACCEPTED explicit owner answer (2026-10-27, CH8-P2).
+Initial scope: one voice note per message, maximum2minutes/120seconds and10MB (10,000,000bytes). Tenant settings may lower these supported ceilings. Longer, unclear, corrupt, unknown-duration or unsupported recordings hand off to staff using the business's reviewed wording; no invented transcription. Other media/payment screenshots remain excluded D023. Mock-only local testing first; selected live provider/model/privacy/cost/real-language accuracy remain separately gated, with liveAI disabled and no paid run authorized.
+
+### CH8 implementation evidence — 2026-10-27 (no new product approval)
+D056/D057 implemented locally: original-trigger voice state, private synthetic transcript/draft, typed-only booking confirmation/staff approval, one120s/10MB lowerable recording and unknown/multiple→reviewed handoff. Native pinned audio/opus supported only after Ogg byte validation. Claim-bound settings version revokes changed in-flight limits; unresolved burst audio hands off without model calls. These are technical implementations of accepted policies, not live provider/price/privacy approval. CH8_QA.md/CH8_OWNER_ACCEPTANCE.md record engineering evidence versus pending owner/real-speech/WhatsApp gates. No CH8 closure/commit/CH9 authority exception inferred.
+
+
+### CHAT-D058 — CH8 local acceptance and CH9 continuation
+**Status:** ACCEPTED explicit owner instruction (2026-10-28).
+Owner accepts reported local CH8 results, defers live testing, authorizes local closure/commit and continuation to CH9 website chat. C8-L7 is satisfied by this instruction; it does not claim independent owner execution of all prior steps. Real STT/provider/language/privacy/cost and WhatsApp gates remain unexecuted and release-blocking. LiveAI and transcription remain disabled; domain/server/Meta setup explicitly deferred. Owner also requests simplification of the excessive Chat settings UX. No paid run, purchase, real message, shared SQL, push/merge/deploy, tunnel or n8n activation. CH9 still needs its own engineering gates and owner acceptance.

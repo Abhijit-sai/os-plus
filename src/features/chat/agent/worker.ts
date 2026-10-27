@@ -135,6 +135,24 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       return response.data;
     };
     const data = await call("chat_agent_load", input);
+    const voice = z
+      .object({
+        voice: z
+          .object({ required: z.boolean(), enabled: z.boolean() })
+          .passthrough()
+          .nullish(),
+      })
+      .passthrough()
+      .parse(data).voice;
+    // Capture remains available to staff; disabled/preview voice never runs a text fallback or paid preprocessing.
+    if (
+      voice?.required &&
+      (!voice.enabled ||
+        process.env.CHAT_VOICE_ENABLED !== "true" ||
+        process.env.CHAT_TRANSCRIPTION_MODE !== "mock" ||
+        process.env.CHAT_DRY_RUN !== "false")
+    )
+      return;
     const pack = z
       .object({ pack: z.object({ body: z.unknown() }).passthrough() })
       .passthrough()
@@ -158,11 +176,56 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         .at(-1)?.content ?? "";
     const scenario =
       process.env.CHAT_ACTIONS_ENABLED === "true"
-        ? (/^CH6 synthetic (booking|confirm|cancel|complaint|financial|payment_claim|identity|vendor|location|price_list):/i
+        ? (/^CH(?:6|8) synthetic (booking|confirm|cancel|complaint|financial|payment_claim|identity|vendor|location|price_list):/i
             .exec(latest)?.[1]
             .toLowerCase() ?? "information")
         : "information";
-    const model = createMockModel(scenario, pack);
+    const model: import("./turn").MockAgentModel = {
+      kind: "mock",
+      async complete(args) {
+        const raw = z
+          .object({
+            messages: z
+              .array(
+                z
+                  .object({
+                    author: z.string(),
+                    content: z.string().nullable(),
+                  })
+                  .passthrough(),
+              )
+              .optional(),
+            context: z
+              .object({
+                messages: z
+                  .array(
+                    z
+                      .object({
+                        author: z.string(),
+                        content: z.string().nullable(),
+                      })
+                      .passthrough(),
+                  )
+                  .optional(),
+              })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough()
+          .parse(args.context);
+        const messages = raw.messages ?? raw.context?.messages;
+        const text =
+          messages?.filter((m) => m.author === "customer").at(-1)?.content ??
+          latest;
+        const selected =
+          process.env.CHAT_ACTIONS_ENABLED === "true"
+            ? (/^CH(?:6|8) synthetic (booking|confirm|cancel|complaint|financial|payment_claim|identity|vendor|location|price_list):/i
+                .exec(text)?.[1]
+                .toLowerCase() ?? scenario)
+            : "information";
+        return createMockModel(selected, pack).complete(args);
+      },
+    };
     await runStoredMockTurn(
       {
         scope,
@@ -172,6 +235,14 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       },
       {
         load: () => call("chat_agent_load", input),
+        prepare: async (capability, context) =>
+          voice?.required
+            ? (await import("../voice/worker")).prepareCapturedVoice(
+                job,
+                capability,
+                context,
+              )
+            : { status: "ready", data: context },
         run: (action, extra) =>
           call(
             "chat_agent_run",
@@ -179,6 +250,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
             action,
           ),
         publicDelivery: (capability) =>
+          voice?.required ? Promise.resolve({status:"private" as const}) :
           tryPublicReply({ context, input, workspace: w, ...capability }),
         dryRun: (result) =>
           call("chat_agent_dry_run", {
@@ -240,7 +312,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         input,
         capability,
         w.tenantId,
-        job.channel.mode === "auto" &&
+        !voice?.required && job.channel.mode === "auto" &&
           process.env.CHAT_PUBLIC_REPLY_ENABLED === "true",
       );
   } catch {

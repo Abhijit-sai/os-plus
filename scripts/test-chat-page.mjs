@@ -31,6 +31,8 @@ function page(failure) {
       getNotificationSettings: async () => null,
     },
     "@/components/chat/notification-settings": {},
+    "@/features/chat/voice/commands": { getVoiceSettings: async () => null },
+    "@/components/chat/voice-settings": {},
     "@/features/chat/actions/settings": {
       getChatActionSettings: async () => null,
     },
@@ -114,6 +116,10 @@ test("permission-query outages propagate through the real guard and page as safe
             getNotificationSettings: async () => null,
           },
           "@/components/chat/notification-settings": {},
+          "@/features/chat/voice/commands": {
+            getVoiceSettings: async () => null,
+          },
+          "@/components/chat/voice-settings": {},
           "@/features/chat/actions/settings": {
             getChatActionSettings: async () => null,
           },

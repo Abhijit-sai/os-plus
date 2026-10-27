@@ -320,6 +320,14 @@ export type ChatFunctions = {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;
   };
+  chat_voice_settings: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_voice_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
   chat_agent_load: { Args: { p_context: Json; p_input: Json }; Returns: Json };
   chat_agent_run: {
     Args: { p_context: Json; p_action: string; p_input: Json };
