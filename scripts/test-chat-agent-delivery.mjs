@@ -89,6 +89,9 @@ test("disabled agent avoids configuration reads and malformed local configuratio
       "./mock-model": {},
       "./worker-core": {},
       "@/integrations/chatwoot/message-client": {},
+      "../actions/public-worker": {},
+      "../actions/label-worker": {},
+      "../actions/supplemental-worker": {},
     },
   );
   try {

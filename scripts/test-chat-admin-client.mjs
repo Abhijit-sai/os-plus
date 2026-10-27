@@ -339,14 +339,93 @@ test("onboarding API helpers validate bot scope, project user data and accept an
 });
 
 test("pinned live Chatwoot returns an empty object for an unassigned inbox bot", async () => {
-  for (const [body, expected] of [[{}, null], [{agent_bot: null}, null], [{agent_bot:{id:42,name:"Local bot"}},42]]) {
-    await mock((req,res)=>res.end(JSON.stringify(body)),async(origin)=>{
-      const client=new ChatwootAdminClient({origin,token:"synthetic-only",allowLocalMock:true});
-      assert.equal(await client.getInboxBot(12,4),expected);
-    });
+  for (const [body, expected] of [
+    [{}, null],
+    [{ agent_bot: null }, null],
+    [{ agent_bot: { id: 42, name: "Local bot" } }, 42],
+  ]) {
+    await mock(
+      (req, res) => res.end(JSON.stringify(body)),
+      async (origin) => {
+        const client = new ChatwootAdminClient({
+          origin,
+          token: "synthetic-only",
+          allowLocalMock: true,
+        });
+        assert.equal(await client.getInboxBot(12, 4), expected);
+      },
+    );
   }
-  await mock((req,res)=>res.end(JSON.stringify({unexpected:true})),async(origin)=>{
-    const client=new ChatwootAdminClient({origin,token:"synthetic-only",allowLocalMock:true});
-    await assert.rejects(()=>client.getInboxBot(12,4),/Chat connection unavailable/);
-  });
+  await mock(
+    (req, res) => res.end(JSON.stringify({ unexpected: true })),
+    async (origin) => {
+      const client = new ChatwootAdminClient({
+        origin,
+        token: "synthetic-only",
+        allowLocalMock: true,
+      });
+      await assert.rejects(
+        () => client.getInboxBot(12, 4),
+        /Chat connection unavailable/,
+      );
+    },
+  );
+});
+
+test("conversation routing validates account, inbox and conversation and never returns provider credentials", async () => {
+  await mock(
+    (req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          id: 4,
+          account_id: 12,
+          inbox_id: 8,
+          meta: { assignee: { id: 22, access_token: "never-return" } },
+        }),
+      );
+    },
+    async (origin) => {
+      const client = new ChatwootAdminClient({
+        origin,
+        token: "synthetic-token",
+        allowLocalMock: true,
+      });
+      assert.deepEqual(await client.conversationRouting(12, 4, 8), {
+        assigneeId: 22,
+      });
+      await assert.rejects(
+        client.conversationRouting(12, 4, 99),
+        /unavailable/,
+      );
+    },
+  );
+});
+
+test("handoff label merge preserves unrelated observed labels and reconciles an already applied label without another POST", async () => {
+  let labels = ["urgent", "existing-label"],
+    posts = 0;
+  await mock(
+    async (req, res) => {
+      if (req.method === "POST") {
+        let data = "";
+        for await (const b of req) data += b;
+        labels = JSON.parse(data).labels;
+        posts++;
+      }
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ payload: labels }));
+    },
+    async (origin) => {
+      const client = new ChatwootAdminClient({
+        origin,
+        token: "synthetic-token",
+        allowLocalMock: true,
+      });
+      await client.mergeConversationLabel(901, 1, "osplus-handoff");
+      assert.deepEqual(labels, ["urgent", "existing-label", "osplus-handoff"]);
+      await client.mergeConversationLabel(901, 1, "osplus-handoff");
+      assert.equal(posts, 1);
+    },
+  );
 });

@@ -1,0 +1,2 @@
+# Issue tracker for this local Chat phase
+Use local docs_chat/CH6_QA.md (then the matching phase QA file) for defects and evidence; no external issues are created by this workflow. Fixed Chat baseline is a09561d1ecce48acdd4e3a4df18ec368773ed953. Review uncommitted tracked changes with git diff a09561d and read the untracked source/migrations explicitly; base...HEAD is empty while phase work is uncommitted. Decisions: docs_chat/06_Decision_Log.md. No push/deploy authority.

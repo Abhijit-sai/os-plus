@@ -1,5 +1,6 @@
 import type { AgentContext } from "./context.ts";
 import type { Understanding } from "./schemas.ts";
+import { actionReply } from "../actions/reply-plan.ts";
 
 type Plan =
   | { kind: "locked"; text: string | null; handoff: boolean; reason: string }
@@ -15,7 +16,7 @@ export const hasPublicReply = (ctx: AgentContext, text: string) =>
       same(m.content ?? "", text),
   );
 
-/** No CH-6 capabilities are enabled. A model can flag a request, never claim an action happened. */
+/** Observations can request staff review; only transactional commands establish operational truth. */
 export function choosePlan(
   understanding: Understanding,
   ctx: AgentContext,
@@ -51,15 +52,9 @@ export function choosePlan(
       ),
     ) ||
     [...flags].some((kind) =>
-      [
-        "booking",
-        "financial",
-        "order_status",
-        "complaint",
-        "handoff",
-        "confirm",
-        "cancel",
-      ].includes(kind),
+      ["financial", "order_status", "complaint", "handoff", "cancel"].includes(
+        kind,
+      ),
     )
   )
     return locked(ctx.pack.locked.handoffLine, true, "person_required");
@@ -69,5 +64,9 @@ export function choosePlan(
     return locked(ctx.pack.locked.unreadableHandoff, true, "unreadable");
   if (flags.has("vendor"))
     return locked(ctx.pack.locked.vendorReply, false, "vendor");
+  const action = actionReply(understanding, ctx);
+  if (action) return locked(action.text, false, action.reason);
+  if (flags.has("booking") || flags.has("confirm"))
+    return locked(ctx.pack.locked.handoffLine, true, "person_required");
   return { kind: "information", handoff: false, reason: "information" };
 }

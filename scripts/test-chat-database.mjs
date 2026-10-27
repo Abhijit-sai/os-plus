@@ -707,7 +707,8 @@ test("production server commands replay committed publication before checking dr
     await import("./chat-db-harness/server-adapter.mjs");
   const zod = await import("zod"),
     schemas = await import("../src/features/chat/schemas.ts"),
-    knowledge = await import("../src/features/chat/knowledge-pack.ts");
+    knowledge = await import("../src/features/chat/knowledge-pack.ts"),
+    actionRules = await import("../src/features/chat/actions/rules.ts");
   const db = postgresAdapter(local.db);
   let tenant = A,
     actor = "chat-owner-a",
@@ -721,6 +722,7 @@ test("production server commands replay committed publication before checking dr
     zod,
     "./schemas": schemas,
     "./knowledge-pack": knowledge,
+    "./actions/rules": actionRules,
     "./module": { requireChatPermission: guard },
     "@/core/command-context/server": {
       createUserCommandContext: (_context, options) => ({
@@ -752,6 +754,7 @@ test("production server commands replay committed publication before checking dr
     )
   ).rows[0].pack_json;
   const { randomUUID } = await import("node:crypto");
+  pack.booking = { capability: "follow_up_task" };
   const saveKey = randomUUID(),
     publishKey = randomUUID();
   const saved = await configureChat(

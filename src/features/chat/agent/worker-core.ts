@@ -16,6 +16,10 @@ export type MockTurnStore = {
   load(): Promise<unknown>;
   run(action: string, input: unknown): Promise<unknown>;
   dryRun(result?: TurnResult): Promise<unknown>;
+  publicDelivery?(capability: {
+    runId: string;
+    leaseToken: string;
+  }): Promise<{ status: string }>;
 };
 /** DB claims fence duplicate execution; a remote send is never retried after an ambiguous result. */
 export async function runStoredMockTurn(
@@ -64,6 +68,10 @@ export async function runStoredMockTurn(
   }
   if (completed.status !== "ready" || !input.deliver)
     return { status: completed.status };
+  if (store.publicDelivery) {
+    const publicResult = await store.publicDelivery(capability);
+    if (publicResult.status !== "private") return publicResult;
+  }
   const delivery = statusSchema.parse(
     await store.run("delivery.claim", capability),
   );

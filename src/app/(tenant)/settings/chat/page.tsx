@@ -11,6 +11,8 @@ import {
 } from "@/features/chat/module";
 import { getChatSetup } from "@/features/chat/queries";
 import { ChatSetupPanel } from "@/components/chat/setup-panel";
+import { ChatActionSettingsPanel } from "@/components/chat/action-settings";
+import { getChatActionSettings } from "@/features/chat/actions/settings";
 export default async function ChatSettingsPage() {
   if (!isChatFoundationEnabled()) notFound();
   let data: Awaited<ReturnType<typeof getChatSetup>>;
@@ -20,14 +22,20 @@ export default async function ChatSettingsPage() {
     if (error instanceof ChatAccessError) notFound();
     throw error;
   }
+  const actionSettings = await getChatActionSettings();
   return (
-    <ChatSetupPanel
-      key={data.tenantId}
-      data={data}
-      previewEnabled={isMockPreviewEnabled()}
-      save={saveChatAction}
-      sync={syncChatInboxesAction}
-      loadKnowledge={loadChatKnowledgeAction}
-    />
+    <div className="space-y-6">
+      <ChatSetupPanel
+        key={data.tenantId}
+        data={data}
+        previewEnabled={isMockPreviewEnabled()}
+        save={saveChatAction}
+        sync={syncChatInboxesAction}
+        loadKnowledge={loadChatKnowledgeAction}
+      />
+      {actionSettings ? (
+        <ChatActionSettingsPanel data={actionSettings} />
+      ) : null}
+    </div>
   );
 }

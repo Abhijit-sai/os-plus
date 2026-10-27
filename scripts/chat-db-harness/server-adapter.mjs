@@ -45,16 +45,33 @@ export function postgresAdapter(client) {
   };
   return {
     async rpc(name, { p_context, p_action, p_input }) {
-      if (!["chat_configure", "chat_platform_configure"].includes(name))
-        throw new Error("Unexpected test RPC");
+      const signature = {
+        chat_configure: ["p_context", "p_action", "p_input"],
+        chat_platform_configure: ["p_context", "p_action", "p_input"],
+        chat_capabilities: ["p_context"],
+        chat_publish_action_pack: ["p_context", "p_input"],
+      }[name];
+      if (!signature) throw new Error("Unexpected test RPC");
+      const args = { p_context, p_action, p_input };
       try {
         return {
           data: (
             await query(
               "select " +
                 identifier(name) +
-                "($1::jsonb,$2,$3::jsonb) as result",
-              [JSON.stringify(p_context), p_action, JSON.stringify(p_input)],
+                "(" +
+                signature
+                  .map(
+                    (arg, index) =>
+                      "$" +
+                      (index + 1) +
+                      (arg === "p_action" ? "::text" : "::jsonb"),
+                  )
+                  .join(",") +
+                ") as result",
+              signature.map((arg) =>
+                arg === "p_action" ? args[arg] : JSON.stringify(args[arg]),
+              ),
             )
           ).rows[0].result,
           error: null,

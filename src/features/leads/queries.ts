@@ -205,6 +205,10 @@ export async function getLeadDetail(input: unknown) {
     history: details.history.map(projectHistory),
     historyCount: details.historyCount,
     owners: details.owners,
+    actions:
+      page.permissions.manage && process.env.CHAT_ACTIONS_ENABLED === "true"
+        ? await (await import("../chat/actions/commands")).getLeadActions(id)
+        : null,
     draft,
     asOf: page.asOf,
   };
@@ -437,5 +441,5 @@ export async function getPanelLead(input: unknown) {
   if (!leadId) return null;
   const detail = await getLeadDetail(leadId);
   if (!detail) return null;
-  return { lead: detail.lead, owners: detail.owners };
+  return { lead: detail.lead, owners: detail.owners, actions: detail.actions };
 }

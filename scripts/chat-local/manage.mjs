@@ -257,6 +257,12 @@ if (operation === "up") {
     : {};
   const { mockSuggestionEnvironment, enableOwnedMockSuggestions } =
     await import("./mock-suggestions.mjs");
+  const { mockActionEnvironment } = await import("./mock-actions.mjs");
+  const actionEnv = mockActionEnvironment(
+    process.argv.includes("--mock-actions"),
+    process.argv.includes("--mock-suggestions"),
+    chatwootEnv,
+  );
   const mockEnv = mockSuggestionEnvironment(
     process.argv.includes("--mock-suggestions"),
     chatwootEnv,
@@ -311,6 +317,7 @@ if (operation === "up") {
     NEXT_PUBLIC_APP_URL: "http://localhost:" + ports.app,
     ...chatwootEnv,
     ...mockEnv,
+    ...actionEnv,
   };
   await startOwnedLoopbackApp({
     port: ports.app,

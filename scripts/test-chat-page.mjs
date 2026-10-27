@@ -26,6 +26,10 @@ function page(failure) {
       },
     },
     "@/components/chat/setup-panel": {},
+    "@/components/chat/action-settings": {},
+    "@/features/chat/actions/settings": {
+      getChatActionSettings: async () => null,
+    },
   }).default;
 }
 test("Chat page converts expected authorization denial into notFound", async () => {
@@ -101,6 +105,10 @@ test("permission-query outages propagate through the real guard and page as safe
               actual.requireChatPermission("chat_settings:manage"),
           },
           "@/components/chat/setup-panel": {},
+          "@/components/chat/action-settings": {},
+          "@/features/chat/actions/settings": {
+            getChatActionSettings: async () => null,
+          },
         },
       ).default;
       await assert.rejects(

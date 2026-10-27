@@ -14,6 +14,7 @@ import {
   money,
 } from "@/components/leads/workspace";
 import { LeadEditor } from "@/components/leads/editor";
+import { LeadBusinessActions } from "@/components/leads/business-actions";
 export default async function LeadDetailPage({
   params,
 }: {
@@ -184,6 +185,13 @@ export default async function LeadDetailPage({
           </Card>
         </div>
         <aside className="space-y-6">
+          {data.actions ? (
+            <Card>
+              <CardContent className="pt-6">
+                <LeadBusinessActions data={data.actions} owners={data.owners} />
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>
@@ -222,8 +230,8 @@ export default async function LeadDetailPage({
                 Review contact
               </Link>
               <p className="text-muted-foreground">
-                Chat booking actions will be available with the agent actions
-                phase. Existing orders and customers remain in their OS PLUS
+                Review provisional requests and staff approvals in Requests and
+                follow-up. Existing orders and customers remain in their OS PLUS
                 modules.
               </p>
             </CardContent>

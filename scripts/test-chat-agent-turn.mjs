@@ -274,3 +274,173 @@ test("synthetic safety bench rejects leaked internals, invented promises, links,
   assert.equal(result.outcome, "fallback");
   assert.equal(JSON.stringify(result).includes(id(99)), false);
 });
+
+test("configured CH6 questions and code links use scoped context, never turn a request into a booking promise", async () => {
+  const { runAgentTurn } = await import("../src/features/chat/agent/turn.ts"),
+    { createMockModel } =
+      await import("../src/features/chat/agent/mock-model.ts");
+  const req = request("CH6 synthetic booking: General inquiry");
+  req.data.pack.body.handoffTopics = [];
+  const prompts = {
+    services: "Which service?",
+    name: "What is your name?",
+    address: "What pickup address?",
+    date: "Which date?",
+    window: "Which window?",
+    awaitingStaff: "The team will review this request.",
+    whatsappHandoff: "Continue on WhatsApp.",
+    location: "Which area are you in?",
+  };
+  req.data.pack.body.booking = {
+    capability: "laundry_pickup",
+    windows: [{ key: "morning", label: "Synthetic morning" }],
+    prompts,
+  };
+  req.data.actions = {
+    tenantId: scope.tenantId,
+    brandId: id(6),
+    canBook: true,
+    verifiedPhone: false,
+    leadRef: "ABC23",
+    whatsappNumber: "+919999990000",
+    request: null,
+  };
+  let result = await runAgentTurn(
+    req,
+    createMockModel("booking", req.data.pack.body),
+  );
+  assert.match(
+    result.replyText,
+    /https:\/\/wa.me\/919999990000\?text=REF%3AABC23/,
+  );
+  assert.equal(result.decision.reason, "verified_channel_required");
+  req.data.channelKind = "whatsapp";
+  req.data.actions.verifiedPhone = true;
+  result = await runAgentTurn(
+    req,
+    createMockModel("booking", req.data.pack.body),
+  );
+  assert.equal(result.replyText, prompts.name);
+  assert.equal((result.replyText.match(/\?/g) ?? []).length, 1);
+  req.data.actions.tenantId = id(999);
+  await assert.rejects(
+    runAgentTurn(req, createMockModel("booking", req.data.pack.body)),
+    /context unavailable/,
+  );
+});
+test("location reply contains one approved nearest map; unknown location uses the configured single question", async () => {
+  const { runAgentTurn } = await import("../src/features/chat/agent/turn.ts"),
+    { createMockModel } =
+      await import("../src/features/chat/agent/mock-model.ts");
+  const req = request(
+    "CH6 synthetic location: https://www.google.com/maps/@12,77,14z",
+  );
+  req.data.pack.body.booking = {
+    capability: "follow_up_task",
+    prompts: {
+      services: "Which service?",
+      name: "Name?",
+      address: "Address?",
+      date: "Date?",
+      window: "Window?",
+      awaitingStaff: "The team will review this request.",
+      whatsappHandoff: "Continue on WhatsApp.",
+      location: "Which area are you in?",
+    },
+  };
+  req.data.actions = {
+    tenantId: scope.tenantId,
+    brandId: id(6),
+    canBook: false,
+    verifiedPhone: false,
+    leadRef: "ABC23",
+    whatsappNumber: null,
+    request: null,
+  };
+  req.data.locations = [
+    {
+      tenantId: scope.tenantId,
+      brandId: id(6),
+      code: "demo",
+      name: "Synthetic nearby branch",
+      address: "Synthetic address",
+      mapUrl: "https://maps.google.com/?q=12,77",
+      lat: 12,
+      lng: 77,
+      primary: false,
+      default: false,
+    },
+  ];
+  let result = await runAgentTurn(
+    req,
+    createMockModel("location", req.data.pack.body),
+  );
+  assert.equal(
+    result.replyText,
+    "Synthetic nearby branch\nSynthetic address\nhttps://maps.google.com/?q=12,77",
+  );
+  req.data.messages[0].content = "CH6 synthetic location: unknown";
+  result = await runAgentTurn(
+    req,
+    createMockModel("location", req.data.pack.body),
+  );
+  assert.equal(result.replyText, "Which area are you in?");
+});
+
+test("configured safety topics and locked identity/vendor/unreadable replies take precedence over booking and location", async () => {
+  const { buildAgentContext } =
+      await import("../src/features/chat/agent/context.ts"),
+    { choosePlan } = await import("../src/features/chat/agent/plan.ts");
+  const req = request("Synthetic booking damage");
+  req.data.pack.body.booking = {
+    capability: "follow_up_task",
+    prompts: {
+      services: "Which service?",
+      name: "Name?",
+      address: "Address?",
+      date: "Date?",
+      window: "Window?",
+      awaitingStaff: "Staff will review.",
+      whatsappHandoff: "WhatsApp.",
+      location: "Area?",
+    },
+  };
+  req.data.actions = {
+    tenantId: scope.tenantId,
+    brandId: id(6),
+    canBook: true,
+    verifiedPhone: true,
+    leadRef: "ABC23",
+    whatsappNumber: null,
+    request: null,
+  };
+  req.data.channelKind = "whatsapp";
+  const base = {
+    ...understanding,
+    services: ["general_inquiry"],
+    signals: [{ kind: "booking", messageId: id(5), quote: "Synthetic" }],
+  };
+  req.data.pack.body.handoffTopics = ["damage"];
+  let ctx = buildAgentContext(scope, req.data);
+  assert.equal(choosePlan(base, ctx).handoff, true);
+  req.data.pack.body.handoffTopics = [];
+  ctx = buildAgentContext(scope, req.data);
+  for (const [kind, text, handoff] of [
+    ["identity", ctx.pack.locked.identityReply, false],
+    ["vendor", ctx.pack.locked.vendorReply, false],
+    ["unreadable", ctx.pack.locked.unreadableHandoff, true],
+  ]) {
+    const result = choosePlan(
+      {
+        ...base,
+        signals: [
+          ...base.signals,
+          { kind, messageId: id(5), quote: "Synthetic" },
+        ],
+      },
+      ctx,
+    );
+    assert.equal(result.text, text);
+    assert.equal(result.handoff, handoff);
+  }
+});

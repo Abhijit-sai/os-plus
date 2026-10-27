@@ -2,11 +2,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { chatwootOrigin } from "../connection";
+import { chatwootOrigin, accountClient } from "../connection";
 import { decryptChatSecret } from "../secrets";
 import { createMockModel } from "./mock-model";
 import { runStoredMockTurn } from "./worker-core";
 import { ChatwootMessageClient } from "@/integrations/chatwoot/message-client";
+import { tryPublicReply } from "../actions/public-worker";
+import { deliverHandoffLabel } from "../actions/label-worker";
+import { prepareSupplementals } from "../actions/supplemental-worker";
 import type { CaptureWorkspace, CaptureChannel } from "../ingress";
 import type { Json } from "@/types/database";
 export type CapturedAgentJob = {
@@ -49,6 +52,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       conversationId: job.conversationId,
       triggerMessageId: job.triggerMessageId,
     };
+    const capabilities: { runId: string; leaseToken: string }[] = [];
     const call = async (
       name:
         | "chat_agent_load"
@@ -58,12 +62,76 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       body: Json,
       action?: string,
     ) => {
+      let observedAssigneeId: number | null = null;
+      if (
+        name === "chat_agent_run" &&
+        action === "complete" &&
+        process.env.CHAT_ACTIONS_ENABLED === "true"
+      ) {
+        try {
+          const routing = await db.rpc("chat_agent_routing", {
+            p_context: context,
+            p_input: input,
+          });
+          if (routing.error) throw new Error("Routing unavailable");
+          const target = z
+            .object({
+              conversationId: z.number().int().positive().safe(),
+              inboxId: z.number().int().positive().safe(),
+            })
+            .strict()
+            .parse(routing.data);
+          const workspace = await db
+            .from("chat_workspaces")
+            .select("*")
+            .eq("tenant_id", w.tenantId)
+            .eq("id", w.id)
+            .eq("status", "active")
+            .single();
+          if (workspace.error) throw new Error("Routing unavailable");
+          observedAssigneeId = (
+            await accountClient(workspace.data).conversationRouting(
+              w.accountId,
+              target.conversationId,
+              target.inboxId,
+            )
+          ).assigneeId;
+        } catch {
+          /* An unavailable provider must not drop a durable safety handoff. */
+        }
+        body = {
+          ...z.record(z.unknown()).parse(body),
+          observedAssigneeId,
+        } as Json;
+      }
       const args = { p_context: context as Json, p_input: body };
       const response =
         name === "chat_agent_run"
-          ? await db.rpc(name, { ...args, p_action: action! })
-          : await db.rpc(name, args);
+          ? await db.rpc(
+              process.env.CHAT_ACTIONS_ENABLED === "true"
+                ? "chat_action_agent_run"
+                : name,
+              { ...args, p_action: action! },
+            )
+          : await db.rpc(
+              name === "chat_agent_load" &&
+                process.env.CHAT_ACTIONS_ENABLED === "true"
+                ? "chat_action_agent_load"
+                : name,
+              args,
+            );
       if (response.error) throw new Error("Agent storage unavailable.");
+      if (name === "chat_agent_run" && action === "claim") {
+        const lease = z
+          .object({ runId: z.string().uuid(), leaseToken: z.string().uuid() })
+          .passthrough()
+          .safeParse(response.data);
+        if (lease.success)
+          capabilities.push({
+            runId: lease.data.runId,
+            leaseToken: lease.data.leaseToken,
+          });
+      }
       return response.data;
     };
     const data = await call("chat_agent_load", input);
@@ -71,7 +139,30 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       .object({ pack: z.object({ body: z.unknown() }).passthrough() })
       .passthrough()
       .parse(data).pack.body;
-    const model = createMockModel("information", pack);
+    const latest =
+      z
+        .object({
+          messages: z.array(
+            z
+              .object({
+                author: z.string(),
+                private: z.boolean(),
+                content: z.string().nullable(),
+              })
+              .passthrough(),
+          ),
+        })
+        .passthrough()
+        .parse(data)
+        .messages.filter((m) => m.author === "customer" && !m.private)
+        .at(-1)?.content ?? "";
+    const scenario =
+      process.env.CHAT_ACTIONS_ENABLED === "true"
+        ? (/^CH6 synthetic (booking|confirm|cancel|complaint|financial|payment_claim|identity|vendor|location|price_list):/i
+            .exec(latest)?.[1]
+            .toLowerCase() ?? "information")
+        : "information";
+    const model = createMockModel(scenario, pack);
     await runStoredMockTurn(
       {
         scope,
@@ -87,6 +178,8 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
             { ...input, ...z.record(z.unknown()).parse(extra) } as Json,
             action,
           ),
+        publicDelivery: (capability) =>
+          tryPublicReply({ context, input, workspace: w, ...capability }),
         dryRun: (result) =>
           call("chat_agent_dry_run", {
             ...input,
@@ -139,6 +232,17 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         });
       },
     );
+    await deliverHandoffLabel(context, input, w);
+    const capability = capabilities.at(-1);
+    if (capability)
+      await prepareSupplementals(
+        context,
+        input,
+        capability,
+        w.tenantId,
+        job.channel.mode === "auto" &&
+          process.env.CHAT_PUBLIC_REPLY_ENABLED === "true",
+      );
   } catch {
     // Preserve claims for recovery. Error details, URLs and credentials must never reach logs/customer text.
     console.warn("Chat agent processing unavailable.");

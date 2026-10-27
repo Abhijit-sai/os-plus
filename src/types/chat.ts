@@ -229,6 +229,54 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_supplemental_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_handoff_label: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_action_agent_load: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_agent_routing: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_action_settings_read: { Args: { p_context: Json }; Returns: Json };
+  chat_public_reply: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_action_configure: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_task_target: { Args: { p_context: Json; p_input: Json }; Returns: Json };
+  chat_action_agent_run: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_request_workflow: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_action_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_task_command: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
+  chat_action_read: { Args: { p_context: Json; p_input: Json }; Returns: Json };
+  chat_capabilities: { Args: { p_context: Json }; Returns: Json };
+  chat_publish_action_pack: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
   chat_staff_draft_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

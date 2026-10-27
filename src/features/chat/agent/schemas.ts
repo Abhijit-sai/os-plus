@@ -16,6 +16,8 @@ export const signalKindSchema = z.enum([
   "confirm",
   "cancel",
   "handoff",
+  "location",
+  "price_list",
 ]);
 export const understandingSchema = z
   .object({
@@ -34,7 +36,16 @@ export const understandingSchema = z
       .array(
         z
           .object({
-            key: z.enum(["area", "preference", "time"]),
+            key: z.enum([
+              "area",
+              "preference",
+              "time",
+              "name",
+              "address",
+              "date",
+              "window",
+              "timePreference",
+            ]),
             value: shortText,
             ...evidence,
           })

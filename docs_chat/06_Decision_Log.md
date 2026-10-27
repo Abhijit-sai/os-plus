@@ -249,3 +249,45 @@ Owner explicitly requested enabling free synthetic suggestions for fresh chats a
 **Status:** ACCEPTED exception (owner,2026-10-22)
 Owner answered “Accept local CH-5; defer live gates and close locally” to the evidence-linked local closure question (six gates/Chat168,fresh-provider5,browser widget→private suggestion→approved reply). Accepts the documented combined local mock results and authorises local closure/commit under D025. This is acceptance of local evidence, not a claim the owner personally executed every C5-L step.
 Explicitly defer the cheap paid-model smoke and realWhatsApp acceptance: they remain unexecuted, untested and production-release blocking. D044 closes the accepted LOCAL mock scope only; it does not claim real model accuracy, paid/live worker enablement or real-channel readiness. Existing Meta/two-phone deferral remains release-blocking. No paid run/purchase/key selection, real external messages, shared migration, tunnel, production change, push/merge/deployment or n8n activation authorised. No CH6 implementation in this closure session.
+
+## Historical open — CH-6 planning,2026-10-22
+Resolved by accepted CHAT-D045–D049 below; the following records the unapproved planning state only.
+CH5 is committed CLOSED LOCAL at a09561d1ecce48acdd4e3a4df18ec368773ed953 under D044. Owner requests CH6 planning only before implementation, live AI disabled. See CH6_IMPLEMENTATION_PLAN.md for the existing WBS scope, actual contract conflicts, proposed files/migrations and test sequence.
+All five proposals are UNAPPROVED:
+- P6-1 draft mode: chat-owned provisional request first; staff approval before operational booking/customer/financial action; automatic internal safety-handoff tasks.
+- P6-2 request-first capabilities: generic callback/task is not an appointment reservation; Laundry materializes only with validated complete evidence; operational booking changes/cancellation hand off to people.
+- P6-3 proposed explicit deferral of statement issuance for inquiry-first scope, or guarded link-only owner/admin verified-WhatsApp issuance with revocable24h tokens and complete truthful source support.
+- P6-4 configurable routing mappedChatwootassignee→leadowner→branchteam→visibleunassigned; deduplicate active work, or all-unassigned initial triage.
+- P6-5 on-request once-per-conversation price image and opt-in neutral post-delivery review request/cooldown, or defer these optional automations. Proposed old positive-only gating conflicts with Google's current policy (primary source in plan); no unapproved workflow adopted.
+Do not implement dependent policies or treat this recommendation list as accepted. Already accepted role defaults, tenancy, no-auto-merge, budget ceiling, stage rules, manual Meta onboarding and liveAI restrictions remain unchanged. No new business facts, model selection, paid run, shared migration, external message or public enablement authorised.
+
+### CHAT-D045 — Draft business actions require staff approval
+**Status:** ACCEPTED (owner,2026-10-22; P6-1)
+Save a provisional chat request immediately; owner/manager approval required before operational booking/customer creation. Internal safety handoff tasks may be automatic. Sending suggested text is not business-action approval. Live AI/public production activation remain disabled.
+
+### CHAT-D046 — Request-first capabilities and lifecycle
+**Status:** ACCEPTED (owner,2026-10-22; P6-2)
+Non-Laundry creates callback/follow-up requests, never promised reserved appointments. Laundry requires name,verifiedphone,configuredservice,confirmedaddress,date,configuredwindow before materialization. Pending chat requests may be edited/cancelled; changes after operational materialization hand off to staff. D035 confirmed-record lead stages unchanged; task existence is not booking confirmation.
+
+### CHAT-D047 — Financial statements deferred from CH6
+**Status:** ACCEPTED scope exception (owner,2026-10-22; P6-3)
+Defer statement issuance/token pages/financial links from CH6. Dues/financial requests hand off with locked wording, no financial amount/payment posting. CH6.3 is deferred, not implemented/PASS. Future financial capability needs separate design/permission/source-truth acceptance.
+
+### CHAT-D048 — Configurable safe handoff routing
+**Status:** ACCEPTED (owner,2026-10-22; P6-4)
+Mapped active Chatwoot assignee → eligible lead owner → configured branch team → visible unassigned Leads queue. Repeated reasons update one active task; completed work may receive a new task for a new request. Owner/admin/managers work Chat tasks; existing Laundry Tasks/roles unchanged, no viewer/finance management expansion.
+
+### CHAT-D049 — Requested price images and neutral review requests
+**Status:** ACCEPTED (owner,2026-10-22; P6-5)
+Price-list images only when requested,once per conversation after text. Reviews tenant-opt-in,neutral,after actual delivery with configurable90daycooldown; no historical-import triggers,campaigns or positive-feedback-only selection. Supersedes03 §3.17 positive-only proposal; primary policy source in CH6 plan. No Telegram/real outbound activation/paid model authority.
+
+### CHAT-D050 — Unattended local CH6 closure and CH7 continuation
+**Status:** ACCEPTED exception (owner,2026-10-23)
+Owner authorizes completing as much CH6/CH7 as possible unattended, using recommended implementation choices and recording them for later review. Explicit answer: “Allow local closure and CH-7; defer owner/live acceptance”. CH6 may close/commit locally under D025 only after required local engineering gates, review and no P0/P1 defects; then continue CH7. Owner/manual acceptance and real-channel/model checks remain deferred, unexecuted and production-release blocking. This is not permission to replace real QA with mocks or call incomplete engineering complete. LiveAI remains disabled; no paid run, real external messages, shared SQL, production setting, public tunnel, push/merge/deploy or n8n activation.
+
+### CHAT-D051 — Unattended CH6 implementation recommendations
+**Status:** selected under owner authority D050 (2026-10-23); presented for later review
+Keep operational approval mandatory even when a channel later uses automatic reply delivery; auto mode is transport signoff, not permission for the model to create customers/pickups. Exact configured confirmation phrases require a current code-composed summary already sent publicly, with no later customer change before approval. Native Laundry status NEW stays pending scheduling and cannot alone claim a booked lead. Staff explicitly supplies the confirmed address country; never infer it or overwrite saved addresses. New controls default off under CHAT_ACTIONS_ENABLED. Local action mock demos use explicit “CH6 synthetic …:” scenarios, never claim real-language/live-model accuracy. These are conservative implementation choices within D045–D049, not new external enablement.
+
+### CHAT-D052 — Conservative supplemental delivery and local-only transport (2026-10-23)
+Recommended engineering choices under the owner's unattended implementation authority (D050); no external activation. Price images require a quoted request, configured caption/asset and confirmed public text receipt first; one public attempt per conversation, draft mode requires staff approval. Asset fetch is exact configured URL on explicit owned loopback HTTPS origin allowlist, no redirect, PNG/JPEG bytes and5MB bound; production media transport stays disabled pending separate acceptance. Neutral reviews require explicit opt-in and linked same-customer native order actually delivered/updated after inquiry; completed/paid/draft/import facts never suffice. Shopify reviews remain unavailable until an authoritative actual-delivery adapter is tested; retained imports give no messaging consent. Review cooldown starts only on public receipt; sending/uncertain reserves the contact against concurrent asks. No sentiment filter. Current summary/customer confirmation operational flow is staff-reviewed and separately approved; no autonomous booking claim. Provider labels use read/union/write/verify because its API replaces lists; simultaneous external edits cannot be an OS PLUS transaction. Setup-metadata files for TDD/review point to existing local QA records, no new external issue tracker.

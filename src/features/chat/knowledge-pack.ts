@@ -112,6 +112,7 @@ export const knowledgePackSchema = z
       )
       .max(500),
     priceListImageUrl: url.optional(),
+    media: z.object({ priceListCaption: text }).strict().optional(),
     booking: z
       .object({
         capability: z.enum(["laundry_pickup", "follow_up_task"]),
@@ -121,6 +122,50 @@ export const knowledgePackSchema = z
           .optional(),
         minimumOrder: text.nullable().optional(),
         express: z.boolean().optional(),
+        prompts: z
+          .object({
+            services: text,
+            name: text,
+            address: text,
+            date: text,
+            window: text,
+            awaitingStaff: text,
+            whatsappHandoff: text,
+            location: text,
+          })
+          .strict()
+          .optional(),
+        confirmation: z
+          .object({
+            intro: text,
+            labels: z
+              .object({
+                name: text,
+                services: text,
+                address: text,
+                date: text,
+                window: text,
+                timePreference: text,
+              })
+              .strict(),
+            phrases: z
+              .array(
+                text.refine(
+                  (value) => value.length <= 80,
+                  "Use a short exact phrase.",
+                ),
+              )
+              .min(1)
+              .max(50)
+              .refine(
+                (values) =>
+                  new Set(values.map((value) => value.toLowerCase())).size ===
+                  values.length,
+                "Confirmation phrases must be unique.",
+              ),
+          })
+          .strict()
+          .optional(),
       })
       .strict()
       .optional(),
@@ -147,7 +192,12 @@ export const knowledgePackSchema = z
       })
       .strict(),
     review: z
-      .object({ url, cooldownDays: z.number().int().min(1).max(3650) })
+      .object({
+        enabled: z.boolean().default(false),
+        text: text.optional(),
+        url,
+        cooldownDays: z.number().int().min(1).max(3650),
+      })
       .strict()
       .optional(),
     style: z

@@ -5,6 +5,7 @@ import { requireChatPermission } from "./module";
 import { configureChatSchema, commandKeySchema } from "./schemas";
 import { validateKnowledgePublication } from "./knowledge-pack";
 import { accountClient } from "./connection";
+import { capabilitySchema } from "./actions/rules";
 
 export async function configureChat(input: unknown, commandKey: string) {
   const request = configureChatSchema.parse(input),
@@ -50,11 +51,16 @@ export async function configureChat(input: unknown, commandKey: string) {
     ]);
     if (mapping.error || locations.error)
       throw new Error("Branch configuration unavailable.");
+    const capabilities = await db.rpc("chat_capabilities", {
+      p_context: { ...ctx },
+    });
+    if (capabilities.error)
+      throw new Error("Booking capabilities unavailable.");
     validateKnowledgePublication(pack.pack_json, {
       locationCodes: (locations.data ?? [])
         .filter((l) => mapping.data?.some((m) => m.location_id === l.id))
         .map((l) => l.code),
-      capabilities: [],
+      capabilities: z.array(capabilitySchema).max(2).parse(capabilities.data),
     });
   }
   if (request.action === "channel.map") {
@@ -73,11 +79,17 @@ export async function configureChat(input: unknown, commandKey: string) {
       throw new Error("Inbox unavailable.");
     request.input.name = inbox.name; // A submitted inbox name is never account authority.
   }
-  const result = await db.rpc("chat_configure", {
-    p_context: { ...ctx },
-    p_action: request.action,
-    p_input: request.input,
-  });
+  const result =
+    request.action === "pack.publish"
+      ? await db.rpc("chat_publish_action_pack", {
+          p_context: { ...ctx },
+          p_input: request.input,
+        })
+      : await db.rpc("chat_configure", {
+          p_context: { ...ctx },
+          p_action: request.action,
+          p_input: request.input,
+        });
   if (result.error) throw new Error("Chat configuration was not saved.");
   return z.object({ id: z.string().uuid() }).parse(result.data);
 }

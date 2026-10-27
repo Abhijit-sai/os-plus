@@ -13,7 +13,7 @@ agent webhook → 200 at once → after():
   LOAD      tenant-scoped context (session, ledger, contact card, knowledge pack, channel, branch list)
   QUIET?    staff replied < quiet_minutes ago → stop (record outcome 'silent')
   CLOSING?  bare acknowledgement and nothing open → stop BEFORE any model call
-  BUDGET?   tenant over monthly budget → force draft mode
+  BUDGET?   tenant at monthly budget → stop new paid calls (CHAT-D041); keep safe staff status
   UNDERSTAND  model call 1 → strict JSON (intent flags, slots with quoted evidence, language, gist)
             ∥ CLASSIFY  small decisions-only model for payment claim / vendor / confirm / language
   GATES     pure code → Plan (what to book, what is locked, who needs a person, what the reply must cover)
@@ -46,19 +46,19 @@ Implement and test the platform safety controls with fresh synthetic fixtures. B
 2. **Vendor pitch.** Someone selling *to* the business gets one locked reply (brand's `vendor_reply`), then quiet for `quiet_minutes`.
 3. **Closing detection.** The whole message is an acknowledgement ("ok", "thanks", "👍", brand-configured local forms supplied by the new business) and nothing is open → silent. "yes/ok" while a task is open is a confirmation, not a closing. Runs before the model calls.
 4. **Evidence.** A booking detail counts only if its quoted evidence appears in a customer message this session. Models invent details otherwise.
-5. **Booking at the first ask.** The booking draft is saved (and alerted) the moment it is asked for, updated as slots arrive, confirmed by the yes, withdrawn on cancel. Never a second booking for the same contact/area/services within 1 h, and never after the ledger already promised one.
+5. **Request first (CHAT-D045/D046).** Save a provisional chat request at first ask and update quoted evidence. Customer confirmation concerns the current request; staff approval is separate from sending text and precedes operational booking/customer creation in draft mode. Non-Laundry follow-up is not a reserved appointment. Laundry needs complete verified details. Pending requests may be withdrawn; operational booking changes hand off. Fence exact tenant/brand/contact/area/services duplicates for1h, never merge different requests. Record notification intent for CH7.
 6. **Address de-duplication.** Joining saved address parts skips parts already present.
 7. **Map links.** A Google Maps link counts as the location (area = "shared on Google Maps"); coordinates are read from the link when present to pick the nearest branch.
 8. **One question per turn.** Option lists (services, windows) are shown once per booking.
 9. **Locked sentences.** Payment claim → the brand's exact `payment_claim_reply`; a second claim in the session → `payment_claim_again`. Identity question → `identity_reply`. Unreadable message → `unreadable_handoff`. Vendor → `vendor_reply`. The writer may not reword these.
-10. **Money.** The reply may state only amounts from the knowledge pack's price list (always marked indicative, never summed into a total) or from this turn's own statement lookup on an **exact** phone match (`can_share_statement` channels only). Any other currency amount → violation.
+10. **Money.** Statement issuance deferred by CHAT-D047; financial requests hand off. Only published indicative price facts may be stated, never a computed total/payment confirmation. Exact phone matching alone grants no financial disclosure.
 11. **No promises the business cannot keep.** No delivery/turnaround date confirmed; turnaround stated as a range with the brand's caution line; no express service unless the pack says so.
 12. **Repeat check.** Any sentence (or promise in different words) already said this session → repaired once by code, else rewritten once by the model, else handoff. Short acknowledgements may recur.
 13. **Links by code.** The model writes `{{STATEMENT_LINK}}`, `{{MAP_LINK:<location_code>}}`, `{{REVIEW_LINK}}`, `{{WHATSAPP_LINK}}`; code fills them. This prevents generated text from corrupting signed links.
 14. **Language and script.** Follow the new brand's configured languages and script policy. Do not inherit English-only, transliteration or regional-language examples from the reference business.
 15. **Channel rules.** Instagram/Facebook/website without a verified phone: answer information; booking and dues move to WhatsApp via `{{WHATSAPP_LINK}}` (a pre-filled `wa.me` message carrying the lead ref). A WhatsApp message quoting the ref links the two contacts. A website pre-chat phone is self-asserted and remains unverified; approved booking or financial sharing requires a separate verified identity flow.
 16. **Handoff topics.** Complaints, damage, refunds, order status, anything in the brand's `handoff_topics`, low confidence, or a failed check → task `CHAT_HANDOFF` + Telegram alert + a short locked handoff line (said once).
-17. **Review ask.** Only after a completed order, feedback first, link only after a positive reply, at most once per `review_cooldown_days` (default 90), never after a complaint.
+17. **Review ask (CHAT-D049).** Tenant-opt-in neutral requests only after actual delivery, configurable90daycooldown; no positive-feedback-only selection,incentive,campaign or historical-import trigger. Production completion/payment alone is not delivery. Complaints hand off; sentiment never determines who may review.
 18. **Internal text never reaches customers.** Flags, errors, JSON, tool names, placeholders left unfilled → violation.
 19. **Repair before reject.** Mechanical slips (option list repeated, missing "indicative", two map links, a repeated sentence) are fixed by code; throwing good drafts away is what turned cheap-model replies into the generic fallback.
 
@@ -114,7 +114,7 @@ Branch facts (address, map link, pins, hours overrides) come from `chat_brand_lo
 - Offline unit/E2E tests use stubs. Paid test runs use `deepseek/deepseek-v4-flash` under the owner's cost policy. Production classify/judge models require separate explicit selection for the new platform.
 - Record `usage.cost` from OpenRouter on every call into `chat_turns.cost_usd`; stage timings into `timings_ms_json`.
 - Establish a new measured cost baseline; no reference-business spend estimate is adopted.
-- **Budget:** when a tenant's month-to-date cost reaches `monthly_budget_usd`, all its channels behave as `draft` and the owner and platform are alerted once.
+- **Budget (CHAT-D041):** stop new paid model calls at the tenant ceiling, accounting for reservations and actual month-to-date spend. Retain a safe staff draft/status; switching to draft mode must not keep spending. Notification delivery follows CH-7.
 - **Spend discipline during the build:** tests use cheap models; any run that calls a paid model beyond a few cents must state the estimated cost and wait for the owner's yes.
 
 ## 6. Voice notes and images
@@ -142,3 +142,9 @@ Branch facts (address, map link, pins, hours overrides) come from `chat_brand_lo
 | Safety ×5 | amount without match, payment confirmation, invented date, identity leak, prompt injection, data-leak request | cheap |
 
 Create a new synthetic bench and owner-reviewed rubric for the new business. Structural test organization may be referenced; existing-business conversations, expected wording, scores and calibration are not adopted.
+
+## CH6 local implementation additions — 2026-10-24
+Knowledge schema remains version1/backward-compatible. New optional booking.confirmation contains reviewed intro, labels(name/services/address/date/window/timePreference) and exact short unique phrases. booking.prompts contains reviewed one-question text(services/name/address/date/window/location), awaitingStaff and whatsappHandoff. Without these reviewed fields the guarded handoff remains; no platform business wording is invented. Safety topics, low confidence and exact locked identity/vendor/unreadable/payment replies take precedence over action questions.
+media.priceListCaption is required before using priceListImageUrl. review now has enabled(defaultfalse), optional reviewed text, url and cooldownDays; explicit opt-in/text required before eligibility. Neutral request text appends the configured URL in code, never selects by sentiment. Current local transport accepts only allowlisted owned loopback direct PNG/JPEG assets; redirects/oversize/MIME mismatch fail closed. Production asset/model/real-channel acceptance is still separate.
+Staff review flow prepares a summary, sends it in Chatwoot's existing main composer, records an exact later customer confirmation, then separately approves operational creation. Any intervening non-confirmation/later customer activity invalidates approval, ordered by provider ID after timestamp. New unpublished/published pack changes invalidate old automatic approval.
+Current action context uses the active lead; supplemental delivery uses the run's trigger-time lead interval so legitimate WON delivery can qualify without inheriting an older lead's order in a reused conversation. Unclaimed image drafts may rebase to new eligible evidence; sending/uncertain/sent attempts never auto-retry. Reviews keep per-delivery history/contact cooldown; price images stay once per conversation.

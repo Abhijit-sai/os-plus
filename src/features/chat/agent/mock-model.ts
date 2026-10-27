@@ -10,6 +10,13 @@ export const mockScenarioSchema = z.enum([
   "vendor",
   "payment_claim",
   "unsafe_response",
+  "booking",
+  "confirm",
+  "cancel",
+  "complaint",
+  "financial",
+  "location",
+  "price_list",
 ]);
 /** Explicit demonstration scenarios, not a real language model or keyword-based production bot. */
 export function createMockModel(
@@ -43,7 +50,19 @@ export function createMockModel(
       if (!trigger?.content) throw new Error("Mock input unavailable.");
       const signals =
         stage === "classify" &&
-        ["identity", "handoff", "vendor", "payment_claim"].includes(scenario)
+        [
+          "identity",
+          "handoff",
+          "vendor",
+          "payment_claim",
+          "booking",
+          "confirm",
+          "cancel",
+          "complaint",
+          "financial",
+          "location",
+          "price_list",
+        ].includes(scenario)
           ? [
               {
                 kind: scenario,
@@ -58,11 +77,34 @@ export function createMockModel(
           : {
               intent: null,
               confidence: "high",
-              services: [],
+              services:
+                scenario === "booking"
+                  ? pack.services
+                      .filter((service) =>
+                        [service.name, ...service.aliases].some((label) =>
+                          trigger
+                            .content!.toLowerCase()
+                            .includes(label.toLowerCase()),
+                        ),
+                      )
+                      .map((service) => service.key)
+                  : [],
               language: pack.brand.languages[0],
               gist: trigger.content.slice(0, 1000),
               signals: [],
-              slots: [],
+              slots:
+                scenario === "booking"
+                  ? [
+                      ...trigger.content.matchAll(
+                        /(?:name|address|area|date|window|timePreference)=([^;\n]+)/g,
+                      ),
+                    ].map((match) => ({
+                      key: match[0].slice(0, match[0].indexOf("=")),
+                      value: match[1].trim(),
+                      quote: match[0],
+                      messageId: trigger.id,
+                    }))
+                  : [],
             };
       return { json, model: "local-synthetic-mock", costUsd: "0" };
     },

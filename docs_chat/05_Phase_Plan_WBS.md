@@ -95,15 +95,16 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 **Acceptance:** a real WhatsApp message gets a correct draft with buttons in Chatwoot; the turn is logged with cost and timings.
 
 ## CH-6 — Actions and auto mode
-- [ ] CH-6.1 Capability registry; `laundry_pickup` (via the existing pickup request command) and `follow_up_task`; booking saved at first ask, updated, confirmed, cancelled; no duplicate within 1 h.
-- [ ] CH-6.2 Handoff → `CHAT_HANDOFF` task (assigned to the branch team) + Chatwoot label + alert hook.
-- [ ] CH-6.3 Statement link: OS PLUS customer-safe statement/tracking page via a signed token, exact phone match only, `can_share_statement` channels only; amounts in the reply only from this lookup.
-- [ ] CH-6.4 Locked sentences, vendor rule, review ask, price-list image once per chat after the text.
-- [ ] CH-6.5 Channel rules: IG/FB → WhatsApp link with ref; nearest branch with one map link.
-- [ ] CH-6.6 Auto mode per channel (public message delivery); confirm the owner's sign-off per channel is recorded in settings.
-- [ ] CH-6.7 Latency: measure customer-message → reply from `chat_messages`; target ≤ 6 s median; skip models on closing; trim prompt size.
+2026-10-27: CLOSED LOCAL underD025/D050. Required engineering checks complete: six gates209/209, authenticated effective roles/tenant/desktop375CSSpx frames, fresh Boutique14/14 plus persistence7/7, native Chatwoot6/6, owned-local upgrade/restores and five-sample mock latency. Final focused UI review clear after approval-reset regression fix. Owner/live acceptance deferred under D050, statements deferredD047; neither is claimed executed. Final records/diff reviewed; authorized local phase commit records this closure before CH7. See CH6_QA.md, CH6_BOUTIQUE_QA.md and CH6_LOCAL_UPGRADE.md. LiveAI off/local mocks only.
+- [x] CH-6.1 Capability registry; `laundry_pickup` (via the existing pickup request command) and `follow_up_task`; booking saved at first ask, updated, confirmed, cancelled; no duplicate within 1 h.
+- [x] CH-6.2 Handoff → `CHAT_HANDOFF` task (assigned to the branch team) + Chatwoot label + alert hook.
+- [ ] CH-6.3 DEFERRED under CHAT-D047 (not implemented/PASS). Original — Statement link: OS PLUS customer-safe statement/tracking page via a signed token, exact phone match only, `can_share_statement` channels only; amounts in the reply only from this lookup.
+- [x] CH-6.4 Locked sentences, vendor rule, review ask, price-list image once per chat after the text.
+- [x] CH-6.5 Channel rules: IG/FB → WhatsApp link with ref; nearest branch with one map link.
+- [x] CH-6.6 Auto mode per channel (public message delivery); confirm the owner's sign-off per channel is recorded in settings.
+- [x] CH-6.7 Latency: measure customer-message → reply from `chat_messages`; target ≤ 6 s median; skip models on closing; trim prompt size.
 
-**Acceptance:** a full booking in chat produces the booking record at the first ask, a task when needed, the right lead stage, and no rule violations across the safety set.
+**Accepted acceptance (CHAT-D045–D049):** first ask creates a provisional chat request. Current complete customer-confirmed details plus explicit staff approval materialize an operational pickup or callback task atomically; callback tasks do not reserve appointments or independently mark a lead booked. Pending edits/withdrawals are versioned; operational changes become handoffs. D047 defers statements. Verify other CH6.2/6.4–6.7 gates and the safety set before closure. This supersedes the original first-ask operational-booking wording.
 
 ## CH-7 — Telegram + daily summary
 - [ ] CH-7.1 Platform bot client, webhook with secret header, `/start <code>` linking, target management UI.

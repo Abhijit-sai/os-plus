@@ -22,7 +22,9 @@ export function createConfirmedCommand<T extends Confirmation>(
       const current = attempt;
       try {
         const result = await send(input, current.key);
-        attempt = result.ok ? null : { ...current, uncertain: false };
+        attempt = result.ok
+          ? null
+          : { ...current, uncertain: result.uncertain === true };
         return result;
       } catch {
         attempt = { ...current, uncertain: true };

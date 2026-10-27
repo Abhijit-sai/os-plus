@@ -124,6 +124,38 @@ export class ChatwootAdminClient {
       throw new Error("Chat connection unavailable.");
     }
   }
+  async conversationRouting(
+    accountId: number,
+    conversationId: number,
+    inboxId: number,
+  ) {
+    try {
+      const account = id.parse(accountId),
+        conversation = id.parse(conversationId),
+        inbox = id.parse(inboxId);
+      const value = z
+        .object({
+          id,
+          account_id: id,
+          inbox_id: id,
+          meta: z.object({ assignee: z.object({ id }).nullable().optional() }),
+        })
+        .parse(
+          await this.request(
+            "/api/v1/accounts/" + account + "/conversations/" + conversation,
+          ),
+        );
+      if (
+        value.id !== conversation ||
+        value.account_id !== account ||
+        value.inbox_id !== inbox
+      )
+        throw new Error("Scope mismatch");
+      return { assigneeId: value.meta.assignee?.id ?? null };
+    } catch {
+      throw new Error("Conversation routing unavailable.");
+    }
+  }
   async createAccount(name: string, provisioningKey: string) {
     try {
       const input = z
@@ -313,7 +345,10 @@ export class ChatwootAdminClient {
         .union([
           z.object({ agent_bot: z.object({ id }).nullable() }),
           // v4.18 Jbuilder omits the key when no bot is assigned. Reject other unknown shapes.
-          z.object({}).strict().transform(() => ({ agent_bot: null })),
+          z
+            .object({})
+            .strict()
+            .transform(() => ({ agent_bot: null })),
         ])
         .parse(
           await this.request(
@@ -328,6 +363,34 @@ export class ChatwootAdminClient {
     } catch {
       throw new Error("Chat connection unavailable.");
     }
+  }
+  /** Provider replaces the list: preserve every observed label and verify the result. */
+  async mergeConversationLabel(
+    accountId: number,
+    conversationId: number,
+    rawLabel: unknown,
+  ) {
+    const label = z
+      .string()
+      .regex(/^[a-z][a-z0-9_-]{0,63}$/)
+      .parse(rawLabel);
+    const endpoint =
+      "/api/v1/accounts/" +
+      id.parse(accountId) +
+      "/conversations/" +
+      id.parse(conversationId) +
+      "/labels";
+    const shape = z.object({
+      payload: z.array(z.string().min(1).max(200)).max(1000),
+    });
+    const current = shape.parse(await this.request(endpoint)).payload;
+    if (current.includes(label)) return;
+    const expected = [...new Set([...current, label])];
+    const receipt = shape.parse(
+      await this.request(endpoint, { labels: expected }),
+    ).payload;
+    if (expected.some((l) => !receipt.includes(l)))
+      throw new Error("Label update unconfirmed.");
   }
   async attachBot(accountId: number, inboxId: number, botId: number) {
     try {

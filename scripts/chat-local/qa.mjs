@@ -19,6 +19,7 @@ import { loadServerModule } from "../chat-db-harness/server-adapter.mjs";
 import * as permissions from "../../src/features/chat/permissions.ts";
 import * as knowledge from "../../src/features/chat/knowledge-pack.ts";
 import * as schemas from "../../src/features/chat/schemas.ts";
+import * as actionRules from "../../src/features/chat/actions/rules.ts";
 const s = await state();
 await verifyContainer(s, "db");
 await verifyContainer(s, "rest");
@@ -91,6 +92,7 @@ const nativeCommands = loadServerModule(
     zod: { z },
     "./module": server,
     "./schemas": schemas,
+    "./actions/rules": actionRules,
     "./knowledge-pack": knowledge,
     "./connection": {
       accountClient: () => {
@@ -158,8 +160,11 @@ try {
       tenant = fixtures.B;
       actor = "local-api-owner-b";
       const other = await queries.getChatSetup();
-      assert.equal(other.brands.length, 0);
-      assert.equal(other.workspace, null);
+      assert.equal(other.tenantId, fixtures.B);
+      assert.ok(
+        other.brands.every((b) => !setup.brands.some((a) => a.id === b.id)),
+      );
+      assert.notEqual(other.workspace?.id, setup.workspace?.id);
       await assert.rejects(
         queries.getChatKnowledge({ brandId: fixtures.brand }),
         /Knowledge unavailable/,
@@ -406,12 +411,20 @@ try {
 } finally {
   await db.end();
   await writeFile(
-    path.join(runtime, "qa-report.json"),
+    path.join(
+      runtime,
+      process.argv.includes("--ch6")
+        ? "ch6-local-api-report.json"
+        : "qa-report.json",
+    ),
     JSON.stringify(report, null, 2),
   );
 }
 console.log(
   "Local QA passed: " +
     report.checks.length +
-    " groups. Evidence: outputs/chat-local/qa-report.json",
+    " groups. Evidence: outputs/chat-local/" +
+    (process.argv.includes("--ch6")
+      ? "ch6-local-api-report.json"
+      : "qa-report.json"),
 );

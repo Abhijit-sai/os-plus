@@ -20,6 +20,39 @@ export type AgentScope = z.infer<typeof agentScopeSchema>;
 
 const dataSchema = agentScopeSchema
   .extend({
+    actions: z
+      .object({
+        tenantId: uuid,
+        brandId: uuid,
+        canBook: z.boolean(),
+        verifiedPhone: z.boolean(),
+        leadRef: z.string().regex(/^[2-9A-HJKMNP-Z]{5}$/),
+        whatsappNumber: z
+          .string()
+          .regex(/^\+[1-9]\d{7,14}$/)
+          .nullable(),
+        request: z
+          .object({
+            capability: z.enum(["follow_up_task", "laundry_pickup"]),
+            status: z.enum(["requested", "customer_confirmed", "materialized"]),
+            details: z
+              .object({
+                name: z.string().nullable(),
+                services: z.array(z.string()),
+                area: z.string().nullable(),
+                address: z.string().nullable(),
+                date: z.string().nullable(),
+                window: z.string().nullable(),
+                timePreference: z.string().nullable(),
+              })
+              .strict(),
+          })
+          .strict()
+          .nullable(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
     background: backgroundSchema,
     locations: locationsSchema,
     brandId: uuid,
@@ -62,6 +95,9 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
   for (const key of Object.keys(scope) as (keyof AgentScope)[])
     if (data[key] !== scope[key]) throw new Error("Agent context unavailable.");
   if (
+    (data.actions != null &&
+      (data.actions.tenantId !== scope.tenantId ||
+        data.actions.brandId !== data.brandId)) ||
     data.pack.tenantId !== scope.tenantId ||
     data.pack.brandId !== data.brandId ||
     (data.background !== null &&
@@ -106,6 +142,7 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
     packVersion: data.pack.version,
     quietUntil: data.quietUntil,
     currency: data.currency,
+    actions: data.actions ?? null,
     background: data.background,
     locations: data.locations,
     ledger,

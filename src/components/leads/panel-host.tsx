@@ -5,6 +5,7 @@ import { parsePanelContext } from "@/features/leads/panel";
 import { loadPanelLeadAction } from "@/features/leads/actions";
 import type { getPanelLead } from "@/features/leads/queries";
 import { LeadEditor } from "./editor";
+import { LeadBusinessActions } from "./business-actions";
 import { Stage, replyLabel, money, linkClass } from "./workspace";
 type PanelData = NonNullable<Awaited<ReturnType<typeof getPanelLead>>>;
 export function PanelHost({
@@ -90,6 +91,18 @@ export function PanelHost({
               )
             }
           />
+          {data.actions ? (
+            <LeadBusinessActions
+              data={data.actions}
+              owners={data.owners}
+              onSaved={() =>
+                window.parent.postMessage(
+                  "chatwoot-dashboard-app:fetch-info",
+                  config.origin,
+                )
+              }
+            />
+          ) : null}
           <Link
             className={linkClass}
             href={"/leads/" + data.lead.id}
