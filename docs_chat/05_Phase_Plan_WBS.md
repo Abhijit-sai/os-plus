@@ -120,9 +120,9 @@ CLOSED LOCAL under owner acceptance CHAT-D038, commit0d22491f14eb82f246d2d17f50b
 - CH-8.2 excluded by owner (2026-10-07): no payment screenshot extraction, verification task or vision flow.
 
 ## CH-9 — Website chat
-- [ ] CH-9.1 Website channel support in parser, capture and agent (visitor identity `web_visitor`; phone from pre-chat form → E.164 identity, verified = false until WhatsApp confirms).
-- [ ] CH-9.2 Settings → Widget: snippet for the brand's Chatwoot website inbox, pre-chat form guidance.
-- [ ] CH-9.3 Website rules: information always; booking only with a phone; otherwise WhatsApp link.
+- [x] CH-9.1 Website channel support in parser, capture and agent (visitor identity `web_visitor`; phone from pre-chat form → E.164 identity, verified = false until WhatsApp confirms).
+- [x] CH-9.2 Settings → Widget: snippet for the brand's Chatwoot website inbox, pre-chat form guidance.
+- [x] CH-9.3 Website rules: information always; booking only with a phone; otherwise WhatsApp link.
 
 ## CH-10 — Bench, hardening, go-live
 - [ ] CH-10.1 Build a new conversation bench and judge rubric with synthetic/new-business-approved fixtures; run cheap-model tests across two distinct test brands; report.
@@ -160,3 +160,12 @@ Supersedes CH8 PLANNED/no-runtime statements above. CH8 IN_PROGRESS, engineering
 
 ### CH8 accepted local scope — 28 October 2026
 CHAT-D058 supersedes the pending-owner checkpoint. CH8.1 checked for accepted hash-only synthetic LOCAL implementation and254/254/sixgates/TierB/native restore evidence; real speech/WhatsApp gates remain deferred/unexecuted/release-blocking. Local phase commit authorized, then CH9 website chat plus owner-requested Chat settings UX simplification. Domain/server/Meta later, liveAI/STT disabled. Commit result in root summary.
+
+## CH9 engineering checkpoint — 28 October 2026
+CH9.1–9.3 implemented locally plus owner-requested focused settings UX; boxes remain unchecked until CH9 owner acceptance and outstanding C9-L2 unsaved Cancel/preservation. CH9_QA.md records six gates/264Chat, actualDB5, native4 and actual installed widget pre-chat→private suggestion→explicit staff approval→visitor reply. CH9_LOCAL_UPGRADE.md records two frozen LOCAL-only migrations104→106/native144→145-table recovery; CH9_BOUTIQUE_QA.md TierB/11 read-only checks and preserved workbook. Role/PII, A→B→A/stale request and authenticated375CSSpx frames passed. Website phone remains separate unverified claim, not possession-backed identity; booking still requires accepted verified/typed/staff controls, overriding shorthand “only with phone.” No owner acceptance/CH9 commit/CH10 start or production release. Domain/server/Meta/liveAI/STT and earlier live gates stay deferred. Owner steps CH9_OWNER_ACCEPTANCE.md C9-L1–L7.
+
+### CH9 autonomous final manual checks — 28 October 2026
+Supersedes earlier pending C9-L2 technical check: Codex completed actual browser confirm.dismiss→retained exact edit→restore→confirm.accept→Website navigation. Invalid JSON save also retained entered text and dirty state, with safe validation error; no save/publication occurred. All local engineering QA now complete. Owner requests no technical settings exercise; CH9_OWNER_ACCEPTANCE.md reduced to reviewing normal Chats→Leads behavior. Product acceptance still pending, no CH9 commit/CH10 start. Sixgates264/TierB/native/widget/375px unchanged; final lint/helpers/source422/frozenSQL/workbook/whitespace verified.
+
+### CH9 accepted local scope — 28 October2026
+CHAT-D059 supersedes pending-owner checkpoints. CH9.1–9.3 checked for accepted LOCAL implementation; C9-L7 owner acceptance complete on reported results. Six gates264Chat/actual widget/tenant375px/TierB/recovery evidence in CH9_QA.md. Local phase commit authorized before CH10 planning/local checks; original live/model/Meta/infrastructure gates remain blocked, no CH10 closure/go-live waiver. SHA recorded in root summary.

@@ -30,11 +30,7 @@ export function ChatActionSettingsPanel({
           </p>
         ) : null}
         {data.channels.map((channel) => (
-          <ChannelSettings
-            key={channel.id}
-            channel={channel}
-            data={data}
-          />
+          <ChannelSettings key={channel.id} channel={channel} data={data} />
         ))}
         {!data.channels.length ? <p>No active inboxes mapped.</p> : null}
       </CardContent>
@@ -51,12 +47,18 @@ function ChannelSettings({ channel, data }: ChannelProps) {
     <div className="space-y-3">
       <ChannelForm
         // Revalidation must discard edits/consent bound to an older settings or pack version.
-        key={channel.id + ":" + channel.version + ":" + (channel.packId ?? "none")}
+        key={
+          channel.id + ":" + channel.version + ":" + (channel.packId ?? "none")
+        }
         channel={channel}
         data={data}
         onMessage={setMessage}
       />
-      {message ? <p role="status" className="text-sm">{message}</p> : null}
+      {message ? (
+        <p role="status" className="text-sm">
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -75,10 +77,13 @@ function ChannelForm({
   );
   return (
     <form
+      data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
       className="space-y-3 border-b pb-5"
       onSubmit={(event) => {
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
+        const element = event.currentTarget;
+        const form = new FormData(element);
         start(async () => {
           const result = await command.current.run({
             channelId: channel.id,
@@ -90,6 +95,7 @@ function ChannelForm({
             locationId: String(form.get("locationId") || "") || null,
             teamId: String(form.get("teamId") || "") || null,
           });
+          if (result.ok) delete element.dataset.unsavedDirty;
           onMessage(result.message);
           // The action revalidates this page; a second refresh discards its feedback.
         });

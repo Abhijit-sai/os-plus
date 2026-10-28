@@ -10,6 +10,12 @@ const marker = new Error("NEXT_NOT_FOUND");
 function page(failure) {
   return loadServerModule("src/app/(tenant)/settings/chat/page.tsx", {
     "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
+    "next/link": {},
+    "@/components/chat/website-widget": {},
+    "@/components/chat/settings-overview": {},
+    "@/features/chat/settings-navigation": {
+      chatSettingsSection: () => "overview",
+    },
     "@/features/chat/actions": {},
     "@/features/chat/agent/preview-server": {
       isMockPreviewEnabled: () => false,
@@ -96,6 +102,12 @@ test("permission-query outages propagate through the real guard and page as safe
         "src/app/(tenant)/settings/chat/page.tsx",
         {
           "react/jsx-runtime": { jsx: () => null },
+          "next/link": {},
+          "@/components/chat/website-widget": {},
+          "@/components/chat/settings-overview": {},
+          "@/features/chat/settings-navigation": {
+            chatSettingsSection: () => "overview",
+          },
           "@/features/chat/actions": {},
           "@/features/chat/agent/preview-server": {
             isMockPreviewEnabled: () => false,

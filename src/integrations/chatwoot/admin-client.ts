@@ -208,6 +208,37 @@ export class ChatwootAdminClient {
       throw new Error("Chat connection unavailable.");
     }
   }
+  async websiteInbox(accountId: number, inboxId: number) {
+    try {
+      const expected = id.parse(inboxId);
+      const value = z
+        .object({
+          id,
+          name: z.string().trim().min(1).max(200),
+          channel_type: z.literal("Channel::WebWidget"),
+          website_token: z
+            .string()
+            .min(16)
+            .max(200)
+            .regex(/^[A-Za-z0-9_-]+$/),
+          pre_chat_form_enabled: z.boolean(),
+        })
+        .parse(
+          await this.request(
+            "/api/v1/accounts/" + id.parse(accountId) + "/inboxes/" + expected,
+          ),
+        );
+      if (value.id !== expected) throw Error("Inbox mismatch");
+      return {
+        id: value.id,
+        name: value.name,
+        websiteToken: value.website_token,
+        preChatEnabled: value.pre_chat_form_enabled,
+      };
+    } catch {
+      throw Error("Website inbox unavailable.");
+    }
+  }
   async listInboxes(accountId: number): Promise<ChatInbox[]> {
     try {
       const result = z

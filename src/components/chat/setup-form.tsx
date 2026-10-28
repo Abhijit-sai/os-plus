@@ -25,6 +25,14 @@ export function ChatForm({
     <form
       className="space-y-4"
       data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
+      onInvalidCapture={(event) => {
+        let node = (event.target as HTMLElement).parentElement;
+        while (node) {
+          if (node instanceof HTMLDetailsElement) node.open = true;
+          node = node.parentElement;
+        }
+      }}
       aria-busy={pending}
       onSubmit={(event) => {
         event.preventDefault();
@@ -43,6 +51,7 @@ export function ChatForm({
             setResult(response);
             onResult?.(response);
             if (response.ok) {
+              delete form.dataset.unsavedDirty;
               attempt.current = null;
               if (resetOnSuccess) form.reset();
             }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { captureIdentities } from "../leads/rules";
+import { websitePhoneClaim } from "./website/rules";
 import type { IngressDependencies } from "./ingress";
 import { scheduleNotificationCheck } from "./notifications/trigger";
 
@@ -87,6 +88,12 @@ export function chatCaptureDependencies(
           identity: {
             displayName: profile.displayName,
             sourceId: message.identity.sourceId,
+            ...(c.kind === "website"
+              ? {
+                  websitePhoneClaimE164:
+                    websitePhoneClaim(message.identity.phone)?.value ?? null,
+                }
+              : {}),
             phoneE164:
               profile.identities.find((i) => i.kind === "phone")?.value ?? null,
           },

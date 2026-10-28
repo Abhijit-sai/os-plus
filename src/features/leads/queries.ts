@@ -256,6 +256,16 @@ export async function getContactDetail(input: unknown, mergeQuery?: string) {
     .object({
       details: z.object({
         identities: z.array(z.unknown()),
+        phoneClaims: z
+          .array(
+            z.object({
+              value: z.string().regex(/^\+[1-9]\d{7,14}$/),
+              verified: z.literal(false),
+              source: z.literal("website_prechat"),
+            }),
+          )
+          .max(10)
+          .default([]),
         customer: z
           .object({
             id: z.string().uuid(),
@@ -311,6 +321,7 @@ export async function getContactDetail(input: unknown, mergeQuery?: string) {
     : null;
   return {
     contact: projectContact(raw.item, details.identities, page.permissions.pii),
+    phoneClaims: page.permissions.pii ? details.phoneClaims : [],
     permissions: page.permissions,
     customer: native ? details.customer : null,
     matchingCustomers: page.permissions.manage ? details.matchingCustomers : [],

@@ -1,5 +1,20 @@
 "use client";
 import { useId, useState } from "react";
+import { z } from "zod";
+const editableFactsSchema = z
+  .object({
+    brand: z.object({ oneLiner: z.string() }).passthrough(),
+    hours: z.object({ default: z.string() }).passthrough(),
+  })
+  .passthrough();
+function editableFacts(text: string) {
+  try {
+    const parsed = editableFactsSchema.safeParse(JSON.parse(text));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
 import { Button } from "@/components/ui/button";
 import { ChatForm } from "./setup-form";
 import type { ChatSetup } from "@/features/chat/queries";
@@ -31,6 +46,22 @@ export function KnowledgeEditor({
     ...older.filter((p) => !packs.some((current) => current.id === p.id)),
   ].sort((a, b) => b.version - a.version);
   const next = cursor === undefined ? olderBefore : cursor;
+  const facts = editableFacts(text);
+  const updateFact = (
+    part: "brand" | "hours",
+    key: "oneLiner" | "default",
+    value: string,
+  ) => {
+    if (!facts) return;
+    setText(
+      JSON.stringify(
+        { ...facts, [part]: { ...facts[part], [key]: value } },
+        null,
+        2,
+      ),
+    );
+    setDirty(true);
+  };
   function saved(result: ChatActionResult) {
     if (result.ok) {
       setOlder([]);
@@ -120,85 +151,150 @@ export function KnowledgeEditor({
           if (result.ok) setDirty(false);
         }}
       >
-        <div className="space-y-1.5">
-          <label htmlFor={id} className="block text-sm font-medium">
-            Knowledge pack JSON
-          </label>
-          <textarea
-            id={id}
-            name="knowledge"
-            required
-            value={text}
-            disabled={busy}
-            onChange={(event) => {
-              setText(event.target.value);
-              setDirty(true);
-            }}
-            spellCheck={false}
-            rows={12}
-            className="w-full min-w-0 rounded-md border bg-background p-3 font-mono text-sm focus-visible:ring-2 focus-visible:ring-ring"
-            aria-describedby={id + "-help"}
-          />
-          <p id={id + "-help"} className="text-sm text-muted-foreground">
-            Use this business’s approved facts. Saving creates a draft;
-            publication is a separate action. Booking remains unavailable in
-            this phase.
-          </p>
-        </div>
-      </ChatForm>
-      <ul className="space-y-2">
-        {revisions.map((pack) => (
-          <li key={pack.id} className="rounded-md border p-3">
-            <p className="mb-2 text-sm">
-              Version {pack.version} · {pack.status}
-            </p>
-            {pack.status === "draft" && (
-              <ChatForm
-                label={"Publish version " + pack.version}
-                save={async (_data, key) =>
-                  save({ action: "pack.publish", input: { id: pack.id } }, key)
-                }
-                onResult={saved}
+        {facts ? (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor={id + "-description"}
+                className="block text-sm font-medium"
               >
-                <label className="flex min-h-11 items-center gap-2 text-sm">
-                  <input type="checkbox" required />I reviewed this saved
-                  revision and its branch mappings.
-                </label>
-              </ChatForm>
-            )}
-          </li>
-        ))}
-      </ul>
-      {next !== null && (
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          className="min-h-11"
-          onClick={async () => {
-            setBusy(true);
-            setError("");
-            try {
-              const result = await loadKnowledge({
-                brandId,
-                beforeVersion: next,
-              });
-              if (!result.ok || !result.revisions) {
-                setError(result.message);
-                return;
+                What your business does
+              </label>
+              <textarea
+                id={id + "-description"}
+                required
+                disabled={busy}
+                rows={2}
+                value={facts.brand.oneLiner}
+                onChange={(event) =>
+                  updateFact("brand", "oneLiner", event.target.value)
+                }
+                className="w-full rounded-md border bg-background p-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor={id + "-hours"}
+                className="block text-sm font-medium"
+              >
+                Opening hours
+              </label>
+              <textarea
+                id={id + "-hours"}
+                required
+                disabled={busy}
+                rows={2}
+                value={facts.hours.default}
+                onChange={(event) =>
+                  updateFact("hours", "default", event.target.value)
+                }
+                className="w-full rounded-md border bg-background p-3 text-sm"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Other saved services, prices, languages and reply safeguards are
+              preserved. Review the full configuration below before changing
+              them.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Load a saved revision to update business facts. A first
+            configuration needs the full reviewed business setup below.
+          </p>
+        )}
+        <details className="border-t pt-3" open={!facts}>
+          <summary className="min-h-11 cursor-pointer text-sm font-medium">
+            Advanced business configuration
+          </summary>
+          <div className="space-y-1.5">
+            <label htmlFor={id} className="block text-sm font-medium">
+              Full configuration (JSON)
+            </label>
+            <textarea
+              id={id}
+              name="knowledge"
+              required
+              value={text}
+              disabled={busy}
+              onChange={(event) => {
+                setText(event.target.value);
+                setDirty(true);
+              }}
+              spellCheck={false}
+              rows={12}
+              className="w-full min-w-0 rounded-md border bg-background p-3 font-mono text-sm focus-visible:ring-2 focus-visible:ring-ring"
+              aria-describedby={id + "-help"}
+            />
+            <p id={id + "-help"} className="text-sm text-muted-foreground">
+              Use this business’s approved facts. Saving creates a draft;
+              publication is a separate action. Operational bookings still
+              require verified details and staff approval.
+            </p>
+          </div>
+        </details>
+      </ChatForm>
+      <details className="border-t pt-3">
+        <summary className="min-h-11 cursor-pointer font-medium">
+          Revision history and publication
+        </summary>
+        <ul className="space-y-2">
+          {revisions.map((pack) => (
+            <li key={pack.id} className="rounded-md border p-3">
+              <p className="mb-2 text-sm">
+                Version {pack.version} · {pack.status}
+              </p>
+              {pack.status === "draft" && (
+                <ChatForm
+                  label={"Publish version " + pack.version}
+                  save={async (_data, key) =>
+                    save(
+                      { action: "pack.publish", input: { id: pack.id } },
+                      key,
+                    )
+                  }
+                  onResult={saved}
+                >
+                  <label className="flex min-h-11 items-center gap-2 text-sm">
+                    <input type="checkbox" required />I reviewed this saved
+                    revision and its branch mappings.
+                  </label>
+                </ChatForm>
+              )}
+            </li>
+          ))}
+        </ul>
+        {next !== null && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            className="min-h-11"
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                const result = await loadKnowledge({
+                  brandId,
+                  beforeVersion: next,
+                });
+                if (!result.ok || !result.revisions) {
+                  setError(result.message);
+                  return;
+                }
+                setOlder((previous) => [...previous, ...result.revisions!]);
+                setCursor(result.olderBefore ?? null);
+              } catch {
+                setError("Older revisions could not be loaded. Try again.");
+              } finally {
+                setBusy(false);
               }
-              setOlder((previous) => [...previous, ...result.revisions!]);
-              setCursor(result.olderBefore ?? null);
-            } catch {
-              setError("Older revisions could not be loaded. Try again.");
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Load older revisions
-        </Button>
-      )}
+            }}
+          >
+            Load older revisions
+          </Button>
+        )}
+      </details>
       {revisions.length === 0 && (
         <p className="text-sm text-muted-foreground">
           No knowledge pack has been saved or published.

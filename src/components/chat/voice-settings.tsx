@@ -33,9 +33,12 @@ function VoiceForm({
   );
   return (
     <form
+      data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
       onSubmit={(event) => {
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
+        const element = event.currentTarget;
+        const form = new FormData(element);
         const input = {
           enabled: form.get("enabled") === "on",
           maxBytes: Math.round(Number(form.get("maxMegabytes")) * 1000000),
@@ -45,7 +48,10 @@ function VoiceForm({
         start(async () => {
           const result = await command.run(input);
           onResult(result);
-          if (result.ok) router.refresh();
+          if (result.ok) {
+            delete element.dataset.unsavedDirty;
+            router.refresh();
+          }
         });
       }}
     >

@@ -1,5 +1,12 @@
 "use server";
 import { getChatKnowledge } from "./queries";
+import { z } from "zod";
+import { requireChatPermission } from "./module";
+async function requireDisplayedBusiness(value: unknown) {
+  const tenantId = z.string().uuid().parse(value);
+  const current = await requireChatPermission("chat_settings:manage");
+  if (current.context.tenant.id !== tenantId) throw Error("Business changed.");
+}
 import type { KnowledgePack } from "./knowledge-pack";
 import type { ChatSetup } from "./queries";
 import { revalidatePath } from "next/cache";
@@ -19,8 +26,10 @@ export type ChatActionResult = {
 export async function saveChatAction(
   input: unknown,
   key: string,
+  expectedTenantId: string,
 ): Promise<ChatActionResult> {
   try {
+    await requireDisplayedBusiness(expectedTenantId);
     await configureChat(input, key);
     revalidatePath("/settings/chat");
     return { ok: true, message: "Changes saved." };
@@ -32,8 +41,11 @@ export async function saveChatAction(
     };
   }
 }
-export async function syncChatInboxesAction(): Promise<ChatActionResult> {
+export async function syncChatInboxesAction(
+  expectedTenantId: string,
+): Promise<ChatActionResult> {
   try {
+    await requireDisplayedBusiness(expectedTenantId);
     return {
       ok: true,
       message:

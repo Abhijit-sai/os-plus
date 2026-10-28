@@ -81,6 +81,30 @@ export default async function ContactPage({
                       </li>
                     ))}
                   </ul>
+                  {data.phoneClaims.length ? (
+                    <section
+                      className="space-y-2 border-t pt-3"
+                      aria-label="Unverified website phone numbers"
+                    >
+                      <h3 className="text-sm font-medium">
+                        Phone numbers supplied on the website
+                      </h3>
+                      <ul className="space-y-1 text-sm">
+                        {data.phoneClaims.map((claim) => (
+                          <li key={claim.value}>
+                            {claim.value}{" "}
+                            <span className="text-muted-foreground">
+                              · Unverified
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-muted-foreground">
+                        These claims cannot link a customer or approve a
+                        booking. Verify through the approved channel first.
+                      </p>
+                    </section>
+                  ) : null}
                   <p className="text-sm">
                     Preferred language: {data.language || "Not recorded"}
                   </p>

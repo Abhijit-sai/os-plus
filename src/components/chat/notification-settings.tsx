@@ -52,8 +52,12 @@ function useSave(onResult: (result: Feedback) => void) {
   return {
     disabled: pending || !hydrated,
     pending,
-    save: (input: unknown) =>
-      start(async () => onResult(await command.run(input))),
+    save: (input: unknown, form?: HTMLFormElement) =>
+      start(async () => {
+        const result = await command.run(input);
+        if (result.ok && form) delete form.dataset.unsavedDirty;
+        onResult(result);
+      }),
   };
 }
 export function ChatNotificationSettings({
@@ -155,18 +159,24 @@ function Schedule({
   const { disabled, pending, save } = useSave(onResult);
   return (
     <form
+      data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
       onSubmit={(e) => {
         e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        save({
-          action: "settings",
-          input: {
-            version: settings.version,
-            enabled: f.has("enabled"),
-            timezone: String(f.get("timezone")),
-            localTime: String(f.get("localTime")),
+        const element = e.currentTarget;
+        const f = new FormData(element);
+        save(
+          {
+            action: "settings",
+            input: {
+              version: settings.version,
+              enabled: f.has("enabled"),
+              timezone: String(f.get("timezone")),
+              localTime: String(f.get("localTime")),
+            },
           },
-        });
+          element,
+        );
       }}
     >
       <fieldset
@@ -225,15 +235,21 @@ function CreateTarget({ onResult }: { onResult: (r: Feedback) => void }) {
     });
   return (
     <form
+      data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
       ref={form}
       onSubmit={(e) => {
         e.preventDefault();
         id.current ??= crypto.randomUUID();
-        const f = new FormData(e.currentTarget);
-        save({
-          action: "create",
-          input: { id: id.current, label: String(f.get("label")) },
-        });
+        const element = e.currentTarget;
+        const f = new FormData(element);
+        save(
+          {
+            action: "create",
+            input: { id: id.current, label: String(f.get("label")) },
+          },
+          element,
+        );
       }}
     >
       <fieldset
@@ -378,21 +394,27 @@ function TargetForm({
   const { disabled, pending, save } = useSave(onResult);
   return (
     <form
+      data-unsaved-guard="true"
+      data-preserve-dirty-on-submit="true"
       onSubmit={(e) => {
         e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        save({
-          action: "save",
-          input: {
-            id: target.id,
-            version: target.version,
-            label: String(f.get("label")),
-            events: f.getAll("events"),
-            brandIds: f.getAll("brands"),
-            active: f.has("active"),
-            confirm: f.has("confirm"),
+        const element = e.currentTarget;
+        const f = new FormData(element);
+        save(
+          {
+            action: "save",
+            input: {
+              id: target.id,
+              version: target.version,
+              label: String(f.get("label")),
+              events: f.getAll("events"),
+              brandIds: f.getAll("brands"),
+              active: f.has("active"),
+              confirm: f.has("confirm"),
+            },
           },
-        });
+          element,
+        );
       }}
     >
       <fieldset disabled={disabled} aria-busy={pending} className="space-y-4">
@@ -515,7 +537,8 @@ function ReportPreview({ end }: { end: string }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const f = new FormData(e.currentTarget);
+          const element = e.currentTarget;
+          const f = new FormData(element);
           start(async () => {
             try {
               setResult(

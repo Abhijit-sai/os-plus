@@ -241,6 +241,7 @@ export default function Preview() {
         />
       ) : allowed ? (
         <ChatSetupPanel
+          section="business"
           key={business}
           data={business === "A" ? data : dataB}
           save={save}
