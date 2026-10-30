@@ -63,6 +63,8 @@ fi
 cp -- .env compose.yaml Caddyfile "$work/"
 mkdir "$work/scripts"
 cp -- scripts/init-n8n-db.sh "$work/scripts/"
+# PostgreSQL initializes as its own user; the restored init script must remain readable.
+chmod 644 "$work/scripts/init-n8n-db.sh"
 (
   cd -- "$work"
   sha256sum chatwoot.dump n8n.dump redis.rdb chatwoot-storage.tar.gz n8n-storage.tar.gz .env compose.yaml Caddyfile scripts/init-n8n-db.sh >SHA256SUMS

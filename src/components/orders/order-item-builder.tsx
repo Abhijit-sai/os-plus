@@ -569,12 +569,12 @@ export function OrderItemBuilder({
                       Standard sizes come from the item type. Customer measurements appear after customer selection.
                     </p>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="grid min-w-0 gap-2">
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <select
                         id={`fitReference_${rowId}`}
                         name={`fitReference_${rowId}`}
-                        className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
+                        className="h-10 min-w-0 w-full flex-1 rounded-md border bg-background px-3 text-sm"
                         disabled={!selectedItemTypeId || (!availableStandardSizes.length && !availableMeasurements.length)}
                         value={selectedFitReference}
                         onChange={(event) => setFitReferenceByRowId((current) => ({ ...current, [rowId]: event.target.value }))}

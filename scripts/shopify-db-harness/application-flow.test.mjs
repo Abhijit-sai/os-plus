@@ -5,6 +5,7 @@ import { before,after,test } from 'node:test';
 import { randomUUID,createHmac } from 'node:crypto';
 import { readFile,readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import { snapshot } from '../fixtures/shopify-draft.mjs';
 import { createShopifyApplicationService } from '../../src/integrations/shopify/application-service.ts';
 import { createShopifyApplicationSource } from '../../src/integrations/shopify/application-source.ts';
@@ -22,12 +23,12 @@ import { createShopifyUnifiedService } from '../../src/integrations/shopify/unif
 import { runShopifyUnifiedWorker } from '../../src/integrations/shopify/unified-worker.ts';
 import { beginShopifyApproval } from '../../src/integrations/shopify/oauth.ts';
 import { sealShopifyCredential } from '../../src/integrations/shopify/oauth-crypto.ts';
-const db=new PGlite(),folder=new URL('../../supabase/migrations/',import.meta.url);
+const db=new PGlite({extensions:{pgcrypto}}),folder=new URL('../../supabase/migrations/',import.meta.url);
 before(async()=>{
   await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;CREATE SCHEMA storage;
     CREATE TABLE storage.buckets(id text PRIMARY KEY,name text NOT NULL,public boolean NOT NULL DEFAULT false,file_size_limit bigint,allowed_mime_types text[]);
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated,service_role;GRANT USAGE ON SCHEMA public TO anon,authenticated,service_role;`);
-  for(const file of (await readdir(folder)).filter(f=>f.endsWith('.sql')).sort())await db.exec((await readFile(new URL(file,folder),'utf8')).replace('create extension if not exists "pgcrypto";',''));
+  for(const file of (await readdir(folder)).filter(f=>f.endsWith('.sql')).sort())await db.exec((await readFile(new URL(file,folder),'utf8')));
   // Locally rehearse the separately proposed permission-only follow-up too.
   // This fixture is memory-only; the proposal is not an automatic migration.
   await db.exec(await readFile(new URL('../../docs/sql/20261015170000_shopify_trigger_permission_cleanup.proposed.sql',import.meta.url),'utf8'));

@@ -1,0 +1,42 @@
+# Input for scripts/prepare-4gb.mjs. Deploy its standalone bundle so backups retain these limits.
+# All8 services including backup helper total3072MiB; reserve1024MiB of a4GiB host for OS/daemon.
+services:
+  rails:
+    mem_limit: 896m
+    memswap_limit: 896m
+    environment:
+      RAILS_MAX_THREADS: "2"
+      SIDEKIQ_CONCURRENCY: "1"
+      MALLOC_ARENA_MAX: "2"
+  sidekiq:
+    mem_limit: 768m
+    memswap_limit: 768m
+    environment:
+      RAILS_MAX_THREADS: "2"
+      SIDEKIQ_CONCURRENCY: "1"
+      MALLOC_ARENA_MAX: "2"
+  cw-postgres:
+    mem_limit: 384m
+    memswap_limit: 384m
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "work_mem=4MB", "-c", "maintenance_work_mem=64MB", "-c", "max_connections=40"]
+  redis:
+    mem_limit: 128m
+    memswap_limit: 128m
+    # Reject pressure rather than silently evicting Sidekiq jobs or locks.
+    command: ["sh", "-ec", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly no --save 60 1 --maxmemory 64mb --maxmemory-policy noeviction"]
+  n8n-postgres:
+    mem_limit: 192m
+    memswap_limit: 192m
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "work_mem=2MB", "-c", "maintenance_work_mem=32MB", "-c", "max_connections=20"]
+  n8n:
+    mem_limit: 512m
+    memswap_limit: 512m
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=256"
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: "1"
+  caddy:
+    mem_limit: 64m
+    memswap_limit: 64m
+  backup-files:
+    mem_limit: 128m
+    memswap_limit: 128m

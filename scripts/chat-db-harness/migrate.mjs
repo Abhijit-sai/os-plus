@@ -1,9 +1,14 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { readChatRelease } from "../chat-release/build.mjs";
 
 // Actual SQL replay for fresh, isolated databases only. Caller must prove ownership.
-export async function applyChatMigrations(db) {
-  await db.query(`create role anon;create role authenticated;create role service_role bypassrls;
-    grant usage on schema public to anon,authenticated,service_role;
+export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=false}={}) {
+  if(ownedRelease!==rolesPrepared)throw new Error("OWNED_RELEASE_ROLE_MODE_REQUIRED");
+  // Validate every frozen source byte before creating fixture objects.
+  const release=ownedRelease?readChatRelease(fileURLToPath(new URL("../../",import.meta.url))):null;
+  if(!rolesPrepared) await db.query("create role anon;create role authenticated;create role service_role bypassrls;");
+  await db.query(`grant usage on schema public to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
     alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;
     create schema storage;create table storage.buckets(id text primary key,name text not null,public boolean not null default false,file_size_limit bigint,allowed_mime_types text[]);`);
@@ -12,6 +17,7 @@ export async function applyChatMigrations(db) {
     .filter((name) => name.endsWith(".sql"))
     .sort();
   for (const file of files) {
+    if(ownedRelease && file.includes("_chat_")) continue;
     if (file === "20261014131000_shopify_handover_guards.sql") {
       // Existing optional handover module's dependency shape; no handover acceptance is claimed.
       await db.query(`create table order_handovers(id uuid primary key default gen_random_uuid(),tenant_id uuid not null references tenants(id),order_id uuid not null references orders(id),
@@ -29,6 +35,7 @@ export async function applyChatMigrations(db) {
       );
     }
   }
+  if(release) await db.query(release.sql);
   console.log(
     "Applied " +
       files.length +

@@ -33,9 +33,9 @@ Parts:
 
 Needs the deploy kit from **CH-0** (`deploy/chatwoot/`).
 
-- [ ] B1 Hetzner → new server (O2; 8 GB RAM class, Ubuntu LTS), SSH key only, firewall: 22 (your IP), 80, 443. **Enable Hetzner Cloud Backups.**
+- [ ] B1 Hetzner → new server (O2; accepted 4 GB CPX22 / Ubuntu 26.04 LTS under D063–D065; validate capacity before live use), SSH key only, firewall: 22 (your IP), 80, 443. **Enable Hetzner Cloud Backups.**
 - [ ] B2 DNS: `A chat.<domain>` → the server IP.
-- [ ] B3 Follow `deploy/chatwoot/README.md`: swap, `.env` secrets, `db:chatwoot_prepare`, `up -d`, Caddy, open `https://chat.<domain>` → create the **super admin**.
+- [ ] B3 Follow `deploy/chatwoot/README.md`: bounded 4 GB profile (no swap; historical swap instruction superseded), fresh `.env` secrets, `db:chatwoot_prepare`, `up -d`, Caddy, open `https://chat.<domain>` → create the **super admin**.
 - [ ] B4 Chatwoot Super Admin → **Platform Apps** → create one → keep the token for `CHATWOOT_PLATFORM_TOKEN`.
 - [ ] B5 Chatwoot Super Admin → Settings → app config: enter the Meta app id/secret for Facebook and Instagram (and WhatsApp embedded-signup ids if O4 chose it). Restart.
 - [ ] B6 Create a **demo account** with one Instagram and one Facebook test page connected → record the screencast → **submit Meta app review** (A1.5).
@@ -177,3 +177,47 @@ Supersedes earlier CH4-retained/interim wording. [Current QA](CH5_QA.md),[Boutiq
 
 ### CH5 local closure — 2026-10-22
 Owner accepts combined local C5-L1–L7 evidence and explicitly defers paid/live/realWhatsApp under CHAT-D044. Six gates168/168, actualfresh5/browser2, frozen4LOCALSQL/restore, priorTierA14/persistence7 and focused final reviewers PASS. CH5 CLOSED LOCAL; local phase commit under D025/D044. PartC paid/live/realWhatsApp and B8production remain unchecked/release-blocking. No CH6 work or external release.
+
+## CH-10 local checkpoint — 28 October 2026
+CH-9 accepted/committed locally as fcf0ebc under D059. Available CH-10 local checks pass: two synthetic brands30, actual loopback failure/gate14, actual disposable PostgreSQL3; full Chat311 and all six gates. See CH10_QA.md. This does not check off the CH-10 cost/judge/live acceptance row or D1–D4 real-client steps. CH10_RELEASE_READINESS.md lists the missing production orchestrator/provider/privacy work, server/domain/Meta/Telegram/STT/judge/hosted acceptance and actual draft-week gates. Those remain deferred/release-blocking; no keys, server purchase or settings repetition needed from the owner now. CH-10 QA_BLOCKED, live AI/STT disabled, no deployment.
+
+
+## New host checkpoint — 30 October 2026 (partial Part B)
+B1: owner-created4GB CPX22/Ubuntu26.04LTS confirmed; SSHkey-only verified. Providerfirewallrule/backups state not independently verified, so full B1 staysunchecked. B2exactDNS/TLSdeferred. B3privateboot/nativeDBinitialization and16syntheticflow/soakchecks pass, but publicHTTPS/realownerSuperAdmin setup remainpending. B4PlatformAppproductionbinding notconfigured. B5/B6Metadeferred. B7actualencryptedbackup/offhostverification andfreshisolated8-checkrestore pass; recurringcron/offsite-retention/failurealert acceptance stillpending, no scheduleactivated. B8hostedOSPLUSintegration notdeployed. Detailed evidence CH10_HOST_SETUP.md; do notcheckfullPartB/PartD/go-live frompartialsyntheticresults. LiveAI/STTdisabled, no realprovider messages orsharedSQL.
+
+
+## 30 October 2026 — Phantom Threads owner DNS completed
+B2's DNS A step was executed by the owner and verified from the server: chat.phantomthreads.in ->2.29.113.198; no AAAA observed. Public TLS is not enabled. Owner requests DNS questions directly, without DNS browser automation. B1 provider firewall/backups/fingerprint remain unverified. B3 HTTPS, operator roles/password recovery and storage security remain open; owner selects manual passwords/no invitation emails, not SMTP setup. B4 production binding, B5/B6 Meta, B7 independent recurring backup/alerts, B8 hosted integration and PartD stay open.
+See CH10_PHANTOM_LAUNCH_PLAN.md for exact real/Test destination IDs, current main/build, native SQL rehearsal, public-host proposal and rollback. Raw Chat SQL has a confirmed pgcrypto schema compatibility blocker; separate qualified proposal tested only in disposable infrastructure. Full six-gate/manual/PartD/channel/staged acceptance is incomplete. No CH10 closure or production release.
+
+
+## 30 October 2026 - Synthetic HTTPS acceptance complete; real business still blocked
+Owner's explicit "yes. go ahead" authorized the presented existing-synthetic-only HTTPS activation. It completed at12:12:46UTC on30October on2.29.113.198, project osplus-chat-private. No further permission was inferred. https://chat.phantomthreads.in now serves Chatwoot with valid trusted TLS and HTTP redirect. Certificate SAN/chain verified externally without bypass (Let's Encrypt YE1; expires28January2027). Public browser login page rendered; no browser credentials entered. Native API password logins are a separate result, not proof of authenticated browser login/Clerk/SSO/mobile/OSPLUS linkage.
+
+Fresh HTTPS native QA PASS18/18 on existing synthetic901/902: both password logins/account reads, visitor enquiry, private note hidden, public staff reply, foreign account token denied, attachment download/hash and ten bounded followups per account, private n8n health, service bounds and stability.22 incoming synthetic visitor messages total, no customer/provider transport.30 samples over354.9s; max aggregate app1678.1MiB, min host available1707.6MiB, no new crash/OOM/restart. This light test is not a production capacity guarantee. Do not combine overlapping historical groups into a unique total.
+
+Checklist disposition: B2 DNS A and public certificate/redirect verified; B3 synthetic HTTPS checks complete within the above scope. Full B1/B3/B7/B8 and PartD stay open. Provider firewall/backups existence remains owner-confirmed, exact provider rules not independently inspected. Fingerprint comparison independently owner-confirmed through provider console marker. Real user/operator membership, password delivery/recovery and browser/role/mobile acceptance remain pending.901/902 are not real or Test tenant mappings. No Phantom Threads production binding, shared OSPLUS SQL, Vercel release, new real user/password/invitation, Meta/Telegram message or workflow activation.
+
+CH10 QA_BLOCKED; READY_FOR_CLOSURE:NO; no local commit/push/merge. No canonical SQL or Boutique/Laundry/Shopify runtime change. Frozen106 migration history preserved. Live AI/STT/realTelegram OFF, n8n active workflows0. Feature model/STT/judge spendUSD0; no purchase. This completes the approved synthetic public-host slice only, not real-business go-live or full CH10 acceptance.
+
+
+## 30 October 2026 - Verified release inventory and Test-first launch sequence
+B4/B8 and PartD remain open. Add planned production Test checks PT-01 through PT-15 in CH10_PHANTOM_LAUNCH_PLAN.md; none executed by this audit. B5 WhatsApp-first scope now selected with a new private number ending6161; Meta business assets/number/inbox/token/callback/authorized phones/real inbound-reply proof still pending. B6 Instagram/Facebook explicitly later. Shopify real activation also needs reviewed same-shop cutover because it is presently bound only to Test; preserve historical Test data.
+
+### Audit verification / status / next action
+No application code, canonical SQL or deployment changed. Six platform commands were NOT rerun for this read-only/planning slice; earlier results remain dated evidence. Fresh production read-only schema/connection/channel inspection and Git/GitHub checks passed within stated limits; supplementary OAuth exact-body refresh timed out at connection and browser dashboard was unavailable. No new confirmed runtime bug; cutover/gating limitations and unresolved compatibility/regression are launch blockers. All existing work preserved; no stash/reset/switch/worktree/commit/push/merge/sharedSQL/real messages or account/credential changes. CH10 QA_BLOCKED, READY_FOR_CLOSURE:NO. Feature model/STT/judge spendUSD0. Next concrete engineering slice: final versioned Chat SQL/app release package and cross-surface native acceptance, plus a separate preservation-first Shopify real-account cutover design. No more DNS input is required now.
+
+
+## 30 October2026 - Step1 candidate prepared; no release
+Versioned release/rollback instructions: ../deploy/chat-release/20261030/README.md. Candidate35 hash3acfc26f7af98989d4957a6ab2d64ea2ceb871fca2235e5dc88dd336f61faab9;106 canonical bytes preserved. Fresh six platform gates now pass, including313/313 actual native Chat onPG16 and production-matching17.6; exact-package atomic/recovery7PASS. Standards/Spec targeted reviews0new confirmed findings. Exact evidence and failures retained in CH10_QA.md and SAMEsummary; CH10_RELEASE_REVIEW.md records both axes. This supersedes only earlier native-test-unavailable/raw-package-preparation blockers, not hosted/manual/Boutique/SSO/ops acceptance. B1/B3/B7/B8/PartD remainopen. Owner's enabledHetzner daily7-slot diskbackup acknowledged; allDockerdata onrootdisk confirmed, but application encryption/schedule/independentretention-alerts and separate freshsharedSupabasebackup remain distinct. No commit/deploy/sharedSQL/realbinding/message/workflow/AI/STT activation; CH10QA_BLOCKED. No new cost.
+
+
+## 30October2026 - Owner defers backup work; Test-only scope prepared
+CHAT-D069: owner says "no backups for now. We'll plan this later please." No backup/storage/upload/schedule action; existing Hetzner backups preserved. Authenticated separate Supabase project Free page has no scheduled project backups. Backup gate deferred/not PASS; no release authority inferred. Seven focused checks finalPASS (order UI9cases plus source/pure contracts), test-only feedback correction with unsafe-submit rejection; runtime/106SQL/candidate unchanged. Current-main Test browser read-only partials and interaction/mobile limits are in CH10_BOUTIQUE_RELEASE_QA.md; full Tier A/persona/mobile remains pending. Concrete staged flags and unchanged disabled-AI scope: ../deploy/chat-release/20261030/TEST_SCOPE.md and test-scope.json, proposal only. Same summary records exact commands/failures. CH10 QA_BLOCKED; no commit/sharedSQL/deploy/real message/workflow/AI/STT.
+
+
+## 30October2026UTC - Interactive checks resumed; checkpoint review proposal
+See CH10_BOUTIQUE_RELEASE_QA.md for fresh search/measurement/unsavedforms/GST/publicview and limits. Local2classfit-referenceoverflow fix; synthetic390/768/1440layout checks pass, wholeappnotcertified. Freshsixgates313/313ChatPG17.6 pass; exactSQLunchanged, no migrations. Standards0/Spec1testinventorygapfixed0remaining; latesttest-onlyguardfocusedcheck/lintpass. Main/Vercelc686337CurrentProductionReadyreverified. Candidate commit/push/DRAFTPR scope is deploy/chat-release/20261030/CHECKPOINT_PROPOSAL.md (relative torepo); approvalpending, not prodrelease/closure. Backupsremainowner-deferredD069; AI/STT/Telegram/workflowsOFF. CH10QA_BLOCKED. SAMEsummary updated with exact evidence/sourcehashes/failedattempts.
+
+
+31 October2026 IST checkpoint note (CHAT-D070): owner explicitly approves preserved implementation checkpoint/branchpush/DRAFT PR only, not B1-B8/PartD acceptance or phase closure. Fresh production READ ONLY catalogue has0Chat relations/functions;35 additions still pending. New checkout-portability3/3 and narrow two-axis0findings preserve exact SQL hash and frozen106. Hosted/manual/security gates stay open; backup work deferred D069, live executionOFF.

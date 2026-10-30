@@ -1,0 +1,641 @@
+{
+  "count": 106,
+  "manifestSha256": "51664b18dec830342f3d2f331e1b459fa82c44a0f3591a1d0da17c1e8e2581dd",
+  "files": [
+    {
+      "file": "20260517120000_foundation_tenants.sql",
+      "bytes": 2339,
+      "sha256": "043f7549ad1c37500f1c32e40870f5bc62f59925dfbdcfdc9d7343cc9522dbd3"
+    },
+    {
+      "file": "20260518170000_configuration_foundation.sql",
+      "bytes": 5770,
+      "sha256": "30a05258b66fbbcb30701828ab961c9e0ed269f67b13b4ce53692d3c67745999"
+    },
+    {
+      "file": "20260518190000_workflow_configuration.sql",
+      "bytes": 4019,
+      "sha256": "cdba912d113267b6281a685666ec8d2b463870d2c38d19d321108a39088d1dc6"
+    },
+    {
+      "file": "20260519110000_worker_master.sql",
+      "bytes": 2170,
+      "sha256": "460e3205d0476c57b53675b653f2ad2491c858b05cead0a14c458d0d873cc239"
+    },
+    {
+      "file": "20260519123000_seed_configuration_defaults.sql",
+      "bytes": 3672,
+      "sha256": "fd922879317829dab2d97cfa1f04b711003165a778d8694d5597747be3498166"
+    },
+    {
+      "file": "20260519150000_customer_master_measurements.sql",
+      "bytes": 2546,
+      "sha256": "438cab5bbec85d7e8b32ab69f453b62b9cd04b9f797ce6a48ad27f4ed179dd2f"
+    },
+    {
+      "file": "20260519170000_order_foundation.sql",
+      "bytes": 5951,
+      "sha256": "adc56e40b288dc0ca2f6d5b19d17f6a05cfe9234d77313a462d7d0756c3c5791"
+    },
+    {
+      "file": "20260519183000_order_reference_and_numbering.sql",
+      "bytes": 2576,
+      "sha256": "dca5d4b9825971ab8024d19be2cd986944392d906e614ebfc4de3bcb52f8ce23"
+    },
+    {
+      "file": "20260519193000_workflow_execution_foundation.sql",
+      "bytes": 5923,
+      "sha256": "8a09baf383822340a5f0c39929495d9229d457b69738ecfb9de1dbbbbfdd9433"
+    },
+    {
+      "file": "20260519203000_attendance_foundation.sql",
+      "bytes": 1431,
+      "sha256": "9c8ddda2e08210341d3bd084eaf2bf14d1a0aa5a27f065186b64f6753a97efb1"
+    },
+    {
+      "file": "20260520110000_salary_worker_ledger.sql",
+      "bytes": 5485,
+      "sha256": "93de74bd2662bd879db041971d0ea9c05327e26fe6e9063e3286afdf895d4290"
+    },
+    {
+      "file": "20260520130000_finance_basics.sql",
+      "bytes": 2910,
+      "sha256": "544871b681e9e02be1699a5af3ac73997063775793b8b27e53fe27fdc2b2939a"
+    },
+    {
+      "file": "20260522100000_finance_due_settlements.sql",
+      "bytes": 818,
+      "sha256": "9f68390b7af0a4b06b07aa0468ad8b724ddd9fe8ecbc7085fc9d76cf32a7fb33"
+    },
+    {
+      "file": "20260523100000_order_status_delivered.sql",
+      "bytes": 62,
+      "sha256": "7ef4b23b21d9466ba4fbf7eebb8705b74e1fa9213366ac01537ef7505c2e8583"
+    },
+    {
+      "file": "20260523101000_backfill_delivered_order_status.sql",
+      "bytes": 582,
+      "sha256": "8203646e6c10d512b1d2dd8dd2cd1af6fad8603997ca6675ab8b74a1ce187852"
+    },
+    {
+      "file": "20260526120000_salary_finalization_payments.sql",
+      "bytes": 1024,
+      "sha256": "825b4dc915a7a963af78754e001ffdd302475ec534ab84ddddb6297050980718"
+    },
+    {
+      "file": "20260527110000_customer_measurement_reference.sql",
+      "bytes": 450,
+      "sha256": "dda57b7fb52b1edd65b925f8a9aec34f73edacfd19df9d7a1328dd3a31f54284"
+    },
+    {
+      "file": "20260527123000_order_item_measurement_reference.sql",
+      "bytes": 628,
+      "sha256": "5219635ce04141d9ae82c9027fb4df862e51f21c599b58879877afeaa72f5023"
+    },
+    {
+      "file": "20260528100000_item_type_measurement_fields.sql",
+      "bytes": 1257,
+      "sha256": "9f1ffbee4fa2a31cf811e456316c704849fb52b641ea211dd986512beac94f5c"
+    },
+    {
+      "file": "20260529100000_item_type_standard_sizes.sql",
+      "bytes": 2412,
+      "sha256": "19a9413c817afdf94128b81e4496736106c22d664dc6db1ae23bc968a7302de6"
+    },
+    {
+      "file": "20260529110000_attachments_foundation.sql",
+      "bytes": 1687,
+      "sha256": "2a481c4c6ed11640c8003793850286b46665e22769da13b80d2db737bce13822"
+    },
+    {
+      "file": "20260529113000_attachment_storage_bucket.sql",
+      "bytes": 1976,
+      "sha256": "b7ed30af3b51e2350291c0445bd46ffe62790b3248167a16a114b274194b5784"
+    },
+    {
+      "file": "20260529120000_communications_foundation.sql",
+      "bytes": 9719,
+      "sha256": "d63db327269368f007763447bd0168534fb2779a543631d5d0cd23d1293e89b3"
+    },
+    {
+      "file": "20260601090000_tenant_user_profile_fields.sql",
+      "bytes": 439,
+      "sha256": "ab1b13960d38d64f98d5afe4318b0cfdad9826977e264e56188ede080ca65e9e"
+    },
+    {
+      "file": "20260601103000_email_first_tenant_users.sql",
+      "bytes": 412,
+      "sha256": "0b82c7768f12547cf155f62f3d237ff9d64fc36b28a9ea7d0b44caffc7700b41"
+    },
+    {
+      "file": "20260604160000_tenant_assets_bucket.sql",
+      "bytes": 391,
+      "sha256": "d22d842617b70bd9cc0b7b82758f31690b84b6df28d4ccc2dc0c5410034d8e26"
+    },
+    {
+      "file": "20260605100000_tenant_billing_records.sql",
+      "bytes": 1740,
+      "sha256": "ed5b0b76b805fd1764e0a5939f4b8d92c922c90d9a38a6dd1ce1b49652d0ce4e"
+    },
+    {
+      "file": "20260605110000_tenant_gst_configuration.sql",
+      "bytes": 2309,
+      "sha256": "7d4bcd109acf89b171b1638242bbe7c73d2aadd1fde714b19bb504a895525c6d"
+    },
+    {
+      "file": "20260605120000_order_gst_capture.sql",
+      "bytes": 1217,
+      "sha256": "e576adb8c69752a81e4e1121de0ff68d18dfcfe3f5bec07cdb6c8e3c7d962bd5"
+    },
+    {
+      "file": "20260605123000_expense_gst_capture.sql",
+      "bytes": 2174,
+      "sha256": "b5dc5f0c8752339be28a36c87d088e44c726e64a76a927a0c7435e42eafa9c7f"
+    },
+    {
+      "file": "20260705160000_v2_phase_1_platform_primitives.sql",
+      "bytes": 9190,
+      "sha256": "ea7651ea51fbc802f740fb4f16c6fe34a798a47f98171b19e4011f6f426dfb9e"
+    },
+    {
+      "file": "20260705170000_v2_phase_1_team_location_fk_fix.sql",
+      "bytes": 241,
+      "sha256": "4bd9a6a7b64f1859e5f6d560b879b62878adbd1dcf05a1eb57091f8e3aa4a679"
+    },
+    {
+      "file": "20260706110000_v2_phase_2_work_unit_runtime.sql",
+      "bytes": 19794,
+      "sha256": "cb94c8d4be4f6f88a8888f7d0da4d0f1438f3ecfe836bc286b3e038f512dc652"
+    },
+    {
+      "file": "20260706113000_v2_phase_2_work_unit_stage_transitions.sql",
+      "bytes": 6901,
+      "sha256": "99a1230f48b28d4f0c115eeec8e84d4c417c08e216d89e7e67931a6742399d29"
+    },
+    {
+      "file": "20260706120000_v2_phase_2_work_unit_runtime_creation.sql",
+      "bytes": 4813,
+      "sha256": "6060845fcdac7492e7d4dc675213177518e6973df55f7afdb2f3f01b12bd8d83"
+    },
+    {
+      "file": "20260706130000_v2_phase_3_commands_events_tasks.sql",
+      "bytes": 36661,
+      "sha256": "1272b7bfba3d8fc739e8a299ae4bce6377536f068ca3ade105c80afa352f7358"
+    },
+    {
+      "file": "20260707100000_v2_phase_4_laundry_custody.sql",
+      "bytes": 46213,
+      "sha256": "c1ab85203f16b9e9fcc1193b6e2cd31eddd1079196701ddf0e76f455306c1bc9"
+    },
+    {
+      "file": "20260707103000_v2_phase_4_qr_token_generator_fix.sql",
+      "bytes": 586,
+      "sha256": "a2fc1fcfde2b936b9036b82f8ca2bd580d85ab314c610348a328b7aa08b49497"
+    },
+    {
+      "file": "20260707110000_v2_rpc_security_and_custody_integrity.sql",
+      "bytes": 4170,
+      "sha256": "331d7672bbcdfae92f73ab2ccbebb4075435daeb27ab5520522da096c17e3144"
+    },
+    {
+      "file": "20260807100000_existing_order_add_items.sql",
+      "bytes": 19332,
+      "sha256": "41fc17c726c3dcf45659fcbf5387e00731cd34c1642da5dacfde4a7d5fbb6228"
+    },
+    {
+      "file": "20260808100000_configuration_editing_and_expense_defaults.sql",
+      "bytes": 23875,
+      "sha256": "784abb1f5d5904a6832ddeabf71358660ac4a6fb2ff487febf331e0a7ae3e571"
+    },
+    {
+      "file": "20260808110000_attendance_excel_import.sql",
+      "bytes": 7379,
+      "sha256": "2ba6941958a559acd00aeeb4d28e2211b354a7ff40a4ee1db7ac273f975685f5"
+    },
+    {
+      "file": "20260809100000_customer_import_and_phone_identity.sql",
+      "bytes": 17632,
+      "sha256": "c06fae9a7870ee84c7ba0fa1ed132601493c3fd761c7a1224ed6e2d59d401e35"
+    },
+    {
+      "file": "20260809120000_stage_worker_contributions.sql",
+      "bytes": 46396,
+      "sha256": "8bc6e91be58973082d232e55054dace89e2cd348888e39919f3c7d3827cf0b88"
+    },
+    {
+      "file": "20260809130000_stage_contribution_usability_reports.sql",
+      "bytes": 8876,
+      "sha256": "93b26e797c0e6f23b90e7be2f4a97fa2ab0142a7134780941270df38e4540567"
+    },
+    {
+      "file": "20260809140000_item_type_emoji.sql",
+      "bytes": 509,
+      "sha256": "dd2abad7029bc651b295cb38610a1333ef84caa685c92b8aac97bea38a6645b2"
+    },
+    {
+      "file": "20260809150000_item_type_icon_picker.sql",
+      "bytes": 2010,
+      "sha256": "4a0673a5b6a282cd4c29cb97000f6420a7678574bfe7b2138bea8e7e5cbd717d"
+    },
+    {
+      "file": "20260810100000_worker_money_ledger.sql",
+      "bytes": 20755,
+      "sha256": "f0209e7480f8af9046b442c12d67d2c01846d88b62630b8863c1f3a63de7340e"
+    },
+    {
+      "file": "20260812120000_salary_workflow_hardening.sql",
+      "bytes": 37770,
+      "sha256": "dfcb13325e1b0e44028f456d139edc4d803b61042339a0ceacbb6e36091a6409"
+    },
+    {
+      "file": "20260812152000_restore_worker_money_summaries.sql",
+      "bytes": 1900,
+      "sha256": "d9c8190cc4945a811cdbc314e9de6dc0acc573f082f9388c1a84cfb5791a9392"
+    },
+    {
+      "file": "20260812170000_salary_period_bulk_workspace.sql",
+      "bytes": 11248,
+      "sha256": "a3d7adff92b80598e9c2ee13e9c1e070855c25992b0710fd0d1d0117460573a9"
+    },
+    {
+      "file": "20261008100000_shopify_intake_foundation.sql",
+      "bytes": 11412,
+      "sha256": "e3e3d955171926b116f9dda5f80f5adb49f489142e15623ae7c69eee7c44efe9"
+    },
+    {
+      "file": "20261008120000_shopify_worker_leases.sql",
+      "bytes": 19183,
+      "sha256": "dc2de7494f46c0195727f6e7dbf42d516b356a293faa86243de74415916c6706"
+    },
+    {
+      "file": "20261008140000_shopify_draft_enums.sql",
+      "bytes": 289,
+      "sha256": "2d66c01c3a2c44372156904bcd844a1f58470bb9ba6303e7bac955bcd49eebdc"
+    },
+    {
+      "file": "20261008141000_shopify_draft_import.sql",
+      "bytes": 30956,
+      "sha256": "a9279f6ec21c44886c0ab0cddea8a78d94226bf86a68476afee51735bfc7a116"
+    },
+    {
+      "file": "20261008150000_shopify_privacy.sql",
+      "bytes": 15492,
+      "sha256": "3768a9c57f368bca1169afed105cd18a9b635784d3769dc50fd065644213c16a"
+    },
+    {
+      "file": "20261008160000_shopify_mappings.sql",
+      "bytes": 11337,
+      "sha256": "70e8f85eb5cc41950bcca6505c6ecbb9b51da6872984801c4ba89426825e0cc6"
+    },
+    {
+      "file": "20261008170000_shopify_review_release.sql",
+      "bytes": 30476,
+      "sha256": "dbde1ee4eb7d5fbcc526c12740da4b2a65ffcb8f72f8aeea54887d2c3496e77c"
+    },
+    {
+      "file": "20261008180000_shopify_source_changes.sql",
+      "bytes": 29178,
+      "sha256": "f2da0c0d5d278aa77b1bee44e0fd50b764322698e5d5462d8126f8ef881e0e09"
+    },
+    {
+      "file": "20261009090000_shopify_payment_source_read.sql",
+      "bytes": 1602,
+      "sha256": "03544b851e3b23f53808b34b12dea765f07d9179ccf8c1e141759485fd9148cf"
+    },
+    {
+      "file": "20261014130000_shopify_runtime_rpc_permissions.sql",
+      "bytes": 1475,
+      "sha256": "673951f9ff51dd3888cfaa120b201a14963c22d4328e6258a339155533f326b0"
+    },
+    {
+      "file": "20261014131000_shopify_handover_guards.sql",
+      "bytes": 5207,
+      "sha256": "f1efcfc96e53ef1a838cda7ee05e144782797248770eed358ce932b4175b0b29"
+    },
+    {
+      "file": "20261014160000_shopify_pilot_application.sql",
+      "bytes": 33664,
+      "sha256": "3af63d01e8b6a8f18aa12097f21df11043efa8a5239e941e6d7c76d987caf625"
+    },
+    {
+      "file": "20261019160000_shopify_imported_order_reads.sql",
+      "bytes": 2800,
+      "sha256": "d7b25db0809492fe5b96e0f0767b1cce24e11241ef1b6ea239f87ce6ecf04138"
+    },
+    {
+      "file": "20261019190000_shopify_import_preview.sql",
+      "bytes": 5233,
+      "sha256": "d8373a4947c4bcbaa05212117a7b1d5b96e2d14ef89991ea7764ff4a858bec12"
+    },
+    {
+      "file": "20261019191000_shopify_retained_business_details.sql",
+      "bytes": 17146,
+      "sha256": "d0b2fd7397279a00e40294a87994513dd6d5a599ddb5e49c774c8efd50c5a75d"
+    },
+    {
+      "file": "20261019192000_shopify_unified_order_reads.sql",
+      "bytes": 10582,
+      "sha256": "713ce9b0c31a3ec38af03b69a1e92118149cfc0cae9a08419a6ada2821a8903e"
+    },
+    {
+      "file": "20261019193000_shopify_raw_retention.sql",
+      "bytes": 5433,
+      "sha256": "a8e4c4113e894115ac49c337b7ef0abbabb133a372810d43251e4a26327a02ec"
+    },
+    {
+      "file": "20261019194000_shopify_manager_draft_setup.sql",
+      "bytes": 15744,
+      "sha256": "a113282b8fbcdfd27dc2aa33fb0dc5cf6921a6732f57424cea4d655dfcd0d0d2"
+    },
+    {
+      "file": "20261019195000_shopify_complete_manager_setup.sql",
+      "bytes": 16020,
+      "sha256": "06cd7e4ed268fbfa19f6eee6009adc96a426a5bba3c3c15576d24e13aef98753"
+    },
+    {
+      "file": "20261019200000_shopify_unified_import_batches.sql",
+      "bytes": 25784,
+      "sha256": "a29ff6ccd66e8b2bc1149f855fa38a107e1b26ce0a9c3919813d3af0795bd7bb"
+    },
+    {
+      "file": "20261021100000_chat_foundation.sql",
+      "bytes": 14957,
+      "sha256": "3829fdeda5fb5ccdb66788f0895a3f665b776ed42d56b3d98a02eab327921e72",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021101000_chat_foundation_commands.sql",
+      "bytes": 15196,
+      "sha256": "12d9eeffe01f90c51161b078dfea4b44764eb64e8067a8c409b5b36f9ac61321",
+      "qualifyDigest": 2,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021110000_chat_capture.sql",
+      "bytes": 12146,
+      "sha256": "08973bf5ca9033916597d4b00654b1df5d5c897ef21386ba994ec447f553c32d",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021111000_chat_transport_setup.sql",
+      "bytes": 4169,
+      "sha256": "7383cc05acf64ba7fbe184299042184d09e255a5fbe0668572cc0d0b946cac22",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021123000_chat_contacts_leads.sql",
+      "bytes": 19386,
+      "sha256": "ad6375d0d4117a43f1abd7cd337b39eb22e0740f6e8969be8779e07e706c8d61",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 1,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021124000_chat_contact_lead_commands.sql",
+      "bytes": 19035,
+      "sha256": "a3baf979e888ee357d3e288a977192d2f64503c0951eac2627db7cf255c7fb29",
+      "qualifyDigest": 2,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021125000_chat_lead_refresh.sql",
+      "bytes": 7975,
+      "sha256": "2d1243d282c6b86d0f0f72092f52416c51dde0706f8e641d2581f05c5762d9fb",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261021140000_chat_crm_reads.sql",
+      "bytes": 18589,
+      "sha256": "7a23c2bbbadcda0a92d9548efc339ff99159b5e19a8db09830a348f4104f3828",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022100000_chat_agent_runtime.sql",
+      "bytes": 3817,
+      "sha256": "fffeaa6477ba0ba5de8bad5c40508b7299919e4a0683efc477e9d358a930c646",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 4
+    },
+    {
+      "file": "20261022101000_chat_agent_commands.sql",
+      "bytes": 34984,
+      "sha256": "708299ca1d7e2ee131fa21482a8e17b0fba281ba9f952d8aec4a9af1982ef0d9",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 12
+    },
+    {
+      "file": "20261022102000_chat_agent_draft_read.sql",
+      "bytes": 2125,
+      "sha256": "87f5d05cb57c3db15a25b2a5e4ff262ba17e9ec70d401422715de59c337d3dbe",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022103000_chat_staff_draft_sends.sql",
+      "bytes": 9924,
+      "sha256": "137f0dfd9b8bf74a41a9cabc24ad0d8b26848ffcd168d2d80436be5eacdc5739",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022120000_chat_action_state.sql",
+      "bytes": 3768,
+      "sha256": "e9bc65224dc935bb3376c4d56b25d4a0f67d1cbea308d582ca879bb67efc805b",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022121000_chat_action_commands.sql",
+      "bytes": 8865,
+      "sha256": "208286f94c6d98acd835507b608e282b50208834dfeee2b1b76375f52bc9f5d3",
+      "qualifyDigest": 2,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022122000_chat_handoff_tasks.sql",
+      "bytes": 10619,
+      "sha256": "2765b7c821c093bbfae2c5d11df9283d019fdcbfc2e9fc04e0fa03375b4bd1fa",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022123000_chat_capability_publication.sql",
+      "bytes": 4092,
+      "sha256": "dc61f7e6b8b5953c8d0f77c0bf831d5fb3193b02a2fce29592a7d3b19a23faaa",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261022124000_chat_action_read.sql",
+      "bytes": 3182,
+      "sha256": "37f7bbdf25254ecd0582b209c6284f8938101a2d33100ac04cb0867a624dc5af",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023090000_chat_request_workflow.sql",
+      "bytes": 16365,
+      "sha256": "1665ca7d8f897620819ab4149c547d1efab3f5fbf4cd80f60ab197685356e318",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023091000_chat_agent_actions.sql",
+      "bytes": 8277,
+      "sha256": "fc44ae0c81ee197ddf3e4f565e4922703c438fcc07e2b143190a14a549c4bc78",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023092000_chat_action_configuration.sql",
+      "bytes": 6581,
+      "sha256": "6cb5a8a6051b39a4e318af0be438b4d13f567734753db9d8454146c6f211ca1d",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023093000_chat_public_outbox.sql",
+      "bytes": 6285,
+      "sha256": "2a898ac65946e83fa106cc88a5a803dca85c8c7042a440a51de7f368570fa22a",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023094000_chat_action_settings_read.sql",
+      "bytes": 1897,
+      "sha256": "093c38f8e5e346a16fb4a49cd63b0e47832d6437f05f0eb891d6a6013d67b96d",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023095000_chat_action_context.sql",
+      "bytes": 1877,
+      "sha256": "e944a446b8871fabe059b099ce3d4565bf06c7b4cd72a5d4b5f4c6680687e200",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023100000_chat_handoff_labels.sql",
+      "bytes": 3637,
+      "sha256": "fc6a8771fb997006b8e68fe8c2eaff745e1699d17106039ef0cb71135816a263",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261023101000_chat_supplemental_delivery.sql",
+      "bytes": 13474,
+      "sha256": "0cfdb108c1da777cbb1587deb390f9ca06820182e61aa6cbf1ee43f5002fe4e3",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027120000_chat_notification_state.sql",
+      "bytes": 1334,
+      "sha256": "bbd71c5946f431d4c14500340d373b2757566ea481e8700bd908d72b045c5a5e",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027121000_chat_notification_commands.sql",
+      "bytes": 12552,
+      "sha256": "893f6ed4d87d15e90b9d1a6ec2ccee42bb91569f20167f22ae9a544c0983d88b",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027122000_chat_notification_summary.sql",
+      "bytes": 7141,
+      "sha256": "5352de4c702970c683bb56069f81f4c131481866df6939bfd5f00df1dbb53108",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027123000_chat_notification_dispatch.sql",
+      "bytes": 17916,
+      "sha256": "40a58be80507ec561fc0830a2f33ab240194d2c920f22a9d1b45245ab9831cd5",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027124000_chat_platform_alert_attempts.sql",
+      "bytes": 4151,
+      "sha256": "d312c60fb76731afd14018b8f4fad31e94ee1464b97963abff974fe5302db95d",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027170000_chat_voice_state.sql",
+      "bytes": 2374,
+      "sha256": "86e688b540e5c4ff40ee027a0cbc8398d805c69ff8c27dca671db5e1a3a31696",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261027171000_chat_voice_commands.sql",
+      "bytes": 12397,
+      "sha256": "73fc7b4d4511b02b94ada06fef6918e33ddc0f18c8f415f942a1f34914a54a83",
+      "qualifyDigest": 1,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 4
+    },
+    {
+      "file": "20261027172000_chat_voice_context_reads.sql",
+      "bytes": 70315,
+      "sha256": "67a494487ddddea640ce0e13d7a855feae7bbb301d15b474f49e699c1fa92cab",
+      "qualifyDigest": 3,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 6
+    },
+    {
+      "file": "20261028100000_chat_website_phone_claims.sql",
+      "bytes": 3638,
+      "sha256": "0eecb31d0baae81f06f237883c192c260c542735cf93edc031e386de8c9a5d56",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    },
+    {
+      "file": "20261028101000_chat_website_claim_reads.sql",
+      "bytes": 1680,
+      "sha256": "d5d27a8466c0129c0592dc663592a76aa40f0bc3a2ceca8f423189ef5ac2ad0d",
+      "qualifyDigest": 0,
+      "qualifyRandomBytes": 0,
+      "transactionLines": 2
+    }
+  ]
+}

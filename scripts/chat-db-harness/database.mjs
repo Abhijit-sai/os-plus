@@ -8,6 +8,14 @@ import pg from "../shopify-db-harness/node_modules/pg/lib/index.js";
 const image =
   "sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609";
 export async function startChatDatabase() {
+  if (process.env.CHAT_TEST_OWNED_DATABASE_NONCE) {
+    if(process.platform!=="linux" || process.env.CHAT_TEST_OWNED_DATABASE_MODE!=="isolated-internal-network")
+      throw new Error("OWNED_DATABASE_RUNNER_REQUIRED");
+    const {startOwnedChatDatabase}=await import("./owned-database.mjs");
+    return startOwnedChatDatabase(process.env.CHAT_TEST_OWNED_DATABASE_NONCE,
+      process.env.CHAT_TEST_OWNED_DATABASE_PASSWORD);
+  }
+
   const nonce = randomBytes(12).toString("hex"),
     password = randomBytes(32).toString("hex");
   const name = "osplus-chat-test-" + nonce,

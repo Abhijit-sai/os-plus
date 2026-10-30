@@ -4,13 +4,14 @@ import { before, after, test } from "node:test";
 import { randomUUID, createHmac } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { beginShopifyApproval } from "../../src/integrations/shopify/oauth.ts";
 import { sealShopifyCredential } from "../../src/integrations/shopify/oauth-crypto.ts";
 import { createShopifyOAuthService } from "../../src/integrations/shopify/oauth-service.ts";
 import { createShopifyOAuthHandlers } from "../../src/integrations/shopify/oauth-handler.ts";
 import { resolveShopifyTenantEnvironment, readShopifyTenantToken } from "../../src/integrations/shopify/tenant-credentials.ts";
 
-const db = new PGlite(), folder = new URL("../../supabase/migrations/", import.meta.url);
+const db = new PGlite({extensions:{pgcrypto}}), folder = new URL("../../supabase/migrations/", import.meta.url);
 before(async () => {
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
     CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text PRIMARY KEY,name text NOT NULL,
@@ -18,7 +19,7 @@ before(async () => {
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated,service_role;
     GRANT USAGE ON SCHEMA public TO anon,authenticated,service_role;`);
   for (const file of (await readdir(folder)).filter(f => f.endsWith(".sql")).sort())
-    await db.exec((await readFile(new URL(file, folder), "utf8")).replace('create extension if not exists "pgcrypto";', ""));
+    await db.exec((await readFile(new URL(file, folder), "utf8")));
   await db.exec(await readFile(new URL("../../docs/sql/20261020180000_shopify_oauth_credentials.proposed.sql", import.meta.url), "utf8"));
 });
 after(() => db.close());

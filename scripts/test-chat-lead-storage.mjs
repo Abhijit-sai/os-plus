@@ -1051,8 +1051,12 @@ test("reference collision retries are bounded and exhausted allocation rolls bac
   await d.query("begin");
   try {
     // Disposable PostgreSQL only; rollback restores pgcrypto's original function.
+    const schema = (await d.query(`select n.nspname from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+      where p.oid=to_regprocedure('gen_random_bytes(integer)')`)).rows[0]?.nspname;
+    assert.ok(schema === "public" || schema === "extensions");
     await d.query(
-      "create or replace function public.gen_random_bytes(integer) returns bytea language sql as $$ select decode(repeat('00',$1),'hex') $$",
+      `create or replace function "${schema}".gen_random_bytes(integer) returns bytea language sql as $$ select decode(repeat('00',$1),'hex') $$`,
     );
     const input = (event) => [
       JSON.stringify(context),

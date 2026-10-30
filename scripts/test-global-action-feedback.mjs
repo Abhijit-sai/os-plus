@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -12,6 +13,56 @@ function sourceFiles(directory) {
     return entry.isFile() && /\.(ts|tsx)$/.test(entry.name) ? [absolutePath] : [];
   });
 }
+
+// Native client submit controls can own their pending state. Both the form and
+// control must use the same busy value; implicit and unguarded submits still fail.
+function assertNativeButtons(source, filename) {
+  const file = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const attribute = (opening, name) => opening.attributes.properties.find(
+    (entry) => ts.isJsxAttribute(entry) && entry.name.getText(file) === name,
+  )?.initializer;
+  const expression = (value) => value && ts.isJsxExpression(value)
+    ? (value.expression && ts.isIdentifier(value.expression) ? value.expression.text : undefined) : undefined;
+  function visit(node) {
+    const opening = ts.isJsxElement(node) ? node.openingElement
+      : ts.isJsxSelfClosingElement(node) ? node : undefined;
+    if (opening?.tagName.getText(file) === "button") {
+      const type = attribute(opening, "type");
+      const literal = type && ts.isStringLiteral(type) ? type.text : undefined;
+      if (literal !== "button") {
+        assert.equal(literal, "submit", `${filename} native button needs explicit button or guarded submit type`);
+        let ancestor = node.parent;
+        while (ancestor && !(ts.isJsxElement(ancestor) && ancestor.openingElement.tagName.getText(file) === "form")) {
+          ancestor = ancestor.parent;
+        }
+        const form = ancestor?.openingElement;
+        const hasSpread = (element) => element?.attributes.properties.some(ts.isJsxSpreadAttribute);
+        const hasFormOverride = opening.attributes.properties.some(
+          (entry) => ts.isJsxAttribute(entry) && entry.name.getText(file) === "form",
+        );
+        assert.ok(!hasSpread(opening) && !hasSpread(form) && !hasFormOverride,
+          `${filename} native submit has ambiguous spread or form ownership`);
+        const busy = form && expression(attribute(form, "aria-busy"));
+        const handler = form && expression(attribute(form, "onSubmit"));
+        assert.ok(busy && handler && busy === expression(attribute(opening, "disabled")),
+          `${filename} native submit must be disabled by its enclosing client form busy state`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+}
+
+// Keep the inventory rule from silently accepting missing or unrelated guards.
+assert.throws(() => assertNativeButtons('<button>Save</button>', 'implicit.tsx'));
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={pending}><button type="submit">Save</button></form>', 'unguarded.tsx'));
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={pending}><button type="submit" disabled={other}>Save</button></form>', 'unrelated.tsx'));
+assertNativeButtons('<form onSubmit={send} aria-busy={pending}><button type="submit" disabled={pending}>Save</button></form>', 'guarded.tsx');
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={false}><button type="submit" disabled={false}>Save</button></form>', 'constant.tsx'));
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={pending}><button type="submit" disabled={pending} {...props}>Save</button></form>', 'button-spread.tsx'));
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={pending} {...props}><button type="submit" disabled={pending}>Save</button></form>', 'form-spread.tsx'));
+assert.throws(() => assertNativeButtons('<form onSubmit={send} aria-busy={pending}><button type="submit" disabled={pending} form="anotherForm">Save</button></form>', 'form-owner.tsx'));
+assertNativeButtons('<button type="button">Open</button>', 'action.tsx');
 
 const button = read("src/components/ui/button.tsx");
 const provider = read("src/components/ui/action-feedback-provider.tsx");
@@ -82,13 +133,7 @@ for (const absolutePath of sourceFiles(sourceRoot)) {
     );
   }
 
-  for (const match of source.matchAll(/<button\b[\s\S]*?>/g)) {
-    assert.match(
-      match[0],
-      /type="button"/,
-      `${relativePath} contains a native button without explicit type=button`,
-    );
-  }
+  assertNativeButtons(source, relativePath);
 }
 
 console.log("Global action feedback contract passed");

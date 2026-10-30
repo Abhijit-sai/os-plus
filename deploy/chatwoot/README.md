@@ -22,8 +22,8 @@ Chatwoot switch. Do not connect real inboxes as a way to test this deployment ki
 - Memory limits total approximately 6 GiB. Start with a dedicated 8 GiB RAM class
   Linux VM plus operational headroom; capacity must be measured with real approved
   volume. A worker migration or backup can temporarily add memory usage.
-- Chatwoot 4.18.0 CE and n8n 2.41.7 are explicit new-platform release selections,
-  based on upstream releases reviewed 2026-10-07. Major-version DB/proxy tags are
+- Chatwoot 4.18.0 CE and n8n 2.45.6 are the current new-platform release selections,
+  with the CH-0 baseline reviewed 2026-10-07 and n8n security-refreshed 2026-10-30. Major-version DB/proxy tags are
   defaults for preparation; resolve **every image to a tested digest before live use**.
   Recheck releases/security advisories at deployment; never auto-upgrade.
 
@@ -118,7 +118,7 @@ the apps that were running before the backup. Concurrent backups are rejected.
 1. Generate an age identity **on a separate trusted recovery host**. Store its private
    identity in the provider's secure vault, independently of the server. Install only
    its public recipient(s) in `/etc/os-plus-chat/backup-recipients.txt`.
-2. `chmod 700 scripts/*.sh`; run `scripts/backup.sh`. Defaults: encrypted archives at
+2. `chmod 700 scripts/backup.sh scripts/verify-backup.sh scripts/check-backup.sh`; `chmod 644 scripts/init-n8n-db.sh`; run `scripts/backup.sh`. Defaults: encrypted archives at
    `/var/backups/os-plus-chat`, retention 14 days. Optional operator environment:
    BACKUP_DIR, BACKUP_RECIPIENT_FILE, BACKUP_RETENTION_DAYS.
 3. Before installing `backup.cron.example`, test success and deliberate failure.
@@ -147,7 +147,7 @@ name; confirm it has no pre-existing containers/volumes before any start.
 
 - Start only cw-postgres, n8n-postgres and redis, without public port mappings.
 - Import the DBs with `pg_restore --exit-on-error --no-owner -U chatwoot -d chatwoot`
-  and `pg_restore --exit-on-error --no-owner -U postgres -d n8n` respectively, through
+  and `pg_restore --exit-on-error --no-owner -U n8n -d n8n` respectively, through
   `docker compose -p <fresh-restore-project> exec -T` with each dump on stdin.
 - The n8n application role is recreated by scripts/init-n8n-db.sh.
 - Stop Redis, restore redis.rdb into its **new** data volume, preserve ownership,
@@ -190,3 +190,37 @@ before live use. No real messages, DNS, app configuration or workflow activation
 - [n8n stable releases](https://github.com/n8n-io/n8n/releases/tag/n8n%402.41.7)
 - [n8n Postgres deployment](https://github.com/n8n-io/n8n-hosting/tree/main/docker-compose/withPostgres)
 - [Docker Ubuntu installation](https://docs.docker.com/engine/install/ubuntu/)
+
+## Constrained 4 GiB pilot (CH-10; capacity validation pending)
+The default compose.yaml/8GiB recommendation is unchanged. The new compose.4gb.yaml is an INPUT to the bundle generator, not a separately deployed override. Generate a new standalone directory from the repository root:
+
+```sh
+node deploy/chatwoot/scripts/prepare-4gb.mjs outputs/chat-pilot-4gb
+```
+
+The command refuses an existing destination and exports unresolved templates only; it never copies a real .env. Generated compose.yaml is JSON-format YAML with all limits baked in. Use ordinary Compose/backup/recovery commands from the generated directory. Existing backup.sh archives that actual compose.yaml, so restoring does not silently drop the resource profile. Follow the main fresh-server/secret/SMTP/backup instructions, using the generated directory. No purchase, DNS, deployment or workflow activation is implied.
+
+| Component | Hard memory cap |
+|---|---:|
+| Chatwoot web |896MiB|
+| Chatwoot worker (concurrency1) |768MiB|
+| Chatwoot Postgres |384MiB|
+| Redis (no eviction) |128MiB|
+| n8n |512MiB|
+| n8n Postgres |192MiB|
+| Caddy |64MiB|
+| Backup helper (ops only) |128MiB|
+
+All8 caps total3072MiB, leaving1024MiB of a4GiB host for kernel/Docker/operations. Per-container swap is disabled; this is not permission to overcommit. These are proposed limits, not observed usage/capacity. Rails threads2/worker1, bounded DB buffers/connections, n8n production concurrency1 and256MiB old-space heap reduce peaks. Redis rejects excess memory instead of evicting queued jobs/locks. n8n manual runs are not covered by its production concurrency limit; no large/binary/code workflows in this pilot. Migrate/seed with web/worker stopped; do not launch an extra Rails runner concurrently with production web/worker. Heavy workloads/backups still require measurement.
+
+Before downloading/running, confirm free HOST disk space where Docker stores its disk image (not just checkout disk), Docker health and image availability. Capacity runtime is currently BLOCKED by local C: disk exhaustion/Docker I/O errors after dependency downloads; config/export tests alone do not prove4GB operation. See docs_chat/CH10_4GB_PILOT.md. No final server recommendation until an actual bounded runtime/restore test passes.
+
+
+## New-host version review — 30 October 2026
+For the newly authorized OS PLUS host, n8n's default/example is updated from the historical CH0 selection2.41.7 to official stable2.45.6 (29October release). This addresses the reviewed deprecated-code-node and bundledGraphicsMagick advisories; their patched2.x lines include2.43.3/2.42.6 and2.45.5 respectively. Review is not an exhaustive vulnerability certification. Sources: https://github.com/n8n-io/n8n/releases/tag/n8n%402.45.6 ; https://github.com/n8n-io/n8n/security/advisories/GHSA-9p7v-45m2-wxgj ; https://github.com/n8n-io/n8n/security/advisories/GHSA-f2cw-9483-7vcp . Keep n8n loopback-only, no realcredentials/workflowactivation; pin resolved digests and test before accepting actual deployment. Other configuration/resource budgets unchanged. New-host private capacity evidence and remaining gates: docs_chat/CH10_HOST_SETUP.md and root project_summary.md. DNS/TLS/storage encryption/SMTP/recovery/OSPLUSrelease remain distinct gates.
+
+
+## Native recovery and project-isolation corrections — 30 October 2026
+PostgreSQL starts initialization as its database user, so scripts/init-n8n-db.sh must be0644 on the host and in recovered archives; it contains only technical SQL/env references, no literal credential. Do not apply blanket700 to this bind-mounted script. Real first-boot and backup regression evidence is in CH10_HOST_SETUP.md.
+The4GB exporter removes the inherited top-level project name as well as frozen resource names. Ordinary Compose derives its project from the new bundle directory; use distinct directory basenames or an explicit unique project for multiple deployments. A restore MUST use a checked fresh -p namespace/volumes, never the source namespace. A real two-directory no-p regression now covers this boundary.
+Restore n8n with --no-owner as role n8n, after the init script creates that role and grants schema rights. Using postgres as restoration role with --no-owner can leave application tables owned by postgres and unusable to the app. Actual fresh native restore verifies data access and credential decryption as the application role. Other host schemas remain untouched.

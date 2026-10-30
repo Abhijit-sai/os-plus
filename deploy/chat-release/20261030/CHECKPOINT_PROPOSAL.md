@@ -1,0 +1,37 @@
+# Pending checkpoint commit and draft PR - concrete scope
+
+Prepared30October2026 UTC. NOT approved, committed, pushed, merged or deployed. CH10 stays QA_BLOCKED; this is a proposed checkpoint exception, not a phase closure or production release approval.
+
+## Proposed action
+
+1. Preserve SAME worktree D:/Develop/os-plus-chat-ch0 and SAME branch codex/chat-ch1-foundation, HEADfcf0ebc14aa9337f6a186ff9e278f412060ac02c/no upstream. Reverify before mutation. Current remote/mainc686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a is an ancestor (ahead12/behind0); no merge/rebase is necessary at preparation.
+2. With explicit checkpoint exception under D025/platform phase policy, create ONE local checkpoint commit containing the exact pending tracked/untracked Chat implementation, host/4GB/bench/planning/evidence/source tooling and preserved Shopify test-fixture compatibility fixes recorded in release-inputs-ui-final.json. Exclude ignored outputs, real env, node_modules, key/access/backup files and screenshots. Stage only the frozen dirty-path inventory after rechecking current hashes; do not sweep future/unrelated files.
+3. With explicit push authority, push only this branch and set its upstream; create a DRAFT PR against then-current main using proposed PR_BODY.md. Existing12 local commits remain part of the PR diff. Git-linked Vercel may create a preview; do not promote it to production or silently point it at live Chat. Verify preview flags before any authenticated trial.
+4. Leave production main/Vercel alias, shared SQL, all tenant module flags, Chatwoot accounts/inboxes/settings, user access and live channels unchanged. No auto-merge. Never mark CH10 CLOSED or READY from this checkpoint. Review the final commit/tree and CI before separate release scope.
+
+## Exact engineering content/evidence
+
+- Candidate35 SQL SHA2563acfc26f7af98989d4957a6ab2d64ea2ceb871fca2235e5dc88dd336f61faab9 generated deterministically from frozen106 source files. No SQL applied by this proposal; existing71/Shopify history must not be replayed. Versioned generator/manifest/preflight/rollout/rollback are included.
+- Existing staff-operated Chat/CRM branch and CH10 native/hardening/4GB work retained. Last narrow app correction is ONLY min-w-0 on fit grid and w-full on native select in order-item-builder.tsx, fixing measured long-reference narrow overflow. No commercial/order/payment/identity/permission action changed.
+- Test-only global feedback inventory supports existing pending-aware Shopify submit and rejects implicit/unmatched/constant guards, spreads and form reassignment. Structural inventory, not runtime duplicate-submit proof; Shopify runtime is untouched.
+- Fresh typecheck/lint/build/roles/v2 pass after final app edit. FullChat313/313,0fail/cancel/skip/todo on pinned ownedPG17.6 at18:13UTC,60s, sourcebundle61ca1ee96e9ec9720a57ef176c0cc8be45accf951a971b6b1bad996faeb7af89. All seven live service identities/states unchanged, owned resources removed. Late scanner-only review correction separately passes feedback and targeted ESLint; it is not a claim that the earlier bundle contains later test bytes.
+- Narrow Standards0 findings; Spec1 low-severity inventory weakness fixed,0remaining. Earlier fixed-base branch review was targeted, not exhaustive proof. Exact candidate atomic/recovery7PASS remains dated earlier evidence; SQL bytes unchanged.
+- Current-main Test browser: existing synthetic customer search/measurement selection, unsaved second item/workflow/GST calculations, add-customer/edit/payment forms opened/cancelled, workflow/eligible-worker form inspected with no Start submission, safe public tracking view and GST report/custom date query observed. No records/payments/stages/queue created or mutated. Retained July5 GST432 across2 orders includes ORD-000012 GST252; existing cash500 across2 receipts, not a new payment.
+- Production468px wide overflow reproduced; actual component synthetic iframe390 -> after no overflow, also768/1440. Fixture has simplified UI primitives and is not full hosted mobile/persona/SSO acceptance. No browser workaround changes were applied to production. Trigger wrapper display:contents required visible descendant; later native confirmation led to browser focus timeout, so cleanup/post-cancel visual result is not silently passed.
+- Fresh remote fetch/GitHub status and authenticated Vercel deployment detail show Current/Production/Ready/mainc686337, deployment9WpBNhMhAuTvPFumCSCwtKjVmfYp and os-plus.vercel.app. No old branch deployment over newer main.
+
+## Open gates remain visible
+
+Full saved-record Boutique critical path, independent persona/tenant/mobile/Clerk and candidate browser acceptance, actual hosted Test OS PLUS->Chatwoot->CRM, operational encryption/key custody/restricted access and staff-operated staged acceptance remain open. Backup work is explicitly deferred by owner CHAT-D069; no storage purchase/upload/export/schedule, no backup PASS claimed and no invitation/password action. Shared Supabase Free has no provider scheduled backups; Hetzner VPS backups do not cover it. Do not reopen storage selection now.
+
+No live AI/STT/judge/model keys, real Telegram/Meta messages, active n8n workflow or additional purchase. Same-store Shopify real-tenant cutover and new WhatsApp onboarding remain later, after Test acceptance. This checkpoint permission must not be treated as permission for those actions or for shared SQL/Vercel production release.
+
+Approval reason: docs_chat/07_Codex_Build_Prompt.md section4 explicitly requires instruction for push/merge/deploy/shared SQL; docs_v2/10_Phase_Gate_QA_and_Commit_Policy.md section4 and D025 permit checkpoint exceptions only when explicitly authorized. Approval has NOT been inferred from Chrome availability or generic continuation.
+
+
+## Approval received - 31 October 2026 IST
+Owner: "sounds good. Push to git. Hope the migratikns are all live on supabase." CHAT-D070 records the explicit checkpoint/branchpush/draftPR exception for the concrete scope above. Earlier NOT-approved statements describe the proposal at preparation, not current publication authority. CH10 remains QA_BLOCKED. No merge/sharedSQL/production deployment or tenant/channel activation authorized. A documentation-only receipt can record the actual publication after this implementation checkpoint; no force-push or amendment of published history.
+The fresh Supabase read-only check shows zero Chat relations/functions:35 additions remain pending. Owner's offer of manual SQL does not mean it is applied. All release gates and D069 backup deferral remain visible.
+
+
+31 October2026 IST final prepublication verification: npm run test:chat PASS315/315,0fail/cancel/skip/todo,60.0s, nonce-owned PostgreSQL17.6; UTC2026-10-30T18:46:07.738305Z. Sourcebundle7df3ddaddd83271ee34e76177c606d178bc57291ed8d4753111756215bd84928; server /opt/os-plus-ops/release-qa-e4453bf4e2dd0913afc92c71.json; local outputs/ch10-release-20261030/push-lineend-native. All7live IDs/states unchanged, cleanuptrue, noOOM/restart, min sampled available1325MiB. Includes final feedback-inventory correction and checkout-portability tests. Other five platform gates remain the fresh preceding PASS after final2class app change; not rerun for packaging/tests/docs-only delta. Candidate exactSQL unchanged, earlier7atomic checks remain dated evidence. No sharedSQL, tenant or workflow activation, production deployment or real message. CH10QA_BLOCKED; backupworkdeferredD069; feature provider/STT/judge spendUSD0.

@@ -78,6 +78,8 @@ class BackupTests(unittest.TestCase):
         self.assertFalse(any(c.endswith("start rails sidekiq n8n") for c in commands))
         self.assertTrue((self.backups/"last-success").exists());self.assert_clean()
         archive=next(self.backups.glob("*.tar.age"))
+        with tarfile.open(archive,"r:gz") as bundle:
+            self.assertEqual(bundle.getmember("scripts/init-n8n-db.sh").mode & 0o777,0o644)
         verified=self.run_script("verify-backup.sh",archive,self.recipient)
         self.assertEqual(verified.returncode,0,verified.stderr)
     def test_dump_failure_resumes_apps_without_advancing_success_or_retention(self):

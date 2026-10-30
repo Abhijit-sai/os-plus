@@ -72,7 +72,7 @@
     "test:salary-worker-money-ui": "node scripts/test-salary-worker-money-ui.mjs",
     "test:v2": "node scripts/test-v2-baseline.mjs && node scripts/test-v2-work-unit-runtime.mjs && node scripts/test-v2-phase-3-commands-events-tasks.mjs && node scripts/test-v2-phase-4-laundry-custody.mjs",
     "typecheck": "tsc --noEmit",
-    "test:chat": "node --experimental-strip-types --conditions=react-server --test scripts/test-chat-*.mjs",
+    "test:chat": "node --experimental-strip-types --conditions=react-server --test --test-concurrency=1 --test-reporter=tap scripts/test-chat-*.mjs",
     "chat:local": "node --experimental-strip-types --conditions=react-server scripts/chat-local/manage.mjs",
     "qa:chat-local": "node --experimental-strip-types --conditions=react-server scripts/chat-local/qa.mjs"
   },

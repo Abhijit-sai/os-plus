@@ -169,3 +169,6 @@ Supersedes earlier pending C9-L2 technical check: Codex completed actual browser
 
 ### CH9 accepted local scope — 28 October2026
 CHAT-D059 supersedes pending-owner checkpoints. CH9.1–9.3 checked for accepted LOCAL implementation; C9-L7 owner acceptance complete on reported results. Six gates264Chat/actual widget/tenant375px/TierB/recovery evidence in CH9_QA.md. Local phase commit authorized before CH10 planning/local checks; original live/model/Meta/infrastructure gates remain blocked, no CH10 closure/go-live waiver. SHA recorded in root summary.
+
+### CH-10 local hardening checkpoint — 28 October 2026
+CH-9 CLOSED LOCAL at fcf0ebc14aa9337f6a186ff9e278f412060ac02c under CHAT-D059. CH-10 planning/available offline work implemented: distinct synthetic two-brand bench30, actual loopback failures14, disposable106-migration PostgreSQL hardening3; six gates pass including311 Chat tests. No runtime/SQL/UI changes. CH10_QA.md and CH10_RELEASE_READINESS.md distinguish these local subsets from unexecuted real-model/judge, hosted outages, full PartD onboarding and one-week real draft pilot. Phase QA_BLOCKED at those required gates; CH10 boxes remain unchecked, no closure/commit/release authority inferred. Live AI/STT disabled; server/domain/Meta deferred. No owner technical settings exercise requested now.

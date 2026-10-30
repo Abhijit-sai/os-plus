@@ -1,0 +1,8 @@
+{
+  "purpose": "Disposable Chat release QA only; not a production service replacement",
+  "version": "PostgreSQL17.6 alpine",
+  "platform": "linux/amd64",
+  "image": "postgres@sha256:747d5ed1fdeeb124b880fbe3d7c6557d2c4064ae41d6b6297d417882effce4be",
+  "resolvedFrom": "docker.io/library/postgres:17.6-alpine",
+  "productionImageManifestChanged": false
+}
