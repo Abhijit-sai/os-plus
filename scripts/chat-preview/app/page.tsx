@@ -229,7 +229,37 @@ export default function Preview() {
               enabled: false,
               workspace: null,
             },
+            {
+              id: id(9),
+              name: "Synthetic Connected Business",
+              enabled: true,
+              workspace: {
+                id: id(10),
+                tenant_id: id(9),
+                status: "active",
+                chatwoot_account_id: 42,
+                provisioning_attempted_at: null,
+              },
+            },
           ]}
+          connect={async (input) => {
+            const request = input as {
+              tenantId: string;
+              webhookSecret: string;
+            };
+            if (request.tenantId !== id(9) || !request.webhookSecret) {
+              return { ok: false, message: "Synthetic workspace unavailable." };
+            }
+            return fail
+              ? {
+                  ok: false,
+                  message: "Synthetic connection failed; no external call.",
+                }
+              : {
+                  ok: true,
+                  message: "Synthetic webhooks connected; no external call.",
+                };
+          }}
           save={async () => ({
             ok: true,
             message: "Prepared in preview only.",

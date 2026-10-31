@@ -5,11 +5,14 @@ import { ChatForm, ChatInput, ChatSection, field } from "./setup-form";
 import type { ChatActionResult } from "@/features/chat/actions";
 import type { getPlatformChatSetup } from "@/features/chat/queries";
 type Tenant = Awaited<ReturnType<typeof getPlatformChatSetup>>[number];
+type Connect = (input: unknown) => Promise<ChatActionResult>;
 function Workspace({
   tenant,
   save,
+  connect,
 }: {
   tenant: Tenant;
+  connect: Connect;
   save: (input: unknown, key: string) => Promise<ChatActionResult>;
 }) {
   const [webhooks, setWebhooks] = useState<ChatActionResult["webhooks"]>();
@@ -96,6 +99,29 @@ function Workspace({
                 an administrator belonging to this account.
               </p>
             </ChatForm>
+            {tenant.enabled && tenant.workspace.status === "active" && (
+              <ChatForm
+                label="Connect Chatwoot webhooks"
+                save={(d) =>
+                  connect({
+                    tenantId: tenant.id,
+                    webhookSecret: field(d, "webhookSecret"),
+                  })
+                }
+                resetOnSuccess
+              >
+                <ChatInput
+                  label="Webhook setup secret"
+                  name="webhookSecret"
+                  type="password"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Use the secret from the saved setup URL for this workspace.
+                  This connects chat events; inbox reply modes stay as
+                  configured.
+                </p>
+              </ChatForm>
+            )}
             <ChatForm
               label="Save module access"
               save={(d, key) =>
@@ -180,8 +206,10 @@ function Workspace({
 export function PlatformChatPanel({
   tenants,
   save,
+  connect,
 }: {
   tenants: Tenant[];
+  connect: Connect;
   save: (input: unknown, key: string) => Promise<ChatActionResult>;
 }) {
   return (
@@ -193,7 +221,12 @@ export function PlatformChatPanel({
         <p>No active businesses available.</p>
       ) : (
         tenants.map((tenant) => (
-          <Workspace key={tenant.id} tenant={tenant} save={save} />
+          <Workspace
+            key={tenant.id}
+            tenant={tenant}
+            save={save}
+            connect={connect}
+          />
         ))
       )}
     </ChatSection>
