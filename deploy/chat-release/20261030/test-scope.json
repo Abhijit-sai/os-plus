@@ -1,9 +1,9 @@
 {
-  "status": "PROPOSAL_ONLY",
+  "status": "RELEASE_PROPOSAL_ENGINEERING_ACCEPTED",
   "approved": false,
   "mayExecute": false,
-  "phase": "CH10 QA_BLOCKED",
-  "sourceHead": "fcf0ebc14aa9337f6a186ff9e278f412060ac02c",
+  "phase": "CH10 CLOSED LOCAL - ACCEPTED ENGINEERING SCOPE",
+  "sourceHead": "e5ec13e462bb7f8c5a72f9076d18c3171119b23c",
   "currentMain": "c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a",
   "candidateSQLSha256": "3acfc26f7af98989d4957a6ab2d64ea2ceb871fca2235e5dc88dd336f61faab9",
   "tenantScope": {
@@ -91,6 +91,14 @@
     "production Shopify OAuth token valid",
     "real business enabled",
     "Meta connected",
-    "CH10 closure"
-  ]
+    "full live/go-live acceptance"
+  ],
+  "releaseStatus": "QA_BLOCKED",
+  "schemaStatus": "OWNER_APPLIED_POSTCHECK_VERIFIED_D071",
+  "phaseAcceptance": {
+    "decision": "CHAT-D072",
+    "ownerQuote": "ch10 can be accepted, go ahead.",
+    "date": "2026-10-31",
+    "scope": "implemented engineering only; no merge/deploy/tenant/provider activation"
+  }
 }

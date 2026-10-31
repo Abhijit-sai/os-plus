@@ -31,3 +31,7 @@ Current candidate SQL and prior-main rollback are unchanged. Preserve hashes, ne
 
 ## 30October2026UTC - Interactive checks resumed; checkpoint review proposal
 See CH10_BOUTIQUE_RELEASE_QA.md for fresh search/measurement/unsavedforms/GST/publicview and limits. Local2classfit-referenceoverflow fix; synthetic390/768/1440layout checks pass, wholeappnotcertified. Freshsixgates313/313ChatPG17.6 pass; exactSQLunchanged, no migrations. Standards0/Spec1testinventorygapfixed0remaining; latesttest-onlyguardfocusedcheck/lintpass. Main/Vercelc686337CurrentProductionReadyreverified. Candidate commit/push/DRAFTPR scope is deploy/chat-release/20261030/CHECKPOINT_PROPOSAL.md (relative torepo); approvalpending, not prodrelease/closure. Backupsremainowner-deferredD069; AI/STT/Telegram/workflowsOFF. CH10QA_BLOCKED. SAMEsummary updated with exact evidence/sourcehashes/failedattempts.
+
+
+## Current acceptance - 31 October 2026 IST
+Owner: "ch10 can be accepted, go ahead." CHAT-D072 accepts the implemented engineering scope. CH10 CLOSED LOCAL - ACCEPTED ENGINEERING SCOPE; production release remains QA_BLOCKED at independent hosted/manual/security/staged gates. See CH10_OWNER_ACCEPTANCE.md. No unrun live test is markedPASS; no merge/deploy/tenant/provider activation inferred. Installed35Chat schema is already observed underD071; do not replay it. BackupD069 stays deferred/notPASS, liveAI/STT/Telegram/workflowsOFF.

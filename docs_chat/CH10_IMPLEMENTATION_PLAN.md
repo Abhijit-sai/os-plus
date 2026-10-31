@@ -30,3 +30,7 @@ Record actual counts, fixtures and failure evidence. CH10 remains IN_PROGRESS or
 
 ## Local checkpoint and status — 28 October 2026
 The planned 30 bench +14 HTTP +3 actual database checks now pass; six gates pass (311 Chat tests). No runtime change or migration needed. Status is QA_BLOCKED for remaining live/owner/PartD/pilot evidence, not READY_FOR_CLOSURE. CH10_QA.md records first run, final review correction and exact verification. The rubric remains proposed. Existing server/domain/Meta/live-service deferral is respected; no user action needed for the completed offline slice.
+
+
+## Current acceptance - 31 October 2026 IST
+Owner: "ch10 can be accepted, go ahead." CHAT-D072 accepts the implemented engineering scope. CH10 CLOSED LOCAL - ACCEPTED ENGINEERING SCOPE; production release remains QA_BLOCKED at independent hosted/manual/security/staged gates. See CH10_OWNER_ACCEPTANCE.md. No unrun live test is markedPASS; no merge/deploy/tenant/provider activation inferred. Installed35Chat schema is already observed underD071; do not replay it. BackupD069 stays deferred/notPASS, liveAI/STT/Telegram/workflowsOFF.

@@ -221,3 +221,9 @@ See CH10_BOUTIQUE_RELEASE_QA.md for fresh search/measurement/unsavedforms/GST/pu
 
 
 31 October2026 IST checkpoint note (CHAT-D070): owner explicitly approves preserved implementation checkpoint/branchpush/DRAFT PR only, not B1-B8/PartD acceptance or phase closure. Fresh production READ ONLY catalogue has0Chat relations/functions;35 additions still pending. New checkout-portability3/3 and narrow two-axis0findings preserve exact SQL hash and frozen106. Hosted/manual/security gates stay open; backup work deferred D069, live executionOFF.
+
+
+31October2026IST CHAT-D071 observed schema update: owner manually executed combined35Chat SQL and reportsSuccess. READ ONLY production40tables/allRLS,69functions match reviewed candidate in definitions/effective permissions; detailed ACL variance and schema/ledger limits in CH10_QA.md. Zero module/workspace/channel enablement. SharedSQL installation is observed, not B1-B8/PartD/fullCH10 closure. HostedTest/browser/Boutique/persona/SSO/ops acceptance remain open; D069backups deferred/notPASS. No app promotion or realbinding/messages. Keep module/executionOFF.
+
+
+31October2026IST CHAT-D072: owner "ch10 can be accepted, go ahead." CH10 implemented engineering scope accepted/CLOSED LOCAL; phase commit authorized underD025. Full PartsB/D, hosted Test/candidate Boutique/persona/mobile/SSO/ops and live-model/draft-week gates remain open production-release work. No unattendedAI/STT/Telegram/workflow enabled; backupsdeferredD069/notPASS. See CH10_OWNER_ACCEPTANCE.md. This supersedes only phase-acceptance status, not the unexecuted checkbox evidence.
