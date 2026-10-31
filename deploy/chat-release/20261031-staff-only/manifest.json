@@ -19,5 +19,16 @@
   "tenantActivationAuthorizedByThisPackage": false,
   "liveAI": false,
   "liveSTT": false,
-  "telegram": false
+  "telegram": false,
+  "sourceCheckpoint": "76192b4ce72d70b728cae477ede09478eaadb9b9",
+  "pullRequest": "https://github.com/Abhijit-sai/os-plus/pull/12",
+  "validation": {
+    "sixGates": "PASS",
+    "chatTests": 333,
+    "shopifyContractTests": 30,
+    "standardsFindings": 0,
+    "specFindings": 0,
+    "nativeLiveServicesUnchanged": true,
+    "nativeCleanup": true
+  }
 }

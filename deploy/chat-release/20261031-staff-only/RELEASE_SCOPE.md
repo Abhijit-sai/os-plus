@@ -17,3 +17,8 @@ D078 authorizes implementation, testing, review and PR preparation only. This pa
 5. A distinct execution approval must cover the two prepared Test staff pairs (selected existing Test administrator→native3 and actually tested Manager→native4, account903/workspace documented privately), with no OS PLUS login/membership/role change. Then resume already approved D075: temporarily enable only Test setup; confirm brand/mapping; use Off-only command and independently verify modeoff before receipt-backed transport/webhook setup; capture fictional visitor→correct Test CRM lead→manual staff reply, replay/isolation/privacy/attachment and actual persona checks. Native browser login is separate; SSO remains unproved.
 
 All real-business activation, Shopify connection cutover/import completion, WhatsApp/Meta, AI/STT, Telegram, n8n automation and purchases remain outside this release. Owner-deferred backups D069 and real-data host security/PartD remain unpassed. Preparation is not full hosted CH10 acceptance.
+
+
+## Publication receipt — preparation complete
+
+Draft PR12: https://github.com/Abhijit-sai/os-plus/pull/12. Tested/reviewed source checkpoint `76192b4ce72d70b728cae477ede09478eaadb9b9`; any following publication-receipt commit changes records only. Full333/333Chat and separate30/30ShopifyPASS, all six gatesPASS, both reviews0. Vercel feature check9SP1nDhLEbQvH5QhXVqG97VmEw7C succeeded; this is a branch check, not a Production release. Shared SQL107 is still NOT_APPLIED and PR is draft/unmerged. Production remains28e6a8e/alloff. Later approval must name the final PR head and the unchanged migrationSHA, all-off new-main release, and separately the two prepared Test bindings before that execution.
