@@ -94,3 +94,7 @@ Owner manually ran4575-line candidate and reportsSuccess (CHAT-D071). The earlie
 
 ## Current acceptance - 31 October 2026 IST
 Owner: "ch10 can be accepted, go ahead." CHAT-D072 accepts the implemented engineering scope. CH10 CLOSED LOCAL - ACCEPTED ENGINEERING SCOPE; production release remains QA_BLOCKED at independent hosted/manual/security/staged gates. See CH10_OWNER_ACCEPTANCE.md. No unrun live test is markedPASS; no merge/deploy/tenant/provider activation inferred. Installed35Chat schema is already observed underD071; do not replay it. BackupD069 stays deferred/notPASS, liveAI/STT/Telegram/workflowsOFF.
+
+
+## App-only installation proposal now prepared - 31 October 2026
+See APP_INSTALL_SCOPE.md and app-install-scope.json. Fresh Vercel production/base/rollback and absent Chat env overrides verified; no env edits/new secrets/SQL needed. Schema is already installed, all tenant modules remain disabled. Exact merge/freshProductionbuild and staged post-install Test-only manual regression still require the concrete release approval; phase acceptance alone is not that action. No execution by these proposal files.
