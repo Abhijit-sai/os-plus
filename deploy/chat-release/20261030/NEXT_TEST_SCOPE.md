@@ -16,7 +16,7 @@ Create a separate Test chat space, send a fictional enquiry from its private Tes
 
 ## Preconditions before asking to execute
 
-1. Finish available existing staff-role checks; list unavailable personas separately. Owner has confirmed an existing Test staff login and is signing in; no role change is needed for that check.
+1. Available Owner/Admin and separate Manager checks are complete. CHAT-D074 records the owner's acceptance of that slice for initial Test preparation. Viewer/Finance logins are unavailable and remain NOT RUN; no new OS PLUS accounts or roles are proposed.
 2. Reconcile the exact Test operators with their current OS PLUS memberships and proven Chatwoot role restrictions. Do not infer permission from an email or grant every operator admin. Owner selected one Chat administrator and two staff privately; keep addresses out of public records. Viewer Chatwoot entry remains disabled.
 3. Review host access/storage/key custody and the named rollback/response owner before additional credentials. Keep real data withheld. Backup work remains explicitly owner-deferredD069/notPASS; no new storage/export/schedule/purchase or repeated destination question. Any staged disposition must remain explicit.
 4. Prepare a safe owner-controlled credential-entry/custody path, including any new platform token or encryption key. No secret values in chat, repository, screenshots or logs. Password entry/confirmation/submission is an owner handoff; no SMTP/invitation emails.
@@ -50,3 +50,28 @@ Transport setup verifies the exact workspace URL key plus secret and stored acco
 - On failure, disable only Test module through the audited command, return foundation/admin/live flags to all-off and deploy then-current reviewed main if needed. Preserve new account/data/receipts for investigation; no broad deletes, SQL rollback or secret rotation by inference. Stop on an uncertain remote outcome.
 
 Evidence must record exact IDs, non-secret hashes, deployments, commands, tenant/persona/viewport, fixture counts and every unresolved gate. Real-business Shopify cutover and WhatsApp-first Meta onboarding follow separate accepted Test results and authorization.
+
+
+## Concrete proposal after Manager checks - pending separate approval
+
+The proposed next action is a fictional-data Test trial, with the following limits:
+
+| Resource/action | Exact proposed scope |
+|---|---|
+| Tenant module | Enable chat_leads only for Test7be40f50-94a0-46c5-af57-7eea5e36ea8a through the existing audited platform command |
+| Chatwoot resources | One NEW Test account and one NEW website inbox; at most two operator logins/memberships, reusing an existing owned login only after exact identity/role verification |
+| Trial operators | Existing selected Test Chat administrator as native Chatwoot administrator; the existing Test Manager login just exercised as native Chatwoot staff/agent. These are proposed Test actors, not a grant or the final three-person real-business rollout |
+| OS PLUS memberships | No additions, role changes, ownership changes or login linking. Final launch operators remain separate; the read-only lookup found incomplete real-business memberships |
+| Credentials | New Test integration credentials/key material only where required; safe owner-controlled entry. Existing server SSH identities and all existing secrets remain unchanged |
+| Private custody | Validate an owner-only folder under existing D:/OSPlus-Access before storing anything sensitive. Never use OneDrive/Git/outputs/logs/chat for plaintext values. Owner performs new password entry/confirmation/submission and any required private dashboard secret entry |
+| Production configuration | Add only the reviewed Chat origins/secret names and provisioning flags above; deploy then-current reviewed main through existing Vercel production project, then restore admin/dry-run gates to capture-only state. No application source or additional SQL change |
+| Messages | Fictional visitor enquiry and native staff reply in the new Test inbox preview only, plus bounded privacy/idempotency/denial checks. No real phones/customer messages or real website widget installation |
+| Installation-wide changes | No global Chatwoot Dashboard Script or unrelated account/inbox changes |
+
+The current Manager's visible login differs from the three selected final launch addresses. The chosen administrator already has an active/login-linked Test OwnerAdmin profile. Do not silently use the unlinked selected-staff profile or add a real-business membership to make setup work. Exact private email/identity must be reverified in the authenticated owner flow before any Chatwoot user grant. Secrets are never written in this proposal.
+
+Current host review09:22UTC finds7running/4configuredhealthy/pinned images/private databases/0active workflows, HTTPS verified and1651MiB available. Existing ext4 storage has no observed LUKS layer; full server/attachment/database encryption, operational access/key custody/response and independent backup monitoring have not passed real-data acceptance. Therefore approval of this next step would need to explicitly accept a temporary **fictional-data Test trial with Test credentials on the existing host** while those recorded real-data gates remain open. It must not be recorded as real-business readiness or a provider encryption certification. Backup work remains owner-deferredD069/notPASS; no new backup action or purchase is included.
+
+Rollback actor is the authenticated OS PLUS platform administrator executing the trial, with the owner contacted for access or service failures. Stop/disable Test module and return flags to all-off, preserve accounts/receipts/data for reconciliation; no destructive repair. An uncertain creation, identity mismatch, secret-custody failure, unexpected permission or unrelated main change stops dependent work for review. No secrets or live settings have been changed by preparing this package.
+
+D073 explicitly installed the app with Chat disabled and did not grant account/inbox/credential/module activation. D074 accepts available regression checks only. A separate approval must cover the above resources, configuration/deployment, access and fictional message scope before execution. Real Phantom Threads, its Shopify cutover, WhatsApp/Meta, AI/STT/Telegram, automated workflows and service purchases are excluded.

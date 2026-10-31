@@ -80,3 +80,27 @@ Browser diagnostics: DOM click sometimes reported hidden despite screenshot-visi
 6. Live AI orchestration is still mock-only; AI/STT/Telegram/draft delivery/notifications/cron/lead-refresh and n8n workflows remainoff. No auto-suggestion promise or full go-live claim.
 
 Feature provider/STT/judge spendUSD0; coding-agent billing not measured. No service purchase. Next preparation uses existing TEST_SCOPE.md/test-scope.json flag sequence; reverify exact deployment/security/operator scope before asking for its distinct activation approval. No authority is inferred from this report.
+
+
+## Manager acceptance supplement - 31 October 2026
+
+Owner personally signs in with an existing staff login. Actual header is Phantom Threads Test / Manager, default Orders. Account differs from the earlier Owner/Admin session. Startup browser handles failed with browser.user unavailable; a documented session reset/rebind recovered the same signed-in tab without changing credentials or creating a new login.
+
+| Area | Actual result |
+|---|---|
+| Navigation | Orders, Production and Customers only; no Settings, Finance, Reports or Chat |
+| Native order/customer/workflow | Our ORD-000032 and synthetic customer/Chest38in measurement load. Shirt Design completed/Cutting ready and Pant untouched remain visible |
+| Manager write | Native Edit order appends Manager edit verified to our synthetic note. READ ONLY09:17:19.694UTC confirms persistence and an editor different from the customer fixture creator, without outputting actor IDs |
+| Seven restricted routes | /settings/shopify, /settings, /settings/users, /finance, /reports, /salary, /worker-contributions each redirect to the permitted /orders page; no restricted page is shown |
+| Shopify draft | Existing pending draft and manager setup form render; source payment/not-local-receipt/not-live-balance notices remain. No draft Save/Complete clicked |
+| Chat off | /settings/chat redirects to Orders for Manager; /leads404. This does not prove enabled Chat role/PII enforcement |
+| Mobile | Actual390x844, inner390/client375/scroll375; saved order/note render and mobile menu contains only Orders/Production/Customers. Menu closed/override reset |
+| Unchanged fixture facts | Protected READ ONLY comparison confirms customer, measurement, item/workflow/stage objects, receipt300/balance2060, dry-run queue(no send/attempt) and all-off Chat state unchanged after the one note edit |
+
+Owner says verbatim: "neither is available, if this tests pass, it shoiulkd be good," about existing Viewer/Finance logins. CHAT-D074 records acceptance of the available Owner/Admin and Manager checks for continuing initial Test rollout preparation. Viewer/Finance remain NOT RUN/unavailable; no new accounts, impersonation or role changes. This is not their hosted PASS, full go-live acceptance or Test module/credential/provisioning authority.
+
+Read-only next-step operator lookup uses aliases/roles/status only. Selected Chat administrator has one active/login-linked OwnerAdmin profile in Test and none in Real. Selected staff1 has no Test profile and an active/login-linked OwnerAdmin profile in Real; its narrower intended Chatwoot staff role must not silently alter OS PLUS ownership. Selected staff2 has an active Test Manager profile without a linked login and none in Real. The currently tested visible Manager login differs from all three selected launch addresses. No matching-by-brand/name inference or automatic membership/account grant performed. Keep Test trial actors and final real-business operators distinct. No addresses/login IDs are published here.
+
+Fresh authorized host09:22:25.754UTC:7running/4configuredhealthy, seven reviewed/configured image pins match, no OOM/restarts,0active n8n workflows,1651MiB available/64GiB diskfree/noSwap. Rails4300/n8n5678 loopback and databases/Redis private; HTTPS200/TLSverified. Read-only observations only, no service/key/backup change. Prior at-rest/access/custody/maintenance gaps remain unresolved for real data; D069 backup work stays deferred/notPASS.
+
+Current main remains643cf10;535source and106canonicalSQL bytes still match frozen hashes. No runtime/env/SQL/host/permission change. One synthetic note update is the only new business mutation. Source six gates/315Chat/7atomic are not rerun for this evidence-only slice. Safe local screenshots release-qa-manager-edit-20261031.png and release-qa-manager-mobile-20261031.png remain outsideGit; staff evidence/readonly checks are under the existing interactive-qa-20261031 folder. Browser navigation timeout recovered by observed intended page, no blind reload/resubmit. Locator failures recovered with documented alternatives; no new P0/P1 product bug demonstrated. Feature provider/STT/judgeUSD0; coding-agent billing not measured.
