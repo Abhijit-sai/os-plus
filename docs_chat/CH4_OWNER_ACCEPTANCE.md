@@ -1,0 +1,17 @@
+# CH-4 owner acceptance — local only
+Status: ACCEPTED LOCAL under CHAT-D039,2026-10-22. [Technical evidence](CH4_QA.md), [Boutique14](CH4_BOUTIQUE_QA.md), [upgrade/restore](CH4_LOCAL_UPGRADE.md). No new Clerk keys needed; existing owner-a, Chat Local1 / Local QA A is selected.
+
+1. **C4-L1 — Daily workspace.** Open http://localhost:4131/leads. Leads is the OS PLUS enquiry workspace. Chats opens actual Chatwoot in another tab at http://localhost:4141. Chat settings remains owner setup. Review inbox/detail, customer-safe clocks and Contacts.
+2. **C4-L2 — Real card save.** Your "saved" reply is recorded and verified: conversation10 lead2TRSR has stageIn progress, selected manual owner and note"inquired", with audit. Fresh card reload shows those values. You may repeat a second note save, but two saves are not inferred. URL http://localhost:4141/app/accounts/901/conversations/10, tab OS PLUS Leads — Local QA. If role/business was switched, select Local QA A in OS PLUS and refresh Chatwoot; a frame with missing/mismatched access falls back to the safe Open Leads link.
+3. **C4-L3 — Privacy and records.** Review manager/viewer/finance and actual HTML/RSC checks in CH4_QA.md. They used temporary LOCAL effective-role changes with the existing Clerk session, not independent role sign-ins; original role/grant policy values restored. Contacts conversion and reviewed merge/undo already passed. Review the linked synthetic customer and native order history if desired. Desktop and375px frame layout/edit passed; no physical-device claim.
+4. **C4-L4 — Phase dependency alignment.** Original WBS CH4.2 lists suggestion provenance and Create booking. The implemented CH4 plan displays existing stored suggestion text/knowledge version and leaves AI generation/richer provenance to CH5, booking actions to CH6. Those engines/commands are not implemented prematurely and the UI states their availability truthfully. Confirm this sequencing as part of local acceptance; the original WBS checkbox remains partial until accepted.
+5. **C4-L5 — Full phase acceptance.** Accept local CH4 results, with the C4-L4 sequencing and existing Meta/two-real-phone deferral carried as release-blocking, or report defects. This permits final local records/review, READY_FOR_CLOSURE, commit under existing D025 authority and CH5 planning. No push, shared migration, paid run, deployment, public exposure, real channel send or n8n activation.
+
+All six gates pass; Chat119/119, actual provider10/10, anonymous ingress6/6, Boutique14/14 and local restores128 tables. Counts overlap. No unresolved P0/P1; existing low-priority measurement-modal quirk is recorded. No production release/readiness implied. New business model/knowledge credentials and any paid test approval remain later explicit steps. Model/API spendUSD0.
+
+
+## Accepted —CHAT-D039
+Owner accepted local CH4 and sequencing, authorising final local closure/commit and CH5 planning. C4-L1–L5 satisfied through evidence review and actual card exercise. Optional second save not inferred. Meta/two-phone remains unexecuted/release-blocking. No paid run or external release authority.
+
+
+CH4 post-commit record,2026-10-22: CLOSED LOCAL atf9d195c02388bdcf17c8fb25a294dac32bbe9fe3 under CHAT-D039. Supersedes earlier pending/READY wording; no production release. CH5 planning is recorded separately in CH5_IMPLEMENTATION_PLAN.md; no agent implementation yet.

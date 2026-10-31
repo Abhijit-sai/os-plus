@@ -1,0 +1,19 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$CHAT_HOST} {
+	# Request URLs can contain webhook secrets; access logging is deliberately absent.
+	header -Server
+
+	# Reserve the lead workspace. Do not proxy the existing app before its paths,
+	# assets, Clerk session and server-action origin checks have been verified.
+	@crm path /crm /crm/*
+	handle @crm {
+		respond "This workspace is being prepared. Please contact your team." 503
+	}
+
+	handle {
+		reverse_proxy rails:3000
+	}
+}

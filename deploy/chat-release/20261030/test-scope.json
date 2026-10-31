@@ -1,0 +1,104 @@
+{
+  "status": "RELEASE_PROPOSAL_ENGINEERING_ACCEPTED",
+  "approved": false,
+  "mayExecute": false,
+  "phase": "CH10 CLOSED LOCAL - ACCEPTED ENGINEERING SCOPE",
+  "sourceHead": "e5ec13e462bb7f8c5a72f9076d18c3171119b23c",
+  "currentMain": "c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a",
+  "candidateSQLSha256": "3acfc26f7af98989d4957a6ab2d64ea2ceb871fca2235e5dc88dd336f61faab9",
+  "tenantScope": {
+    "testOnly": "7be40f50-94a0-46c5-af57-7eea5e36ea8a",
+    "realRemainsDisabled": "364f9052-2ec4-45c1-aeca-70618b37265c",
+    "allOtherTenantsRemainDisabled": true,
+    "chatwootAccountId": null,
+    "chatwootInboxId": null,
+    "neverReuseSyntheticIds": [
+      901,
+      902
+    ]
+  },
+  "origins": {
+    "CHATWOOT_BASE_URL": "https://chat.phantomthreads.in",
+    "CHATWOOT_BROWSER_ORIGIN": "https://chat.phantomthreads.in",
+    "CHAT_WEBHOOK_ORIGIN": "https://os-plus.vercel.app"
+  },
+  "disabledThroughout": {
+    "CHAT_AGENT_ENABLED": "false",
+    "CHAT_MODEL_LIVE_ENABLED": "false",
+    "CHAT_MOCK_PREVIEW_ENABLED": "false",
+    "CHAT_STAFF_DRAFT_SEND_ENABLED": "false",
+    "CHAT_DRAFT_DELIVERY_ENABLED": "false",
+    "CHAT_NOTIFICATIONS_ENABLED": "false",
+    "CHAT_NOTIFICATIONS_CRON_ENABLED": "false",
+    "CHAT_TELEGRAM_LIVE_ENABLED": "false",
+    "CHAT_TELEGRAM_MOCK_ENABLED": "false",
+    "CHAT_PLATFORM_ALERTS_ENABLED": "false",
+    "CHAT_VOICE_ENABLED": "false",
+    "CHAT_TRANSCRIPTION_LIVE_ENABLED": "false",
+    "CHAT_VOICE_MEDIA_MOCK_ENABLED": "false",
+    "CHAT_LEAD_REFRESH_ENABLED": "false"
+  },
+  "modelAndTranscriptMode": "unset",
+  "secrets": "Secure server-side entry only; no secret values in this proposal",
+  "stages": [
+    {
+      "name": "install",
+      "flags": {
+        "CHAT_FOUNDATION_ENABLED": "false",
+        "CHAT_DRY_RUN": "true",
+        "CHAT_ADMIN_LIVE_ENABLED": "false"
+      },
+      "tenantModules": "all disabled"
+    },
+    {
+      "name": "approved-test-provisioning-only",
+      "flags": {
+        "CHAT_FOUNDATION_ENABLED": "true",
+        "CHAT_DRY_RUN": "false",
+        "CHAT_ADMIN_LIVE_ENABLED": "true"
+      },
+      "tenantModules": "only exact Test tenant",
+      "channelAgentMode": "off",
+      "externalWrites": "ONLY approved new Test account/inbox, approved memberships and receipt-backed transport setup; no Meta registration/messages"
+    },
+    {
+      "name": "proposed-staff-capture-acceptance",
+      "flags": {
+        "CHAT_FOUNDATION_ENABLED": "true",
+        "CHAT_DRY_RUN": "true",
+        "CHAT_ADMIN_LIVE_ENABLED": "false"
+      },
+      "tenantModules": "only exact Test tenant",
+      "channelAgentMode": "off",
+      "externalWrites": "OS PLUS external admin/delivery disabled; staff replies only through native Chatwoot under later synthetic message authority"
+    }
+  ],
+  "backupDecision": {
+    "ownerQuote": "no backups for now. We'll plan this later please.",
+    "status": "OWNER_DEFERRED_NOT_PASS",
+    "newBackupWorkPermitted": false,
+    "releaseOrSQLAuthorizedByThisDecision": false
+  },
+  "requiredChecks": [
+    "complete interactive candidate Boutique/role/mobile acceptance",
+    "reverify current main and deployment aliases before release",
+    "resolve host real-data encryption/access gates",
+    "explicit scoped staged release/commit/SQL acceptance with deferred gates visible",
+    "hosted Test visitor -> lead -> staff reply and duplicate/tenant/role boundaries after approved release"
+  ],
+  "notClaimed": [
+    "one-login SSO",
+    "production Shopify OAuth token valid",
+    "real business enabled",
+    "Meta connected",
+    "full live/go-live acceptance"
+  ],
+  "releaseStatus": "QA_BLOCKED",
+  "schemaStatus": "OWNER_APPLIED_POSTCHECK_VERIFIED_D071",
+  "phaseAcceptance": {
+    "decision": "CHAT-D072",
+    "ownerQuote": "ch10 can be accepted, go ahead.",
+    "date": "2026-10-31",
+    "scope": "implemented engineering only; no merge/deploy/tenant/provider activation"
+  }
+}

@@ -1,0 +1,40 @@
+services:
+  db:
+    image: sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    pull_policy: never
+    container_name: ${LOCAL_PROJECT}-db
+    labels:
+      osplus.chat.local: ${LOCAL_NONCE}
+    environment:
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:15437:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    mem_limit: 1g
+    cpus: 2
+  rest:
+    image: sha256:bea1c76a856fa39d1e542d25911cf95d02fe2bf971992d033044ff209f1504b8
+    pull_policy: never
+    container_name: ${LOCAL_PROJECT}-rest
+    labels:
+      osplus.chat.local: ${LOCAL_NONCE}
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${LOCAL_DB_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${LOCAL_JWT_SECRET}
+      PGRST_DB_MAX_ROWS: 1000
+    ports:
+      - "127.0.0.1:15438:3000"
+    mem_limit: 256m
+    cpus: 1
+volumes:
+  data:
+    labels:
+      osplus.chat.local: ${LOCAL_NONCE}
+networks:
+  default:
+    driver: bridge
+    labels:
+      osplus.chat.local: ${LOCAL_NONCE}

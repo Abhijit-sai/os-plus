@@ -1,0 +1,108 @@
+x-env: &env
+  RAILS_ENV: production
+  NODE_ENV: production
+  INSTALLATION_ENV: docker
+  FRONTEND_URL: http://localhost:4141
+  FORCE_SSL: "false"
+  ENABLE_ACCOUNT_SIGNUP: "false"
+  SECRET_KEY_BASE: ${CW_SECRET}
+  ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${CW_ENCRYPTION}
+  ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${CW_DETERMINISTIC}
+  ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${CW_SALT}
+  POSTGRES_HOST: db
+  POSTGRES_DATABASE: chatwoot
+  POSTGRES_USERNAME: chatwoot
+  POSTGRES_PASSWORD: ${CW_PASSWORD}
+  REDIS_URL: redis://redis:6379
+  REDIS_PASSWORD: ${CW_REDIS}
+  ACTIVE_STORAGE_SERVICE: local
+  RAILS_MAX_THREADS: "2"
+  WEB_CONCURRENCY: "1"
+  SIDEKIQ_CONCURRENCY: "2"
+  RAILS_LOG_TO_STDOUT: "true"
+  LOG_LEVEL: error
+  # Local-only, egress-isolated services must reach the private TLS callback bridge.
+  SAFE_FETCH_ALLOW_PRIVATE_NETWORK: "true"
+  ENABLE_PUSH_RELAY_SERVER: "false"
+  DISABLE_TELEMETRY: "true"
+  SMTP_ADDRESS: ""
+  SSL_CERT_FILE: /local-ca/caddy/pki/authorities/local/root.crt
+services:
+  db:
+    image: ${PG_IMAGE}
+    pull_policy: never
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+    environment:
+      POSTGRES_USER: chatwoot
+      POSTGRES_DB: chatwoot
+      POSTGRES_PASSWORD: ${CW_PASSWORD}
+    volumes: [db:/var/lib/postgresql/data]
+    networks: [private]
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwoot -d chatwoot"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: ${REDIS_IMAGE}
+    pull_policy: never
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+    environment: {REDIS_PASSWORD: "${CW_REDIS}"}
+    command: ["sh", "-ec", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    volumes: [redis:/data]
+    networks: [private]
+    mem_limit: 256m
+  bridge:
+    image: ${CADDY_IMAGE}
+    pull_policy: never
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ca:/data
+    ports: ["127.0.0.1:4141:80", "127.0.0.1:4444:4444"]
+    networks:
+      private:
+        aliases: [osplus-bridge]
+      callback_host: {}
+    mem_limit: 128m
+  rails:
+    image: ${CW_IMAGE}
+    pull_policy: never
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    environment: *env
+    volumes: [storage:/app/storage, "ca:/local-ca:ro"]
+    networks: [private]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+      bridge: {condition: service_started}
+    mem_limit: 1536m
+  sidekiq:
+    image: ${CW_IMAGE}
+    pull_policy: never
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    environment: *env
+    volumes: [storage:/app/storage, "ca:/local-ca:ro"]
+    networks: [private]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    mem_limit: 1536m
+volumes:
+  db:
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+  redis:
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+  storage:
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+  ca:
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+networks:
+  private:
+    internal: true
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}
+  callback_host:
+    labels: {osplus.chatwoot.local: "${LOCAL_NONCE}"}

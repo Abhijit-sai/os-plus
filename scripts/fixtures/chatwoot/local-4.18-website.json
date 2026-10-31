@@ -1,0 +1,412 @@
+{
+  "provenance": "Captured from local Chatwoot4.18 CE synthetic browser conversation, 2026-10-21. Credential/avatar fields removed.",
+  "messages": [
+    {
+      "account": {
+        "id": 901,
+        "name": "Chat Local 1"
+      },
+      "additional_attributes": {},
+      "content_attributes": {
+        "in_reply_to": null
+      },
+      "content_type": "text",
+      "content": "Browser QA inquiry: can I arrange a consultation?",
+      "conversation": {
+        "additional_attributes": {
+          "browser": {
+            "device_name": "Unknown",
+            "browser_name": "Chrome",
+            "platform_name": "Windows",
+            "browser_version": "155.0.0.0",
+            "platform_version": "10.0"
+          },
+          "referer": null,
+          "initiated_at": {
+            "timestamp": "Wed Oct 21 2026 15:16:09 GMT+0530 (India Standard Time)"
+          },
+          "browser_language": "en"
+        },
+        "can_reply": true,
+        "channel": "Channel::WebWidget",
+        "contact_inbox": {
+          "id": 6,
+          "contact_id": 6,
+          "inbox_id": 901,
+          "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67",
+          "created_at": "2026-10-21T09:46:01.362Z",
+          "updated_at": "2026-10-21T09:46:01.362Z",
+          "hmac_verified": false
+        },
+        "id": 4,
+        "inbox_id": 901,
+        "messages": [
+          {
+            "id": 24,
+            "content": "Local staff test: yes, we can help arrange your consultation.",
+            "account_id": 901,
+            "inbox_id": 901,
+            "conversation_id": 4,
+            "message_type": 1,
+            "created_at": 1792576021,
+            "updated_at": "2026-10-21T09:47:02.253Z",
+            "private": false,
+            "status": "read",
+            "source_id": null,
+            "content_type": "text",
+            "content_attributes": {},
+            "sender_type": "User",
+            "sender_id": 1,
+            "external_source_ids": {},
+            "additional_attributes": {},
+            "processed_message_content": "Local staff test: yes, we can help arrange your consultation.",
+            "sentiment": {},
+            "conversation": {
+              "assignee_id": 1,
+              "unread_count": 0,
+              "last_activity_at": 1792576021,
+              "contact_inbox": {
+                "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67"
+              }
+            },
+            "sender": {
+              "id": 1,
+              "name": "Chat Local 1 Owner",
+              "available_name": "Chat Local 1 Owner",
+              "type": "user",
+              "availability_status": null
+            }
+          }
+        ],
+        "labels": [],
+        "meta": {
+          "sender": {
+            "additional_attributes": {},
+            "custom_attributes": {},
+            "email": null,
+            "id": 6,
+            "identifier": null,
+            "name": "quiet-sunset-325",
+            "phone_number": null,
+            "blocked": false,
+            "type": "contact"
+          },
+          "assignee": {
+            "id": 1,
+            "name": "Chat Local 1 Owner",
+            "available_name": "Chat Local 1 Owner",
+            "type": "user",
+            "availability_status": null
+          },
+          "assignee_type": "User",
+          "team": null,
+          "hmac_verified": false
+        },
+        "status": "open",
+        "custom_attributes": {},
+        "snoozed_until": null,
+        "unread_count": 0,
+        "first_reply_created_at": "2026-10-21T09:47:01.288Z",
+        "priority": null,
+        "waiting_since": 0,
+        "agent_last_seen_at": 1792576021,
+        "contact_last_seen_at": 1792576021,
+        "last_activity_at": 1792576021,
+        "timestamp": 1792576021,
+        "created_at": 1792575969,
+        "updated_at": 1792576021.411704,
+        "account": {
+          "id": 901,
+          "name": "Chat Local 1"
+        }
+      },
+      "created_at": "2026-10-21T09:46:09.651Z",
+      "id": 19,
+      "inbox": {
+        "id": 901,
+        "name": "Chat Local 1 Website"
+      },
+      "message_type": "incoming",
+      "private": false,
+      "sender": {
+        "account": {
+          "id": 901,
+          "name": "Chat Local 1"
+        },
+        "additional_attributes": {},
+        "custom_attributes": {},
+        "email": null,
+        "id": 6,
+        "identifier": null,
+        "name": "quiet-sunset-325",
+        "phone_number": null,
+        "blocked": false
+      },
+      "source_id": null,
+      "event": "message_created"
+    },
+    {
+      "account": {
+        "id": 901,
+        "name": "Chat Local 1"
+      },
+      "additional_attributes": {},
+      "content_attributes": {},
+      "content_type": "text",
+      "content": "Give the team a way to reach you.",
+      "conversation": {
+        "additional_attributes": {
+          "browser": {
+            "device_name": "Unknown",
+            "browser_name": "Chrome",
+            "platform_name": "Windows",
+            "browser_version": "155.0.0.0",
+            "platform_version": "10.0"
+          },
+          "referer": null,
+          "initiated_at": {
+            "timestamp": "Wed Oct 21 2026 15:16:09 GMT+0530 (India Standard Time)"
+          },
+          "browser_language": "en"
+        },
+        "can_reply": true,
+        "channel": "Channel::WebWidget",
+        "contact_inbox": {
+          "id": 6,
+          "contact_id": 6,
+          "inbox_id": 901,
+          "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67",
+          "created_at": "2026-10-21T09:46:01.362Z",
+          "updated_at": "2026-10-21T09:46:01.362Z",
+          "hmac_verified": false
+        },
+        "id": 4,
+        "inbox_id": 901,
+        "messages": [
+          {
+            "id": 24,
+            "content": "Local staff test: yes, we can help arrange your consultation.",
+            "account_id": 901,
+            "inbox_id": 901,
+            "conversation_id": 4,
+            "message_type": 1,
+            "created_at": 1792576021,
+            "updated_at": "2026-10-21T09:47:02.253Z",
+            "private": false,
+            "status": "read",
+            "source_id": null,
+            "content_type": "text",
+            "content_attributes": {},
+            "sender_type": "User",
+            "sender_id": 1,
+            "external_source_ids": {},
+            "additional_attributes": {},
+            "processed_message_content": "Local staff test: yes, we can help arrange your consultation.",
+            "sentiment": {},
+            "conversation": {
+              "assignee_id": 1,
+              "unread_count": 0,
+              "last_activity_at": 1792576021,
+              "contact_inbox": {
+                "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67"
+              }
+            },
+            "sender": {
+              "id": 1,
+              "name": "Chat Local 1 Owner",
+              "available_name": "Chat Local 1 Owner",
+              "type": "user",
+              "availability_status": null
+            }
+          }
+        ],
+        "labels": [],
+        "meta": {
+          "sender": {
+            "additional_attributes": {},
+            "custom_attributes": {},
+            "email": null,
+            "id": 6,
+            "identifier": null,
+            "name": "quiet-sunset-325",
+            "phone_number": null,
+            "blocked": false,
+            "type": "contact"
+          },
+          "assignee": {
+            "id": 1,
+            "name": "Chat Local 1 Owner",
+            "available_name": "Chat Local 1 Owner",
+            "type": "user",
+            "availability_status": null
+          },
+          "assignee_type": "User",
+          "team": null,
+          "hmac_verified": false
+        },
+        "status": "open",
+        "custom_attributes": {},
+        "snoozed_until": null,
+        "unread_count": 0,
+        "first_reply_created_at": "2026-10-21T09:47:01.288Z",
+        "priority": null,
+        "waiting_since": 0,
+        "agent_last_seen_at": 1792576021,
+        "contact_last_seen_at": 1792576021,
+        "last_activity_at": 1792576021,
+        "timestamp": 1792576021,
+        "created_at": 1792575969,
+        "updated_at": 1792576021.411704,
+        "account": {
+          "id": 901,
+          "name": "Chat Local 1"
+        }
+      },
+      "created_at": "2026-10-21T09:46:09.702Z",
+      "id": 20,
+      "inbox": {
+        "id": 901,
+        "name": "Chat Local 1 Website"
+      },
+      "message_type": "template",
+      "private": false,
+      "sender": null,
+      "source_id": null,
+      "event": "message_created"
+    },
+    {
+      "account": {
+        "id": 901,
+        "name": "Chat Local 1"
+      },
+      "additional_attributes": {},
+      "content_attributes": {},
+      "content_type": "text",
+      "content": "Local staff test: yes, we can help arrange your consultation.",
+      "conversation": {
+        "additional_attributes": {
+          "browser": {
+            "device_name": "Unknown",
+            "browser_name": "Chrome",
+            "platform_name": "Windows",
+            "browser_version": "155.0.0.0",
+            "platform_version": "10.0"
+          },
+          "referer": null,
+          "initiated_at": {
+            "timestamp": "Wed Oct 21 2026 15:16:09 GMT+0530 (India Standard Time)"
+          },
+          "browser_language": "en"
+        },
+        "can_reply": true,
+        "channel": "Channel::WebWidget",
+        "contact_inbox": {
+          "id": 6,
+          "contact_id": 6,
+          "inbox_id": 901,
+          "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67",
+          "created_at": "2026-10-21T09:46:01.362Z",
+          "updated_at": "2026-10-21T09:46:01.362Z",
+          "hmac_verified": false
+        },
+        "id": 4,
+        "inbox_id": 901,
+        "messages": [
+          {
+            "id": 24,
+            "content": "Local staff test: yes, we can help arrange your consultation.",
+            "account_id": 901,
+            "inbox_id": 901,
+            "conversation_id": 4,
+            "message_type": 1,
+            "created_at": 1792576021,
+            "updated_at": "2026-10-21T09:47:02.253Z",
+            "private": false,
+            "status": "read",
+            "source_id": null,
+            "content_type": "text",
+            "content_attributes": {},
+            "sender_type": "User",
+            "sender_id": 1,
+            "external_source_ids": {},
+            "additional_attributes": {},
+            "processed_message_content": "Local staff test: yes, we can help arrange your consultation.",
+            "sentiment": {},
+            "conversation": {
+              "assignee_id": 1,
+              "unread_count": 0,
+              "last_activity_at": 1792576021,
+              "contact_inbox": {
+                "source_id": "c3356b73-9c2e-4895-85d3-e3323a396d67"
+              }
+            },
+            "sender": {
+              "id": 1,
+              "name": "Chat Local 1 Owner",
+              "available_name": "Chat Local 1 Owner",
+              "type": "user",
+              "availability_status": null
+            }
+          }
+        ],
+        "labels": [],
+        "meta": {
+          "sender": {
+            "additional_attributes": {},
+            "custom_attributes": {},
+            "email": null,
+            "id": 6,
+            "identifier": null,
+            "name": "quiet-sunset-325",
+            "phone_number": null,
+            "blocked": false,
+            "type": "contact"
+          },
+          "assignee": {
+            "id": 1,
+            "name": "Chat Local 1 Owner",
+            "available_name": "Chat Local 1 Owner",
+            "type": "user",
+            "availability_status": null
+          },
+          "assignee_type": "User",
+          "team": null,
+          "hmac_verified": false
+        },
+        "status": "open",
+        "custom_attributes": {},
+        "snoozed_until": null,
+        "unread_count": 0,
+        "first_reply_created_at": "2026-10-21T09:47:01.288Z",
+        "priority": null,
+        "waiting_since": 0,
+        "agent_last_seen_at": 1792576021,
+        "contact_last_seen_at": 1792576021,
+        "last_activity_at": 1792576021,
+        "timestamp": 1792576021,
+        "created_at": 1792575969,
+        "updated_at": 1792576021.411704,
+        "account": {
+          "id": 901,
+          "name": "Chat Local 1"
+        }
+      },
+      "created_at": "2026-10-21T09:47:01.288Z",
+      "id": 24,
+      "inbox": {
+        "id": 901,
+        "name": "Chat Local 1 Website"
+      },
+      "message_type": "outgoing",
+      "private": false,
+      "sender": {
+        "id": 1,
+        "name": "Chat Local 1 Owner",
+        "email": "owner1@chat-local.example",
+        "type": "user"
+      },
+      "source_id": null,
+      "event": "message_created"
+    }
+  ]
+}

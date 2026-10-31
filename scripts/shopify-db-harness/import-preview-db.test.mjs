@@ -4,10 +4,11 @@ import { before, after, test } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import { normalizeShopifyReference, classifyShopifyImport } from '../../src/integrations/shopify/import-plan.ts';
 import { createShopifyImportPreviewService } from '../../src/integrations/shopify/import-preview-service.ts';
 
-const db = new PGlite();
+const db = new PGlite({extensions:{pgcrypto}});
 const folder = new URL('../../supabase/migrations/', import.meta.url);
 const tenant = randomUUID(), foreign = randomUUID(), customer = randomUUID(), connection = randomUUID();
 const shop = 'gid://shopify/Shop/800', orderGid = 'gid://shopify/Order/801';
@@ -18,7 +19,7 @@ before(async () => {
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated,service_role;
     GRANT USAGE ON SCHEMA public TO anon,authenticated,service_role;`);
   for (const file of (await readdir(folder)).filter(f => f.endsWith('.sql')).sort())
-    await db.exec((await readFile(new URL(file, folder), 'utf8')).replace('create extension if not exists "pgcrypto";', ''));
+    await db.exec((await readFile(new URL(file, folder), 'utf8')));
   await db.query(`INSERT INTO tenants(id,name,slug,store_name) VALUES($1,'Fictional import','fictional-import','Fictional'),($2,'Foreign','foreign-import','Foreign')`, [tenant, foreign]);
   await db.query(`INSERT INTO tenant_users(tenant_id,clerk_user_id,role,status) VALUES($1,'owner','owner_admin','active'),($1,'manager','manager','active'),($2,'foreign-owner','owner_admin','active')`, [tenant, foreign]);
   await db.query(`INSERT INTO customers(id,tenant_id,name) VALUES($1,$2,'Fictional customer')`, [customer, tenant]);

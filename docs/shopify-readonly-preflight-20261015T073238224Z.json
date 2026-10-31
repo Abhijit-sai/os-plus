@@ -96,4 +96,3 @@
   "disposableCleanupComplete": true,
   "limitation": "SELECT-only inspection, not full new schema-compatibility approval or a new migration rehearsal."
 }
-

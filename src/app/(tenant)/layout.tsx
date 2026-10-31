@@ -1,3 +1,4 @@
+import { getChatNavigation } from "@/features/leads/queries";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentTenantVerticalKeys } from "@/features/verticals/queries";
 import { requireTenantContext } from "@/lib/tenant/context";
@@ -10,5 +11,6 @@ export default async function TenantLayout({
   const context = await requireTenantContext();
   const verticalKeys = await getCurrentTenantVerticalKeys(context);
 
-  return <AppShell context={context} verticalKeys={verticalKeys}>{children}</AppShell>;
+  const chatNavigation = await getChatNavigation();
+  return <AppShell context={context} verticalKeys={verticalKeys} chatNavigation={chatNavigation}>{children}</AppShell>;
 }

@@ -1,3 +1,4 @@
+import { isTenantChatEnabled } from "@/features/chat/module";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
     teams
   } = await getSettingsOverview();
 
+  const chatEnabled = membership.role === "owner_admin" && await isTenantChatEnabled(tenant.id);
   const settingsCards = [
     { href: "/settings/business-profile", title: "Business profile", count: tenant.store_name, description: "Store name and brand color" },
     { href: "/settings/users", title: "Users and roles", count: tenantUsers.length, description: "Internal profiles and module access" },
@@ -62,6 +64,8 @@ export default async function SettingsPage() {
   if (membership.role === "owner_admin" && isShopifyConnectionScreenEnabled(tenant.id)) {
     settingsCards.push({ href: "/settings/shopify", title: "Shopify connection", count: "Pilot", description: "Read-only store access and setup status" });
   }
+
+  if (chatEnabled) settingsCards.push({ href: "/settings/chat", title: "Chat setup", count: "Setup", description: "Brands, branches, knowledge and Chat access" });
 
   return (
     <div className="space-y-6">

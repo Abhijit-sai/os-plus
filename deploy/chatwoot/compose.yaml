@@ -1,0 +1,218 @@
+name: osplus-chat
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-chat-env: &chat-env
+  RAILS_ENV: production
+  NODE_ENV: production
+  INSTALLATION_ENV: docker
+  FRONTEND_URL: https://${CHAT_HOST:?Choose the chat hostname}
+  FORCE_SSL: "true"
+  ENABLE_ACCOUNT_SIGNUP: "false"
+  SECRET_KEY_BASE: ${CW_SECRET_KEY_BASE:?Generate a fresh Chatwoot key}
+  ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${CW_ENCRYPTION_PRIMARY_KEY:?Generate an MFA key}
+  ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${CW_ENCRYPTION_DETERMINISTIC_KEY:?Generate an MFA key}
+  ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${CW_ENCRYPTION_SALT:?Generate an MFA salt}
+  POSTGRES_HOST: cw-postgres
+  POSTGRES_DATABASE: chatwoot
+  POSTGRES_USERNAME: chatwoot
+  POSTGRES_PASSWORD: ${CW_DB_PASSWORD:?Generate a database password}
+  REDIS_URL: redis://redis:6379
+  REDIS_PASSWORD: ${CW_REDIS_PASSWORD:?Generate a Redis password}
+  ACTIVE_STORAGE_SERVICE: local
+  RAILS_MAX_THREADS: "3"
+  WEB_CONCURRENCY: "1"
+  SIDEKIQ_CONCURRENCY: "3"
+  RAILS_LOG_TO_STDOUT: "true"
+  LOG_LEVEL: warn
+  ENABLE_PUSH_RELAY_SERVER: "false"
+  FB_APP_ID: ${FB_APP_ID:-}
+  FB_APP_SECRET: ${FB_APP_SECRET:-}
+  FB_VERIFY_TOKEN: ${FB_VERIFY_TOKEN:-}
+  IG_VERIFY_TOKEN: ${IG_VERIFY_TOKEN:-}
+  MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL:-}
+  SMTP_ADDRESS: ${SMTP_ADDRESS:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_AUTHENTICATION: plain
+  SMTP_ENABLE_STARTTLS_AUTO: "true"
+  SMTP_OPENSSL_VERIFY_MODE: peer
+
+services:
+  rails:
+    image: ${CHATWOOT_IMAGE:-chatwoot/chatwoot:v4.18.0-ce}
+    restart: unless-stopped
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    environment: *chat-env
+    volumes: [cw-storage:/app/storage]
+    networks: [cw-backend]
+    mem_limit: 1536m
+    cpus: 1.5
+    logging: *logging
+    depends_on:
+      cw-postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "ruby", "-rnet/http", "-e", "req=Net::HTTP::Get.new('/api'); req['X-Forwarded-Proto']='https'; exit(Net::HTTP.start('127.0.0.1',3000){|h|h.request(req)}.is_a?(Net::HTTPSuccess) ? 0 : 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+  sidekiq:
+    image: ${CHATWOOT_IMAGE:-chatwoot/chatwoot:v4.18.0-ce}
+    restart: unless-stopped
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    environment: *chat-env
+    volumes: [cw-storage:/app/storage]
+    networks: [cw-backend]
+    mem_limit: 1536m
+    cpus: 1.5
+    logging: *logging
+    depends_on:
+      cw-postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  cw-postgres:
+    image: ${CHATWOOT_POSTGRES_IMAGE:-pgvector/pgvector:pg16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chatwoot
+      POSTGRES_USER: chatwoot
+      POSTGRES_PASSWORD: ${CW_DB_PASSWORD:?Generate a database password}
+    volumes: [cw-postgres:/var/lib/postgresql/data]
+    networks: [cw-backend]
+    mem_limit: 1024m
+    cpus: 1
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwoot -d chatwoot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4-alpine}
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${CW_REDIS_PASSWORD:?Generate a Redis password}
+    # RDB persistence is backed up after stopping both producers and consumers.
+    command: ["sh", "-ec", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly no --save 60 1"]
+    volumes: [cw-redis:/data]
+    networks: [cw-backend]
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  n8n-postgres:
+    image: ${N8N_POSTGRES_IMAGE:-postgres:16-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${N8N_DB_ADMIN_PASSWORD:?Generate a separate admin password}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD:?Generate an n8n application password}
+    volumes:
+      - n8n-postgres:/var/lib/postgresql/data
+      - ./scripts/init-n8n-db.sh:/docker-entrypoint-initdb.d/10-n8n.sh:ro
+    networks: [n8n-backend]
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d n8n"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  n8n:
+    image: ${N8N_IMAGE:-docker.n8n.io/n8nio/n8n:2.45.6}
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n-postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?Generate an n8n application password}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Generate a fresh n8n encryption key}
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      N8N_EDITOR_BASE_URL: http://localhost:5678/
+      # The editor is only accessed over an authenticated SSH tunnel.
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_RUNNERS_ENABLED: "false"
+      NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.readWriteFile","n8n-nodes-base.localFileTrigger","n8n-nodes-base.code"]'
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      GENERIC_TIMEZONE: ${SCHEDULER_TIMEZONE:-Asia/Kolkata}
+      TZ: ${SCHEDULER_TIMEZONE:-Asia/Kolkata}
+    ports: ["127.0.0.1:5678:5678"]
+    volumes: [n8n-storage:/home/node/.n8n]
+    networks: [n8n-backend]
+    mem_limit: 1024m
+    cpus: 1
+    logging: *logging
+    depends_on:
+      n8n-postgres: {condition: service_healthy}
+
+  backup-files:
+    # Operational helper avoids depending on tar inside either application image.
+    profiles: [ops]
+    image: ${BACKUP_IMAGE:-alpine:3.22}
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [DAC_READ_SEARCH]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - cw-storage:/snapshots/chatwoot:ro
+      - n8n-storage:/snapshots/n8n:ro
+    mem_limit: 128m
+    cpus: 0.5
+    logging: *logging
+
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2.10-alpine}
+    restart: unless-stopped
+    environment:
+      CHAT_HOST: ${CHAT_HOST:?Choose the chat hostname}
+      ACME_EMAIL: ${ACME_EMAIL:?Set the operations email}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [cw-backend]
+    mem_limit: 128m
+    cpus: 0.5
+    logging: *logging
+
+networks:
+  cw-backend:
+  n8n-backend:
+volumes:
+  cw-storage:
+  cw-postgres:
+  cw-redis:
+  n8n-postgres:
+  n8n-storage:
+  caddy-data:
+  caddy-config:

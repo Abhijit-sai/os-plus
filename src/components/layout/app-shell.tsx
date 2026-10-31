@@ -16,6 +16,7 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  MessageSquare,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -41,6 +42,7 @@ const navItems: Array<{
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  external?: boolean;
   permission: Permission;
   vertical?: TenantVerticalKey;
 }> = [
@@ -139,16 +141,23 @@ function formatRole(role: string) {
 export function AppShell({
   context,
   verticalKeys,
+  chatNavigation = {leads:false,chats:false},
   children,
 }: {
   context: TenantContext;
   verticalKeys: TenantVerticalKey[];
+  chatNavigation?: {leads:boolean;chats:boolean};
   children: React.ReactNode;
 }) {
-  const visibleNavItems = navItems.filter((item) =>
+  const platformItems = navItems.filter((item) =>
     hasPermission(context.membership.role, item.permission) &&
     (!item.vertical || verticalKeys.includes(item.vertical)),
   );
+  const chatItems = [
+    ...(chatNavigation.leads?[{href:"/leads",label:"Leads",icon:ListChecks,external:false}]:[]),
+    ...(chatNavigation.chats?[{href:"/chat",label:"Chats",icon:MessageSquare,external:true}]:[])
+  ];
+  const visibleNavItems = [...platformItems.filter(item=>item.href!=="/settings"),...chatItems,...platformItems.filter(item=>item.href==="/settings")];
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarWidthClass = isCollapsed ? "lg:w-16" : "lg:w-64";
@@ -228,6 +237,7 @@ export function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
+                  target={item.external?"_blank":undefined} rel={item.external?"noopener noreferrer":undefined}
                   title={isCollapsed ? item.label : undefined}
                   className={cn(
                     "flex items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
@@ -251,7 +261,7 @@ export function AppShell({
             <div className="flex items-center justify-between gap-3">
               <div className="lg:hidden">
                 <Dialog key={pathname} title="Navigation" className="max-w-sm" trigger={<span className="inline-flex h-11 w-11 items-center justify-center rounded-md border"><Menu className="h-5 w-5" /><span className="sr-only">Open navigation</span></span>}>
-                  {({ close }) => <nav aria-label="Mobile navigation" className="grid gap-1">{visibleNavItems.map((item) => <Link key={item.href} href={item.href} onClick={close} aria-current={pathname.startsWith(item.href) ? "page" : undefined} className={cn("flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm", pathname.startsWith(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-accent")}><item.icon className="h-4 w-4" />{item.label}</Link>)}</nav>}
+                  {({ close }) => <nav aria-label="Mobile navigation" className="grid gap-1">{visibleNavItems.map((item) => <Link key={item.href} href={item.href} target={item.external?"_blank":undefined} rel={item.external?"noopener noreferrer":undefined} onClick={close} aria-current={pathname.startsWith(item.href) ? "page" : undefined} className={cn("flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm", pathname.startsWith(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-accent")}><item.icon className="h-4 w-4" />{item.label}</Link>)}</nav>}
                 </Dialog>
               </div>
               <div className="min-w-0 flex-1">

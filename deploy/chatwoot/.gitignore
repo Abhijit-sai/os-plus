@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+backups/
+*.age
+*.sql
+*.dump
+*.tar
+*.tar.gz
+*.log
+.restore-*/
