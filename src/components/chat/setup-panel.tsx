@@ -17,6 +17,7 @@ export function ChatSetupPanel({
   section,
   save,
   sync,
+  pause,
   loadKnowledge,
 }: {
   loadKnowledge: (input: unknown) => Promise<ChatActionResult>;
@@ -28,6 +29,11 @@ export function ChatSetupPanel({
     expectedTenantId: string,
   ) => Promise<ChatActionResult>;
   sync: (expectedTenantId: string) => Promise<ChatActionResult>;
+  pause: (
+    input: unknown,
+    key: string,
+    expectedTenantId: string,
+  ) => Promise<ChatActionResult>;
 }) {
   const [inboxes, setInboxes] = useState<ChatInbox[]>([]);
   const scopedSave = (input: unknown, key: string) =>
@@ -247,6 +253,29 @@ export function ChatSetupPanel({
                 {data.brands.find((b) => b.id === channel.brand_id)?.name ??
                   "Archived brand"}{" "}
                 · {channel.is_active ? channel.agent_mode : "Inactive"}
+                {channel.is_active &&
+                  (channel.agent_mode === "off" ? (
+                    <p className="mt-2">Staff replies only</p>
+                  ) : (
+                    <ChatForm
+                      label="Use staff replies only"
+                      save={(_d, key) =>
+                        pause(
+                          {
+                            channelId: channel.id,
+                            version: channel.settings_version,
+                          },
+                          key,
+                          data.tenantId,
+                        )
+                      }
+                    >
+                      <p className="mt-2 text-muted-foreground">
+                        Turn off suggestions, automatic replies and booking
+                        requests for this inbox.
+                      </p>
+                    </ChatForm>
+                  ))}
               </li>
             ))}
           </ul>

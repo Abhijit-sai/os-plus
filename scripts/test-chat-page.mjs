@@ -17,6 +17,7 @@ function page(failure) {
       chatSettingsSection: () => "overview",
     },
     "@/features/chat/actions": {},
+    "@/features/chat/channel-off-actions": {},
     "@/features/chat/agent/preview-server": {
       isMockPreviewEnabled: () => false,
     },
@@ -109,6 +110,7 @@ test("permission-query outages propagate through the real guard and page as safe
             chatSettingsSection: () => "overview",
           },
           "@/features/chat/actions": {},
+    "@/features/chat/channel-off-actions": {},
           "@/features/chat/agent/preview-server": {
             isMockPreviewEnabled: () => false,
           },

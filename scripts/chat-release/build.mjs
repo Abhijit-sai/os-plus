@@ -14,13 +14,17 @@ const mixedCRLFLines={
   "20261021140000_chat_crm_reads.sql":[202],
 };
 
+// Separately reviewed additions are never included in the already-installed35 bundle.
+export const chatReleaseFollowups = Object.freeze(["20261031132000_chat_staff_link_commands.sql"]);
+
 // Pure preparation. No database, credentials, network or application env access.
 export function readChatRelease(root) {
   const contract = JSON.parse(readFileSync(contractPath,"utf8"));
   const folder = path.join(root,"supabase/migrations");
   const names = readdirSync(folder).filter(n=>n.endsWith(".sql")).sort();
-  if (contract.count !==106 || names.length!==106 ||
-      names.some((name,i)=>name!==contract.files[i].file)) throw new Error("FROZEN_MIGRATION_INVENTORY_CHANGED");
+  const frozenNames = names.filter(name => !chatReleaseFollowups.includes(name));
+  if (contract.count !==106 || frozenNames.length!==106 ||
+      frozenNames.some((name,i)=>name!==contract.files[i].file)) throw new Error("FROZEN_MIGRATION_INVENTORY_CHANGED");
   const files=[];
   for (const item of contract.files) {
     let raw=readFileSync(path.join(folder,item.file));

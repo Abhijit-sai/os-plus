@@ -1,3 +1,4 @@
+import { setChannelStaffOnlyAction } from "@/features/chat/channel-off-actions";
 import Link from "next/link";
 import {
   saveChatAction,
@@ -104,6 +105,7 @@ export default async function ChatSettingsPage({
               data={data}
               save={saveChatAction}
               sync={syncChatInboxesAction}
+              pause={setChannelStaffOnlyAction}
               loadKnowledge={loadChatKnowledgeAction}
             />
           ) : null}

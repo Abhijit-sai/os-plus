@@ -102,6 +102,15 @@ export type ChatLead = Owned & {
   version: number;
 };
 export type ChatTables = {
+  chat_channel_action_approvals: Table<{
+    tenant_id: string;
+    channel_id: string;
+    version: number;
+    pack_id: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
+    updated_at: string;
+  }>;
   chat_contacts: Table<ChatContact>;
   leads: Table<ChatLead>;
   chat_contact_identities: Table<{
@@ -229,6 +238,10 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_staff_link_configure: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
   chat_platform_alert: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

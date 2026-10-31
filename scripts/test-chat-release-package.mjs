@@ -63,3 +63,15 @@ test("checkout tolerance still rejects substantive baseline and Chat SQL mutatio
     writeFileSync(filename,original);
   }
 });
+
+test("separate staff-link migration never changes the frozen35 package, and unknown inventory is rejected", t => {
+  const expected = readChatRelease(root);
+  const fixture = checkoutFixture(t, "\n");
+  writeFileSync(path.join(fixture.migrations, "20261031132000_chat_staff_link_commands.sql"), "begin;\nselect 1;\ncommit;\n");
+  const actual = readChatRelease(fixture.folder);
+  assert.equal(actual.sql, expected.sql);
+  assert.deepEqual(actual.manifest, expected.manifest);
+  assert.doesNotMatch(actual.sql, /chat_staff_link_configure/);
+  writeFileSync(path.join(fixture.migrations, "20261031132100_unknown_followup.sql"), "select 1;\n");
+  assert.throws(() => readChatRelease(fixture.folder), /FROZEN_MIGRATION_INVENTORY_CHANGED/);
+});

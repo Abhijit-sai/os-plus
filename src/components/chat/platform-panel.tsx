@@ -4,17 +4,21 @@ import { Button } from "@/components/ui/button";
 import { ChatForm, ChatInput, ChatSection, field } from "./setup-form";
 import type { ChatActionResult } from "@/features/chat/actions";
 import type { getPlatformChatSetup } from "@/features/chat/queries";
+import { StaffLinks, type StaffLinkActions } from "./staff-links";
+
 type Tenant = Awaited<ReturnType<typeof getPlatformChatSetup>>[number];
 type Connect = (input: unknown) => Promise<ChatActionResult>;
 function Workspace({
   tenant,
   save,
   connect,
+  loadStaff,
+  linkStaff,
 }: {
   tenant: Tenant;
   connect: Connect;
   save: (input: unknown, key: string) => Promise<ChatActionResult>;
-}) {
+} & StaffLinkActions) {
   const [webhooks, setWebhooks] = useState<ChatActionResult["webhooks"]>();
   const commit = (key: string, action: string, extra: object = {}) =>
     save({ action, tenantId: tenant.id, ...extra }, key);
@@ -99,6 +103,19 @@ function Workspace({
                 an administrator belonging to this account.
               </p>
             </ChatForm>
+            {tenant.workspace.status === "active" &&
+              tenant.workspace.chatwoot_account_id && (
+                <StaffLinks
+                  key={tenant.workspace.id}
+                  scope={{
+                    tenantId: tenant.id,
+                    workspaceId: tenant.workspace.id,
+                    accountId: tenant.workspace.chatwoot_account_id,
+                  }}
+                  loadStaff={loadStaff}
+                  linkStaff={linkStaff}
+                />
+              )}
             {tenant.enabled && tenant.workspace.status === "active" && (
               <ChatForm
                 label="Connect Chatwoot webhooks"
@@ -207,11 +224,13 @@ export function PlatformChatPanel({
   tenants,
   save,
   connect,
+  loadStaff,
+  linkStaff,
 }: {
   tenants: Tenant[];
   connect: Connect;
   save: (input: unknown, key: string) => Promise<ChatActionResult>;
-}) {
+} & StaffLinkActions) {
   return (
     <ChatSection
       title="Chat workspaces"
@@ -226,6 +245,8 @@ export function PlatformChatPanel({
             tenant={tenant}
             save={save}
             connect={connect}
+            loadStaff={loadStaff}
+            linkStaff={linkStaff}
           />
         ))
       )}

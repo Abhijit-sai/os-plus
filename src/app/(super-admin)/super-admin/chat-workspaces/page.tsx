@@ -1,3 +1,7 @@
+import {
+  loadPlatformChatStaffAction,
+  linkPlatformChatStaffAction,
+} from "@/features/chat/staff-link-actions";
 import { connectPlatformChatTransportAction } from "@/features/chat/transport-actions";
 import { savePlatformChatAction } from "@/features/chat/actions";
 import { notFound } from "next/navigation";
@@ -11,6 +15,8 @@ export default async function ChatWorkspacesPage() {
       tenants={await getPlatformChatSetup()}
       save={savePlatformChatAction}
       connect={connectPlatformChatTransportAction}
+      loadStaff={loadPlatformChatStaffAction}
+      linkStaff={linkPlatformChatStaffAction}
     />
   );
 }
