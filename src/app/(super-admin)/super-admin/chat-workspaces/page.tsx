@@ -1,3 +1,4 @@
+import { connectPlatformChatTransportAction } from "@/features/chat/transport-actions";
 import { savePlatformChatAction } from "@/features/chat/actions";
 import { notFound } from "next/navigation";
 import { isChatFoundationEnabled } from "@/features/chat/module";
@@ -9,6 +10,7 @@ export default async function ChatWorkspacesPage() {
     <PlatformChatPanel
       tenants={await getPlatformChatSetup()}
       save={savePlatformChatAction}
+      connect={connectPlatformChatTransportAction}
     />
   );
 }
