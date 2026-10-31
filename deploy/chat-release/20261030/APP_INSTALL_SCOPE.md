@@ -29,3 +29,7 @@ After an approved installation, verify actual deployed source/domain and that Ch
 Preserve current production deployment9WpBNhMhAuTvPFumCSCwtKjVmfYp/sourcec686337 and unrelated env. If the new app fails, return the production alias to that verified prior deployment and restore only reviewed env changes. Keep the additive Chat schema/data; never drop tables or restore sharedDB over newer business records. Do not rotate keys or recreate VPS volumes. Reverify prior deployment availability immediately before any release.
 
 No AI/STT/Telegram/real Meta messages, workflow activation or purchase. Feature provider/STT/judge spendUSD0. This file and app-install-scope.json are review material, not an execution script or permission.
+
+
+## Approval and completion receipt - 31 October 2026
+Owner explicitly approved the exact scope underCHAT-D073. PR10/head1c2d609 merged643cf10 andfreshProductionBd6qVpC3G9vTTFF8R9qvrdjVcqU4 is verified onlivealias. No SQL/environment/secrets change; allChatmodules/workspaces/channels0.9public/denial and16READONLYTest checks pass, but fullinteractiveTest acceptance is blocked byComputerUseURLconfidence and freshShopifyimport cannotpass withoutTestOAuthcredential. No Chatactivation. Approval is consumed for this exactmerge/deploy, not anotherrelease. PRODUCTION_RELEASE_RECEIPT.md/current summary recordalllimits; originalproposal retained fortraceability.

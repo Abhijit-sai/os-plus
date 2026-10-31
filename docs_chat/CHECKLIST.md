@@ -227,3 +227,6 @@ See CH10_BOUTIQUE_RELEASE_QA.md for fresh search/measurement/unsavedforms/GST/pu
 
 
 31October2026IST CHAT-D072: owner "ch10 can be accepted, go ahead." CH10 implemented engineering scope accepted/CLOSED LOCAL; phase commit authorized underD025. Full PartsB/D, hosted Test/candidate Boutique/persona/mobile/SSO/ops and live-model/draft-week gates remain open production-release work. No unattendedAI/STT/Telegram/workflow enabled; backupsdeferredD069/notPASS. See CH10_OWNER_ACCEPTANCE.md. This supersedes only phase-acceptance status, not the unexecuted checkbox evidence.
+
+
+31October2026IST D073 all-off app deployment complete: mergedPR10/main643cf10, VercelProductionBd6qVpC3G9vTTFF8R9qvrdjVcqU4 livealiasverified.9public/auth/disabledendpoint and16READONLYTest invariant checks pass. AlltenantChatmodule/workspace/channel rows0; no SQL/env/secret edits. FullTestexisting-flow browser checks remainpartial because newOSPLUSwindow URLcouldnotbeverified; no PartD/clientactivationPASS. TestShopifyOAuthcredentialabsent, no liveimport proof. EngineeringacceptedD072; appdeployed/Chatdisabled/TestQA_BLOCKED. KeepB1/B7/B8/PartDsecurity/provider/client gates open andD069backupdeferral/notPASS. ResumeexistingTestchecks in normalChrome tab before anyactivation; seeproductionreceipt.

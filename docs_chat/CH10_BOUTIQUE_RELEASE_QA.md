@@ -33,3 +33,19 @@ Owner makes Chrome visible. Supersedes only earlier unavailable observations: cu
 P2 existing fit-reference overflow reproduced live468/532. Local ONLY2CSSclass fix verified using actual builder synthetic fixture, innerWidth390/client367/scroll367 after vs714before;768/745 and1440/1440 nooverflow. UI primitive mocks/overlays simplified; hostedapp/mobile not certified. SourceUnicode preserved after caught locale-write issue; finaldiff2lines only. SourceHash401459b25ece3182251cb2ea2ec5562031e4b93ed5eff57c112f66203e1b82e2. Chrome fixturemetrics/browser-metrics-chrome.json and before/after inputs under ignored order-layout evidence. IAB screenshot fallback for isolatedfixture only at absolute screenshot path in SAMEsummary. No production UI patch installed.
 Fresh sixgates pass after appedit incl313/313ChatPG17.6,0skip/fail/cancel/todo,60s; existing7liveIDs unchanged and owned cleanuptrue. Sourcebundle61ca1ee96e9ec9720a57ef176c0cc8be45accf951a971b6b1bad996faeb7af89. OrderUI9/feedback/add-items/targetedESLint pass. NarrowreviewStandards0,Spec1inventorygapfixed0remaining; latestscanner rejects spreads/formoverride with7negative2positive fixtures, structuralonly. Lastscanner-onlydelta separatelytested/linted afternativebundle; no automatic claim exactfullsuite coverslaterbytes. EarlierShopifyregression/atomic7evidence remainsdated, SQLunchanged.
 Currentmain/VercelCurrentProductionReadyc686337 reverified; no commit/deploy/migration/backup. Backupdeferred D069. CH10QA_BLOCKED/READY_FOR_CLOSURE:NO. Pending checkpointproposal is review-only and requires explicit scopedcommitexception/push authority.
+
+
+## 31 October 2026 IST - New production643cf10; read-only Test checks; interactive block
+App deployedalloff underD073, exactlivealias marker Bd6qVpC3G9vTTFF8R9qvrdjVcqU4. OwnerreportsTestdashboardopen; ComputerUse cannotverifynewChromeOSPLUSwindowURL, stopsbefore app input. No new authenticated browserPASS is claimed.9endpointdenial/availability and16READONLYTest invariants pass separately.
+
+| QA area | Fresh result | Still pending |
+|---|---|---|
+|BA001|ExactTestactive inDB; ownerreportsdashboardopen|Actual retained/freshlogin/persona/tenant-switch UI proof|
+|BA002-003|27customerrows andownershipchecks, no names/PII output|Create/search/measurementselection onnewbuild|
+|BA004-006|Retained ORD-000012 still4items,total1652; workflow/stage parent ownership valid|Newmultipleitemorder andperitemworkflow persistence|
+|BA007-008|Retained workflow/stage linkage valid; no mutation|Start/complete/nextstage UI and persistence|
+|BA009|Publiclanding200; protectedroutesdenyunauth|Fresh publictracking/privacy acceptance|
+|BA010-011|Retainednativepaid300/receiptSum300/balance1352 consistent|Newpartialpayment andFinanceUI reflection|
+|BA012-014|No newUIinput succeeded|FreshGST/dryrunqueue/edit smoke|
+
+No customer/order/payment/stage/communication created or edited. Counts27customers/31orders/28items/19payments/30workflows/169stages are observations including retained/deleted history, not before/after row preservation. Service-role linkagechecks are not authenticated RLS/persona denial. ShopifyTest approvedstore row persists, release/automationoff, OAuthcredentialabsent; no sourceAPI/import acceptance. Chat remainsdisabled; fullTierA notcomplete. Currentrelease receipt/evidence in deploy/chat-release/20261030/PRODUCTION_RELEASE_RECEIPT.md and SAMEsummary.

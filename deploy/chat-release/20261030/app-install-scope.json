@@ -1,6 +1,6 @@
 {
-  "status": "PREPARED_NOT_EXECUTED",
-  "approved": false,
+  "status": "DEPLOYED_CHAT_DISABLED_TEST_QA_INCOMPLETE",
+  "approved": true,
   "mayMerge": false,
   "mayDeploy": false,
   "mayEnableTenant": false,
@@ -54,9 +54,9 @@
     "current public production GET200/TLSverified; initial20s timeout retained and resolved, cause unproven"
   ],
   "pending": [
-    "current candidate authenticated full Boutique/roles/mobile checks",
-    "explicit exact all-off shared-app release/staged disposition",
-    "later separate NEW Test workspace/inbox/capture authority and hosted acceptance"
+    "Finish authorized Test existing-flow interactive acceptance in a URL-verifiable normal Chrome tab",
+    "Shopify Test OAuth/API/import acceptance remains incomplete; no credential currently stored",
+    "Separate NEW Test workspace/inbox/role/capture authority and hosted acceptance before real business activation"
   ],
   "backupDecision": "D069 OWNER_DEFERRED_NOT_PASS; no new backup/storage purchase/upload/schedule",
   "featureProviderSpendUsd": 0,
@@ -65,5 +65,36 @@
   "deploymentMechanism": "mark PR10 ready and merge approved exact head; fresh main Production build, not preview promotion",
   "applicationSourceCommit": "79763a223e948de6d0db70078717e75efb907f4f",
   "releaseHeadPolicy": "Final approval pins the published PR head; only reviewed documentation descendants of79763a2 are allowed without repeating source review",
-  "candidateManualRegressionDisposition": "PENDING_EXPLICIT_STAGED_APPROVAL for immediate Test-only regression after all-off install"
+  "candidateManualRegressionDisposition": "APPROVED_STAGED_POSTINSTALL_D073; interactive checks incomplete, no activation",
+  "approval": {
+    "decision": "CHAT-D073",
+    "ownerQuote": "Yes, approved. Merge PR #10 and deploy with Chat disabled for everyone, then run the checks in Phantom Threads Test before activating Chat.",
+    "approvedHead": "1c2d6096e0abdfd0bb896e744d0319d463044964",
+    "previousMain": "c686337c0f059cbe6ae40bbcadc2f6c0da2ffc0a",
+    "executed": true,
+    "noRepeatOrNewHeadAuthority": true
+  },
+  "execution": {
+    "mergeCommit": "643cf10e7ed7f340f0614b598f23468c12988d6c",
+    "vercelDeployment": "Bd6qVpC3G9vTTFF8R9qvrdjVcqU4",
+    "gitHubDeploymentId": 7455643998,
+    "state": "Production success; live alias exact marker verified",
+    "environmentChanges": {},
+    "sqlExecuted": [],
+    "tenantEnabled": false
+  },
+  "postDeploymentChecks": {
+    "publicEndpointChecks": {
+      "pass": 9,
+      "count": 9
+    },
+    "readOnlyTestInvariants": {
+      "pass": 16,
+      "count": 16
+    },
+    "authenticatedInteractiveComplete": false,
+    "browserBlock": "Computer Use cannot verify current URL of newly opened OSPLUS Chrome window",
+    "shopifyOAuthCredentialPresent": false,
+    "liveShopifyImportVerified": false
+  }
 }
