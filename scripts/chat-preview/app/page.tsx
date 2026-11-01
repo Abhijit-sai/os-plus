@@ -28,7 +28,20 @@ const initial: ChatSetup = {
   ],
   mappings: [{ brand_id: id(2), location_id: id(3) }],
   packs: [{ id: id(5), brand_id: id(2), version: 1, status: "draft" }],
-  channels: [],
+  channels: [
+    {
+      id: id(8),
+      workspace_id: id(6),
+      brand_id: id(2),
+      default_location_id: null,
+      chatwoot_inbox_id: 10,
+      name: "Synthetic Website",
+      kind: "website",
+      agent_mode: "draft",
+      is_active: true,
+      settings_version: 0,
+    },
+  ],
   grants: [],
   workspace: { id: id(6), status: "active" },
 };
@@ -49,6 +62,9 @@ export default function Preview() {
     [role, setRole] = useState("owner_admin"),
     [fail, setFail] = useState(false),
     [platform, setPlatform] = useState(false);
+  const [section, setSection] = useState<"business" | "channels" | "access">(
+    "business",
+  );
   const [data, setData] = useState(initial),
     [dataB, setDataB] = useState(empty);
   const bodies = useRef(new Map([[id(5), parseKnowledgePack(example)]]));
@@ -147,6 +163,7 @@ export default function Preview() {
             name: c.input.name,
             kind: c.input.kind,
             agent_mode: "draft",
+            settings_version: 0,
             is_active: true,
           },
         ];
@@ -193,6 +210,19 @@ export default function Preview() {
               ))}
             </select>
           </label>
+          <label>
+            Section{" "}
+            <select
+              aria-label="Preview section"
+              className="min-h-11 border bg-background"
+              value={section}
+              onChange={(e) => setSection(e.target.value as typeof section)}
+            >
+              <option value="business">Business</option>
+              <option value="channels">Channels</option>
+              <option value="access">Access</option>
+            </select>
+          </label>
           <label className="flex min-h-11 items-center gap-2">
             <input
               type="checkbox"
@@ -222,6 +252,37 @@ export default function Preview() {
       </aside>
       {platform ? (
         <PlatformChatPanel
+          loadStaff={async () =>
+            fail
+              ? { ok: false, message: "Synthetic staff load failed." }
+              : {
+                  ok: true,
+                  choices: {
+                    profiles: [
+                      {
+                        id: id(31),
+                        name: "Example Manager",
+                        email: "staff@example.invalid",
+                        role: "manager",
+                        linkedUserId: null,
+                      },
+                    ],
+                    users: [
+                      {
+                        id: 3,
+                        name: "Example Manager",
+                        email: "staff@example.invalid",
+                        role: "agent",
+                      },
+                    ],
+                  },
+                }
+          }
+          linkStaff={async () =>
+            fail
+              ? { ok: false, message: "Synthetic staff link failed." }
+              : { ok: true, message: "Synthetic staff login linked." }
+          }
           tenants={[
             {
               id: id(1),
@@ -271,10 +332,33 @@ export default function Preview() {
         />
       ) : allowed ? (
         <ChatSetupPanel
-          section="business"
-          key={business}
+          section={section}
+          key={business + section}
           data={business === "A" ? data : dataB}
           save={save}
+          pause={async (input, _key, expected) => {
+            const request = input as { channelId: string; version: number };
+            if (
+              fail ||
+              expected !== (business === "A" ? data.tenantId : dataB.tenantId)
+            )
+              return { ok: false, message: "Synthetic reply mode not saved." };
+            const update = (current: ChatSetup): ChatSetup => ({
+              ...current,
+              channels: current.channels.map((c) =>
+                c.id === request.channelId
+                  ? {
+                      ...c,
+                      agent_mode: "off",
+                      settings_version: c.settings_version + 1,
+                    }
+                  : c,
+              ),
+            });
+            if (business === "A") setData(update);
+            else setDataB(update);
+            return { ok: true, message: "Synthetic staff-only mode saved." };
+          }}
           loadKnowledge={async (input) => {
             const request = input as { id?: string };
             const pack = request.id ? bodies.current.get(request.id) : null;

@@ -8,7 +8,7 @@ import { requireSuperAdmin } from "@/lib/auth/super-admin";
 export async function getChatSetup() {
   const { context, db } = await requireChatPermission("chat_settings:manage"),
     tenantId = context.tenant.id;
-  const [brands, branches, mappings, channels, grants, workspace] =
+  const [brands, branches, mappings, channels, grants, workspace, approvals] =
     await Promise.all([
       db
         .from("chat_brands")
@@ -42,9 +42,13 @@ export async function getChatSetup() {
         .select("id,status")
         .eq("tenant_id", tenantId)
         .maybeSingle(),
+      db
+        .from("chat_channel_action_approvals")
+        .select("channel_id,version")
+        .eq("tenant_id", tenantId),
     ]);
   if (
-    [brands, branches, mappings, channels, grants, workspace].some(
+    [brands, branches, mappings, channels, grants, workspace, approvals].some(
       (result) => result.error,
     )
   )
@@ -85,7 +89,12 @@ export async function getChatSetup() {
     branches: branches.data ?? [],
     mappings: mappings.data ?? [],
     packs: histories.flatMap((h) => h.revisions),
-    channels: channels.data ?? [],
+    channels: (channels.data ?? []).map((channel) => ({
+      ...channel,
+      settings_version:
+        approvals.data?.find((item) => item.channel_id === channel.id)
+          ?.version ?? 0,
+    })),
     grants: grants.data ?? [],
     workspace: workspace.data,
   };

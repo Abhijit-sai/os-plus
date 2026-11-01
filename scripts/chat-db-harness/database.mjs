@@ -7,13 +7,13 @@ import pg from "../shopify-db-harness/node_modules/pg/lib/index.js";
 // Reuse the repository's locked pg test dependency; never read application .env files.
 const image =
   "sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609";
-export async function startChatDatabase() {
+export async function startChatDatabase({ includeFollowups = true } = {}) {
   if (process.env.CHAT_TEST_OWNED_DATABASE_NONCE) {
     if(process.platform!=="linux" || process.env.CHAT_TEST_OWNED_DATABASE_MODE!=="isolated-internal-network")
       throw new Error("OWNED_DATABASE_RUNNER_REQUIRED");
     const {startOwnedChatDatabase}=await import("./owned-database.mjs");
     return startOwnedChatDatabase(process.env.CHAT_TEST_OWNED_DATABASE_NONCE,
-      process.env.CHAT_TEST_OWNED_DATABASE_PASSWORD);
+      process.env.CHAT_TEST_OWNED_DATABASE_PASSWORD, undefined, includeFollowups);
   }
 
   const nonce = randomBytes(12).toString("hex"),
@@ -93,7 +93,7 @@ export async function startChatDatabase() {
       }
     }
     assert.ok(db, "Disposable PostgreSQL did not start");
-    await applyChatMigrations(db);
+    await applyChatMigrations(db, { includeFollowups });
     return { db, connect, stop };
   } catch (error) {
     await stop();

@@ -46,6 +46,7 @@ export function postgresAdapter(client) {
   return {
     async rpc(name, { p_context, p_action, p_input }) {
       const signature = {
+        chat_staff_link_configure: ["p_context", "p_input"],
         chat_configure: ["p_context", "p_action", "p_input"],
         chat_platform_configure: ["p_context", "p_action", "p_input"],
         chat_capabilities: ["p_context"],
@@ -135,10 +136,14 @@ export function postgresAdapter(client) {
             values,
           )
             .then(
-              (result) => ({
-                data: single ? (result.rows[0] ?? null) : result.rows,
-                error: null,
-              }),
+              (result) => {
+                // PostgREST serializes safe bigint identifiers as JSON numbers; pg returns text.
+                const rows = result.rows.map(row => Object.fromEntries(Object.entries(row).map(([key,value]) => {
+                  const field=result.fields.find(field=>field.name===key);
+                  return [key,field?.dataTypeID===20 && typeof value==="string" && Number.isSafeInteger(Number(value)) ? Number(value) : value];
+                })));
+                return {data: single ? (rows[0] ?? null) : rows,error:null};
+              },
               (error) => ({ data: null, error }),
             )
             .then(resolve, reject);

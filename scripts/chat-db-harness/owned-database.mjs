@@ -4,7 +4,7 @@ import { applyChatMigrations } from "./migrate.mjs";
 
 // Only the internal-network alias created by the isolated runner. No URL, app
 // env file, arbitrary host, production credential or Docker override is accepted.
-export async function startOwnedChatDatabase(nonce,password,Client=pg.Client){
+export async function startOwnedChatDatabase(nonce,password,Client=pg.Client,includeFollowups=true){
   if(!/^[a-f0-9]{24}$/.test(nonce??"") || !/^[a-f0-9]{64}$/.test(password??""))
     throw new Error("OWNED_DATABASE_INPUT_INVALID");
   const options={host:"osplus-chat-qa-db",port:5432,user:"postgres",password,
@@ -47,7 +47,7 @@ export async function startOwnedChatDatabase(nonce,password,Client=pg.Client){
       CREATE EXTENSION "uuid-ossp" WITH SCHEMA extensions;
       GRANT USAGE ON SCHEMA extensions TO anon,authenticated,service_role;
       SET search_path=public,extensions;`);
-    await applyChatMigrations(db,{ownedRelease:true,rolesPrepared:true});
+    await applyChatMigrations(db,{ownedRelease:true,rolesPrepared:true,includeFollowups});
     return {db,connect,stop};
   }catch(error){await stop();throw error;}
 }

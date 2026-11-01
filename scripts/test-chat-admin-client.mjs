@@ -429,3 +429,17 @@ test("handoff label merge preserves unrelated observed labels and reconciles an 
     },
   );
 });
+
+
+test("staff discovery is scoped to the exact account and strips tokens; mismatches fail closed", async () => {
+  for (const mismatch of [false, true]) {
+    await mock((req,res)=>{
+      assert.equal(req.url,"/api/v1/accounts/12/agents");
+      res.end(JSON.stringify([{id:3,account_id:mismatch?99:12,name:"Synthetic staff",email:"staff@example.invalid",role:"agent",confirmed:true,access_token:"never-return"}]));
+    },async origin=>{
+      const client=new ChatwootAdminClient({origin,token:"synthetic-token",allowLocalMock:true});
+      if(mismatch) await assert.rejects(client.listAccountUsers(12),{message:"Chat connection unavailable."});
+      else assert.deepEqual(await client.listAccountUsers(12),[{id:3,name:"Synthetic staff",email:"staff@example.invalid",role:"agent"}]);
+    });
+  }
+});

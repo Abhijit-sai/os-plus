@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { readChatRelease } from "../chat-release/build.mjs";
+import { readChatRelease, chatReleaseFollowups } from "../chat-release/build.mjs";
 
 // Actual SQL replay for fresh, isolated databases only. Caller must prove ownership.
-export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=false}={}) {
+export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=false,includeFollowups=true}={}) {
   if(ownedRelease!==rolesPrepared)throw new Error("OWNED_RELEASE_ROLE_MODE_REQUIRED");
   // Validate every frozen source byte before creating fixture objects.
   const release=ownedRelease?readChatRelease(fileURLToPath(new URL("../../",import.meta.url))):null;
@@ -18,6 +18,7 @@ export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=
     .sort();
   for (const file of files) {
     if(ownedRelease && file.includes("_chat_")) continue;
+    if(!includeFollowups && chatReleaseFollowups.includes(file)) continue;
     if (file === "20261014131000_shopify_handover_guards.sql") {
       // Existing optional handover module's dependency shape; no handover acceptance is claimed.
       await db.query(`create table order_handovers(id uuid primary key default gen_random_uuid(),tenant_id uuid not null references tenants(id),order_id uuid not null references orders(id),
@@ -35,10 +36,15 @@ export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=
       );
     }
   }
-  if(release) await db.query(release.sql);
+  if(release) {
+    await db.query(release.sql);
+    if(includeFollowups) for(const file of chatReleaseFollowups.filter(name => files.includes(name))) {
+      await db.query(readFileSync(new URL(file,folder),"utf8"));
+    }
+  }
   console.log(
     "Applied " +
-      files.length +
+      files.filter(file => includeFollowups || !chatReleaseFollowups.includes(file)).length +
       " actual repository migrations to disposable PostgreSQL.",
   );
 }

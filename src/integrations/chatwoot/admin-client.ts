@@ -124,6 +124,37 @@ export class ChatwootAdminClient {
       throw new Error("Chat connection unavailable.");
     }
   }
+  async listAccountUsers(accountId: number) {
+    try {
+      const account = id.parse(accountId);
+      const users = z
+        .array(
+          z.object({
+            id,
+            account_id: id,
+            name: z.string().trim().min(1).max(200),
+            email: z.string().trim().email().max(320),
+            role: z.enum(["administrator", "agent"]),
+            confirmed: z.literal(true),
+          }),
+        )
+        .max(1000)
+        .parse(await this.request("/api/v1/accounts/" + account + "/agents"));
+      if (
+        users.some((user) => user.account_id !== account) ||
+        new Set(users.map((user) => user.id)).size !== users.length
+      )
+        throw new Error("Account membership mismatch");
+      return users.map(({ id, name, email, role }) => ({
+        id,
+        name,
+        email,
+        role,
+      }));
+    } catch {
+      throw new Error("Chat connection unavailable.");
+    }
+  }
   async conversationRouting(
     accountId: number,
     conversationId: number,
