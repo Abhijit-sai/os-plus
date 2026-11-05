@@ -12,6 +12,10 @@ function page(failure) {
     "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
     "next/link": {},
     "@/components/chat/website-widget": {},
+    "@/features/chat/agent/budget-settings": {
+      getAiBudgetSettings: async () => null,
+    },
+    "@/components/chat/ai-budget-settings": {},
     "@/components/chat/settings-overview": {},
     "@/features/chat/settings-navigation": {
       chatSettingsSection: () => "overview",
@@ -105,12 +109,16 @@ test("permission-query outages propagate through the real guard and page as safe
           "react/jsx-runtime": { jsx: () => null },
           "next/link": {},
           "@/components/chat/website-widget": {},
+          "@/features/chat/agent/budget-settings": {
+            getAiBudgetSettings: async () => null,
+          },
+          "@/components/chat/ai-budget-settings": {},
           "@/components/chat/settings-overview": {},
           "@/features/chat/settings-navigation": {
             chatSettingsSection: () => "overview",
           },
           "@/features/chat/actions": {},
-    "@/features/chat/channel-off-actions": {},
+          "@/features/chat/channel-off-actions": {},
           "@/features/chat/agent/preview-server": {
             isMockPreviewEnabled: () => false,
           },

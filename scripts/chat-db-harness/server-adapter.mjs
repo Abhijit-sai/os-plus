@@ -46,6 +46,7 @@ export function postgresAdapter(client) {
   return {
     async rpc(name, { p_context, p_action, p_input }) {
       const signature = {
+        chat_ai_budget_settings: ["p_context", "p_input"],
         chat_staff_link_configure: ["p_context", "p_input"],
         chat_configure: ["p_context", "p_action", "p_input"],
         chat_platform_configure: ["p_context", "p_action", "p_input"],

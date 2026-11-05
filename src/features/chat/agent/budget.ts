@@ -1,5 +1,7 @@
 import { z } from "zod";
-const usd = z.string().regex(/^(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,12})?$/);
+export const usd = z
+  .string()
+  .regex(/^(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,12})?$/);
 const schema = z
   .object({
     capUsd: usd.nullable(),
@@ -27,4 +29,11 @@ export function budgetAdmission(raw: unknown): boolean {
       usdUnits(input.maxCallUsd) <=
       usdUnits(input.capUsd)
   );
+}
+
+/** Exact decimal addition for persisted model accounting. */
+export function addUsd(left: string, right: string): string {
+  const value = (usdUnits(left) + usdUnits(right)).toString().padStart(13, "0");
+  const fraction = value.slice(-12).replace(/0+$/, "");
+  return value.slice(0, -12) + (fraction ? "." + fraction : "");
 }

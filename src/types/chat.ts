@@ -186,6 +186,7 @@ export type ChatTables = {
       lost_after_days: number;
       hot_hours: number;
       monthly_budget_usd: number | null;
+      ai_budget_version: number;
       budget_action: "draft_only";
       default_currency: string;
     }
@@ -238,6 +239,14 @@ export type ChatTables = {
   >;
 };
 export type ChatFunctions = {
+  chat_ai_budget_settings: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
+  chat_live_agent_run: {
+    Args: { p_context: Json; p_action: string; p_input: Json };
+    Returns: Json;
+  };
   chat_staff_link_configure: {
     Args: { p_context: Json; p_input: Json };
     Returns: Json;
