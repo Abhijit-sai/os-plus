@@ -1,3 +1,5 @@
+import { getAiBudgetSettings } from "@/features/chat/agent/budget-settings";
+import { ChatAiBudgetSettings } from "@/components/chat/ai-budget-settings";
 import { setChannelStaffOnlyAction } from "@/features/chat/channel-off-actions";
 import Link from "next/link";
 import {
@@ -46,6 +48,8 @@ export default async function ChatSettingsPage({
     process.env.CHAT_TRANSCRIPTION_LIVE_ENABLED !== "true";
   const actionSettings =
     section === "assistance" ? await getChatActionSettings() : null;
+  const aiBudgetSettings =
+    section === "assistance" ? await getAiBudgetSettings() : null;
   const voiceSettings =
     section === "assistance" ? await getVoiceSettings() : null;
   const notificationSettings =
@@ -129,6 +133,14 @@ export default async function ChatSettingsPage({
                   </Link>
                 ) : null}
               </div>
+              {aiBudgetSettings ? (
+                <ChatAiBudgetSettings
+                  key={
+                    aiBudgetSettings.tenantId + ":" + aiBudgetSettings.version
+                  }
+                  data={aiBudgetSettings}
+                />
+              ) : null}
               {actionSettings ? (
                 <ChatActionSettingsPanel data={actionSettings} />
               ) : (

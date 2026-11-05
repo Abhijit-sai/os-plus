@@ -92,7 +92,10 @@ export class OpenRouterClient {
     this.origin = url.origin;
     this.token = z.string().min(1).max(8192).parse(options.token);
   }
-  async complete(raw: unknown): Promise<{
+  async complete(
+    raw: unknown,
+    signal?: AbortSignal,
+  ): Promise<{
     json: unknown;
     model: string;
     costUsd: string;
@@ -111,7 +114,9 @@ export class OpenRouterClient {
         method: "POST",
         redirect: "error",
         cache: "no-store",
-        signal: AbortSignal.timeout(input.timeoutMs),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs)])
+          : AbortSignal.timeout(input.timeoutMs),
         headers: {
           Authorization: "Bearer " + this.token,
           "Content-Type": "application/json",

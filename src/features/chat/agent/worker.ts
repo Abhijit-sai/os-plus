@@ -5,7 +5,10 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { chatwootOrigin, accountClient } from "../connection";
 import { decryptChatSecret } from "../secrets";
 import { createMockModel } from "./mock-model";
-import { runStoredMockTurn } from "./worker-core";
+import { runStoredAgentTurn, type AgentModelFactory } from "./worker-core";
+import { selectAgentRuntime } from "./runtime-config";
+import { createLiveModel } from "./live-model";
+import { OpenRouterClient } from "@/integrations/openrouter/client";
 import { ChatwootMessageClient } from "@/integrations/chatwoot/message-client";
 import { tryPublicReply } from "../actions/public-worker";
 import { deliverHandoffLabel } from "../actions/label-worker";
@@ -19,16 +22,13 @@ export type CapturedAgentJob = {
   triggerMessageId: string;
 };
 
-/** D042: live models remain disabled. Only an explicitly enabled loopback mock can run. */
+/** Explicit live configuration admits private drafts only; mock mode remains loopback-only. */
 export async function processCapturedAgent(job: CapturedAgentJob) {
   if (process.env.CHAT_AGENT_ENABLED !== "true") return;
   try {
     const origin = chatwootOrigin(),
-      url = new URL(origin);
-    if (
-      process.env.CHAT_AGENT_MODEL_MODE !== "mock" ||
-      !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
-    )
+      runtime = selectAgentRuntime(process.env, origin);
+    if (!runtime || (runtime.kind === "live" && job.channel.mode !== "draft"))
       return;
     const db = createSupabaseServiceRoleClient(),
       w = job.workspace;
@@ -66,6 +66,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       if (
         name === "chat_agent_run" &&
         action === "complete" &&
+        runtime.kind === "mock" &&
         process.env.CHAT_ACTIONS_ENABLED === "true"
       ) {
         try {
@@ -108,13 +109,16 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       const response =
         name === "chat_agent_run"
           ? await db.rpc(
-              process.env.CHAT_ACTIONS_ENABLED === "true"
-                ? "chat_action_agent_run"
-                : name,
+              runtime.kind === "live"
+                ? "chat_live_agent_run"
+                : process.env.CHAT_ACTIONS_ENABLED === "true"
+                  ? "chat_action_agent_run"
+                  : name,
               { ...args, p_action: action! },
             )
           : await db.rpc(
               name === "chat_agent_load" &&
+                runtime.kind === "mock" &&
                 process.env.CHAT_ACTIONS_ENABLED === "true"
                 ? "chat_action_agent_load"
                 : name,
@@ -144,6 +148,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       })
       .passthrough()
       .parse(data).voice;
+    if (runtime.kind === "live" && voice?.required) return;
     // Capture remains available to staff; disabled/preview voice never runs a text fallback or paid preprocessing.
     if (
       voice?.required &&
@@ -226,7 +231,33 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         return createMockModel(selected, pack).complete(args);
       },
     };
-    await runStoredMockTurn(
+    const factory: AgentModelFactory =
+      runtime.kind === "live"
+        ? {
+            kind: "live",
+            create(capability) {
+              return createLiveModel(
+                runtime.config,
+                {
+                  run: (action, extra) =>
+                    call(
+                      "chat_agent_run",
+                      {
+                        ...input,
+                        ...capability,
+                        ...z.record(z.unknown()).parse(extra),
+                      } as Json,
+                      action,
+                    ),
+                },
+                new OpenRouterClient({
+                  token: process.env.OPENROUTER_API_KEY!,
+                }),
+              );
+            },
+          }
+        : { kind: "mock", create: () => model };
+    await runStoredAgentTurn(
       {
         scope,
         now: new Date().toISOString(),
@@ -250,15 +281,16 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
             action,
           ),
         publicDelivery: (capability) =>
-          voice?.required ? Promise.resolve({status:"private" as const}) :
-          tryPublicReply({ context, input, workspace: w, ...capability }),
+          voice?.required
+            ? Promise.resolve({ status: "private" as const })
+            : tryPublicReply({ context, input, workspace: w, ...capability }),
         dryRun: (result) =>
           call("chat_agent_dry_run", {
             ...input,
             ...(result ? { result } : {}),
           } as Json),
       },
-      model,
+      factory,
       async (draft) => {
         if (process.env.CHAT_AGENT_ENABLED !== "true")
           throw new Error("Agent disabled.");
@@ -304,6 +336,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         });
       },
     );
+    if (runtime.kind === "live") return;
     await deliverHandoffLabel(context, input, w);
     const capability = capabilities.at(-1);
     if (capability)
@@ -312,7 +345,8 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         input,
         capability,
         w.tenantId,
-        !voice?.required && job.channel.mode === "auto" &&
+        !voice?.required &&
+          job.channel.mode === "auto" &&
           process.env.CHAT_PUBLIC_REPLY_ENABLED === "true",
       );
   } catch {

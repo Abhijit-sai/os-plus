@@ -5,15 +5,29 @@ import { validateUnderstanding, understandingSchema } from "./schemas.ts";
 import { renderDraft } from "./checks.ts";
 import { choosePlan, hasPublicReply } from "./plan.ts";
 import { ledgerSchema } from "./ledger.ts";
+import { addUsd, usd } from "./budget.ts";
 
 export type ModelStage = "understand" | "classify" | "write" | "rewrite";
-export interface MockAgentModel {
-  kind: "mock";
+export interface AgentModel {
+  kind: "mock" | "live";
   complete(input: {
     stage: ModelStage;
     context: unknown;
     signal: AbortSignal;
   }): Promise<unknown>;
+}
+export interface MockAgentModel extends AgentModel {
+  kind: "mock";
+}
+/** Sanitized paid failure: retains only accounting metadata, never provider text. */
+export class AgentModelCallError extends Error {
+  readonly model: string;
+  readonly costUsd: string | null;
+  constructor(model: string, costUsd: string | null) {
+    super("Model stage unavailable.");
+    this.model = model;
+    this.costUsd = costUsd;
+  }
 }
 const requestSchema = z
   .object({
@@ -27,7 +41,7 @@ const resultSchema = z
   .object({
     json: z.unknown(),
     model: z.string().min(1).max(200),
-    costUsd: z.literal("0"),
+    costUsd: usd,
   })
   .strict();
 export const turnResultSchema = z
@@ -36,7 +50,7 @@ export const turnResultSchema = z
     ledger: ledgerSchema,
     outcome: z.enum(["drafted", "silent", "handoff", "fallback", "error"]),
     replyText: z.string().max(6000).nullable(),
-    costUsd: z.literal("0"),
+    costUsd: usd,
     packVersion: z.number().int().positive(),
     understanding: z.record(z.unknown()),
     decision: z.record(z.unknown()),
@@ -55,7 +69,7 @@ export const turnResultSchema = z
         .object({
           stage: z.enum(["understand", "classify", "write", "rewrite"]),
           model: z.string(),
-          costUsd: z.literal("0"),
+          costUsd: usd,
           timingMs: z.number().nonnegative(),
         })
         .strict(),
@@ -65,15 +79,17 @@ export const turnResultSchema = z
   .strict();
 export type TurnResult = z.infer<typeof turnResultSchema>;
 
-/** D042: this orchestrator cannot spend money or send messages; live model selection remains a separate gate. */
+/** Pure draft orchestration; the configured model adapter owns paid admission/accounting, never delivery. */
 export async function runAgentTurn(
   raw: unknown,
-  model: MockAgentModel,
+  model: AgentModel,
 ): Promise<TurnResult> {
   const request = requestSchema.parse(raw),
     ctx = buildAgentContext(request.scope, request.data);
-  if (model.kind !== "mock")
+  if (model.kind !== "mock" && model.kind !== "live")
     throw new Error("Live agent model is not enabled.");
+  if (model.kind === "live" && ctx.agentMode !== "draft")
+    throw new Error("Live assistance supports private drafts only.");
   const result: TurnResult = {
     mode: "draft",
     ledger: { ...ctx.ledger },
@@ -82,7 +98,7 @@ export async function runAgentTurn(
     costUsd: "0",
     packVersion: ctx.packVersion,
     understanding: {},
-    decision: { mock: true },
+    decision: { mock: model.kind === "mock" },
     checks: [],
     provenance: [],
     models: [],
@@ -103,15 +119,26 @@ export async function runAgentTurn(
   // Global ordering protects against newer messages; closing only considers this session.
   const globalFence = preflight({ ...fenceInput, openRequest: true });
   if (!globalFence.reason && ctx.pendingVoice) {
-    const repeated = ctx.session.messages.some(m => ["staff","bot"].includes(m.author) && m.content === ctx.pack.locked.unreadableHandoff);
-    return turnResultSchema.parse({...result,ledger:{...ctx.ledger,handoff:true},outcome:repeated?"silent":"handoff",replyText:repeated?null:ctx.pack.locked.unreadableHandoff,
-      understanding:{signals:[{kind:"unreadable"}]},decision:{mock:true,handoff:true,reason:"unreadable_voice"},checks:["voice_requires_review"]});
+    const repeated = ctx.session.messages.some(
+      (m) =>
+        ["staff", "bot"].includes(m.author) &&
+        m.content === ctx.pack.locked.unreadableHandoff,
+    );
+    return turnResultSchema.parse({
+      ...result,
+      ledger: { ...ctx.ledger, handoff: true },
+      outcome: repeated ? "silent" : "handoff",
+      replyText: repeated ? null : ctx.pack.locked.unreadableHandoff,
+      understanding: { signals: [{ kind: "unreadable" }] },
+      decision: { mock: true, handoff: true, reason: "unreadable_voice" },
+      checks: ["voice_requires_review"],
+    });
   }
   const fence = globalFence.reason
     ? globalFence
     : preflight({ ...fenceInput, messages: ctx.session.messages });
   if (fence.reason) {
-    result.decision = { reason: fence.reason, mock: true };
+    result.decision = { reason: fence.reason, mock: model.kind === "mock" };
     return result;
   }
   const deadline = performance.now() + 24000;
@@ -134,14 +161,40 @@ export async function runAgentTurn(
           }, remaining);
         }),
       ]);
+    } catch (error) {
+      if (
+        model.kind === "live" &&
+        error instanceof AgentModelCallError &&
+        error.costUsd !== null
+      ) {
+        const costUsd = usd.parse(error.costUsd),
+          timingMs = Math.max(0, performance.now() - started);
+        result.models.push({
+          stage,
+          model: error.model,
+          costUsd,
+          timingMs,
+        });
+        result.costUsd = addUsd(result.costUsd, costUsd);
+        result.timingsMs[stage] = timingMs;
+      }
+      throw error;
     } finally {
       if (timer !== undefined) clearTimeout(timer);
     }
     const answer = resultSchema.parse(rawAnswer);
+    if (model.kind === "mock" && answer.costUsd !== "0")
+      throw new Error("Mock model cannot incur costs.");
     if (Buffer.byteLength(JSON.stringify(answer.json), "utf8") > 64000)
       throw new Error("Model result too large.");
     const timingMs = Math.max(0, performance.now() - started);
-    result.models.push({ stage, model: answer.model, costUsd: "0", timingMs });
+    result.models.push({
+      stage,
+      model: answer.model,
+      costUsd: answer.costUsd,
+      timingMs,
+    });
+    result.costUsd = addUsd(result.costUsd, answer.costUsd);
     result.timingsMs[stage] = timingMs;
     return answer.json;
   };
@@ -169,7 +222,7 @@ export async function runAgentTurn(
     result.decision = {
       reason: plan.reason,
       handoff: plan.handoff,
-      mock: true,
+      mock: model.kind === "mock",
     };
     result.ledger.handoff ||= plan.handoff;
     if (plan.kind === "locked") {
@@ -199,6 +252,20 @@ export async function runAgentTurn(
         .strict()
         .safeParse(raw);
       if (!written.success) return { ok: false as const, reason: "shape" };
+      // Live output selects approved facts; the model cannot introduce factual prose.
+      if (model.kind === "live") {
+        const factTokens =
+          written.data.text.match(/\{\{FACT:[a-zA-Z0-9_:-]+\}\}/gu) ?? [];
+        const connective = written.data.text.replace(
+          /\{\{FACT:[a-zA-Z0-9_:-]+\}\}/gu,
+          "",
+        );
+        if (
+          factTokens.length === 0 ||
+          /[^\s.,;:!?()\u2014\u2013-]/u.test(connective)
+        )
+          return { ok: false as const, reason: "unapproved_live_prose" };
+      }
       return renderDraft({
         text: written.data.text,
         latinScriptOnly: ctx.pack.brand.latinScriptOnly,
@@ -249,7 +316,7 @@ export async function runAgentTurn(
     result.decision = {
       reason: "unavailable_or_unsafe",
       handoff: true,
-      mock: true,
+      mock: model.kind === "mock",
     };
     result.ledger.handoff = true;
     result.replyText = hasPublicReply(ctx, ctx.pack.locked.handoffLine)

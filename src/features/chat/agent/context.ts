@@ -139,8 +139,12 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
     messages: publicMessages,
     policy: pack.agent?.session,
   });
-  const lastReply = session.messages.findLastIndex(m => ["staff","bot"].includes(m.author));
-  const pendingVoice = session.messages.slice(lastReply + 1).filter(m => m.author === "customer" && m.voicePending);
+  const lastReply = session.messages.findLastIndex((m) =>
+    ["staff", "bot"].includes(m.author),
+  );
+  const pendingVoice = session.messages
+    .slice(lastReply + 1)
+    .filter((m) => m.author === "customer" && m.voicePending);
   const ledger = inquiryLedger(
     data.ledger,
     session,
@@ -150,9 +154,10 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
   return {
     scope,
     brandId: data.brandId,
-    incompleteVoice: pendingVoice.some(m => m.id !== scope.triggerMessageId),
+    incompleteVoice: pendingVoice.some((m) => m.id !== scope.triggerMessageId),
     pendingVoice: pendingVoice.length > 0,
     channelKind: data.channelKind,
+    agentMode: data.agentMode,
     pack,
     packVersion: data.pack.version,
     quietUntil: data.quietUntil,

@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { agentScopeSchema } from "./context.ts";
-import { runAgentTurn, type MockAgentModel, type TurnResult } from "./turn.ts";
+import {
+  runAgentTurn,
+  type AgentModel,
+  type MockAgentModel,
+  type TurnResult,
+} from "./turn.ts";
 const statusSchema = z
   .object({ status: z.string().min(1).max(50) })
   .passthrough();
@@ -25,11 +30,30 @@ export type MockTurnStore = {
     leaseToken: string;
   }): Promise<{ status: string }>;
 };
-/** DB claims fence duplicate execution; a remote send is never retried after an ambiguous result. */
+export type AgentModelFactory = {
+  kind: "mock" | "live";
+  create(capability: { runId: string; leaseToken: string }): AgentModel;
+};
+/** Preserve the released mock interface and its no-paid-model guarantee. */
 export async function runStoredMockTurn(
   raw: unknown,
   store: MockTurnStore,
   model: MockAgentModel,
+  post: Parameters<typeof runStoredAgentTurn>[3],
+): Promise<{ status: string }> {
+  if (model.kind !== "mock") throw new Error("Live model execution disabled.");
+  return runStoredAgentTurn(
+    raw,
+    store,
+    { kind: "mock", create: () => model },
+    post,
+  );
+}
+/** DB claims fence duplicate execution; a remote send is never retried after an ambiguous result. */
+export async function runStoredAgentTurn(
+  raw: unknown,
+  store: MockTurnStore,
+  factory: AgentModelFactory,
   post: (input: {
     draftId: string;
     text: string;
@@ -38,12 +62,18 @@ export async function runStoredMockTurn(
   }) => Promise<{ id: number }>,
 ): Promise<{ status: string }> {
   const input = inputSchema.parse(raw);
-  if (model.kind !== "mock") throw new Error("Live model execution disabled.");
+  if (input.dryRun && factory.kind === "live") {
+    await store.dryRun();
+    return { status: "dry_run" };
+  }
   if (input.dryRun) {
     if ((await store.dryRun()) !== null) return { status: "dry_run" };
     const result = await runAgentTurn(
       { scope: input.scope, now: input.now, data: await store.load() },
-      model,
+      factory.create({
+        runId: "00000000-0000-4000-8000-000000000000",
+        leaseToken: "00000000-0000-4000-8000-000000000000",
+      }),
     );
     await store.dryRun(result);
     return { status: "dry_run" };
@@ -71,7 +101,7 @@ export async function runStoredMockTurn(
       prepared.result ??
       (await runAgentTurn(
         { scope: input.scope, now: input.now, data: prepared.data },
-        model,
+        factory.create(capability),
       ));
     completed = statusSchema.parse(
       await store.run("complete", { ...capability, result }),
@@ -79,7 +109,7 @@ export async function runStoredMockTurn(
   }
   if (completed.status !== "ready" || !input.deliver)
     return { status: completed.status };
-  if (store.publicDelivery) {
+  if (factory.kind === "mock" && store.publicDelivery) {
     const publicResult = await store.publicDelivery(capability);
     if (publicResult.status !== "private") return publicResult;
   }
