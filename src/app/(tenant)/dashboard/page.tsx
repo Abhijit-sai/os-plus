@@ -380,10 +380,11 @@ export default async function DashboardPage({
     (item) => currentStageByItemId.get(item.id)?.status === "in_progress",
   );
   const readyHandoffItems = data.items.filter((item) =>
-    ["ready_for_pickup", "ready_for_dispatch", "dispatched"].includes(
+    ["completed", "ready_for_pickup", "ready_for_dispatch", "dispatched"].includes(
       item.item_status,
     ),
   );
+  const deliveredItems = data.items.filter((item) => item.item_status === "delivered");
   const riskItems = [
     ...delayedItems,
     ...blockedItems,
@@ -502,7 +503,7 @@ export default async function DashboardPage({
         </div>
       </CommandBar>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
         <MetricCard
           label="Active orders"
           value={activeOrders.length}
@@ -513,11 +514,20 @@ export default async function DashboardPage({
           value={delayedItems.length}
           hint="Past expected date"
         />
-        <MetricCard
-          label="Ready handoff"
-          value={readyHandoffItems.length}
-          hint="Pickup, dispatch, delivery"
-        />
+        <Link href="/production?queue=completed">
+          <MetricCard
+            label="Ready handoff"
+            value={readyHandoffItems.length}
+            hint="Production complete; awaiting delivery"
+          />
+        </Link>
+        <Link href="/production?queue=delivered">
+          <MetricCard
+            label="Delivered items"
+            value={deliveredItems.length}
+            hint="Confirmed customer handoff"
+          />
+        </Link>
         <MetricCard
           label="Today cash"
           value={formatMoney(todayCollections - todayExpenses)}

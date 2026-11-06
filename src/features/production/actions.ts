@@ -134,45 +134,24 @@ function getDurationMinutes(startedAt: string | null, completedAt: string | null
   return Math.max(Math.round((new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 60000), 0);
 }
 
-function isDeliveryLabel(value: string | null | undefined) {
-  const normalized = value?.toLowerCase() ?? "";
-  return normalized.includes("deliver") || normalized.includes("handoff");
-}
-
 async function getCompletedWorkflowItemStatus(
   tenantId: string,
   stage: ItemStageInstance,
   fallbackStatus: ItemStatus = "completed"
 ): Promise<ItemStatus> {
+  if (!stage.customer_status_id) return fallbackStatus;
   const supabase = createSupabaseServiceRoleClient();
-  const [stageMaster, customerStatus] = await Promise.all([
-    supabase
-      .from("stage_master")
-      .select("name")
-      .eq("tenant_id", tenantId)
-      .eq("id", stage.stage_master_id)
-      .is("deleted_at", null)
-      .maybeSingle(),
-    stage.customer_status_id
-      ? supabase
-          .from("customer_statuses")
-          .select("name")
-          .eq("tenant_id", tenantId)
-          .eq("id", stage.customer_status_id)
-          .is("deleted_at", null)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null })
-  ]);
-
-  if (stageMaster.error) {
-    throw new Error(`Unable to resolve final stage: ${stageMaster.error.message}`);
-  }
-
+  const customerStatus = await supabase
+    .from("customer_statuses")
+    .select("is_final_status")
+    .eq("tenant_id", tenantId)
+    .eq("id", stage.customer_status_id)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (customerStatus.error) {
     throw new Error(`Unable to resolve final customer status: ${customerStatus.error.message}`);
   }
-
-  return isDeliveryLabel(stageMaster.data?.name) || isDeliveryLabel(customerStatus.data?.name) ? "delivered" : fallbackStatus;
+  return customerStatus.data?.is_final_status ? "delivered" : fallbackStatus;
 }
 
 async function syncOrderFulfillmentStatus(tenantId: string, orderItemId: string, actorId: string) {
@@ -238,6 +217,7 @@ async function syncOrderFulfillmentStatus(tenantId: string, orderItemId: string,
     throw new Error(`Unable to sync order fulfillment status: ${update.error.message}`);
   }
 
+  revalidatePath("/dashboard");
   revalidatePath(`/orders/${item.data.order_id}`);
   if (order.data?.tracking_token) {
     revalidatePath(`/track/${order.data.tracking_token}`);
@@ -1035,11 +1015,18 @@ export async function correctStageAction(formData: FormData) {
     null;
   const workflowCompleted = stages.length > 0 && stages.every((stage) => ["completed", "skipped"].includes(stage.status));
   const workflowStatus = workflowCompleted ? "completed" : currentWorkflowStage ? "in_progress" : "not_started";
+  const terminalStage = stages.at(-1);
+  const terminalStageCompleted = terminalStage?.status === "completed";
   const correctedItemStatus = workflowCompleted
-    ? await getCompletedWorkflowItemStatus(context.tenant.id, stages.at(-1) ?? currentStage)
+    ? terminalStageCompleted
+      ? await getCompletedWorkflowItemStatus(context.tenant.id, terminalStage)
+      : "completed"
     : workflowStatus === "in_progress"
       ? "in_production"
       : "not_started";
+  const correctedCustomerStatusId = workflowCompleted
+    ? terminalStageCompleted ? terminalStage.customer_status_id : null
+    : currentWorkflowStage?.customer_status_id ?? currentStage.customer_status_id;
   const [workflowUpdate, itemUpdate, history] = await Promise.all([
     supabase
       .from("item_workflow_instances")
@@ -1055,7 +1042,7 @@ export async function correctStageAction(formData: FormData) {
       .from("order_items")
       .update({
         item_status: correctedItemStatus,
-        customer_status_id: currentWorkflowStage?.customer_status_id ?? currentStage.customer_status_id,
+        customer_status_id: correctedCustomerStatusId,
         updated_by: context.membership.clerk_user_id
       })
       .eq("tenant_id", context.tenant.id)

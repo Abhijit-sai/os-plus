@@ -15,7 +15,7 @@ function databaseQuery(table) {
   const filters = [];
   const query = {
     select() { return query; }, eq(field, value) { filters.push(["eq", field, value]); return query; },
-    is() { return query; }, order() { return query; }, limit() { return query; },
+    is() { return query; }, order() { return query; }, limit() { return query; }, range() { return query; },
     in(field, values) { filters.push(["in", field, values]); return query; },
     then(resolve, reject) {
       queried.push({ table, filters });

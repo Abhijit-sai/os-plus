@@ -57,7 +57,9 @@ function getDueLabel(days: number | null) {
   return `Due in ${days} day${days === 1 ? "" : "s"}`;
 }
 
-function getCurrentStepLabel(stageName: string | undefined, isDelivered: boolean) {
+function getCurrentStepLabel(stageName: string | undefined, isDelivered: boolean, isProductionComplete: boolean) {
+  if (isDelivered) return "Delivered";
+  if (isProductionComplete) return "Production complete";
   if (!stageName) {
     return "Workflow not initialized";
   }
@@ -67,11 +69,6 @@ function getCurrentStepLabel(stageName: string | undefined, isDelivered: boolean
   }
 
   return stageName;
-}
-
-function isDeliveryStageName(stageName: string | undefined) {
-  const normalized = stageName?.toLowerCase() ?? "";
-  return normalized.includes("deliver") || normalized.includes("handoff");
 }
 
 function getDueProgress(days: number | null) {
@@ -163,17 +160,13 @@ export default async function ProductionPage({
       ? (stageInstancesByWorkflowInstanceId.get(workflowInstance.id) ?? []).sort((a, b) => a.sequence_number - b.sequence_number)
       : [];
     const completedStageCount = itemStageInstances.filter((stageInstance) => stageInstance.status === "completed").length;
-    const finalStageInstance = itemStageInstances.at(-1);
-    const finalStage = finalStageInstance ? stageById.get(finalStageInstance.stage_master_id) : null;
     const dueInDays = daysUntil(item.expected_completion_date);
-    const isWorkflowDeliveryComplete =
-      Boolean(itemStageInstances.length) &&
-      itemStageInstances.every((stageInstance) => ["completed", "skipped"].includes(stageInstance.status)) &&
-      finalStageInstance?.status === "completed" &&
-      isDeliveryStageName(finalStage?.name);
-    const isDelivered = item.item_status === "delivered" || isWorkflowDeliveryComplete;
-    const isAtRisk = dueInDays !== null && dueInDays <= 2 && !isDelivered;
-    const isDelayed = dueInDays !== null && dueInDays < 0 && !isDelivered;
+    // A completed workflow is production progress; only the recorded item state proves delivery.
+    const isDelivered = item.item_status === "delivered";
+    const isProductionComplete = !isDelivered && ["completed", "ready_for_pickup", "ready_for_dispatch", "dispatched"].includes(item.item_status);
+    const isCancelled = item.item_status === "cancelled";
+    const isAtRisk = dueInDays !== null && dueInDays <= 2 && !isDelivered && !isProductionComplete && !isCancelled;
+    const isDelayed = dueInDays !== null && dueInDays < 0 && !isDelivered && !isProductionComplete && !isCancelled;
     const productionHeld = order?.source === "shopify" && holdByOrder.get(order.id) !== false;
 
     return {
@@ -192,11 +185,14 @@ export default async function ProductionPage({
       dueInDays,
       isAtRisk,
       isDelayed,
+      isProductionComplete,
+      isCancelled,
       isDelivered
     };
   });
 
-  const activeRows = productionRows.filter((row) => !row.isDelivered);
+  const activeRows = productionRows.filter((row) => !row.isDelivered && !row.isProductionComplete && !row.isCancelled);
+  const completedRows = productionRows.filter((row) => row.isProductionComplete);
   const deliveredRows = productionRows.filter((row) => row.isDelivered);
   const rowsByOrderId = new Map<string, typeof productionRows>();
 
@@ -214,24 +210,26 @@ export default async function ProductionPage({
   const uninitializedRows = activeRows.filter((row) => !row.workflowInstance);
   const dueSoonRows = activeRows.filter((row) => row.isAtRisk);
   const delayedRows = activeRows.filter((row) => row.isDelayed);
+  const activeItemIds = new Set(activeRows.map((row) => row.item.id));
   const matchesQueueFilter = (row: (typeof productionRows)[number]) =>
-    (queueFilter === "active" && !row.isDelivered) ||
-    (queueFilter === "ready" && row.currentStage?.status === "ready_to_start") ||
-    (queueFilter === "in_progress" && row.currentStage?.status === "in_progress") ||
-    (queueFilter === "blocked" && (row.currentStage?.status === "blocked" || row.item.item_status === "blocked")) ||
+    (queueFilter === "active" && !row.isDelivered && !row.isProductionComplete && !row.isCancelled) ||
+    (queueFilter === "completed" && row.isProductionComplete) ||
+    (queueFilter === "ready" && activeItemIds.has(row.item.id) && row.currentStage?.status === "ready_to_start") ||
+    (queueFilter === "in_progress" && activeItemIds.has(row.item.id) && row.currentStage?.status === "in_progress") ||
+    (queueFilter === "blocked" && activeItemIds.has(row.item.id) && (row.currentStage?.status === "blocked" || row.item.item_status === "blocked")) ||
     (queueFilter === "due_soon" && row.isAtRisk) ||
     (queueFilter === "delayed" && row.isDelayed) ||
-    (queueFilter === "uninitialized" && !row.workflowInstance) ||
+    (queueFilter === "uninitialized" && activeItemIds.has(row.item.id) && !row.workflowInstance) ||
     (queueFilter === "delivered" && row.isDelivered);
-  const orderDependencyRows = activeRows.filter((row) => {
-    if (!row.order || !["completed", "ready_for_dispatch", "dispatched"].includes(row.item.item_status)) {
+  const orderDependencyRows = completedRows.filter((row) => {
+    if (!row.order || !["completed", "ready_for_pickup", "ready_for_dispatch", "dispatched"].includes(row.item.item_status)) {
       return false;
     }
 
     return (rowsByOrderId.get(row.order.id) ?? []).some(
       (siblingRow) =>
         siblingRow.item.id !== row.item.id &&
-        !["completed", "ready_for_dispatch", "dispatched", "delivered", "cancelled"].includes(siblingRow.item.item_status)
+        !["completed", "ready_for_pickup", "ready_for_dispatch", "dispatched", "delivered", "cancelled"].includes(siblingRow.item.item_status)
     );
   });
   const attentionRows = Array.from(
@@ -252,7 +250,8 @@ export default async function ProductionPage({
     return matchesSearch && matchesQueueFilter(row) && matchesWorkflow && matchesItemType;
   });
   const queueOptions = [
-    { value: "active", label: "Active workshop", count: activeRows.length, hint: "Excludes delivered" },
+    { value: "active", label: "Active workshop", count: activeRows.length, hint: "Work still in production" },
+    { value: "completed", label: "Production complete", count: completedRows.length, hint: "Awaiting delivery confirmation" },
     { value: "ready", label: "Ready", count: readyRows.length },
     { value: "in_progress", label: "In progress", count: inProgressRows.length },
     { value: "blocked", label: "Blocked", count: blockedRows.length },
@@ -436,7 +435,8 @@ export default async function ProductionPage({
   const boardColumns = [
     ...(showUninitializedColumn ? [{ id: "uninitialized", title: "Uninitialized", sequenceNumber: -1 }] : []),
     ...stageColumnSeed,
-    { id: "completed", title: "Completed", sequenceNumber: Number.MAX_SAFE_INTEGER }
+    { id: "completed", title: "Production complete", sequenceNumber: Number.MAX_SAFE_INTEGER - 1 },
+    { id: "delivered", title: "Delivered", sequenceNumber: Number.MAX_SAFE_INTEGER }
   ];
   const boardRows = productionRows
     .filter((row) => {
@@ -451,6 +451,7 @@ export default async function ProductionPage({
       const matchesItemType = selectedItemTypeIds.length === 0 || selectedItemTypeSet.has(row.item.item_type_id);
       const isBoardVisibleState =
         row.isDelivered ||
+        row.isProductionComplete ||
         !row.workflowInstance ||
         ["ready_to_start", "in_progress", "blocked", "paused"].includes(row.currentStage?.status ?? "");
 
@@ -478,7 +479,7 @@ export default async function ProductionPage({
   const rowsByBoardColumnId = new Map<string, typeof boardRows>();
 
   for (const row of boardRows) {
-    const columnId = row.isDelivered ? "completed" : row.currentStage?.stage_master_id ?? "uninitialized";
+    const columnId = row.isDelivered ? "delivered" : row.isProductionComplete ? "completed" : row.currentStage?.stage_master_id ?? "uninitialized";
     rowsByBoardColumnId.set(columnId, [...(rowsByBoardColumnId.get(columnId) ?? []), row]);
   }
 
@@ -580,7 +581,7 @@ export default async function ProductionPage({
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{getCurrentStepLabel(row.stage?.name, row.isDelivered)}</p>
+                      <p className="truncate font-medium">{getCurrentStepLabel(row.stage?.name, row.isDelivered, row.isProductionComplete)}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {row.currentStage?.status.replace("_", " ") ?? "No active step"}
                       </p>
@@ -643,7 +644,7 @@ export default async function ProductionPage({
                       <div className="min-w-0">
                         <p className="truncate font-medium">{row.item.name}</p>
                         <p className="truncate text-sm text-muted-foreground">
-                          {row.order?.order_number ?? "Unknown order"} · {getCurrentStepLabel(row.stage?.name, row.isDelivered)}
+                          {row.order?.order_number ?? "Unknown order"} · {getCurrentStepLabel(row.stage?.name, row.isDelivered, row.isProductionComplete)}
                         </p>
                       </div>
                       <StatusBadge value={attentionStatus} />
@@ -704,7 +705,7 @@ export default async function ProductionPage({
                   <div className="flex-1 space-y-3 overflow-y-auto p-3">
                     {columnRows.map((row) => {
                       const dueProgress = getDueProgress(row.dueInDays);
-                      const status = row.isDelivered ? "completed" : row.currentStage?.status ?? row.item.item_status;
+                      const status = row.isDelivered ? "delivered" : row.isProductionComplete ? "completed" : row.currentStage?.status ?? row.item.item_status;
 
                       return (
                         <Link

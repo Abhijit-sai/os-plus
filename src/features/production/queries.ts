@@ -12,6 +12,28 @@ const productionFiltersSchema = z.object({
   itemTypeIds: z.array(z.string().uuid()).max(100),
   workflowIds: z.array(z.string().uuid()).max(100)
 });
+async function readProductionPages<T>(buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const rows: T[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await buildQuery(offset, offset + pageSize - 1);
+    if (result.error) throw new Error(`Unable to load production data: ${result.error.message}`);
+    rows.push(...(result.data ?? []));
+    if ((result.data ?? []).length < pageSize) break;
+  }
+  return { data: rows, error: null };
+}
+
+// Keep referenced-ID predicates below PostgREST URL limits while reading every page.
+async function readProductionReferences<T>(ids: string[], buildQuery: (ids: string[], from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const rows: T[] = [];
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const chunk = ids.slice(offset, offset + 100);
+    rows.push(...(await readProductionPages((from, to) => buildQuery(chunk, from, to))).data);
+  }
+  return { data: rows, error: null };
+}
+
 const impossibleId = "00000000-0000-0000-0000-000000000000";
 
 export async function getProductionPageData(filters: { itemTypeIds: string[]; workflowIds: string[] }) {
@@ -27,22 +49,21 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
     if (parsedFilters.data.workflowIds.length) itemsQuery = itemsQuery.in("workflow_id", parsedFilters.data.workflowIds);
   }
 
-  itemsQuery = itemsQuery.order("created_at", { ascending: false }).limit(100);
+  itemsQuery = itemsQuery.order("created_at", { ascending: false }).order("id");
 
   // Resolve relationships from the displayed items, not an implicitly capped
   // tenant-wide directory. Every lookup remains inside the current tenant.
-  const items = await itemsQuery;
-  if (items.error) throw new Error(`Unable to load production data: ${items.error.message}`);
+  const items = await readProductionPages((from, to) => itemsQuery.range(from, to));
+  const itemIds = items.data.map((item) => item.id);
   const orderIds = [...new Set((items.data ?? []).map((item) => item.order_id))];
   const orders = orderIds.length
-    ? await supabase.from("operational_orders").select("id, order_number, customer_id, source").eq("tenant_id", context.tenant.id).in("id", orderIds).is("deleted_at", null)
+    ? await readProductionReferences(orderIds, (ids, from, to) => supabase.from("operational_orders").select("id, order_number, customer_id, source").eq("tenant_id", context.tenant.id).in("id", ids).is("deleted_at", null).order("id").range(from, to))
     : { data: [], error: null };
-  if (orders.error) throw new Error(`Unable to load production data: ${orders.error.message}`);
   const customerIds = [...new Set((orders.data ?? []).map((order) => order.customer_id))];
 
   const [customers, itemTypes, workflows, workflowStages, workflowInstances, stageInstances, stages, workLogs, workers] = await Promise.all([
     customerIds.length
-      ? supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).in("id", customerIds).is("deleted_at", null)
+      ? readProductionReferences(customerIds, (ids, from, to) => supabase.from("customers").select("id, name").eq("tenant_id", context.tenant.id).in("id", ids).is("deleted_at", null).order("id").range(from, to))
       : Promise.resolve({ data: [], error: null }),
     supabase.from("item_types").select("id, name, icon_emoji, icon_kind, icon_name, icon_color").eq("tenant_id", context.tenant.id).is("deleted_at", null).order("name"),
     supabase.from("workflows").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
@@ -53,22 +74,22 @@ export async function getProductionPageData(filters: { itemTypeIds: string[]; wo
       .eq("is_active", true)
       .is("deleted_at", null)
       .order("sequence_number"),
-    supabase
+    readProductionReferences(itemIds, (ids, from, to) => supabase
       .from("item_workflow_instances")
       .select("*")
       .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null),
-    supabase
+      .is("deleted_at", null).in("order_item_id", ids).order("id").range(from, to)),
+    readProductionReferences(itemIds, (ids, from, to) => supabase
       .from("item_stage_instances")
       .select("id, tenant_id, workflow_instance_id, order_item_id, stage_master_id, sequence_number, status, started_at, completed_at, planned_start_at, planned_end_at")
       .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null),
+      .is("deleted_at", null).in("order_item_id", ids).order("id").range(from, to)),
     supabase.from("stage_master").select("id, name").eq("tenant_id", context.tenant.id).is("deleted_at", null),
-    supabase
+    readProductionReferences(itemIds, (ids, from, to) => supabase
       .from("item_stage_work_logs")
       .select("id, stage_instance_id, order_item_id, worker_id, status, started_at, completed_at")
       .eq("tenant_id", context.tenant.id)
-      .is("deleted_at", null),
+      .is("deleted_at", null).in("order_item_id", ids).order("id").range(from, to)),
     supabase
       .from("workers")
       .select("id, name")
