@@ -13,7 +13,9 @@ export async function configureNotificationAction(
       ok: true,
       message: receipt.code
         ? "Link code prepared. Use it within 30 minutes, then refresh and confirm the destination."
-        : "Notification settings saved.",
+        : raw !== null && typeof raw === "object" && "action" in raw && raw.action === "test"
+          ? "Setup test queued. Refresh delivery status to check its receipt."
+          : "Notification settings saved.",
       ...receipt,
     };
   } catch {

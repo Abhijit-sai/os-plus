@@ -256,6 +256,7 @@ export type ChatFunctions = {
     Returns: Json;
   };
   chat_notification_tenants: { Args: { p_limit?: number }; Returns: Json };
+  chat_notification_queue_test: { Args: { p_context: Json; p_input: Json }; Returns: Json };
   chat_notification_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

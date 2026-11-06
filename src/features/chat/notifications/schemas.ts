@@ -5,6 +5,7 @@ const id = z.string().uuid(),
   version = z.number().int().positive().safe(),
   label = z.string().trim().min(1).max(80);
 export const notificationCommandSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("test"), input: z.object({ id, version }).strict() }).strict(),
   z
     .object({
       action: z.literal("create"),
@@ -82,6 +83,7 @@ export const notificationReadSchema = z
             id,
             target: z.string().max(80),
             kind: notificationEventSchema,
+            isSetupTest: z.boolean().default(false),
             status: z.enum([
               "queued",
               "sending",
