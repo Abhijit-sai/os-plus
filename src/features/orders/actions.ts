@@ -2,7 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { assertPermission } from "@/lib/permissions/roles";
@@ -14,6 +14,10 @@ import type { DeliveryType, GstTreatment, Json, OrderSource, PaymentStatus } fro
 export type FormActionState = {
   ok: boolean;
   message: string | null;
+};
+
+export type CreateOrderFormState = FormActionState & {
+  reviewOrders: boolean;
 };
 
 const optionalText = z
@@ -300,6 +304,8 @@ function calculateOrderGst({
 
 async function revalidateOrderSurfaces(orderId: string, trackingToken?: string | null) {
   revalidatePath("/orders");
+  revalidatePath("/production");
+  revalidatePath("/dashboard");
   revalidatePath(`/orders/${orderId}`);
 
   if (trackingToken) {
@@ -566,8 +572,40 @@ export async function createOrderAction(formData: FormData) {
     }
   }
 
-  revalidatePath("/orders");
+  await revalidateOrderSurfaces(order.id);
   redirect(`/orders/${order.id}`);
+}
+
+/** Recoverable validation stays inline; ambiguous persistence must be reconciled before another create. */
+export async function createOrderFormAction(
+  _previousState: CreateOrderFormState,
+  formData: FormData,
+): Promise<CreateOrderFormState> {
+  try {
+    await createOrderAction(formData);
+    return { ok: true, message: null, reviewOrders: false };
+  } catch (error) {
+    unstable_rethrow(error);
+    if (error instanceof z.ZodError) {
+      const issue = error.issues[0];
+      if (issue?.path[0] === "customerId") {
+        return { ok: false, message: "Select a customer from the search results before creating the order.", reviewOrders: false };
+      }
+      const fields: Record<string, string> = {
+        itemTypeId: "item type", workflowId: "workflow", name: "item name", quantity: "quantity",
+        unitPrice: "unit price", discountAmount: "discount", orderDate: "order date",
+        orderGstRate: "GST rate", initialPaymentAmount: "initial payment",
+      };
+      const field = fields[String(issue?.path.at(-1))] ?? "required details";
+      const item = issue?.path[0] === "items" && typeof issue.path[1] === "number" ? ` for item ${issue.path[1] + 1}` : "";
+      return { ok: false, message: `Review the ${field}${item} and try again.`, reviewOrders: false };
+    }
+    if (error instanceof Error && error.message === "Permission denied: orders:manage") {
+      return { ok: false, message: "Your role cannot create orders. Ask an owner or manager to create this order.", reviewOrders: false };
+    }
+    // Creation currently spans several writes. A failed response may follow a saved order.
+    return { ok: false, message: "Order creation could not be confirmed. Check the order list before trying again; if the order is there, open it instead of creating another.", reviewOrders: true };
+  }
 }
 
 export async function addOrderItemsFormAction(

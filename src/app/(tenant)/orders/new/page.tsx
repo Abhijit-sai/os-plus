@@ -1,9 +1,8 @@
-import { createOrderAction } from "@/features/orders/actions";
+import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { getNewOrderPageData } from "@/features/orders/queries";
 import { CustomerPicker } from "@/components/orders/customer-picker";
 import { OrderGstFields } from "@/components/orders/order-gst-fields";
 import { OrderItemBuilder } from "@/components/orders/order-item-builder";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -62,11 +61,7 @@ export default async function NewOrderPage({
           </p>
         </div>
       </div>
-      <form
-        action={createOrderAction}
-        className="space-y-6"
-        data-unsaved-guard="true"
-      >
+      <CreateOrderForm>
         <Card>
           <CardHeader>
             <CardTitle>Order details</CardTitle>
@@ -278,8 +273,7 @@ export default async function NewOrderPage({
             </div>
           </CardContent>
         </Card>
-        <Button type="submit">Create order</Button>
-      </form>
+      </CreateOrderForm>
     </div>
   );
 }

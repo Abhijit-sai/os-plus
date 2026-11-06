@@ -25,13 +25,13 @@ export async function getDashboardPageData() {
         .is("deleted_at", null)
         .order("payment_date", { ascending: false })
         .limit(200),
-      supabase
+      readReportPages((from, to) => supabase
         .from("order_items")
         .select("id, order_id, name, workflow_id, expected_completion_date, item_status, final_price")
         .eq("tenant_id", context.tenant.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(200),
+        .order("id").range(from, to)),
       supabase
         .from("item_workflow_instances")
         .select("id, order_item_id, workflow_id, status, current_stage_instance_id")
