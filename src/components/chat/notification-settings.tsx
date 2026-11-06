@@ -121,7 +121,7 @@ export function ChatNotificationSettings({
                     className="flex flex-col gap-1 sm:flex-row sm:justify-between"
                   >
                     <span>
-                      {d.target} · {eventLabels[d.kind]}
+                      {d.target} · {d.isSetupTest ? "Setup test" : eventLabels[d.kind]}
                     </span>
                     <span>
                       {
@@ -284,6 +284,7 @@ function Target({
 }) {
   const [feedback, setFeedback] = useState<Feedback | null>(null),
     router = useRouter();
+  const setupTest = useSave(setFeedback);
   const code =
     feedback?.code && feedback.version === target.version
       ? feedback.code
@@ -311,6 +312,14 @@ function Target({
         brands={brands}
         onResult={setFeedback}
       />
+      <div className="space-y-2">
+        <Button type="button" variant="outline" className="min-h-11"
+          disabled={setupTest.disabled || !target.active || !target.confirmed || target.kind !== "private" || !target.events.includes("new_lead")}
+          onClick={() => setupTest.save({ action: "test", input: { id: target.id, version: target.version } })}>
+          {setupTest.pending ? "Queuing test…" : "Send setup test"}
+        </Button>
+        <p className="text-xs text-muted-foreground">Sends a labelled setup alert to an enabled private destination. No customer or lead is created. One test per destination every 15 minutes; check its receipt before trying again.</p>
+      </div>
       {code ? (
         <div className="space-y-2">
           <label className="block space-y-1 text-sm">

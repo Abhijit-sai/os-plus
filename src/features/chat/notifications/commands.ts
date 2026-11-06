@@ -14,6 +14,7 @@ import {
 } from "./schemas";
 import { summarySchema, formatDailySummary } from "./summary";
 import { notificationsEnabled } from "./flags";
+import { scheduleNotificationCheck } from "./trigger";
 function enabled() {
   if (!notificationsEnabled())
     throw new Error("Notification settings unavailable.");
@@ -61,16 +62,12 @@ export async function configureNotification(
       }),
     };
   }
-  const result = await db.rpc("chat_notification_command", {
-    p_context: {
-      ...createUserCommandContext(context, {
-        idempotencyKey: commandKeySchema.parse(key),
-      }),
-    },
-    p_action: request.action,
-    p_input: input,
-  });
+  const commandContext = createUserCommandContext(context, { idempotencyKey: commandKeySchema.parse(key) });
+  const result = request.action === "test"
+    ? await db.rpc("chat_notification_queue_test", { p_context: { ...commandContext }, p_input: input })
+    : await db.rpc("chat_notification_command", { p_context: { ...commandContext }, p_action: request.action, p_input: input });
   if (result.error) throw new Error("Notification change not confirmed.");
+  if (request.action === "test") await scheduleNotificationCheck(context.tenant.id);
   if (request.action === "issue") {
     const receipt = notificationReceiptSchema
       .extend({
