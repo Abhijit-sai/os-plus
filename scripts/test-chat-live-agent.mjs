@@ -196,7 +196,8 @@ test("approved automatic mode greets, uses only approved facts and checks verifi
       req.data.messages[0].providerId = 2;
       req.data.messages.unshift({
         ...req.data.messages[0], id: id(99), providerId: 1,
-        content: previous, at: "2026-11-01T09:59:50Z",
+        at: "2026-11-01T09:59:50Z",
+        ...(typeof previous === "string" ? { content: previous } : previous),
       });
     }
     let calls = 0;
@@ -231,8 +232,20 @@ test("approved automatic mode greets, uses only approved facts and checks verifi
   assert.equal(hours.result.replyText, pack.hours.default);
   assert.equal(hours.calls, 0);
   const size = await automatic("Is this available in my size?");
-  assert.match(size.result.replyText, /size you need/);
+  assert.match(size.result.replyText, /They’ll check the details and reply here/);
   assert.equal(size.result.decision.handoff, true);
+  const savedSize = await automatic("You know my size already", undefined, undefined, {
+    author: "bot",
+    content: "Could you share a little more about what you’re looking for? Our team can help with the details.",
+  });
+  assert.match(savedSize.result.replyText, /check your sizing details.*follow up with you here/);
+  assert.equal(savedSize.result.decision.handoff, true);
+  assert.equal(savedSize.calls, 0);
+  const repeatedSize = await automatic("You know my size already", undefined, undefined, {
+    author: "bot", content: savedSize.result.replyText,
+  });
+  assert.equal(repeatedSize.result.replyText, null);
+  assert.equal(repeatedSize.result.decision.handoff, true);
   for (const question of ["Do you have a medium?", "Is the black shirt available?"]) {
     const unavailable = await automatic(question);
     assert.equal(unavailable.result.decision.handoff, true);
@@ -252,6 +265,7 @@ test("approved automatic mode greets, uses only approved facts and checks verifi
   assert.equal(vendor.calls, 0);
   const invented = await automatic("Can you do it?", { fact: "fake-price" });
   assert.equal(invented.result.decision.handoff, true);
+  assert.match(invented.result.replyText, /They’ll check the details and reply here/);
   assert.doesNotMatch(invented.result.replyText, /fake-price/);
 });
 

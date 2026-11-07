@@ -5,6 +5,7 @@ import { hasPublicReply } from "./plan.ts";
 const greeting = /^(?:(?:hi+|hey+|hello|good (?:morning|afternoon|evening))(?:[.!?,\s]+(?:are you there|you there|anyone there))?|are you there|you there|anyone there)[.!?,\s]*$/i;
 const order = /\b(?:order (?:status|update)|track(?:ing)? (?:my |the )?order|my (?:order|parcel|package)|ord-[0-9]+)\b/i;
 const availability = /\b(?:stock|in my size|in size|(?:available|availability) (?:in|for)|(?:shirts?|kurtas?|item|design|product) (?:still )?available|do you have (?:an? )?(?:small|medium|large|xs|s|m|l|xl|xxl|xxxl)|new (?:shirts?|designs?|collection)|delivery date|when (?:will|can) .+ deliver)\b/i;
+const savedSizing = /\b(?:you (?:already )?(?:know|have) my (?:size|measurements)|(?:use|check) my (?:saved|usual) (?:size|measurements))\b/i;
 const sensitiveRequest = /\b(?:cancel|refund|payment|paid|complaint|damaged|defect(?:ive)?|wrong item|bank details|card number|speak to (?:a )?(?:human|person)|talk to (?:a )?(?:human|person))\b/i;
 const orderNumber = /\bord-[0-9]{6,12}\b/i;
 const visiting = /^(?:when (?:do you|are you) open|(?:what are )?(?:your )?(?:opening|store|business) hours|are you open(?: (?:now|today|tomorrow))?|(?:can|may) i (?:come (?:down|by)|visit)(?: (?:today|tomorrow))?)[.!?\s]*$/i;
@@ -19,6 +20,9 @@ const statuses = new Map([
   ["delivered", "marked delivered"],
   ["cancelled", "cancelled"],
 ]);
+
+export const automaticHandoffReply =
+  "I’ll pass this to our team. They’ll check the details and reply here.";
 
 export function automaticReplyContext(ctx: AgentContext) {
   const lastReply = ctx.session.messages.findLastIndex((message) =>
@@ -48,7 +52,7 @@ export function immediateAutomaticReply(
     return { text: hasPublicReply(ctx, ctx.pack.locked.paymentClaimReply)
       ? ctx.pack.locked.paymentClaimAgain : ctx.pack.locked.paymentClaimReply, handoff: true };
   if (sensitiveRequest.test(text))
-    return { text: "Our team can help check that for you. Please share your order number if this is about an order.", handoff: true };
+    return { text: automaticHandoffReply, handoff: true };
   if (/\b(?:are you (?:a bot|human|real)|who are you)\b/i.test(text))
     return { text: ctx.pack.locked.identityReply, handoff: false, once: true };
   if (/\b(?:(?:we|i) (?:supply|manufacture)|(?:we(?:['’]re| are)|i(?:['’]m| am)) (?:a )?(?:vendor|supplier|manufacturer))\b/i.test(text))
@@ -58,21 +62,26 @@ export function immediateAutomaticReply(
     text.toLowerCase().includes(topic.toLowerCase()),
   );
   if (handoffTopic)
-    return { text: "Our team can help check that. Could you share a few more details?", handoff: true };
+    return { text: automaticHandoffReply, handoff: true };
   if (order.test(text)) {
     const verified = statuses.get(orderStatus ?? "");
     if (verified && orderStatus && inquiries.length === 1 && pureOrderStatus.test(text))
       return { text: `The status of your order is ${verified}.`, handoff: false, verifiedOrderStatus: orderStatus };
     return {
       text: orderNumber.test(text)
-        ? "I couldn’t confirm that order from this chat. Our team can help check it."
+        ? `I couldn’t confirm that order from this chat. ${automaticHandoffReply}`
         : "Could you share your order number so I can check the latest status?",
       handoff: orderNumber.test(text),
     };
   }
+  if (savedSizing.test(text))
+    return {
+      text: "I’ll ask our team to check your sizing details. They’ll follow up with you here.",
+      handoff: true,
+    };
   if (availability.test(text))
     return {
-      text: `${ctx.pack.brand.oneLiner} If you share the design or product link and the size you need, our team can check the latest options for you.`,
+      text: `${automaticHandoffReply} If you have a product link or a size in mind, you can share it here.`,
       handoff: true,
     };
   if (inquiries.length === 1 && visiting.test(text))

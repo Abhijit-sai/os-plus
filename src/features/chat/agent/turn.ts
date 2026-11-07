@@ -4,7 +4,7 @@ import { preflight } from "./rules.ts";
 import { validateUnderstanding, understandingSchema } from "./schemas.ts";
 import { renderDraft } from "./checks.ts";
 import { choosePlan, hasPublicReply } from "./plan.ts";
-import { automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
+import { automaticHandoffReply, automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { ledgerSchema } from "./ledger.ts";
 import { addUsd, usd } from "./budget.ts";
@@ -211,8 +211,7 @@ export async function runAgentTurn(
         .strict().parse(await call("write", { unanswered, facts })).fact;
       const grounded = immediate?.text ?? checkedAutomaticReply(facts, selection);
       const handoff = immediate?.handoff ?? grounded === null;
-      const text = customerTextSchema.parse(grounded ??
-        "Could you share a little more about what you’re looking for? Our team can help with the details.");
+      const text = customerTextSchema.parse(grounded ?? automaticHandoffReply);
       result.decision = { automatic: true, reason: handoff ? "person_required" : "information", handoff, mock: false };
       if (immediate?.verifiedOrderStatus) result.decision.verifiedOrderStatus = immediate.verifiedOrderStatus;
       if (selection && grounded)
@@ -343,7 +342,7 @@ export async function runAgentTurn(
     };
     result.ledger.handoff = true;
     const fallback = automatic
-      ? "I’m having trouble checking that right now. Our team can help with the details."
+      ? automaticHandoffReply
       : ctx.pack.locked.handoffLine;
     if (automatic) result.decision.automatic = true;
     result.replyText = hasPublicReply(ctx, fallback)
