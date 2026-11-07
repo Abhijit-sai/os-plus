@@ -2,7 +2,7 @@ import type { AgentContext } from "./context.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { hasPublicReply } from "./plan.ts";
 
-const greeting = /^(?:hi+|hey+|hello|good (?:morning|afternoon|evening))(?:[.!?,\s]+(?:are you there|you there|anyone there))?[.!?\s]*$/i;
+const greeting = /^(?:(?:hi+|hey+|hello|good (?:morning|afternoon|evening))(?:[.!?,\s]+(?:are you there|you there|anyone there))?|are you there|you there|anyone there)[.!?,\s]*$/i;
 const order = /\b(?:order (?:status|update)|track(?:ing)? (?:my |the )?order|my (?:order|parcel|package)|ord-[0-9]+)\b/i;
 const availability = /\b(?:stock|in my size|in size|(?:available|availability) (?:in|for)|(?:shirts?|kurtas?|item|design|product) (?:still )?available|do you have (?:an? )?(?:small|medium|large|xs|s|m|l|xl|xxl|xxxl)|new (?:shirts?|designs?|collection)|delivery date|when (?:will|can) .+ deliver)\b/i;
 const sensitiveRequest = /\b(?:cancel|refund|payment|paid|complaint|damaged|defect(?:ive)?|wrong item|bank details|card number|speak to (?:a )?(?:human|person)|talk to (?:a )?(?:human|person))\b/i;
@@ -40,9 +40,10 @@ export function immediateAutomaticReply(
   unanswered: string[],
   orderStatus?: string,
 ): { text: string; handoff: boolean; verifiedOrderStatus?: string; once?: boolean } | null {
-  const text = unanswered.join("\n");
-  if (unanswered.length === 1 && greeting.test(text))
+  const inquiries = unanswered.filter((message) => !greeting.test(message));
+  if (unanswered.length > 0 && inquiries.length === 0)
     return { text: `Hi! How can I help you with ${ctx.pack.brand.displayName} today?`, handoff: false };
+  const text = inquiries.join("\n");
   if (/\b(?:i(?:['’]ve| have)? (?:already )?paid|payment (?:is |was )?(?:done|sent|made)|i sent (?:the )?payment)\b/i.test(text))
     return { text: hasPublicReply(ctx, ctx.pack.locked.paymentClaimReply)
       ? ctx.pack.locked.paymentClaimAgain : ctx.pack.locked.paymentClaimReply, handoff: true };
@@ -60,7 +61,7 @@ export function immediateAutomaticReply(
     return { text: "Our team can help check that. Could you share a few more details?", handoff: true };
   if (order.test(text)) {
     const verified = statuses.get(orderStatus ?? "");
-    if (verified && orderStatus && unanswered.length === 1 && pureOrderStatus.test(text))
+    if (verified && orderStatus && inquiries.length === 1 && pureOrderStatus.test(text))
       return { text: `The status of your order is ${verified}.`, handoff: false, verifiedOrderStatus: orderStatus };
     return {
       text: orderNumber.test(text)
@@ -74,9 +75,9 @@ export function immediateAutomaticReply(
       text: `${ctx.pack.brand.oneLiner} If you share the design or product link and the size you need, our team can check the latest options for you.`,
       handoff: true,
     };
-  if (unanswered.length === 1 && visiting.test(text))
+  if (inquiries.length === 1 && visiting.test(text))
     return { text: ctx.pack.hours.default, handoff: false };
-  if (unanswered.length === 1 && customDesign.test(text)) {
+  if (inquiries.length === 1 && customDesign.test(text)) {
     const policy = ctx.pack.policies.find((item) => item.topic === "custom_design_enquiry");
     if (policy) return { text: policy.answer, handoff: false };
   }

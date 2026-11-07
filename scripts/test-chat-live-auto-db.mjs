@@ -30,12 +30,12 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
     await q("insert into chat_knowledge_packs(id,tenant_id,brand_id,version,status,pack_json) values($1,$2,$3,1,'published',$4)", [packId, tenant, brand, pack]);
     await q("insert into customers(id,tenant_id,name,phone,normalized_phone_e164) values($1,$2,'Synthetic customer','+12025550123','+12025550123')", [customer, tenant]);
     await q("insert into orders(id,tenant_id,customer_id,order_number,order_status,tracking_token) values($1,$2,$3,'ORD-000123','in_progress','synthetic-token')", [order, tenant, customer]);
-    const captures = (content, provider, phone = "+12025550123", createdAt = new Date(Date.now() + 2000).toISOString()) =>
+    const captures = (content, provider, phone = "+12025550123", createdAt = new Date(Date.now() + 2000).toISOString(), conversation = provider) =>
       scalar("select chat_capture($1,'agent',$2) result", [hook, {
         workspaceId: workspace, channelId: channel, secretHash,
         identity: { displayName: "Synthetic", sourceId: phone.slice(1), phoneE164: phone },
-        message: { messageId: provider, accountId: 904, inboxId: 905, conversationId: provider,
-          contactId: provider, status: "open", channelKind: "whatsapp", author: "customer",
+        message: { messageId: provider, accountId: 904, inboxId: 905, conversationId: conversation,
+          contactId: conversation, status: "open", channelKind: "whatsapp", author: "customer",
           private: false, content, contentType: "text", attachments: [], staffUserId: null, createdAt },
       }]).then((r) => ({ workspaceId: workspace, channelId: channel, secretHash,
         conversationId: r.conversationId, triggerMessageId: r.messageId }));
@@ -65,7 +65,8 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
     await q("update orders set order_status='ready' where id=$1", [order]);
     assert.equal((await send("target", verifiedOrderCap)).status, "order_changed");
 
-    const fresh = await captures("Hello. You there?", 15);
+    await captures("Hello. You there?", 11, undefined, new Date(Date.now() - 1000).toISOString(), 15);
+    const fresh = await captures("Are you there", 15);
     const claim = await run("claim", fresh);
     assert.equal(claim.status, "claimed");
     const result = await runAgentTurn({ scope: scope(fresh),
