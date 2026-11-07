@@ -4,6 +4,8 @@ import { preflight } from "./rules.ts";
 import { validateUnderstanding, understandingSchema } from "./schemas.ts";
 import { renderDraft } from "./checks.ts";
 import { choosePlan, hasPublicReply } from "./plan.ts";
+import { automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
+import { customerTextSchema } from "../actions/customer-text.ts";
 import { ledgerSchema } from "./ledger.ts";
 import { addUsd, usd } from "./budget.ts";
 
@@ -35,6 +37,8 @@ const requestSchema = z
     data: z.unknown(),
     now: z.string().datetime({ offset: true }),
     timeoutMs: z.number().int().min(10).max(10000).default(8000),
+    allowAutomatic: z.boolean().default(false),
+    orderStatus: z.string().optional(),
   })
   .strict();
 const resultSchema = z
@@ -88,8 +92,9 @@ export async function runAgentTurn(
     ctx = buildAgentContext(request.scope, request.data);
   if (model.kind !== "mock" && model.kind !== "live")
     throw new Error("Live agent model is not enabled.");
-  if (model.kind === "live" && ctx.agentMode !== "draft")
-    throw new Error("Live assistance supports private drafts only.");
+  const automatic = model.kind === "live" && ctx.agentMode === "auto";
+  if (automatic && !request.allowAutomatic)
+    throw new Error("Live assistance supports private drafts only without an automatic delivery scope.");
   const result: TurnResult = {
     mode: "draft",
     ledger: { ...ctx.ledger },
@@ -199,6 +204,24 @@ export async function runAgentTurn(
     return answer.json;
   };
   try {
+    if (automatic) {
+      const { unanswered, facts } = automaticReplyContext(ctx);
+      const immediate = immediateAutomaticReply(ctx, unanswered, request.orderStatus);
+      const selection = immediate ? null : z.object({ fact: z.string().nullable() })
+        .strict().parse(await call("write", { unanswered, facts })).fact;
+      const grounded = immediate?.text ?? checkedAutomaticReply(facts, selection);
+      const handoff = immediate?.handoff ?? grounded === null;
+      const text = customerTextSchema.parse(grounded ??
+        "Could you share a little more about what you’re looking for? Our team can help with the details.");
+      result.decision = { automatic: true, reason: handoff ? "person_required" : "information", handoff, mock: false };
+      if (immediate?.verifiedOrderStatus) result.decision.verifiedOrderStatus = immediate.verifiedOrderStatus;
+      if (selection && grounded)
+        result.provenance.push({ kind: "knowledge", version: ctx.packVersion, reference: selection });
+      result.ledger.handoff ||= handoff;
+      result.replyText = (handoff || immediate?.once) && hasPublicReply(ctx, text) ? null : text;
+      result.outcome = result.replyText === null ? "silent" : handoff ? "handoff" : "drafted";
+      return turnResultSchema.parse(result);
+    }
     const understanding = validateUnderstanding(
       await call("understand", ctx.modelContext),
       ctx.session.messages,
@@ -319,9 +342,13 @@ export async function runAgentTurn(
       mock: model.kind === "mock",
     };
     result.ledger.handoff = true;
-    result.replyText = hasPublicReply(ctx, ctx.pack.locked.handoffLine)
-      ? null
+    const fallback = automatic
+      ? "I’m having trouble checking that right now. Our team can help with the details."
       : ctx.pack.locked.handoffLine;
+    if (automatic) result.decision.automatic = true;
+    result.replyText = hasPublicReply(ctx, fallback)
+      ? null
+      : fallback;
     if (result.replyText === null) result.outcome = "silent";
     result.checks.push("unavailable_or_unsafe");
   }

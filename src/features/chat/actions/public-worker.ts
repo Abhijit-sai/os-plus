@@ -12,10 +12,18 @@ export async function tryPublicReply(options: {
   workspace: CaptureWorkspace;
   runId: string;
   leaseToken: string;
+  liveAccountId?: number;
+  verifiedPhone?: string | null;
 }): Promise<{ status: string }> {
+  const live = options.liveAccountId !== undefined;
   if (
-    process.env.CHAT_ACTIONS_ENABLED !== "true" ||
-    process.env.CHAT_PUBLIC_REPLY_ENABLED !== "true" ||
+    (live
+      ? process.env.CHAT_AGENT_MODEL_MODE !== "live-scoped" ||
+        process.env.CHAT_AGENT_ENABLED !== "true" ||
+        process.env.CHAT_DRAFT_DELIVERY_ENABLED !== "true" ||
+        options.liveAccountId !== options.workspace.accountId
+      : process.env.CHAT_ACTIONS_ENABLED !== "true" ||
+        process.env.CHAT_PUBLIC_REPLY_ENABLED !== "true") ||
     process.env.CHAT_DRY_RUN !== "false"
   )
     return { status: "private" };
@@ -26,10 +34,13 @@ export async function tryPublicReply(options: {
       leaseToken: options.leaseToken,
     };
   const call = async (action: string, extra: Record<string, Json> = {}) => {
-    const value = await db.rpc("chat_public_reply", {
+    const value = await db.rpc(live ? "chat_live_public_reply" : "chat_public_reply", {
       p_context: options.context,
       p_action: action,
-      p_input: { ...cap, ...extra },
+      p_input: {
+        ...cap, ...extra,
+        ...(live && options.verifiedPhone ? { verifiedPhone: options.verifiedPhone } : {}),
+      },
     });
     if (value.error) throw new Error("Public receipt unavailable.");
     return value.data;
@@ -76,10 +87,11 @@ export async function tryPublicReply(options: {
       })
       .strict()
       .parse(await call("target"));
-    if (row.data.chatwoot_account_id !== target.accountId)
+    if (row.data.chatwoot_account_id !== target.accountId ||
+        (live && target.accountId !== options.liveAccountId))
       throw new Error("Public target changed");
     providerId = (
-      await new ChatwootPublicClient({ origin, token }).post({
+      await new ChatwootPublicClient({ origin, token, liveAccountId: options.liveAccountId }).post({
         accountId: target.accountId,
         conversationId: target.conversationId,
         outboxId: claim.id,

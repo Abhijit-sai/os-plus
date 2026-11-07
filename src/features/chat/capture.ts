@@ -16,6 +16,7 @@ export function chatCaptureDependencies(
     conversationId: string;
     triggerMessageId: string;
     inboxId: number;
+    verifiedPhone?: string | null;
   }) => Promise<void>,
 ): IngressDependencies {
   const db = createSupabaseServiceRoleClient();
@@ -118,6 +119,7 @@ export function chatCaptureDependencies(
             conversationId: captured.data.conversationId,
             triggerMessageId: captured.data.messageId,
             inboxId: message.inboxId,
+            verifiedPhone: captureInput.p_input.identity.phoneE164,
           });
       }
       await scheduleNotificationCheck(w.tenantId);
@@ -154,6 +156,7 @@ export function chatCaptureDependencies(
           conversationId: confirmed.data.conversationId,
           triggerMessageId: confirmed.data.messageId,
           inboxId: message.inboxId,
+          verifiedPhone: captureInput.p_input.identity.phoneE164,
         });
       } catch {
         console.warn("Chat draft preparation unavailable.");

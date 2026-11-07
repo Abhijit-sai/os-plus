@@ -23,12 +23,6 @@ export function ChatActionSettingsPanel({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!data.publicDeliveryEnabled ? (
-          <p className="text-sm">
-            Automatic delivery is disabled on this installation. Saving approval
-            keeps the current draft workflow until delivery is enabled.
-          </p>
-        ) : null}
         {data.channels.map((channel) => (
           <ChannelSettings key={channel.id} channel={channel} data={data} />
         ))}
@@ -112,6 +106,13 @@ function ChannelForm({
           ? " — current version needs approval"
           : ""}
       </p>
+      <p className="text-sm">
+        {channel.mode === "auto" && channel.automaticAvailable && channel.autoApproved
+          ? "Automatic replies enabled for the approved knowledge version."
+          : channel.mode === "draft"
+            ? "Suggestions appear as private notes for your staff."
+            : "Automatic replies are paused."}
+      </p>
       <fieldset disabled={!ready || pending} className="space-y-3">
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -132,7 +133,11 @@ function ChannelForm({
           >
             <option value="off">Off</option>
             <option value="draft">Staff-reviewed drafts</option>
-            <option value="auto">Automatic replies with owner approval</option>
+            <option value="auto" disabled={!channel.automaticAvailable}>
+              {channel.automaticAvailable
+                ? "Automatic replies with owner approval"
+                : "Automatic replies unavailable"}
+            </option>
           </select>
         </label>
         {mode === "auto" ? (
