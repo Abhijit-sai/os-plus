@@ -6,7 +6,7 @@ import { chatwootOrigin, accountClient } from "../connection";
 import { decryptChatSecret } from "../secrets";
 import { createMockModel } from "./mock-model";
 import { runStoredAgentTurn, type AgentModelFactory } from "./worker-core";
-import { selectAgentRuntime } from "./runtime-config";
+import { matchesScopedDraftChannel, selectAgentRuntime } from "./runtime-config";
 import { allowsPilotContext, allowsPilotScope } from "./live-draft-pilot";
 import { createLiveModel } from "./live-model";
 import { OpenRouterClient } from "@/integrations/openrouter/client";
@@ -21,6 +21,7 @@ export type CapturedAgentJob = {
   channel: CaptureChannel;
   conversationId: string;
   triggerMessageId: string;
+  inboxId: number;
 };
 
 /** Explicit live configuration admits private drafts only; mock mode remains loopback-only. */
@@ -30,6 +31,9 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
     const origin = chatwootOrigin(),
       runtime = selectAgentRuntime(process.env, origin);
     if (!runtime || (runtime.kind === "live" && job.channel.mode !== "draft"))
+      return;
+    const channelScope = runtime.kind === "live" ? runtime.channelScope : undefined;
+    if (channelScope && !matchesScopedDraftChannel(channelScope, job.workspace, job.channel, job.inboxId))
       return;
     const db = createSupabaseServiceRoleClient(),
       w = job.workspace;
@@ -141,7 +145,26 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       }
       return response.data;
     };
+    const scopedContext = (raw: unknown) => {
+      if (!channelScope) return null;
+      const data = z.object({
+        brandId: z.literal(channelScope.brandId),
+        channelKind: z.literal("whatsapp"),
+        agentMode: z.literal("draft"),
+        messages: z.array(z.object({
+          id: z.string().uuid(),
+          at: z.string().datetime({ offset: true }),
+          inputSource: z.string().optional(),
+        }).passthrough()),
+      }).passthrough().safeParse(raw);
+      if (!data.success) return null;
+      const messages = data.data.messages.filter((message) => message.inputSource !== "voice");
+      const trigger = messages.find((message) => message.id === job.triggerMessageId);
+      if (!trigger || Date.parse(trigger.at) < Date.parse(channelScope.startsAt)) return null;
+      return { ...data.data, background: null, locations: [], messages };
+    };
     const data = await call("chat_agent_load", input);
+    if (channelScope && !scopedContext(data)) return;
     if (pilot && !allowsPilotContext(pilot, scope, data)) return;
     const voice = z
       .object({
@@ -277,6 +300,10 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         async prepare(capability, context) {
           if (pilot && !allowsPilotContext(pilot, scope, context))
             return { status: "pilot_scope_changed" };
+          if (channelScope) {
+            const data = scopedContext(context);
+            return data ? { status: "ready", data } : { status: "draft_scope_changed" };
+          }
           if (!voice?.required) return { status: "ready", data: context };
           return (await import("../voice/worker")).prepareCapturedVoice(job, capability, context);
         },

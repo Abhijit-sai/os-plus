@@ -6,6 +6,7 @@ import { captureIdentities } from "../leads/rules";
 import { websitePhoneClaim } from "./website/rules";
 import type { IngressDependencies } from "./ingress";
 import { scheduleNotificationCheck } from "./notifications/trigger";
+import { matchesScopedDraftChannel, selectAgentRuntime } from "./agent/runtime-config";
 
 export function chatCaptureDependencies(
   schedule: IngressDependencies["after"],
@@ -14,6 +15,7 @@ export function chatCaptureDependencies(
     channel: import("./ingress").CaptureChannel;
     conversationId: string;
     triggerMessageId: string;
+    inboxId: number;
   }) => Promise<void>,
 ): IngressDependencies {
   const db = createSupabaseServiceRoleClient();
@@ -72,7 +74,7 @@ export function chatCaptureDependencies(
         contactId: message.contactId,
         ...message.identity,
       });
-      const { data, error } = await db.rpc("chat_capture", {
+      const captureInput = {
         p_context: {
           tenantId: w.tenantId,
           actor: { type: "WEBHOOK", id: "chatwoot" },
@@ -98,7 +100,8 @@ export function chatCaptureDependencies(
               profile.identities.find((i) => i.kind === "phone")?.value ?? null,
           },
         },
-      });
+      };
+      const { data, error } = await db.rpc("chat_capture", captureInput);
       if (error) throw new Error("Capture unavailable");
       if (kind === "agent" && agent) {
         const captured = z
@@ -114,9 +117,47 @@ export function chatCaptureDependencies(
             channel: c,
             conversationId: captured.data.conversationId,
             triggerMessageId: captured.data.messageId,
+            inboxId: message.inboxId,
           });
       }
       await scheduleNotificationCheck(w.tenantId);
+      if (
+        kind !== "events" ||
+        !agent ||
+        process.env.CHAT_AGENT_MODEL_MODE !== "live-scoped" ||
+        message.author !== "customer" ||
+        message.private
+      ) return;
+      try {
+        const runtime = selectAgentRuntime(process.env, "");
+        if (
+          runtime?.kind !== "live" ||
+          !runtime.channelScope ||
+          !matchesScopedDraftChannel(runtime.channelScope, w, c, message.inboxId) ||
+          !(Date.parse(message.createdAt) >= Date.parse(runtime.channelScope.startsAt))
+        ) return;
+        const captured = z
+          .object({ conversationId: z.string().uuid(), messageId: z.string().uuid() })
+          .passthrough()
+          .safeParse(data);
+        if (!captured.success) return;
+        // The cutoff excludes historical replays. The stored turn and run deduplicate retries.
+        const turn = await db.rpc("chat_capture", { ...captureInput, p_kind: "agent" });
+        const confirmed = z
+          .object({ conversationId: z.literal(captured.data.conversationId), messageId: z.literal(captured.data.messageId) })
+          .passthrough()
+          .safeParse(turn.data);
+        if (turn.error || !confirmed.success) return;
+        await agent({
+          workspace: w,
+          channel: c,
+          conversationId: confirmed.data.conversationId,
+          triggerMessageId: confirmed.data.messageId,
+          inboxId: message.inboxId,
+        });
+      } catch {
+        console.warn("Chat draft preparation unavailable.");
+      }
     },
     async issue(w, code) {
       const { error } = await db.rpc("chat_capture_issue", {

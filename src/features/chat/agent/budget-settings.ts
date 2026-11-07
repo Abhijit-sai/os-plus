@@ -11,7 +11,7 @@ const readSchema = z
 const saveSchema = z.object({ monthlyBudgetUsd: usd, version }).strict();
 export async function getAiBudgetSettings() {
   const mode = process.env.CHAT_AGENT_MODEL_MODE;
-  if (mode !== "live" && mode !== "live-pilot") return null;
+  if (mode !== "live" && mode !== "live-pilot" && mode !== "live-scoped") return null;
   const { context, db } = await requireChatPermission("chat_settings:manage");
   const result = await db.rpc("chat_ai_budget_settings", {
     p_context: { ...createUserCommandContext(context) },

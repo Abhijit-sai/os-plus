@@ -1,13 +1,48 @@
 import "server-only";
+import { z } from "zod";
 import { liveDraftPilotSchema, type LiveDraftPilot } from "./live-draft-pilot.ts";
 import { liveModelConfigSchema, type LiveModelConfig } from "./live-model.ts";
 
-const pilotModel = "google/gemini-3.8-flash";
+const draftModel = "google/gemini-3.8-flash";
+const scopedConfig: LiveModelConfig = {
+  models: { understand: draftModel, classify: draftModel, write: draftModel },
+  provider: "google-vertex/global",
+  maxPrice: { prompt: "0.75", completion: "3.75", request: "0" },
+};
+const channelScopeSchema = z
+  .object({
+    tenantId: z.string().uuid(),
+    workspaceId: z.string().uuid(),
+    channelId: z.string().uuid(),
+    accountId: z.number().int().positive().safe(),
+    inboxId: z.number().int().positive().safe(),
+    brandId: z.string().uuid(),
+    startsAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+type ChannelScope = z.infer<typeof channelScopeSchema>;
+
+export function matchesScopedDraftChannel(
+  scope: ChannelScope,
+  workspace: { tenantId: string; id: string; accountId: number },
+  channel: { id: string; kind: string; mode: string },
+  inboxId: number,
+): boolean {
+  return (
+    channel.mode === "draft" &&
+    channel.kind === "whatsapp" &&
+    workspace.tenantId === scope.tenantId &&
+    workspace.id === scope.workspaceId &&
+    workspace.accountId === scope.accountId &&
+    channel.id === scope.channelId &&
+    inboxId === scope.inboxId
+  );
+}
 
 export function selectAgentRuntime(
   env: Record<string, string | undefined>,
   chatOrigin: string,
-): { kind: "mock" } | { kind: "live"; config: LiveModelConfig; pilot?: LiveDraftPilot } | null {
+): { kind: "mock" } | { kind: "live"; config: LiveModelConfig; pilot?: LiveDraftPilot; channelScope?: ChannelScope } | null {
   if (env.CHAT_AGENT_ENABLED !== "true") return null;
   if (env.CHAT_AGENT_MODEL_MODE === "mock")
     return ["localhost", "127.0.0.1", "[::1]"].includes(
@@ -17,13 +52,20 @@ export function selectAgentRuntime(
       : null;
   const mode = env.CHAT_AGENT_MODEL_MODE;
   if (
-    (mode !== "live" && mode !== "live-pilot") ||
+    (mode !== "live" && mode !== "live-pilot" && mode !== "live-scoped") ||
     env.CHAT_MODEL_LIVE_ENABLED !== "true" ||
     env.CHAT_DRY_RUN !== "false"
   )
     return null;
   if (!env.OPENROUTER_API_KEY?.trim())
     throw new Error("Model configuration unavailable.");
+
+  if (mode === "live-scoped") {
+    const channelScope = channelScopeSchema.parse(
+      JSON.parse(env.CHAT_LIVE_DRAFT_CHANNEL_SCOPE ?? "null"),
+    );
+    return { kind: "live", config: scopedConfig, channelScope };
+  }
 
   const config = liveModelConfigSchema.parse({
     models: {
@@ -40,7 +82,7 @@ export function selectAgentRuntime(
   });
   if (mode === "live") return { kind: "live", config };
   if (
-    Object.values(config.models).some((model) => model !== pilotModel) ||
+    Object.values(config.models).some((model) => model !== draftModel) ||
     config.provider !== "google-vertex/global" ||
     config.maxPrice.prompt !== "0.75" ||
     config.maxPrice.completion !== "3.75" ||

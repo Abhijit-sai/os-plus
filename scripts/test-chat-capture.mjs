@@ -395,6 +395,7 @@ test("actual HTTP ingress resolves URL authority, acknowledges before work, and 
       "../leads/rules": await import("../src/features/leads/rules.ts"),
       "./website/rules": await import("../src/features/chat/website/rules.ts"),
       "./notifications/trigger": { scheduleNotificationCheck: async () => {} },
+      "./agent/runtime-config": {},
       "@/lib/supabase/server": {
         createSupabaseServiceRoleClient: () => adapter,
       },
