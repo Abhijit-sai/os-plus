@@ -10,21 +10,24 @@ const schema = z
     text: customerTextSchema,
   })
   .strict();
-/** CH6 local/mock transport only. A persisted outbox claim must precede this one attempt. */
+/** A persisted outbox claim must precede this one attempt. */
 export class ChatwootPublicClient {
   private origin: string;
   private token: string;
+  private liveAccountId: number | undefined;
   constructor(options: {
     origin: string;
     token: string;
     allowLocalMock?: boolean;
+    liveAccountId?: number;
   }) {
     const url = new URL(options.origin);
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (
-      !local ||
+      (!local && options.liveAccountId === undefined) ||
       (!["https:"].includes(url.protocol) &&
         !(
+          options.liveAccountId === undefined &&
           options.allowLocalMock === true &&
           url.hostname === "127.0.0.1" &&
           url.protocol === "http:"
@@ -35,19 +38,23 @@ export class ChatwootPublicClient {
       url.hash ||
       url.pathname !== "/"
     )
-      throw new Error("Local public transport unavailable.");
+      throw new Error("Public transport unavailable.");
     this.origin = url.origin;
     this.token = z.string().min(1).max(8192).parse(options.token);
+    this.liveAccountId = id.optional().parse(options.liveAccountId);
   }
   async post(raw: unknown): Promise<{ id: number }> {
-    if (
-      process.env.CHAT_ACTIONS_ENABLED !== "true" ||
-      process.env.CHAT_PUBLIC_REPLY_ENABLED !== "true" ||
-      process.env.CHAT_DRY_RUN !== "false" ||
-      process.env.CHAT_AGENT_MODEL_MODE !== "mock"
-    )
-      throw new Error("Public delivery disabled.");
     const input = schema.parse(raw);
+    const allowed = this.liveAccountId === undefined
+      ? process.env.CHAT_ACTIONS_ENABLED === "true" &&
+        process.env.CHAT_PUBLIC_REPLY_ENABLED === "true" &&
+        process.env.CHAT_AGENT_MODEL_MODE === "mock"
+      : this.liveAccountId === input.accountId &&
+        process.env.CHAT_AGENT_ENABLED === "true" &&
+        process.env.CHAT_DRAFT_DELIVERY_ENABLED === "true" &&
+        process.env.CHAT_AGENT_MODEL_MODE === "live-scoped";
+    if (!allowed || process.env.CHAT_DRY_RUN !== "false")
+      throw new Error("Public delivery disabled.");
     try {
       const response = await fetch(
         this.origin +

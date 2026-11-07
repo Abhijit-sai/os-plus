@@ -7,15 +7,17 @@ export async function deliverHandoffLabel(
   context: Json,
   input: Record<string, string>,
   workspace: { tenantId: string; id?: string; accountId?: number },
+  live = false,
 ) {
   try {
     if (
-      process.env.CHAT_ACTIONS_ENABLED !== "true" ||
       process.env.CHAT_DRY_RUN !== "false" ||
-      process.env.CHAT_AGENT_MODEL_MODE !== "mock" ||
-      !["localhost", "127.0.0.1", "[::1]"].includes(
-        new URL(chatwootOrigin()).hostname,
-      )
+      (live
+        ? process.env.CHAT_AGENT_ENABLED !== "true" ||
+          process.env.CHAT_AGENT_MODEL_MODE !== "live-scoped"
+        : process.env.CHAT_ACTIONS_ENABLED !== "true" ||
+          process.env.CHAT_AGENT_MODEL_MODE !== "mock" ||
+          !["localhost", "127.0.0.1", "[::1]"].includes(new URL(chatwootOrigin()).hostname))
     )
       return;
     const db = createSupabaseServiceRoleClient();

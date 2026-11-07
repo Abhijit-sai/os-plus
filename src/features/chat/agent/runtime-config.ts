@@ -33,7 +33,7 @@ export function matchesScopedDraftChannel(
   inboxId: number,
 ): boolean {
   return (
-    channel.mode === "draft" &&
+    (channel.mode === "draft" || channel.mode === "auto") &&
     channel.kind === "whatsapp" &&
     workspace.tenantId === scope.tenantId &&
     workspace.id === scope.workspaceId &&

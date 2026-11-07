@@ -184,6 +184,59 @@ test("live assistance refuses automatic mode before making any model call", asyn
   assert.equal(calls, 0);
 });
 
+test("approved automatic mode greets, uses only approved facts and checks verified orders", async () => {
+  async function automatic(content, answer, orderStatus) {
+    const req = request();
+    req.allowAutomatic = true;
+    req.orderStatus = orderStatus;
+    req.data.agentMode = "auto";
+    req.data.channelKind = "whatsapp";
+    req.data.messages[0].content = content;
+    let calls = 0;
+    const result = await runAgentTurn(req, {
+      kind: "live",
+      async complete({ stage, context }) {
+        calls++;
+        assert.equal(stage, "write");
+        assert.equal(context.unanswered[0], content);
+        return { json: answer, model: "synthetic/auto", costUsd: "0" };
+      },
+    });
+    assert.equal(result.decision.automatic, true);
+    return { result, calls };
+  }
+
+  const hello = await automatic("Hello. You there?");
+  assert.match(hello.result.replyText, /^Hi! How can I help/);
+  assert.equal(hello.calls, 0);
+  const hours = await automatic("Can I come by tomorrow?", { fact: "hours" });
+  assert.equal(hours.result.replyText, pack.hours.default);
+  assert.equal(hours.calls, 0);
+  const size = await automatic("Is this available in my size?");
+  assert.match(size.result.replyText, /size you need/);
+  assert.equal(size.result.decision.handoff, true);
+  for (const question of ["Do you have a medium?", "Is the black shirt available?"]) {
+    const unavailable = await automatic(question);
+    assert.equal(unavailable.result.decision.handoff, true);
+    assert.equal(unavailable.calls, 0);
+  }
+  const order = await automatic("Where is my order ORD-000123?", undefined, "in_progress");
+  assert.equal(order.result.replyText, "The status of your order is in progress.");
+  assert.equal(order.calls, 0);
+  const unverified = await automatic("Where is my order ORD-000123?");
+  assert.equal(unverified.result.decision.handoff, true);
+  assert.match(unverified.result.replyText, /couldn’t confirm/);
+  const paid = await automatic("I've paid for ORD-000123", undefined, "in_progress");
+  assert.equal(paid.result.replyText, pack.locked.paymentClaimReply);
+  assert.equal(paid.result.decision.handoff, true);
+  const vendor = await automatic("I'm a supplier");
+  assert.equal(vendor.result.replyText, pack.locked.vendorReply);
+  assert.equal(vendor.calls, 0);
+  const invented = await automatic("Can you do it?", { fact: "fake-price" });
+  assert.equal(invented.result.decision.handoff, true);
+  assert.doesNotMatch(invented.result.replyText, /fake-price/);
+});
+
 import { createServer } from "node:http";
 import { OpenRouterClient } from "../src/integrations/openrouter/client.ts";
 const liveConfig = {

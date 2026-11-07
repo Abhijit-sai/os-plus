@@ -22,17 +22,19 @@ export type CapturedAgentJob = {
   conversationId: string;
   triggerMessageId: string;
   inboxId: number;
+  verifiedPhone?: string | null;
 };
 
-/** Explicit live configuration admits private drafts only; mock mode remains loopback-only. */
+/** Live delivery is scoped to the configured inbox and its saved reply mode. */
 export async function processCapturedAgent(job: CapturedAgentJob) {
   if (process.env.CHAT_AGENT_ENABLED !== "true") return;
   try {
     const origin = chatwootOrigin(),
       runtime = selectAgentRuntime(process.env, origin);
-    if (!runtime || (runtime.kind === "live" && job.channel.mode !== "draft"))
-      return;
+    if (!runtime) return;
     const channelScope = runtime.kind === "live" ? runtime.channelScope : undefined;
+    const liveAuto = runtime.kind === "live" && channelScope !== undefined && job.channel.mode === "auto";
+    if (runtime.kind === "live" && job.channel.mode !== "draft" && !liveAuto) return;
     if (channelScope && !matchesScopedDraftChannel(channelScope, job.workspace, job.channel, job.inboxId))
       return;
     const db = createSupabaseServiceRoleClient(),
@@ -150,7 +152,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       const data = z.object({
         brandId: z.literal(channelScope.brandId),
         channelKind: z.literal("whatsapp"),
-        agentMode: z.literal("draft"),
+        agentMode: z.literal(job.channel.mode),
         messages: z.array(z.object({
           id: z.string().uuid(),
           at: z.string().datetime({ offset: true }),
@@ -284,6 +286,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
                   token: process.env.OPENROUTER_API_KEY!,
                 }),
                 pilot ? () => allowsPilotScope(pilot, scope) : undefined,
+                liveAuto,
               );
             },
           }
@@ -294,18 +297,28 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         now: new Date().toISOString(),
         dryRun: process.env.CHAT_DRY_RUN !== "false",
         deliver: process.env.CHAT_DRAFT_DELIVERY_ENABLED === "true",
+        publicAuto: liveAuto,
       },
       {
         load: () => call("chat_agent_load", input),
-        async prepare(capability, context) {
-          if (pilot && !allowsPilotContext(pilot, scope, context))
+        async prepare(capability, loadedContext) {
+          if (pilot && !allowsPilotContext(pilot, scope, loadedContext))
             return { status: "pilot_scope_changed" };
           if (channelScope) {
-            const data = scopedContext(context);
-            return data ? { status: "ready", data } : { status: "draft_scope_changed" };
+            const data = scopedContext(loadedContext);
+            if (!data) return { status: "draft_scope_changed" };
+            const trigger = data.messages.find((message) => message.id === job.triggerMessageId);
+            if (liveAuto && job.verifiedPhone && typeof trigger?.content === "string" && /\bord-[0-9]{6,12}\b/i.test(trigger.content)) {
+              const order = await db.rpc("chat_live_auto_order_status", {
+                p_context: context,
+                p_input: { ...input, verifiedPhone: job.verifiedPhone },
+              });
+              return { status: "ready", data, orderStatus: order.data ?? undefined };
+            }
+            return { status: "ready", data };
           }
-          if (!voice?.required) return { status: "ready", data: context };
-          return (await import("../voice/worker")).prepareCapturedVoice(job, capability, context);
+          if (!voice?.required) return { status: "ready", data: loadedContext };
+          return (await import("../voice/worker")).prepareCapturedVoice(job, capability, loadedContext);
         },
         async run(action, extra) {
           if (action === "delivery.claim" && pilot && !allowsPilotScope(pilot, scope))
@@ -316,10 +329,17 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
             action,
           );
         },
-        publicDelivery: (capability) =>
-          voice?.required
-            ? Promise.resolve({ status: "private" as const })
-            : tryPublicReply({ context, input, workspace: w, ...capability }),
+        publicDelivery:
+          !voice?.required && (runtime.kind === "mock" || liveAuto)
+            ? (capability) =>
+                tryPublicReply({
+                  context,
+                  input,
+                  workspace: w,
+                  ...capability,
+                  ...(liveAuto ? { liveAccountId: w.accountId, verifiedPhone: job.verifiedPhone } : {}),
+                })
+            : undefined,
         dryRun: (result) =>
           call("chat_agent_dry_run", {
             ...input,
@@ -374,7 +394,10 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
         });
       },
     );
-    if (runtime.kind === "live") return;
+    if (runtime.kind === "live") {
+      if (liveAuto) await deliverHandoffLabel(context, input, w, true);
+      return;
+    }
     await deliverHandoffLabel(context, input, w);
     const capability = capabilities.at(-1);
     if (capability)

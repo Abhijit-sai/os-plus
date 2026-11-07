@@ -15,6 +15,7 @@ const inputSchema = z
     now: z.string().datetime({ offset: true }),
     dryRun: z.boolean(),
     deliver: z.boolean(),
+    publicAuto: z.boolean().default(false),
   })
   .strict();
 export type MockTurnStore = {
@@ -24,7 +25,7 @@ export type MockTurnStore = {
   prepare?(
     capability: { runId: string; leaseToken: string },
     data: unknown,
-  ): Promise<{ status: string; data?: unknown; result?: TurnResult }>;
+  ): Promise<{ status: string; data?: unknown; result?: TurnResult; orderStatus?: string }>;
   publicDelivery?(capability: {
     runId: string;
     leaseToken: string;
@@ -100,7 +101,11 @@ export async function runStoredAgentTurn(
     const result =
       prepared.result ??
       (await runAgentTurn(
-        { scope: input.scope, now: input.now, data: prepared.data },
+        {
+          scope: input.scope, now: input.now, data: prepared.data,
+          allowAutomatic: input.publicAuto,
+          orderStatus: "orderStatus" in prepared ? prepared.orderStatus : undefined,
+        },
         factory.create(capability),
       ));
     completed = statusSchema.parse(
@@ -109,7 +114,7 @@ export async function runStoredAgentTurn(
   }
   if (completed.status !== "ready" || !input.deliver)
     return { status: completed.status };
-  if (factory.kind === "mock" && store.publicDelivery) {
+  if (store.publicDelivery && (factory.kind === "mock" || input.publicAuto)) {
     const publicResult = await store.publicDelivery(capability);
     if (publicResult.status !== "private") return publicResult;
   }

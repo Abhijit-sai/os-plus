@@ -57,6 +57,7 @@ export function createLiveModel(
   store: BudgetStore,
   client: OpenRouterClient,
   canStartRequest: () => boolean = () => true,
+  automatic = false,
 ): AgentModel {
   const config = liveModelConfigSchema.parse(raw),
     attempted = new Set<ModelStage>();
@@ -65,7 +66,10 @@ export function createLiveModel(
     async complete({ stage, context, signal }) {
       if (signal.aborted || attempted.has(stage))
         throw new Error("Model stage unavailable.");
-      const system = common + instructions[stage],
+      const instruction = automatic && stage === "write"
+        ? 'Select one approved fact that fully answers the customer’s request. Return JSON {"fact":"exact key"} or {"fact":null}. Read all unanswered messages together. Use null for anything requiring current inventory, private order data, a booking, staff confirmation or a fact not provided. Never return your own prose.'
+        : instructions[stage];
+      const system = common + instruction,
         user = JSON.stringify(context);
       const bytes = Buffer.byteLength(system + user, "utf8");
       if (bytes > 64000) throw new Error("Model context unavailable.");
