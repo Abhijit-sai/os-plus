@@ -21,6 +21,9 @@ const mixedCRLFLines = {
 export const chatReleaseFollowups = Object.freeze([
   "20261031132000_chat_staff_link_commands.sql",
   "20261101120000_chat_live_draft_budget.sql",
+  "20261106130000_boutique_contribution_runtime_reconciliation.sql",
+  "20261106143000_chat_notification_setup_test.sql",
+  "20261107115000_chat_uncapped_whatsapp_drafts.sql",
 ]);
 
 // Pure preparation. No database, credentials, network or application env access.

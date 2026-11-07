@@ -6,7 +6,7 @@ import { commandKeySchema } from "../schemas";
 import { usd } from "./budget";
 const version = z.number().int().nonnegative().max(2147483646);
 const readSchema = z
-  .object({ monthlyBudgetUsd: usd.nullable(), version })
+  .object({ monthlyBudgetUsd: usd.nullable(), version, uncappedDrafts: z.literal(true).optional() })
   .strict();
 const saveSchema = z.object({ monthlyBudgetUsd: usd, version }).strict();
 export async function getAiBudgetSettings() {

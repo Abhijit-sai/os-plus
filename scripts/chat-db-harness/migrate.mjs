@@ -38,7 +38,7 @@ export async function applyChatMigrations(db, {ownedRelease=false,rolesPrepared=
   }
   if(release) {
     await db.query(release.sql);
-    if(includeFollowups) for(const file of chatReleaseFollowups.filter(name => files.includes(name))) {
+    if(includeFollowups) for(const file of chatReleaseFollowups.filter(name => name.includes("_chat_") && files.includes(name))) {
       await db.query(readFileSync(new URL(file,folder),"utf8"));
     }
   }
