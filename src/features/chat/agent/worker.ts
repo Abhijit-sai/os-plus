@@ -7,6 +7,7 @@ import { decryptChatSecret } from "../secrets";
 import { createMockModel } from "./mock-model";
 import { runStoredAgentTurn, type AgentModelFactory } from "./worker-core";
 import { selectAgentRuntime } from "./runtime-config";
+import { allowsPilotContext, allowsPilotScope } from "./live-draft-pilot";
 import { createLiveModel } from "./live-model";
 import { OpenRouterClient } from "@/integrations/openrouter/client";
 import { ChatwootMessageClient } from "@/integrations/chatwoot/message-client";
@@ -45,6 +46,8 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       conversationId: job.conversationId,
       triggerMessageId: job.triggerMessageId,
     };
+    const pilot = runtime.kind === "live" ? runtime.pilot : undefined;
+    if (pilot && !allowsPilotScope(pilot, scope)) return;
     const input = {
       workspaceId: w.id,
       secretHash: w.secretHash,
@@ -139,6 +142,7 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       return response.data;
     };
     const data = await call("chat_agent_load", input);
+    if (pilot && !allowsPilotContext(pilot, scope, data)) return;
     const voice = z
       .object({
         voice: z
@@ -239,8 +243,10 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
               return createLiveModel(
                 runtime.config,
                 {
-                  run: (action, extra) =>
-                    call(
+                  async run(action, extra) {
+                    if (action === "budget.reserve" && pilot && !allowsPilotScope(pilot, scope))
+                      return { admitted: false };
+                    return call(
                       "chat_agent_run",
                       {
                         ...input,
@@ -248,11 +254,13 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
                         ...z.record(z.unknown()).parse(extra),
                       } as Json,
                       action,
-                    ),
+                    );
+                  },
                 },
                 new OpenRouterClient({
                   token: process.env.OPENROUTER_API_KEY!,
                 }),
+                pilot ? () => allowsPilotScope(pilot, scope) : undefined,
               );
             },
           }
@@ -266,20 +274,21 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
       },
       {
         load: () => call("chat_agent_load", input),
-        prepare: async (capability, context) =>
-          voice?.required
-            ? (await import("../voice/worker")).prepareCapturedVoice(
-                job,
-                capability,
-                context,
-              )
-            : { status: "ready", data: context },
-        run: (action, extra) =>
-          call(
+        async prepare(capability, context) {
+          if (pilot && !allowsPilotContext(pilot, scope, context))
+            return { status: "pilot_scope_changed" };
+          if (!voice?.required) return { status: "ready", data: context };
+          return (await import("../voice/worker")).prepareCapturedVoice(job, capability, context);
+        },
+        async run(action, extra) {
+          if (action === "delivery.claim" && pilot && !allowsPilotScope(pilot, scope))
+            return { status: "pilot_expired" };
+          return call(
             "chat_agent_run",
             { ...input, ...z.record(z.unknown()).parse(extra) } as Json,
             action,
-          ),
+          );
+        },
         publicDelivery: (capability) =>
           voice?.required
             ? Promise.resolve({ status: "private" as const })
@@ -329,6 +338,8 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
           workspaceId: w.id,
           purpose: "bot_token",
         });
+        if (pilot && !allowsPilotScope(pilot, scope))
+          throw new Error("Draft pilot expired.");
         return new ChatwootMessageClient({ origin, token }).postPrivateDraft({
           draftId: draft.draftId,
           text: draft.text,
