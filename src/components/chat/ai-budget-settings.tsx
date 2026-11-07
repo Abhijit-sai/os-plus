@@ -29,10 +29,9 @@ export function ChatAiBudgetSettings({ data }: { data: AiBudgetSettings }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="max-w-prose text-sm text-muted-foreground">
-          Set a monthly limit in USD for this business. A limit is required
-          before paid suggestions can run; enter 0 to pause new spending. The
-          month resets in UTC. Calls with unknown costs continue to count
-          against the limit.
+          {data.uncappedDrafts
+            ? "Private WhatsApp suggestions are configured without a monthly limit. Enter 0 to pause new spending."
+            : "Set a monthly limit in USD for this business. Enter 0 to pause new spending. The month resets in UTC. Calls with unknown costs continue to count against the limit."}
         </p>
         <form
           data-unsaved-guard="true"
@@ -68,7 +67,7 @@ export function ChatAiBudgetSettings({ data }: { data: AiBudgetSettings }) {
                 pattern="(0|[1-9][0-9]{0,8})([.][0-9]{1,12})?"
                 maxLength={22}
                 defaultValue={data.monthlyBudgetUsd ?? ""}
-                placeholder="Not configured"
+                placeholder={data.uncappedDrafts ? "No monthly limit" : "Not configured"}
               />
             </label>
             <Button type="submit">

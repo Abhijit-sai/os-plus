@@ -6,12 +6,12 @@ import { commandKeySchema } from "../schemas";
 import { usd } from "./budget";
 const version = z.number().int().nonnegative().max(2147483646);
 const readSchema = z
-  .object({ monthlyBudgetUsd: usd.nullable(), version })
+  .object({ monthlyBudgetUsd: usd.nullable(), version, uncappedDrafts: z.literal(true).optional() })
   .strict();
 const saveSchema = z.object({ monthlyBudgetUsd: usd, version }).strict();
 export async function getAiBudgetSettings() {
   const mode = process.env.CHAT_AGENT_MODEL_MODE;
-  if (mode !== "live" && mode !== "live-pilot") return null;
+  if (mode !== "live" && mode !== "live-pilot" && mode !== "live-scoped") return null;
   const { context, db } = await requireChatPermission("chat_settings:manage");
   const result = await db.rpc("chat_ai_budget_settings", {
     p_context: { ...createUserCommandContext(context) },

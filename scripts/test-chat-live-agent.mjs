@@ -792,3 +792,157 @@ test("pilot expiry after durable admission settles zero without starting the pro
   assert.equal(calls, 0);
   assert.deepEqual(settlement, [{ callKey: "understand", actualUsd: "0", generationId: null }]);
 });
+
+test("ongoing scoped drafts use one inbox binding and the existing provider key", async () => {
+  const { selectAgentRuntime, matchesScopedDraftChannel } = await import("../src/features/chat/agent/runtime-config.ts");
+  const env = {
+    CHAT_AGENT_ENABLED: "true", CHAT_MODEL_LIVE_ENABLED: "true", CHAT_DRY_RUN: "false",
+    CHAT_AGENT_MODEL_MODE: "live-scoped", OPENROUTER_API_KEY: "fixture-only",
+  };
+  const binding = { tenantId: scope.tenantId, workspaceId: scope.workspaceId, channelId: scope.channelId, accountId: 904, inboxId: 905, brandId: id(6), startsAt: "2026-11-01T09:59:59Z" };
+  assert.throws(() => selectAgentRuntime(env, ""));
+  const runtime = selectAgentRuntime({ ...env, CHAT_LIVE_DRAFT_CHANNEL_SCOPE: JSON.stringify(binding) }, "");
+  assert.deepEqual(runtime.channelScope, binding);
+  assert.equal(runtime.config.provider, "google-vertex/global");
+  assert.equal(runtime.config.models.write, "google/gemini-3.8-flash");
+  const workspace = { tenantId: scope.tenantId, id: scope.workspaceId, accountId: 904 };
+  const inbox = { id: scope.channelId, kind: "whatsapp", mode: "draft" };
+  assert.equal(matchesScopedDraftChannel(binding, workspace, inbox, 905), true);
+  assert.equal(matchesScopedDraftChannel(binding, { ...workspace, accountId: 903 }, inbox, 905), false);
+  assert.equal(matchesScopedDraftChannel(binding, workspace, { ...inbox, kind: "website" }, 905), false);
+  assert.equal(matchesScopedDraftChannel(binding, workspace, { ...inbox, mode: "off" }, 905), false);
+  assert.equal(matchesScopedDraftChannel(binding, workspace, inbox, 906), false);
+});
+
+test("scoped WhatsApp drafts start only after the normal capture commits", async () => {
+  const { loadServerModule } = await import("./chat-db-harness/server-adapter.mjs");
+  const zod = await import("zod");
+  const { randomUUID } = await import("node:crypto");
+  const { matchesScopedDraftChannel } = await import("../src/features/chat/agent/runtime-config.ts");
+  const binding = { tenantId: scope.tenantId, workspaceId: scope.workspaceId, channelId: scope.channelId, accountId: 904, inboxId: 905, brandId: id(6), startsAt: "2026-11-01T09:59:59Z" };
+  const fixture = { conversationId: scope.conversationId, messageId: scope.triggerMessageId };
+  const trace = [];
+  let duplicate = false;
+  let agentFailure = false;
+  const { chatCaptureDependencies } = loadServerModule("src/features/chat/capture.ts", {
+    zod,
+    "node:crypto": { randomUUID },
+    "@/lib/supabase/server": { createSupabaseServiceRoleClient: () => ({
+      async rpc(_name, args) {
+        trace.push(args.p_kind);
+        if (args.p_kind === "agent" && agentFailure) return { error: new Error("Fixture failed") };
+        return { data: { ...fixture, inserted: args.p_kind === "events" && !duplicate }, error: null };
+      },
+    }) },
+    "../leads/rules": { captureIdentities: () => ({ displayName: null, identities: [] }) },
+    "./website/rules": {},
+    "./notifications/trigger": { scheduleNotificationCheck: async () => { trace.push("notify"); } },
+    "./agent/runtime-config": {
+      matchesScopedDraftChannel,
+      selectAgentRuntime: () => ({ kind: "live", channelScope: binding }),
+    },
+  });
+  const deps = chatCaptureDependencies(() => {}, async (job) => {
+    assert.equal(job.triggerMessageId, scope.triggerMessageId);
+    trace.push("draft");
+  });
+  const workspace = { tenantId: scope.tenantId, id: scope.workspaceId, accountId: 904, secretHash: "fixture" };
+  const inbox = { id: scope.channelId, kind: "whatsapp", mode: "draft" };
+  const message = { contactId: 99, identity: {}, inboxId: 905, author: "customer", private: false, createdAt: "2026-11-01T10:00:00Z" };
+  const previous = process.env.CHAT_AGENT_MODEL_MODE;
+  try {
+    process.env.CHAT_AGENT_MODEL_MODE = "live-scoped";
+    await deps.capture(workspace, inbox, "events", message);
+    assert.deepEqual(trace.splice(0), ["events", "notify", "agent", "draft"]);
+    duplicate = true;
+    await deps.capture(workspace, inbox, "events", { ...message, createdAt: "2026-11-01T09:59:58Z" });
+    assert.deepEqual(trace.splice(0), ["events", "notify"]);
+    duplicate = false;
+    await deps.capture(workspace, inbox, "events", { ...message, private: true });
+    assert.deepEqual(trace.splice(0), ["events", "notify"]);
+    await deps.capture({ ...workspace, accountId: 903 }, inbox, "events", message);
+    assert.deepEqual(trace.splice(0), ["events", "notify"]);
+    agentFailure = true;
+    await deps.capture(workspace, inbox, "events", message);
+    assert.deepEqual(trace.splice(0), ["events", "notify", "agent"]);
+    duplicate = true;
+    agentFailure = false;
+    await deps.capture(workspace, inbox, "events", message);
+    assert.deepEqual(trace.splice(0), ["events", "notify", "agent", "draft"]);
+  } finally {
+    if (previous === undefined) delete process.env.CHAT_AGENT_MODEL_MODE;
+    else process.env.CHAT_AGENT_MODEL_MODE = previous;
+  }
+});
+
+test("scoped draft preparation excludes contact and location records but preserves the customer text", async () => {
+  const { loadServerModule } = await import("./chat-db-harness/server-adapter.mjs");
+  const { randomUUID } = await import("node:crypto");
+  const zod = await import("zod");
+  const { matchesScopedDraftChannel } = await import("../src/features/chat/agent/runtime-config.ts");
+  const fixture = request();
+  fixture.data.channelKind = "whatsapp";
+  fixture.data.background = { displayName: "Fixture contact record" };
+  fixture.data.locations = [{ name: "Fixture location record" }];
+  fixture.data.messages.unshift({
+    ...fixture.data.messages[0],
+    id: id(27),
+    at: "2026-11-01T09:59:59Z",
+    inputSource: "voice",
+    content: "Fixture voice transcript",
+  });
+  let loads = 0;
+  let prepared;
+  const { processCapturedAgent } = loadServerModule("src/features/chat/agent/worker.ts", {
+    "node:crypto": { randomUUID },
+    zod,
+    "@/lib/supabase/server": { createSupabaseServiceRoleClient: () => ({
+      async rpc() { loads++; return { data: fixture.data }; },
+    }) },
+    "../connection": { chatwootOrigin: () => "https://chat.example.invalid" },
+    "../secrets": {},
+    "./mock-model": {},
+    "./worker-core": {
+      async runStoredAgentTurn(_raw, store) { prepared = await store.prepare({}, fixture.data); },
+    },
+    "./runtime-config": { matchesScopedDraftChannel, selectAgentRuntime: () => ({
+      kind: "live", config: {}, channelScope: {
+        tenantId: scope.tenantId, workspaceId: scope.workspaceId, channelId: scope.channelId, accountId: 904, inboxId: 905, brandId: id(6), startsAt: "2026-11-01T09:59:59Z",
+      },
+    }) },
+    "./live-draft-pilot": {},
+    "./live-model": {},
+    "@/integrations/openrouter/client": {},
+    "@/integrations/chatwoot/message-client": {},
+    "../actions/public-worker": {},
+    "../actions/label-worker": {},
+    "../actions/supplemental-worker": {},
+  });
+  const job = {
+    workspace: { id: scope.workspaceId, tenantId: scope.tenantId, accountId: 904 },
+    channel: { id: scope.channelId, kind: "whatsapp", mode: "draft" },
+    conversationId: scope.conversationId,
+    triggerMessageId: scope.triggerMessageId,
+    inboxId: 905,
+  };
+  const previous = process.env.CHAT_AGENT_ENABLED;
+  try {
+    process.env.CHAT_AGENT_ENABLED = "true";
+    await processCapturedAgent({ ...job, workspace: { ...job.workspace, accountId: 903 } });
+    assert.equal(loads, 0);
+    await processCapturedAgent(job);
+    assert.equal(loads, 1);
+    assert.equal(prepared.status, "ready");
+    assert.equal(prepared.data.background, null);
+    assert.equal(prepared.data.locations.length, 0);
+    assert.deepEqual(Array.from(prepared.data.messages, (message) => message.content), ["When are you open?"]);
+    prepared = undefined;
+    fixture.data.brandId = id(23);
+    await processCapturedAgent(job);
+    assert.equal(loads, 2);
+    assert.equal(prepared, undefined);
+  } finally {
+    if (previous === undefined) delete process.env.CHAT_AGENT_ENABLED;
+    else process.env.CHAT_AGENT_ENABLED = previous;
+  }
+});

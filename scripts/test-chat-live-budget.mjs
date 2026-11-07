@@ -516,3 +516,48 @@ test("invalid legacy numeric caps block live admission and can be repaired by th
     assert.equal((await settings()).monthlyBudgetUsd, "0.50");
   }
 });
+
+test("an explicit WhatsApp opt-in supports no monthly limit and an owner pause still blocks spending", async () => {
+  const db = local.db;
+  const website = agent ?? (await createAgentFixture());
+  await db.query("update chat_settings set monthly_budget_usd=null where tenant_id=$1", [tenant]);
+  const optIn = async (channelId) => {
+    await db.query(
+      "update tenant_modules set config_json=jsonb_build_object('agentEnabled',true,'uncappedDraftChannelId',$2::text) where tenant_id=$1 and module_key='chat_leads'",
+      [tenant, channelId],
+    );
+  };
+  await optIn(website.input.channelId);
+  assert.equal((await liveRun("claim", website.input, website.ctx)).status, "budget_unconfigured");
+  assert.equal((await settings()).uncappedDrafts, undefined);
+
+  const channel = (await db.query(
+    "insert into chat_channels(tenant_id,workspace_id,brand_id,chatwoot_inbox_id,kind,name) values($1,$2,$3,905,'whatsapp','Synthetic WhatsApp') returning id",
+    [tenant, website.input.workspaceId, website.brand],
+  )).rows[0].id;
+  const message = { ...website.capture.message, inboxId: 905, channelKind: "whatsapp", messageId: 90, conversationId: 90, contactId: 90 };
+  const capture = { ...website.capture, channelId: channel, message };
+  const captured = (await db.query("select chat_capture($1::jsonb,'agent',$2::jsonb) result", [
+    JSON.stringify(website.ctx), JSON.stringify(capture),
+  ])).rows[0].result;
+  const input = {
+    workspaceId: capture.workspaceId, channelId: channel, secretHash: capture.secretHash,
+    conversationId: captured.conversationId, triggerMessageId: captured.messageId,
+  };
+  assert.equal((await liveRun("claim", input, website.ctx)).status, "budget_unconfigured");
+
+  await optIn(channel);
+  assert.equal((await settings()).uncappedDrafts, true);
+  const claim = await liveRun("claim", input, website.ctx);
+  assert.equal(claim.status, "claimed");
+  const reserved = { ...input, runId: claim.runId, leaseToken: claim.leaseToken, callKey: "understand", maxUsd: "0.01" };
+  assert.equal((await liveRun("budget.reserve", reserved, website.ctx)).admitted, true);
+  const current = await settings();
+  const paused = await settings(
+    { monthlyBudgetUsd: "0", version: current.version },
+    context("owner", randomUUID()),
+  );
+  assert.equal(paused.monthlyBudgetUsd, "0");
+  assert.equal(paused.uncappedDrafts, undefined);
+  assert.equal((await liveRun("budget.reserve", { ...reserved, callKey: "classify" }, website.ctx)).admitted, false);
+});
