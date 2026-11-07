@@ -22,6 +22,10 @@ const channelScopeSchema = z
   .strict();
 type ChannelScope = z.infer<typeof channelScopeSchema>;
 
+export function readScopedDraftChannel(env: Record<string, string | undefined>): ChannelScope {
+  return channelScopeSchema.parse(JSON.parse(env.CHAT_LIVE_DRAFT_CHANNEL_SCOPE ?? "null"));
+}
+
 export function matchesScopedDraftChannel(
   scope: ChannelScope,
   workspace: { tenantId: string; id: string; accountId: number },
@@ -61,10 +65,7 @@ export function selectAgentRuntime(
     throw new Error("Model configuration unavailable.");
 
   if (mode === "live-scoped") {
-    const channelScope = channelScopeSchema.parse(
-      JSON.parse(env.CHAT_LIVE_DRAFT_CHANNEL_SCOPE ?? "null"),
-    );
-    return { kind: "live", config: scopedConfig, channelScope };
+    return { kind: "live", config: scopedConfig, channelScope: readScopedDraftChannel(env) };
   }
 
   const config = liveModelConfigSchema.parse({
