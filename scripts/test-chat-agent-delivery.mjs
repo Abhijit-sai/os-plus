@@ -89,6 +89,7 @@ test("disabled agent avoids configuration reads and malformed local configuratio
       "./mock-model": {},
       "./worker-core": {},
       "./runtime-config": {},
+      "./live-draft-pilot": {},
       "./live-model": {},
       "@/integrations/openrouter/client": {},
       "@/integrations/chatwoot/message-client": {},

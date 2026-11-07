@@ -594,3 +594,201 @@ test("live drafts reject invented alphabetic business claims even when no numeri
   assert.ok(result.checks.includes("unapproved_live_prose"));
   assert.ok(!result.replyText.includes("organic"));
 });
+
+test("live pilot accepts only its exact fictional website trigger and approved knowledge", async () => {
+  const { allowsPilotContext, pilotKnowledgeHash } = await import("../src/features/chat/agent/live-draft-pilot.ts");
+  const { scope: target, data, now } = request();
+  const pilot = {
+    scope: target,
+    brandId: data.brandId,
+    packVersion: data.pack.version,
+    packSha256: pilotKnowledgeHash(data.pack.body),
+    message: data.messages[0].content,
+    displayName: null,
+    expiresAt: "2026-11-01T11:00:00Z",
+  };
+  const instant = Date.parse(now);
+  assert.equal(allowsPilotContext(pilot, target, data, instant), true);
+  assert.equal(allowsPilotContext(pilot, { ...target, triggerMessageId: id(92) }, data, instant), false);
+  assert.equal(allowsPilotContext(pilot, target, data, Date.parse(pilot.expiresAt)), false);
+  for (const change of [
+    (fixture) => { fixture.channelKind = "whatsapp"; },
+    (fixture) => { fixture.brandId = id(91); fixture.pack.brandId = id(91); },
+    (fixture) => { fixture.pack.version += 1; },
+    (fixture) => { fixture.pack.body.hours.default = "Changed approved facts"; },
+    (fixture) => { fixture.messages[0].content = "Different message"; },
+    (fixture) => { fixture.messages[0].originalContent = "Unapproved content"; },
+    (fixture) => { fixture.messages[0].inputSource = "voice"; },
+    (fixture) => { fixture.messages.push({ ...fixture.messages[0], id: id(93), providerId: 2 }); },
+    (fixture) => { fixture.background = { tenantId: target.tenantId, contactId: id(90), displayName: "Unapproved name", preferredLanguage: null, customer: null }; },
+    (fixture) => { fixture.background = { tenantId: target.tenantId, contactId: id(90), displayName: null, preferredLanguage: null, customer: { tenantId: target.tenantId, id: id(94), verified: true, name: null, addresses: [], orders: [], openTasks: 0 } }; },
+  ]) {
+    const altered = structuredClone(data);
+    change(altered);
+    assert.equal(allowsPilotContext(pilot, target, altered, instant), false);
+  }
+});
+
+test("live-pilot mode rejects missing or invalid binding instead of falling through to live", async () => {
+  const { selectAgentRuntime } = await import("../src/features/chat/agent/runtime-config.ts");
+  const { pilotKnowledgeHash } = await import("../src/features/chat/agent/live-draft-pilot.ts");
+  const { scope: target, data } = request();
+  const env = {
+    CHAT_AGENT_ENABLED: "true", CHAT_DRY_RUN: "false", CHAT_AGENT_MODEL_MODE: "live-pilot", CHAT_MODEL_LIVE_ENABLED: "true",
+    OPENROUTER_API_KEY: "fixture-unused", CHAT_MODEL_UNDERSTAND: "google/gemini-3.8-flash", CHAT_MODEL_CLASSIFY: "google/gemini-3.8-flash", CHAT_MODEL_WRITE: "google/gemini-3.8-flash",
+    CHAT_MODEL_PROVIDER: "google-vertex/global", CHAT_MODEL_MAX_PROMPT_USD_PER_MILLION: "0.75", CHAT_MODEL_MAX_COMPLETION_USD_PER_MILLION: "3.75", CHAT_MODEL_MAX_REQUEST_USD: "0",
+  };
+  const origin = "https://chat.example.invalid";
+  assert.throws(() => selectAgentRuntime(env, origin));
+  assert.throws(() => selectAgentRuntime({ ...env, CHAT_LIVE_DRAFT_PILOT_JSON: "{}" }, origin));
+  const pilot = { scope: target, brandId: data.brandId, packVersion: data.pack.version, packSha256: pilotKnowledgeHash(data.pack.body), message: data.messages[0].content, displayName: null, expiresAt: "2026-11-01T11:00:00Z" };
+  const bound = { ...env, CHAT_LIVE_DRAFT_PILOT_JSON: JSON.stringify(pilot) };
+  assert.deepEqual(selectAgentRuntime(bound, origin).pilot, pilot);
+  assert.throws(() => selectAgentRuntime({ ...bound, CHAT_MODEL_PROVIDER: "other/provider" }, origin));
+  assert.throws(() => selectAgentRuntime({ ...bound, CHAT_MODEL_WRITE: "other/model" }, origin));
+  assert.throws(() => selectAgentRuntime({ ...bound, CHAT_MODEL_MAX_REQUEST_USD: "0.01" }, origin));
+});
+
+test("captured pilot jobs reject unrelated scope before loading and recheck the claimed context before creating a model", async () => {
+  const { loadServerModule } = await import("./chat-db-harness/server-adapter.mjs");
+  const pilotModule = await import("../src/features/chat/agent/live-draft-pilot.ts");
+  const core = await import("../src/features/chat/agent/worker-core.ts");
+  const zod = await import("zod");
+  const { randomUUID } = await import("node:crypto");
+  const { scope: target, data } = request();
+  const pilot = {
+    scope: target,
+    brandId: data.brandId,
+    packVersion: data.pack.version,
+    packSha256: pilotModule.pilotKnowledgeHash(data.pack.body),
+    message: data.messages[0].content,
+    displayName: null,
+    expiresAt: new Date(Date.now() + 60000).toISOString(),
+  };
+  const calls = [];
+  let models = 0;
+  let expiresDuringClaim = false;
+  const drift = structuredClone(data);
+  drift.messages[0].content = "Unapproved context after claim";
+  const { processCapturedAgent } = loadServerModule("src/features/chat/agent/worker.ts", {
+    "node:crypto": { randomUUID },
+    zod,
+    "@/lib/supabase/server": { createSupabaseServiceRoleClient: () => ({
+      async rpc(name, args) {
+        calls.push([name, args.p_action ?? null]);
+        if (name === "chat_agent_load") return { data };
+        if (expiresDuringClaim && args.p_action === "claim") {
+          pilot.expiresAt = "2000-01-01T00:00:00Z";
+          return { data: { status: "ready", runId: id(95), leaseToken: id(96) } };
+        }
+        return { data: { status: "claimed", runId: id(95), leaseToken: id(96), context: drift } };
+      },
+    }) },
+    "../connection": { chatwootOrigin: () => "https://chat.example.invalid" },
+    "../secrets": {},
+    "./mock-model": {},
+    "./worker-core": core,
+    "./runtime-config": { selectAgentRuntime: () => ({ kind: "live", config: {}, pilot }) },
+    "./live-draft-pilot": pilotModule,
+    "./live-model": { createLiveModel() { models++; throw new Error("Pilot crossed its boundary"); } },
+    "@/integrations/openrouter/client": { OpenRouterClient: class {} },
+    "@/integrations/chatwoot/message-client": {},
+    "../actions/public-worker": {},
+    "../actions/label-worker": {},
+    "../actions/supplemental-worker": {},
+  });
+  const job = {
+    workspace: { id: target.workspaceId, tenantId: target.tenantId, accountId: 901, secretHash: "fixture-only" },
+    channel: { id: target.channelId, kind: "website", mode: "draft" },
+    conversationId: target.conversationId,
+    triggerMessageId: target.triggerMessageId,
+  };
+  const previousAgent = process.env.CHAT_AGENT_ENABLED;
+  const previousDryRun = process.env.CHAT_DRY_RUN;
+  const previousDelivery = process.env.CHAT_DRAFT_DELIVERY_ENABLED;
+  try {
+    process.env.CHAT_AGENT_ENABLED = "true";
+    process.env.CHAT_DRY_RUN = "false";
+    await processCapturedAgent({ ...job, conversationId: id(97) });
+    assert.deepEqual(calls, []);
+    await processCapturedAgent(job);
+    assert.deepEqual(calls, [["chat_agent_load", null], ["chat_live_agent_run", "claim"]]);
+    assert.equal(models, 0);
+    calls.length = 0;
+    expiresDuringClaim = true;
+    process.env.CHAT_DRAFT_DELIVERY_ENABLED = "true";
+    await processCapturedAgent(job);
+    assert.deepEqual(calls, [["chat_agent_load", null], ["chat_live_agent_run", "claim"]]);
+  } finally {
+    if (previousDelivery === undefined) delete process.env.CHAT_DRAFT_DELIVERY_ENABLED;
+    else process.env.CHAT_DRAFT_DELIVERY_ENABLED = previousDelivery;
+    if (previousAgent === undefined) delete process.env.CHAT_AGENT_ENABLED;
+    else process.env.CHAT_AGENT_ENABLED = previousAgent;
+    if (previousDryRun === undefined) delete process.env.CHAT_DRY_RUN;
+    else process.env.CHAT_DRY_RUN = previousDryRun;
+  }
+});
+
+test("the owner can see the pause control throughout live-pilot mode", async () => {
+  const { loadServerModule } = await import("./chat-db-harness/server-adapter.mjs");
+  const zod = await import("zod");
+  const { usd } = await import("../src/features/chat/agent/budget.ts");
+  const { getAiBudgetSettings } = loadServerModule("src/features/chat/agent/budget-settings.ts", {
+    zod,
+    "./budget": { usd },
+    "../schemas": {},
+    "@/core/command-context/server": { createUserCommandContext: () => ({}) },
+    "../module": {
+      async requireChatPermission(permission) {
+        assert.equal(permission, "chat_settings:manage");
+        return { context: { tenant: { id: scope.tenantId } }, db: {
+          async rpc(name) {
+            assert.equal(name, "chat_ai_budget_settings");
+            return { data: { monthlyBudgetUsd: "0.25", version: 3 } };
+          },
+        } };
+      },
+    },
+  });
+  const previous = process.env.CHAT_AGENT_MODEL_MODE;
+  try {
+    process.env.CHAT_AGENT_MODEL_MODE = "live-pilot";
+    const settings = await getAiBudgetSettings();
+    assert.equal(settings.monthlyBudgetUsd, "0.25");
+    assert.equal(settings.tenantId, scope.tenantId);
+    process.env.CHAT_AGENT_MODEL_MODE = "mock";
+    assert.equal(await getAiBudgetSettings(), null);
+  } finally {
+    if (previous === undefined) delete process.env.CHAT_AGENT_MODEL_MODE;
+    else process.env.CHAT_AGENT_MODEL_MODE = previous;
+  }
+});
+
+test("pilot expiry after durable admission settles zero without starting the provider request", async () => {
+  const { createLiveModel } = await import("../src/features/chat/agent/live-model.ts");
+  let allowed = true;
+  let calls = 0;
+  const settlement = [];
+  const model = createLiveModel({
+    models: { understand: "fixture/model", classify: "fixture/model", write: "fixture/model" },
+    provider: "fixture/provider",
+    maxPrice: { prompt: "0.75", completion: "3.75", request: "0" },
+  }, {
+    async run(action, input) {
+      if (action === "budget.reserve") {
+        allowed = false;
+        return { admitted: true };
+      }
+      settlement.push(input);
+      return { status: "settled" };
+    },
+  }, {
+    async complete() {
+      calls++;
+      throw new Error("An expired pilot made a provider request");
+    },
+  }, () => allowed);
+  await assert.rejects(() => model.complete({ stage: "understand", context: {}, signal: new AbortController().signal }));
+  assert.equal(calls, 0);
+  assert.deepEqual(settlement, [{ callKey: "understand", actualUsd: "0", generationId: null }]);
+});

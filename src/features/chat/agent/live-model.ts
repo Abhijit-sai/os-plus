@@ -56,6 +56,7 @@ export function createLiveModel(
   raw: unknown,
   store: BudgetStore,
   client: OpenRouterClient,
+  canStartRequest: () => boolean = () => true,
 ): AgentModel {
   const config = liveModelConfigSchema.parse(raw),
     attempted = new Set<ModelStage>();
@@ -95,7 +96,7 @@ export function createLiveModel(
       let actualUsd: string | null = null,
         generationId: string | null = null;
       try {
-        if (signal.aborted) {
+        if (signal.aborted || !canStartRequest()) {
           actualUsd = "0";
           throw new Error("Model stage unavailable.");
         }
