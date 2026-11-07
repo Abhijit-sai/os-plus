@@ -1,9 +1,9 @@
-/* OS PLUS reply controls v1.1.0 — pinned Chatwoot4.18. No platform credentials.
+/* OS PLUS reply controls v1.2.0 — pinned Chatwoot4.18. No platform credentials.
  * Native window.axios owns staff authentication. Never read cookies/tokens here.
  * A timed-out public send may have committed: retain uncertainty, never blindly retry. */
 (function (host) {
   "use strict";
-  const version = "1.1.0",
+  const version = "1.2.0",
     marker = "💬 Suggested reply";
   const positive = (value) => Number.isSafeInteger(value) && value > 0;
   const uuid = (value) =>
@@ -39,9 +39,18 @@
     storage,
     locks,
     coordinator,
+    allowed,
   }) {
+    const verifiedInboxKey = (selected) =>
+      "osplus.reply.inbox.v1:" + selected.account + ":" + selected.conversation;
+    const isVerifiedConversation = (selected) =>
+      !allowed || (
+        selected.account === allowed.account &&
+        storage?.getItem(verifiedInboxKey(selected)) === String(allowed.inbox)
+      );
     async function load(noteId, selected) {
-      if (!positive(noteId)) throw Error("Suggestion unavailable.");
+      if (!positive(noteId) || (allowed && selected.account !== allowed.account))
+        throw Error("Suggestion unavailable.");
       const endpoint =
         "/api/v1/accounts/" +
         selected.account +
@@ -61,6 +70,7 @@
         note.private !== true ||
         Number(note.message_type) !== 1 ||
         Number(note.conversation_id) !== selected.conversation ||
+        (allowed && Number(note.inbox_id) !== allowed.inbox) ||
         !uuid(attrs?.osplus_draft_id) ||
         attrs.osplus_engine !== "osplus-v1" ||
         !positive(attrs.osplus_trigger_message_id) ||
@@ -70,6 +80,7 @@
         !note.content.startsWith(marker + "\n\n")
       )
         throw Error("Use the normal Chatwoot reply box for this note.");
+      if (allowed) storage?.setItem(verifiedInboxKey(selected), String(allowed.inbox));
       const sent = rows.find(
         (row) =>
           row.private === false &&
@@ -212,7 +223,9 @@
       return { status: "sent" };
     }
     return {
+      isVerifiedConversation,
       async guardNativeRetry(selected, messageId) {
+        if (!isVerifiedConversation(selected)) return;
         const response = await api.get(
           "/api/v1/accounts/" +
             selected.account +
@@ -224,6 +237,7 @@
         const rows = response?.data?.payload;
         const row =
           Array.isArray(rows) && rows.find((item) => item.id === messageId);
+        if (allowed && row && Number(row.inbox_id) !== allowed.inbox) return;
         if (!row)
           throw Error(
             "Sending is unconfirmed. Check Chatwoot before sending anything again.",
@@ -508,6 +522,13 @@
   let mounted = 0,
     timer = null;
   const scriptUrl = host.document.currentScript?.src;
+  const params = scriptUrl ? new URL(scriptUrl, host.location.href).searchParams : null;
+  const configured = params?.has("account") || params?.has("inbox");
+  const allowed = configured
+    ? { account: Number(params.get("account")), inbox: Number(params.get("inbox")) }
+    : undefined;
+  if (allowed && (!positive(allowed.account) || !positive(allowed.inbox))) return;
+  const checkedNotes = new WeakSet();
   function frameCoordinator() {
     let frame = null,
       ready = false,
@@ -602,6 +623,7 @@
     },
     locks: host.navigator.locks,
     coordinator: frameCoordinator(),
+    allowed,
   });
   let activeStatus = null,
     activeButtons = [],
@@ -737,11 +759,13 @@
       "min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:6px;font-size:14px;cursor:pointer";
     return node;
   }
-  function scan() {
+  async function scan() {
     nativeBridge.syncScope();
-    attachNativeBridge();
+
     try {
-      scope(host.location.pathname);
+      const current = scope(host.location.pathname);
+      if (allowed && current.account !== allowed.account) return;
+      if (controller.isVerifiedConversation(current)) attachNativeBridge();
     } catch {
       return;
     }
@@ -758,6 +782,21 @@
         !positive(noteId)
       )
         continue;
+      if (allowed) {
+        if (checkedNotes.has(bubble)) continue;
+        checkedNotes.add(bubble);
+        const path = host.location.pathname;
+        try {
+          const draft = await controller.preview(noteId);
+          if (!bubble.isConnected || host.location.pathname !== path) continue;
+          attachNativeBridge();
+          if (draft.sent) continue;
+        } catch {
+          continue;
+        } finally {
+          checkedNotes.delete(bubble);
+        }
+      }
       const panel = host.document.createElement("div");
       panel.setAttribute("data-osplus-controls", version);
       panel.style.cssText =

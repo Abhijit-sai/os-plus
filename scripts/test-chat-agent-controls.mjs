@@ -548,3 +548,50 @@ test("native retry checks persisted source metadata without an active composer a
   };
   assert.equal(await bridge.request(ordinary), ordinary);
 });
+
+test("the Phantom controls use only notes from the configured Chatwoot account and inbox", async () => {
+  const { createDraftController } = require("../public/chatwoot/osplus-reply.js");
+  const rows = messages();
+  rows[1].inbox_id = 904;
+  let path = "/app/accounts/903/conversations/10";
+  let reads = 0;
+  let sends = 0;
+  const options = {
+    allowed: { account: 904, inbox: 905 },
+    readPath: () => path,
+    storage: nativeStorage(),
+    locks: { request: (_key, fn) => fn() },
+    api: {
+      async get() {
+        reads++;
+        return { data: { payload: rows } };
+      },
+      async post(_url, body) {
+        sends++;
+        return { data: { ...body, id: 12 } };
+      },
+    },
+  };
+  const controller = controllerWithAuth(createDraftController, options);
+  await assert.rejects(() => controller.preview(11), /Suggestion unavailable/);
+  assert.equal(reads, 0);
+  path = "/app/accounts/904/conversations/10";
+  await controller.guardNativeRetry({ account: 904, conversation: 10 }, 11);
+  assert.equal(reads, 0, "a manual retry in another inbox does not fetch draft history");
+  await assert.rejects(() => controller.send(11), /normal Chatwoot reply box/);
+  assert.equal(sends, 0);
+  rows[1].inbox_id = 905;
+  assert.equal((await controller.preview(11)).text, "A safe synthetic answer.");
+  rows[0].inbox_id = 905;
+  rows[0].content_attributes = { osplus_source_draft_id: id };
+  await assert.rejects(() => controller.guardNativeRetry({ account: 904, conversation: 10 }, 10), /cannot be retried/);
+  delete rows[0].content_attributes;
+  assert.equal((await controller.send(11)).status, "sent");
+  assert.equal(sends, 1);
+  rows.splice(1, 1);
+  rows[0].content_attributes = { osplus_source_draft_id: id };
+  const reloaded = controllerWithAuth(createDraftController, options);
+  const conversation = { account: 904, conversation: 10 };
+  assert.equal(reloaded.isVerifiedConversation(conversation), true);
+  await assert.rejects(() => reloaded.guardNativeRetry(conversation, 10), /cannot be retried/);
+});

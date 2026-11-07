@@ -102,6 +102,23 @@ export type ChatLead = Owned & {
   version: number;
 };
 export type ChatTables = {
+  chat_agent_runs: Table<{
+    id: string;
+    tenant_id: string;
+    conversation_id: string;
+    trigger_message_id: string;
+    turn_id: string;
+    channel_id: string;
+    pack_id: string;
+    pack_version: number;
+    lease_token: string;
+    lease_until: string;
+    status: "running" | "ready" | "delivering" | "delivered" | "uncertain" | "finished";
+    result_json: Json | null;
+    delivery_note_id: number | null;
+    created_at: string;
+    updated_at: string;
+  }>;
   chat_channel_action_approvals: Table<{
     tenant_id: string;
     channel_id: string;
