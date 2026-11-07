@@ -185,13 +185,20 @@ test("live assistance refuses automatic mode before making any model call", asyn
 });
 
 test("approved automatic mode greets, uses only approved facts and checks verified orders", async () => {
-  async function automatic(content, answer, orderStatus) {
+  async function automatic(content, answer, orderStatus, previous) {
     const req = request();
     req.allowAutomatic = true;
     req.orderStatus = orderStatus;
     req.data.agentMode = "auto";
     req.data.channelKind = "whatsapp";
     req.data.messages[0].content = content;
+    if (previous) {
+      req.data.messages[0].providerId = 2;
+      req.data.messages.unshift({
+        ...req.data.messages[0], id: id(99), providerId: 1,
+        content: previous, at: "2026-11-01T09:59:50Z",
+      });
+    }
     let calls = 0;
     const result = await runAgentTurn(req, {
       kind: "live",
@@ -209,6 +216,17 @@ test("approved automatic mode greets, uses only approved facts and checks verifi
   const hello = await automatic("Hello. You there?");
   assert.match(hello.result.replyText, /^Hi! How can I help/);
   assert.equal(hello.calls, 0);
+  for (const [latest, previous] of [
+    ["Are you there", undefined],
+    ["Are you there", "Hello. You there?"],
+  ]) {
+    const presence = await automatic(latest, undefined, undefined, previous);
+    assert.equal(presence.result.replyText, hello.result.replyText);
+    assert.equal(presence.calls, 0);
+  }
+  const hoursAfterGreeting = await automatic("Are you there", undefined, undefined, "Are you open tomorrow?");
+  assert.equal(hoursAfterGreeting.result.replyText, pack.hours.default);
+  assert.equal(hoursAfterGreeting.calls, 0);
   const hours = await automatic("Can I come by tomorrow?", { fact: "hours" });
   assert.equal(hours.result.replyText, pack.hours.default);
   assert.equal(hours.calls, 0);
