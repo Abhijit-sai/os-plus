@@ -28,7 +28,7 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
   const actor=await getShopifyProbeActor();
   if(!actor || actor.role!=="owner_admin" || !isShopifyConnectionScreenEnabled(actor.tenantId))notFound();
   if(process.env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true"){
-    let unified:UnifiedWorkspace|null=null,shopDomain="";
+    let unified:UnifiedWorkspace|null=null,shopDomain="",retired=false;
     let approval:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}|undefined;
     try{
       const db=createSupabaseServiceRoleClient(),signal=AbortSignal.timeout(6000);
@@ -38,14 +38,11 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
         const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal);
         const params=await searchParams;
         approval={hasCredential:binding?.hasCredential??false,automaticAvailable:shopifyTenantLinkingEnabled(process.env)&&!!binding?.hasCredential,result:params.connection==="approved"||params.connection==="failed"?params.connection:undefined};
-        if(binding?.retired)return <div className="rounded-lg border p-5">
-          <h1 className="text-xl font-semibold">Shopify connection retired</h1>
-          <p>This business retains its imported order history. Open Orders to view it.</p>
-        </div>;
+        retired=binding?.retired??false;
         shopDomain=binding?.shopDomain??"";
         needsApproval=!binding || (!binding.hasCredential && actor.tenantId!==process.env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
       }
-      if(needsApproval){
+      if(retired||needsApproval){
         unified={connection:null,workerConfigured:false};
       }else{
         const env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal);
@@ -53,6 +50,10 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
         unified=await createShopifyUnifiedService(db).view(actor,signal,env);
       }
     }catch{ /* Never render raw configuration or SQL errors. */ }
+    if(retired)return <div className="rounded-lg border p-5">
+      <h1 className="text-xl font-semibold">Shopify connection retired</h1>
+      <p>This business retains its imported order history. Open Orders to view it.</p>
+    </div>;
     if(!unified)return <div role="alert" className="rounded-lg border p-5"><h1 className="text-xl font-semibold">Shopify setup is unavailable</h1>
       <p>Nothing was imported. The administrator needs to verify the Shopify app configuration and database connection.</p></div>;
     return <ShopifySimpleSetup key={actor.tenantId} initial={unified} shopDomain={shopDomain} today={currentIndiaDate()} submitAction={shopifyUnifiedAction} approval={approval}/>;

@@ -66,6 +66,8 @@ begin
     or not exists(select 1 from public.tenant_users where tenant_id=p_destination_tenant and role='owner_admin' and status='active')
     then raise exception 'SHOPIFY_ACCESS_DENIED'; end if;
   if exists(select 1 from public.shopify_unified_policies where connection_id=source.id and automatic_enabled)
+    or exists(select 1 from public.shopify_privacy_requests where connection_id=source.id
+      and topic in ('customers/redact','shop/redact'))
     or exists(select 1 from public.shopify_sync_jobs where connection_id=source.id
       and ((requested_generation>completed_generation and dead_lettered_at is null) or lease_expires_at>clock_timestamp()))
     or exists(select 1 from public.shopify_oauth_attempts where status='claimed' and expires_at>clock_timestamp()
