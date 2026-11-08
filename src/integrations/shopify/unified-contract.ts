@@ -11,6 +11,12 @@ export const unifiedCommandSchema=z.discriminatedUnion("action",[
 export const unifiedWorkspaceSchema=z.object({connection:z.object({id,shopGid:z.string(),status:z.enum(["pending","verified","paused","disconnected"]),
   revision:z.number().int().positive().safe(),ready:z.boolean(),unified:z.boolean(),automatic:z.boolean(),pilotOrderGid:z.string().nullable(),pending:z.number().int().nonnegative(),needsAttention:z.number().int().nonnegative()}).strict().nullable()}).strict();
 export type UnifiedWorkspace=z.infer<typeof unifiedWorkspaceSchema>&{workerConfigured?:boolean};
+
+export function isShopifyImportReady(workspace: UnifiedWorkspace): boolean {
+  const connection = workspace.connection;
+  return connection?.status === "verified" && connection.ready && connection.unified;
+}
+
 export const unifiedImportReceiptSchema=z.object({status:z.literal("queued"),previewId:id,rows:z.array(z.object({orderGid:z.string(),reference:z.string(),
   status:z.enum(["queued","already_queued","already_imported","reference_match","conflict"])}).strict()).max(2000)}).strict();
 export type UnifiedImportPreview={previewId:string|null;expiresAt:string|null;complete:boolean;from:string;through:string;

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { canOpenShopifyImport } from "@/integrations/shopify/import-shortcut";
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(amount);
@@ -54,9 +55,10 @@ export default async function OrdersPage({
   const sourceFilter = resolvedSearchParams?.source ?? "all";
   const viewFilter = resolvedSearchParams?.view ?? "active";
   const requestedPage = /^[1-9][0-9]{0,2}$/.test(resolvedSearchParams?.page ?? "") ? Number(resolvedSearchParams?.page) : 1;
-  const { orders, customers, orderItems, stageInstances, search, shopifySummaries, shopifyCommercialSummaries, page, hasNextPage, pageLimitReached } = await getOrdersPageData(resolvedSearchParams?.q, {
+  const { context, orders, customers, orderItems, stageInstances, search, shopifySummaries, shopifyCommercialSummaries, page, hasNextPage, pageLimitReached } = await getOrdersPageData(resolvedSearchParams?.q, {
     payment: paymentFilter, status: statusFilter, source: sourceFilter, view: viewFilter, page: requestedPage,
   });
+  const showShopifyImport = await canOpenShopifyImport(context);
   const holdByOrder = new Map(shopifySummaries.map(summary => [summary.orderId, summary.held]));
   const commercialByOrder = new Map(shopifyCommercialSummaries.map(summary => [summary.orderId, summary]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
@@ -180,12 +182,19 @@ export default async function OrdersPage({
         title="Orders"
         description="Commercial control room for customer orders, payments, dates, and item-level production."
         actions={
-          <Button asChild>
-            <Link href="/orders/new" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create order
-            </Link>
-          </Button>
+          <>
+            {showShopifyImport && (
+              <Button asChild variant="outline">
+                <Link href="/settings/shopify?import=1" prefetch={false}>Import Shopify orders</Link>
+              </Button>
+            )}
+            <Button asChild>
+              <Link href="/orders/new" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create order
+              </Link>
+            </Button>
+          </>
         }
       />
 
