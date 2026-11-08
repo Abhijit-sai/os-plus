@@ -25,6 +25,7 @@ export function Dialog({
   children,
   className,
   placement = "center",
+  side = "right",
   open,
   onOpenChange,
   preventClose = false,
@@ -38,6 +39,7 @@ export function Dialog({
     | ((controls: { close: () => void }) => React.ReactNode);
   className?: string;
   placement?: "center" | "side";
+  side?: "left" | "right";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   preventClose?: boolean;
@@ -141,7 +143,11 @@ export function Dialog({
       ) : null}
       {isOpen ? createPortal(
         <div
-          className={`fixed inset-0 z-50 flex p-2 sm:p-4 ${placement === "side" ? "items-stretch justify-end" : "items-center justify-center"}`}
+          className={cn(
+            "fixed inset-0 z-50 flex p-2 sm:p-4",
+            placement === "side" ? "items-stretch" : "items-center justify-center",
+            placement === "side" && side === "right" && "justify-end",
+          )}
         >
           <button
             type="button"

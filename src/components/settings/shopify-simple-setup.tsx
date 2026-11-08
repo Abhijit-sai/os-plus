@@ -8,11 +8,29 @@ import {importDateError,importExplanation,importLabels as labels,previewExpired}
 import type {UnifiedWorkspace,UnifiedActionState,UnifiedImportPreview} from "@/integrations/shopify/unified-contract";
 import {ShopifyApprovalForm} from "./shopify-approval-form";
 
-export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approval,startImport=false}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>;startImport?:boolean;
-  approval?:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}}){
+type ImportWorkspaceProps = {
+  initial: UnifiedWorkspace;
+  today: string;
+  submitAction: (state: UnifiedActionState, form: FormData) => Promise<UnifiedActionState>;
+};
+
+type ShopifySettings = {
+  shopDomain: string;
+  approval?: { hasCredential: boolean; automaticAvailable?: boolean; result?: string };
+};
+
+export function ShopifySimpleSetup({ shopDomain, approval, ...props }: ImportWorkspaceProps & ShopifySettings) {
+  return <ShopifyImportWorkspace {...props} settings={{ shopDomain, approval }} />;
+}
+
+export function ShopifyOrdersImport(props: ImportWorkspaceProps) {
+  return <ShopifyImportWorkspace {...props} />;
+}
+
+function ShopifyImportWorkspace({ initial, today, submitAction, settings }: ImportWorkspaceProps & { settings?: ShopifySettings }) {
   const [view,setView]=useState(initial),[from,setFrom]=useState(today),[through,setThrough]=useState(today),[consent,setConsent]=useState(false),
     [preview,setPreview]=useState<UnifiedImportPreview|null>(null),[page,setPage]=useState(0),[running,setRunning]=useState(false),[processed,setProcessed]=useState(0);
-  const [open,setOpen]=useState(startImport),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
+  const [open,setOpen]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
     [receipt,setReceipt]=useState<UnifiedActionState["receipt"]>(),[operation,setOperation]=useState("");
   const intent=useRef<{body:string;key:string}|null>(null);
   const importTrigger=useRef<HTMLButtonElement>(null);
@@ -68,30 +86,13 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
     setOpen(value);setNow(Date.now());
     if(!value){setRunning(false);requestAnimationFrame(()=>importTrigger.current?.focus());}
   }
-  return <div className="mx-auto max-w-5xl space-y-5">
-    <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Shopify</h1>
-      <p className="text-sm text-muted-foreground">{shopDomain || "Connect a store to this business"}</p></div><Button asChild variant="outline"><Link href="/orders">Open Orders</Link></Button></header>
-    <p className="rounded-lg border p-4 text-sm">Shopify orders appear in the normal Orders table as drafts. Your managers add garment types and workflows there. No customer messages or local payment receipts are created.</p>
-    <ol className="flex flex-wrap gap-4 text-sm" aria-label="Setup steps"><li>1. Connect</li><li>2. Import orders</li><li>3. Automatic sync</li></ol>
-    {!open&&feedback}
-    <Card><CardHeader><CardTitle>1. Connect your store</CardTitle></CardHeader><CardContent className="space-y-4">
-      {approval&&(c?.unified?<details open={approval.result==="failed"||approval.result==="approved"}><summary className="min-h-11 cursor-pointer py-2">Manage Shopify approval</summary>
-        <ShopifyApprovalForm shopDomain={shopDomain} hasCredential={approval.hasCredential} result={approval.result}/></details>:
-        <ShopifyApprovalForm shopDomain={shopDomain||undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
-      <p>{c?.unified?"Connected for imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how imported data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This store connection needs administrator verification before importing."}</p>
-      {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
-        <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
-          <span>Keep imported orders and customers until removed. Temporary raw Shopify payloads expire after one day.
-            {manual&&" With background cleanup off, I will return after 24 hours and run Remove expired raw payloads. Expiry alone does not delete them."}</span></label>
-        <Button disabled={disabled||!consent||(!c?.ready&&!approval?.hasCredential)}>{pending?"Checking…":"Verify and enable imports"}</Button></form>}
-    </CardContent></Card>
-    <Card><CardHeader><CardTitle>2. Import existing orders</CardTitle></CardHeader><CardContent className="space-y-4">
-      <p className="text-sm">Choose dates, review new orders and reference clashes, then import only the new orders as drafts.</p>
-      {!!c?.pending&&<p>{c.pending} orders waiting to finish importing. Open the import sheet to continue.</p>}
-      {!!c?.needsAttention&&<p role="alert">{c.needsAttention} imports need administrator review.</p>}
-      <Button type="button" ref={importTrigger} aria-haspopup="dialog" aria-expanded={open} onClick={()=>changeOpen(true)}>Import orders</Button>
+  const importPanel = <>
+    <Button type="button" variant={settings ? "default" : "outline"} ref={importTrigger}
+      aria-haspopup="dialog" aria-expanded={open} onClick={() => changeOpen(true)}>
+      {settings ? "Import orders" : "Import Shopify orders"}
+    </Button>
       <Dialog title="Import Shopify orders" description="Existing orders are never overwritten by a date-range import."
-        placement="side" open={open} onOpenChange={changeOpen} preventClose={pending} confirmClose={()=>true}>
+        placement="side" side={settings ? "right" : "left"} open={open} onOpenChange={changeOpen} preventClose={pending} confirmClose={()=>true}>
       <div className="space-y-5">
       <ol className="flex flex-wrap gap-3 rounded-lg bg-muted p-3 text-sm" aria-label="Import steps">
         <li className={phase==="dates"?"font-semibold":""} aria-current={phase==="dates"?"step":undefined}>1. Choose dates</li>
@@ -144,8 +145,10 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
         <p className="text-sm">This is the submission receipt, not a completion count. It includes the final duplicate check. Current processing status is shown below.</p>
         <p className="text-sm">{receipt.rows.filter(r=>["already_imported","reference_match"].includes(r.status)).length} already present · {receipt.rows.filter(r=>r.status==="conflict").length} need review</p>
         {receipt.rows.some(r=>r.status==="conflict")&&<p role="alert" className="text-sm">Some references changed or clashed before submission. They were skipped. Preview the same dates again to compare them.</p>}
-        {!c?.pending&&!c?.needsAttention&&<p className="text-sm">No queued imports are waiting or flagged for processing review in this connection. Open Orders to inspect the drafts. Skipped rows above were not imported.</p>}
-        <Button asChild variant="outline"><Link href="/orders" target="_blank" rel="noopener noreferrer">View Orders (new tab)</Link></Button>
+        {!c?.pending&&!c?.needsAttention&&<p className="text-sm">No queued imports are waiting or flagged for processing review in this connection. {settings ? "Open Orders" : "Close this panel"} to inspect the drafts. Skipped rows above were not imported.</p>}
+        {settings
+          ? <Button asChild variant="outline"><Link href="/orders" target="_blank" rel="noopener noreferrer">View Orders (new tab)</Link></Button>
+          : <Button type="button" variant="outline" disabled={disabled} onClick={() => changeOpen(false)}>Back to Orders</Button>}
       </section>}
       {!!c?.pending&&!preview&&cleanupConsent}
       {!!c?.pending&&<div role="status" className="space-y-3 rounded-lg border p-4"><p>{c.pending} orders waiting to finish importing. {running&&processed<100?"Importing…":"You can safely continue this import."}</p>
@@ -155,6 +158,33 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
       {!!c?.needsAttention&&<p role="alert">{c.needsAttention} imports need administrator review. They have not been reported as completed.</p>}
       <p className="text-sm text-muted-foreground">Dates, preview and results are kept when you close this sheet, until you leave or reload this page. Accepted jobs remain stored on the server.</p>
       </div></Dialog>
+  </>;
+
+  if (!settings) return importPanel;
+  const { shopDomain, approval } = settings;
+
+  return <div className="mx-auto max-w-5xl space-y-5">
+    <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Shopify</h1>
+      <p className="text-sm text-muted-foreground">{shopDomain || "Connect a store to this business"}</p></div><Button asChild variant="outline"><Link href="/orders">Open Orders</Link></Button></header>
+    <p className="rounded-lg border p-4 text-sm">Shopify orders appear in the normal Orders table as drafts. Your managers add garment types and workflows there. No customer messages or local payment receipts are created.</p>
+    <ol className="flex flex-wrap gap-4 text-sm" aria-label="Setup steps"><li>1. Connect</li><li>2. Import orders</li><li>3. Automatic sync</li></ol>
+    {!open&&feedback}
+    <Card><CardHeader><CardTitle>1. Connect your store</CardTitle></CardHeader><CardContent className="space-y-4">
+      {approval&&(c?.unified?<details open={approval.result==="failed"||approval.result==="approved"}><summary className="min-h-11 cursor-pointer py-2">Manage Shopify approval</summary>
+        <ShopifyApprovalForm shopDomain={shopDomain} hasCredential={approval.hasCredential} result={approval.result}/></details>:
+        <ShopifyApprovalForm shopDomain={shopDomain||undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
+      <p>{c?.unified?"Connected for imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how imported data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This store connection needs administrator verification before importing."}</p>
+      {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
+        <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
+          <span>Keep imported orders and customers until removed. Temporary raw Shopify payloads expire after one day.
+            {manual&&" With background cleanup off, I will return after 24 hours and run Remove expired raw payloads. Expiry alone does not delete them."}</span></label>
+        <Button disabled={disabled||!consent||(!c?.ready&&!approval?.hasCredential)}>{pending?"Checking…":"Verify and enable imports"}</Button></form>}
+    </CardContent></Card>
+    <Card><CardHeader><CardTitle>2. Import existing orders</CardTitle></CardHeader><CardContent className="space-y-4">
+      <p className="text-sm">Choose dates, review new orders and reference clashes, then import only the new orders as drafts.</p>
+      {!!c?.pending&&<p>{c.pending} orders waiting to finish importing. Open the import sheet to continue.</p>}
+      {!!c?.needsAttention&&<p role="alert">{c.needsAttention} imports need administrator review.</p>}
+      {importPanel}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>3. Automatic sync</CardTitle></CardHeader><CardContent className="space-y-4">
       <p>When enabled, new Shopify orders become drafts automatically. Updates refresh Shopify details without overwriting your team&apos;s workflow choices.</p>

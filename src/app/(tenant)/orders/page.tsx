@@ -12,7 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { canOpenShopifyImport } from "@/integrations/shopify/import-shortcut";
+import { getShopifyImportWorkspace } from "@/integrations/shopify/import-shortcut";
+import { currentShopifyIndiaDate } from "@/integrations/shopify/import-presentation";
+import { ShopifyOrdersImport } from "@/components/settings/shopify-simple-setup";
+import { shopifyOrdersImportAction } from "../settings/shopify/unified-actions";
+
+export const maxDuration = 60;
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(amount);
@@ -58,7 +63,7 @@ export default async function OrdersPage({
   const { context, orders, customers, orderItems, stageInstances, search, shopifySummaries, shopifyCommercialSummaries, page, hasNextPage, pageLimitReached } = await getOrdersPageData(resolvedSearchParams?.q, {
     payment: paymentFilter, status: statusFilter, source: sourceFilter, view: viewFilter, page: requestedPage,
   });
-  const showShopifyImport = await canOpenShopifyImport(context);
+  const shopifyImport = await getShopifyImportWorkspace(context);
   const holdByOrder = new Map(shopifySummaries.map(summary => [summary.orderId, summary.held]));
   const commercialByOrder = new Map(shopifyCommercialSummaries.map(summary => [summary.orderId, summary]));
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));
@@ -183,10 +188,13 @@ export default async function OrdersPage({
         description="Commercial control room for customer orders, payments, dates, and item-level production."
         actions={
           <>
-            {showShopifyImport && (
-              <Button asChild variant="outline">
-                <Link href="/settings/shopify?import=1" prefetch={false}>Import Shopify orders</Link>
-              </Button>
+            {shopifyImport && (
+              <ShopifyOrdersImport
+                key={context.tenant.id}
+                initial={shopifyImport}
+                today={currentShopifyIndiaDate()}
+                submitAction={shopifyOrdersImportAction.bind(null, context.tenant.id)}
+              />
             )}
             <Button asChild>
               <Link href="/orders/new" className="gap-2">
