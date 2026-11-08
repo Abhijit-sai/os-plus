@@ -4,7 +4,7 @@ import { preflight } from "./rules.ts";
 import { validateUnderstanding, understandingSchema } from "./schemas.ts";
 import { renderDraft } from "./checks.ts";
 import { choosePlan, hasPublicReply } from "./plan.ts";
-import { automaticHandoffReply, automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
+import { automaticClarification, automaticErrorReply, automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { ledgerSchema } from "./ledger.ts";
 import { addUsd, usd } from "./budget.ts";
@@ -133,9 +133,12 @@ export async function runAgentTurn(
       ...result,
       ledger: { ...ctx.ledger, handoff: true },
       outcome: repeated ? "silent" : "handoff",
-      replyText: repeated ? null : ctx.pack.locked.unreadableHandoff,
+      replyText: repeated || automatic ? null : ctx.pack.locked.unreadableHandoff,
       understanding: { signals: [{ kind: "unreadable" }] },
-      decision: { mock: true, handoff: true, reason: "unreadable_voice" },
+      decision: {
+        mock: true, handoff: true, reason: "unreadable_voice",
+        ...(automatic && { automatic: true, staffAlert: false }),
+      },
       checks: ["voice_requires_review"],
     });
   }
@@ -210,14 +213,34 @@ export async function runAgentTurn(
       const selection = immediate ? null : z.object({ fact: z.string().nullable() })
         .strict().parse(await call("write", { unanswered, facts })).fact;
       const grounded = immediate?.text ?? checkedAutomaticReply(facts, selection);
-      const handoff = immediate?.handoff ?? grounded === null;
-      const text = customerTextSchema.parse(grounded ?? automaticHandoffReply);
-      result.decision = { automatic: true, reason: handoff ? "person_required" : "information", handoff, mock: false };
+      if (selection !== null && grounded === null)
+        throw new Error("Selected knowledge is unavailable or unsafe.");
+      const noMatch = immediate === null && selection === null;
+      const clarification = automaticClarification(ctx);
+      // Completion writes the ledger before transport. A superseded or unsent
+      // clarification must not cause escalation on the next inbound message.
+      const previousClarification = ctx.ledger.automaticClarification;
+      const clarificationSent = previousClarification &&
+        (ctx.automaticClarificationSent || hasPublicReply(ctx, previousClarification));
+      const clarify = noMatch && !clarificationSent;
+      const handoff = immediate?.handoff ?? (noMatch && !clarify);
+      const text = customerTextSchema.parse(
+        grounded ?? (clarify ? clarification : ctx.pack.locked.handoffLine),
+      );
+      const repeated = Boolean((handoff || clarify || immediate?.once) && hasPublicReply(ctx, text));
+      result.decision = {
+        automatic: true,
+        reason: clarify ? "clarification" : handoff ? "person_required" : "information",
+        handoff,
+        staffAlert: immediate?.staffAlert ?? (noMatch && handoff),
+        mock: false,
+      };
       if (immediate?.verifiedOrderStatus) result.decision.verifiedOrderStatus = immediate.verifiedOrderStatus;
       if (selection && grounded)
         result.provenance.push({ kind: "knowledge", version: ctx.packVersion, reference: selection });
       result.ledger.handoff ||= handoff;
-      result.replyText = (handoff || immediate?.once) && hasPublicReply(ctx, text) ? null : text;
+      if (clarify) result.ledger.automaticClarification = text;
+      result.replyText = repeated ? null : text;
       result.outcome = result.replyText === null ? "silent" : handoff ? "handoff" : "drafted";
       return turnResultSchema.parse(result);
     }
@@ -342,12 +365,15 @@ export async function runAgentTurn(
     };
     result.ledger.handoff = true;
     const fallback = automatic
-      ? automaticHandoffReply
+      ? customerTextSchema.parse(automaticErrorReply(ctx))
       : ctx.pack.locked.handoffLine;
-    if (automatic) result.decision.automatic = true;
     result.replyText = hasPublicReply(ctx, fallback)
       ? null
       : fallback;
+    if (automatic) {
+      result.decision.automatic = true;
+      result.decision.staffAlert = true;
+    }
     if (result.replyText === null) result.outcome = "silent";
     result.checks.push("unavailable_or_unsafe");
   }

@@ -73,6 +73,7 @@ const dataSchema = agentScopeSchema
     agentMode: z.enum(["draft", "auto"]),
     quietUntil: z.string().datetime({ offset: true }).nullable(),
     ledger: z.unknown(),
+    automaticClarificationSent: z.boolean().optional(),
     quietMinutes: z.number().int().min(1).max(10080).default(60),
     currency: z
       .string()
@@ -151,6 +152,8 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
     pack.locked.vendorReply,
     data.quietMinutes,
   );
+  const { replies: _automaticReplies, ...draftKnowledge } = pack;
+  const { localGreetings: _localGreetings, ...draftBrand } = pack.brand;
   return {
     scope,
     brandId: data.brandId,
@@ -166,6 +169,7 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
     background: data.background,
     locations: data.locations,
     ledger,
+    automaticClarificationSent: data.automaticClarificationSent === true,
     session,
     allPublicMessages: publicMessages,
     modelContext: {
@@ -186,8 +190,8 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
       locations: data.locations.map(
         ({ tenantId: _tenant, brandId: _brand, ...location }) => location,
       ),
-      brand: pack.brand,
-      knowledge: pack,
+      brand: draftBrand,
+      knowledge: { ...draftKnowledge, brand: draftBrand },
       messages: session.messages,
       sessionBand: session.band,
       requestOpen: ledger.requestOpen,

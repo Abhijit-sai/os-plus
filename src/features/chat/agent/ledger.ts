@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerTextSchema } from "../actions/customer-text.ts";
 import type { AgentMessage } from "./rules.ts";
 export const ledgerSchema = z
   .object({
@@ -8,6 +9,7 @@ export const ledgerSchema = z
     vendorQuietUntil: z.string().datetime({ offset: true }).nullable(),
     language: z.string().min(2).max(40).nullable().default(null),
     handoff: z.boolean().default(false),
+    automaticClarification: customerTextSchema.optional(),
   })
   .strict();
 export type InquiryLedger = z.infer<typeof ledgerSchema>;
@@ -32,6 +34,8 @@ export function inquiryLedger(
     session.band === "fresh"
       ? initial
       : { ...stored, sessionStartedAt: session.startedAt };
+  if (stored.sessionStartedAt !== session.startedAt)
+    delete next.automaticClarification;
   const normalize = (s: string) => s.normalize("NFKC").trim().toLowerCase();
   const vendor = session.messages
     .filter(

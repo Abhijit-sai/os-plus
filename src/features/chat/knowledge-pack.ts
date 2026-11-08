@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerTextSchema } from "./actions/customer-text.ts";
 import { sessionPolicySchema } from "./agent/session.ts";
 import { reportingScheduleSchema } from "../leads/reporting-hours.ts";
 
@@ -78,8 +79,22 @@ export const knowledgePackSchema = z
           .max(20),
         latinScriptOnly: z.boolean(),
         localAcknowledgements: strings,
+        localGreetings: strings.optional(),
       })
       .strict(),
+    replies: z
+      .object({
+        greeting: customerTextSchema.optional(),
+        needsPerson: customerTextSchema.optional(),
+        handoffTopic: customerTextSchema.optional(),
+        askOrderNumber: customerTextSchema.optional(),
+        orderUnconfirmed: customerTextSchema.optional(),
+        availability: customerTextSchema.optional(),
+        clarify: customerTextSchema.optional(),
+        error: customerTextSchema.optional(),
+      })
+      .strict()
+      .optional(),
     hours: z
       .object({
         default: text,
