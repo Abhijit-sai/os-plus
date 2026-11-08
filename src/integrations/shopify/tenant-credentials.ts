@@ -5,12 +5,14 @@ import type { Database } from "../../types/database.ts";
 import type { ShopifyProbeActor } from "./probe-config.ts";
 import { getShopifyApplicationConfig, getShopifyManagerConfig } from "./application-config.ts";
 import { canonicalShopDomain } from "./config.ts";
-import { createShopifyOAuthService } from "./oauth-service.ts";
-import { createShopifyOAuthStorage } from "./oauth-store.ts";
+import { createShopifyOAuthService, readShopifyOAuthCredential } from "./oauth-service.ts";
+import { createShopifyOAuthStorage, runShopifyOAuthStorage } from "./oauth-store.ts";
 import { createShopifyTokenProvider } from "./client-credentials.ts";
 import { createShopifyPilotCredentialReader } from "./pilot-credentials.ts";
 import { assertShopifyHydrationContext, type ShopifyHydrationContext } from "./hydration-contract.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
+
+import { shopifyTenantEligible, shopifyTenantLinkingEnabled, withShopifyTenantDomain } from "./tenant-rollout.ts";
 
 type Db = Pick<SupabaseClient<Database>, "rpc">;
 const connectionSchema = z.object({ tenantId: z.string().uuid(), connectionId: z.string().uuid(),
@@ -18,7 +20,7 @@ const connectionSchema = z.object({ tenantId: z.string().uuid(), connectionId: z
 export async function readShopifyTenantConnection(db: Db, tenantId: string, actorId: string,
   signal: AbortSignal, env: NodeJS.ProcessEnv = process.env) {
   if (env.SHOPIFY_OAUTH_ENABLED !== "true") return null;
-  if (tenantId !== env.SHOPIFY_CONNECTION_TEST_TENANT_ID || env.VERCEL_ENV !== "production" ||
+  if (!shopifyTenantEligible(tenantId,env) || env.VERCEL_ENV !== "production" ||
     env.SHOPIFY_DEPLOYMENT_ENV !== "production") throw new ShopifyIntegrationError("ACCESS_DENIED");
   const result = await db.rpc("shopify_oauth_storage", { p_tenant_id: tenantId, p_actor_id: actorId,
     p_action: "read_connection", p_input: {} }).abortSignal(signal);
@@ -36,7 +38,11 @@ export async function readShopifyTenantConnection(db: Db, tenantId: string, acto
 export async function resolveShopifyTenantEnvironment(db: Db, tenantId: string, actorId: string,
   signal: AbortSignal, env: NodeJS.ProcessEnv = process.env): Promise<NodeJS.ProcessEnv> {
   const connection = await readShopifyTenantConnection(db, tenantId, actorId, signal, env);
-  return connection ? { ...env, SHOPIFY_SHOP_DOMAIN: connection.shopDomain } : env;
+  if (connection?.hasCredential || (connection && tenantId === env.SHOPIFY_CONNECTION_TEST_TENANT_ID))
+    return withShopifyTenantDomain(env, tenantId, connection.shopDomain);
+  if (tenantId === env.SHOPIFY_CONNECTION_TEST_TENANT_ID) return env;
+  // A global pilot shop can never be the source for another tenant.
+  return { ...env, SHOPIFY_SHOP_DOMAIN: undefined };
 }
 
 export async function readShopifyTenantToken(db: Db, actor: ShopifyProbeActor, signal: AbortSignal,
@@ -51,6 +57,8 @@ export async function readShopifyTenantToken(db: Db, actor: ShopifyProbeActor, s
   }
   // Legacy pilot is preserved only when no OAuth credential was ever stored.
   // A corrupt, revoked, expired or unavailable OAuth record never falls back.
+  if (actor.tenantId !== env.SHOPIFY_CONNECTION_TEST_TENANT_ID)
+    throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
   const scoped = connection ? { ...env, SHOPIFY_SHOP_DOMAIN: connection.shopDomain } : env;
   const config = actor.role === "manager" ? getShopifyManagerConfig(actor, scoped) : getShopifyApplicationConfig(actor, scoped);
   const lease = await createShopifyTokenProvider(transport, now).getTokenLease(config);
@@ -63,6 +71,7 @@ export function createShopifyTenantCredentialReader(db: Db, actor: ShopifyProbeA
   return async (context: ShopifyHydrationContext, signal: AbortSignal, env: NodeJS.ProcessEnv = process.env) => {
     if (env.SHOPIFY_OAUTH_ENABLED !== "true") return pilot(context, signal, env);
     assertShopifyHydrationContext(context, env);
+    if (actor.tenantId !== context.tenantId) throw new ShopifyIntegrationError("ACCESS_DENIED");
     const lease = await readShopifyTenantToken(db, actor, signal, env, transport, now);
     if (lease.tenantId !== context.tenantId || lease.connectionId !== context.connectionId ||
       lease.shopDomain !== context.shopDomain || lease.appRef !== context.appRef)
@@ -70,5 +79,21 @@ export function createShopifyTenantCredentialReader(db: Db, actor: ShopifyProbeA
     return { tenantId: context.tenantId, connectionId: context.connectionId, shopGid: context.shopGid,
       appRef: context.appRef, environment: context.environment, connectionRevision: context.revision,
       accessToken: lease.accessToken, expiresAt: lease.expiresAt };
+  };
+}
+
+export function createShopifyWorkerCredentialReader(db: Db, transport: typeof fetch = fetch, now = Date.now) {
+  const pilot = createShopifyPilotCredentialReader(transport, now);
+  return async (context: ShopifyHydrationContext, signal: AbortSignal, env: NodeJS.ProcessEnv = process.env) => {
+    if (!shopifyTenantLinkingEnabled(env)) return pilot(context, signal, env);
+    assertShopifyHydrationContext(context, env);
+    if (context.appRef !== env.SHOPIFY_CLIENT_ID) throw new ShopifyIntegrationError("ACCESS_DENIED");
+    const lease = await readShopifyOAuthCredential(context.tenantId, context.connectionId, (action,input,s)=>
+      runShopifyOAuthStorage(db,context.tenantId,null,action,{...input,shopDomain:context.shopDomain,appRef:context.appRef,
+        shopGid:context.shopGid,connectionRevision:context.revision},s),signal,env,transport,now,context.shopDomain);
+    if (!lease) return pilot(context, signal, env); // Adapter itself rejects all non-pilot bindings.
+    return { tenantId:context.tenantId,connectionId:context.connectionId,shopGid:context.shopGid,
+      appRef:context.appRef,environment:context.environment,connectionRevision:context.revision,
+      accessToken:lease.accessToken,expiresAt:lease.expiresAt };
   };
 }

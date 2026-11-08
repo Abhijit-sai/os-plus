@@ -15,10 +15,16 @@ import { runShopifyUnifiedWorker } from "./unified-worker.ts";
 import { assertShopifyApplicationStage } from "./application-config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 
+import { shopifyTenantEligible, shopifyTenantLinkingEnabled } from "./tenant-rollout.ts";
+import { matchesShopifyWebhookBinding } from "./webhook-binding.ts";
+
+const scheduledBinding=z.object({tenantId:z.string().uuid(),connectionId:z.string().uuid(),
+  shopDomain:z.string(),canProcess:z.boolean()}).strict();
+
 const reply=(body:object,status:number)=>Response.json(body,{status,headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
 const signEnv=(env:NodeJS.ProcessEnv)=>({...env,SHOPIFY_CLIENT_SECRET:env.SHOPIFY_WEBHOOK_SIGNING_SECRET??env.SHOPIFY_CLIENT_SECRET});
 function pilotBinding(tenant:string,domain:string,env:NodeJS.ProcessEnv){
-  return tenant===env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&domain===canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"");
+  return tenant===env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&domain===env.SHOPIFY_SHOP_DOMAIN?.trim().toLowerCase();
 }
 type BackgroundImport = { schedule: (task: () => Promise<void>) => void;
   run?: typeof runShopifyPilotWorker };
@@ -27,8 +33,13 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
     orders(request:Request,env:NodeJS.ProcessEnv=process.env){
       if(env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true"||env.SHOPIFY_TEST_COPY_ENABLED!=="true")return Promise.resolve(reply({error:"INTAKE_DISABLED"},503));
       const store=createShopifyIntakeStore(db);
+      const tenantLinking=shopifyTenantLinkingEnabled(env),scoped=new URL(request.url).searchParams.has("binding");
       return createShopifyIntakeHandler({async findConnection(domain,app,signal){
-        const c=await store.findConnection(domain,app,signal);return c&&pilotBinding(c.tenant_id,domain,env)?c:null;
+        const c=await store.findConnection(domain,app,signal);
+        if(!c)return null;
+        if(!scoped)return !tenantLinking&&pilotBinding(c.tenant_id,domain,env)?c:null;
+        return tenantLinking&&shopifyTenantEligible(c.tenant_id,env)&&matchesShopifyWebhookBinding(request.url,{connectionId:c.id,tenantId:c.tenant_id,
+          shopDomain:c.canonical_domain,appRef:c.app_ref},env.SHOPIFY_CLIENT_SECRET??"")?c:null;
       },async receive(connection,envelope,signal){
         const unified=env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true";
         const {data,error}=await db.rpc(unified?"receive_shopify_unified_event":"receive_shopify_pilot_event",{p_tenant_id:connection.tenant_id,p_connection_id:connection.id,
@@ -41,7 +52,13 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
           // orders; the worker independently rechecks binding, policy and lease.
           // Duplicate delivery may recover a previously interrupted worker.
           background.schedule(async()=>{
-            try{await (background.run??(unified?runShopifyUnifiedWorker:runShopifyPilotWorker))(db,connection.id,AbortSignal.timeout(45000),env);}
+            try{
+              const signal=AbortSignal.timeout(45000);
+              if(background.run)await background.run(db,connection.id,signal,env);
+              else if(unified)await runShopifyUnifiedWorker(db,connection.id,signal,env,fetch,undefined,
+                {tenantId:connection.tenant_id,shopDomain:connection.canonical_domain});
+              else await runShopifyPilotWorker(db,connection.id,signal,env);
+            }
             catch{console.error("Shopify automatic import deferred; queued job retained for worker retry.");}
           });
         }
@@ -51,7 +68,7 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
     privacy(request:Request,env:NodeJS.ProcessEnv=process.env){
       const store=createShopifyPrivacyStore(db);
       return createShopifyPrivacyHandler({async findConnection(domain,app,signal){
-        const c=await store.findConnection(domain,app,signal);return c&&pilotBinding(c.tenantId,domain,env)?c:null;
+        const c=await store.findConnection(domain,app,signal);return c&&(shopifyTenantLinkingEnabled(env)||pilotBinding(c.tenantId,domain,env))?c:null;
       },receive:store.receive})(request,signEnv(env));
     },
     async uninstall(request:Request,env:NodeJS.ProcessEnv=process.env){
@@ -70,7 +87,7 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
         const raw=new TextDecoder("utf-8",{fatal:true}).decode(bytes).replace(/("(?:[^"\\]|\\.)*")|(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)/g,(token,stringToken:string|undefined)=>stringToken?token:JSON.stringify(token));
         const payload=z.object({id:z.string().regex(/^[1-9][0-9]{0,31}$/),myshopify_domain:z.string()}).parse(JSON.parse(raw));
         const binding=await createShopifyPrivacyStore(db).findConnection(domain,env.SHOPIFY_CLIENT_ID,signal);
-        if(!binding||!pilotBinding(binding.tenantId,domain,env)||payload.myshopify_domain!==domain||binding.shopGid!==`gid://shopify/Shop/${payload.id}`)throw new ShopifyIntegrationError("ACCESS_DENIED");
+        if(!binding||!(shopifyTenantLinkingEnabled(env)||pilotBinding(binding.tenantId,domain,env))||payload.myshopify_domain!==domain||binding.shopGid!==`gid://shopify/Shop/${payload.id}`)throw new ShopifyIntegrationError("ACCESS_DENIED");
         const result=await db.rpc("uninstall_shopify_pilot",{p_tenant_id:binding.tenantId,p_connection_id:binding.connectionId,p_shop_gid:binding.shopGid,p_delivery_id:delivery,p_body_sha256:createHash("sha256").update(bytes).digest("hex")}).abortSignal(signal);
         if(result.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");return reply({status:"received"},200);
       }catch(error){const code=error instanceof ShopifyIntegrationError?error.code:"REQUEST_INVALID";return reply({error:code},code==="ACCESS_DENIED"?401:code==="BODY_TOO_LARGE"?413:code==="UPSTREAM_UNAVAILABLE"?503:400);}
@@ -87,13 +104,26 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
         // shared database. Do not defer these checks to the import executor.
         if(env.VERCEL_ENV!=="production"||env.SHOPIFY_DEPLOYMENT_ENV!=="production"||env.SHOPIFY_API_VERSION!=="2026-10"||env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true")throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
         if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true")assertShopifyApplicationStage("worker",env);
-        z.string().uuid().parse(env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
         z.string().regex(/^[A-Za-z0-9_-]{1,256}$/).parse(env.SHOPIFY_CLIENT_ID);
-        canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"");
         const signal=AbortSignal.any([request.signal,AbortSignal.timeout(53000)]);
         if(request.headers.get("content-type")?.split(";")[0].trim()!=="application/json")throw new ShopifyIntegrationError("REQUEST_INVALID");
         const bytes=await readBoundedBody(request.body,1024,signal);
         z.object({}).strict().parse(JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes)));
+        if(shopifyTenantLinkingEnabled(env)){
+          const next=await db.rpc("next_shopify_tenant_worker",{p_app_ref:env.SHOPIFY_CLIENT_ID!}).abortSignal(signal);
+          if(next.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+          if(next.data===null)return reply({status:"idle"},200);
+          const binding=scheduledBinding.parse(next.data);
+          const purged=await db.rpc("purge_expired_shopify_raw",{p_tenant_id:binding.tenantId,p_connection_id:binding.connectionId,
+            p_shop_domain:canonicalShopDomain(binding.shopDomain),p_app_ref:env.SHOPIFY_CLIENT_ID!,p_limit:100}).abortSignal(signal);
+          if(purged.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+          const contacts=await db.rpc("purge_shopify_privacy_contacts",{p_tenant_id:binding.tenantId,p_connection_id:binding.connectionId,p_limit:100}).abortSignal(signal);
+          if(contacts.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+          if(!binding.canProcess||!shopifyTenantEligible(binding.tenantId,env)||env.SHOPIFY_SYNC_ENABLED!=="true")return reply({status:"raw_cleanup_checked"},200);
+          return reply(await runShopifyUnifiedWorker(db,binding.connectionId,signal,env,fetch,undefined,binding),200);
+        }
+        z.string().uuid().parse(env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
+        canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"");
         const {data,error}=await db.from("shopify_connections").select("id").eq("tenant_id",env.SHOPIFY_CONNECTION_TEST_TENANT_ID??"")
           .eq("app_ref",env.SHOPIFY_CLIENT_ID??"").eq("canonical_domain",canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??"")).eq("environment","production").limit(2).abortSignal(signal);
         if(error||!data||data.length!==1)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");

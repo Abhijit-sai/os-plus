@@ -1,4 +1,5 @@
 import "server-only";
+import { shopifyOrdersWebhookUrl } from "./webhook-binding.ts";
 import { z } from "zod";
 import { createShopifyTokenProvider } from "./client-credentials.ts";
 import { readShopifyApplicationGraphQL,createShopifyApplicationWebhook,configureShopifyUnifiedWebhook } from "./client.ts";
@@ -17,16 +18,21 @@ type Binding={connectionId:string;shopGid:string;orderGid:string;expiresAt:strin
 type UnifiedBinding={connectionId:string;shopGid:string;revision:number;pilotOrderGid:string|null};
 
 export async function registerShopifyUnifiedWebhooks(actor:ShopifyProbeActor,expected:UnifiedBinding,checkBinding:()=>Promise<UnifiedBinding>,
-  signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,transport:typeof fetch=fetch,now=Date.now){
+  signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,transport:typeof fetch=fetch,now=Date.now,readToken?:()=>Promise<string>){
   const config=assertWebhookRuntime(actor,env);
   if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true")throw new ShopifyIntegrationError("ACCESS_DENIED");
   const check=async()=>{signal.throwIfAborted();if(JSON.stringify(await checkBinding())!==JSON.stringify(expected))throw new ShopifyIntegrationError("STALE_REVISION");};
   await check();
-  const token=await createShopifyTokenProvider(transport,now).getToken(config);
+  if(!readToken&&actor.tenantId!==env.SHOPIFY_CONNECTION_TEST_TENANT_ID)throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const token=readToken?await readToken():await createShopifyTokenProvider(transport,now).getToken(config);
   const base={shopDomain:config.shopDomain,connectionEnvironment:"production" as const,accessToken:token,signal,timeoutMs:8000};
-  const target=`${config.origin}/api/integrations/shopify/orders-webhook`,fields=["admin_graphql_api_id","id","updated_at"];
-  const safe=(row:z.infer<typeof node>)=>row.uri===target&&row.format==="JSON"&&row.apiVersion.handle==="2026-10"&&JSON.stringify([...row.includeFields].sort())===JSON.stringify(fields);
-  const ready=(row:z.infer<typeof node>)=>safe(row)&&(row.filter===null||row.filter==="");
+  const routeBinding=readToken?{connectionId:expected.connectionId,tenantId:actor.tenantId,shopDomain:config.shopDomain,appRef:config.clientId}:undefined;
+  const target=shopifyOrdersWebhookUrl(config.origin,routeBinding,config.clientSecret),fields=["admin_graphql_api_id","id","updated_at"];
+  const safe=(row:z.infer<typeof node>)=>row.format==="JSON"&&row.apiVersion.handle==="2026-10"&&JSON.stringify([...row.includeFields].sort())===JSON.stringify(fields);
+  const legacyTarget=shopifyOrdersWebhookUrl(config.origin);
+  const ownLegacyEndpoint=actor.tenantId===env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&
+    config.shopDomain===env.SHOPIFY_SHOP_DOMAIN&&routeBinding!==undefined;
+  const ready=(row:z.infer<typeof node>)=>row.uri===target&&safe(row)&&(row.filter===null||row.filter==="");
   async function list(){
     const rows:z.infer<typeof node>[]=[],seen=new Set<string>(),cursors=new Set<string>();let cursor:string|null=null;
     for(let page=0;page<5;page++){
@@ -49,16 +55,17 @@ export async function registerShopifyUnifiedWebhooks(actor:ShopifyProbeActor,exp
   // Validate the complete set before ANY mutation. Never replace an unknown
   // integration, endpoint or filter, and never delete another subscription.
   for(const topic of topics){const selected=rows.filter(row=>row.topic===topic);
-    if(selected.length>1||selected.some(row=>!ready(row)&&!(safe(row)&&expected.pilotOrderGid&&row.filter===`id:${expected.pilotOrderGid.split("/").at(-1)}`)))
+    if(selected.length>1||selected.some(row=>!ready(row)&&!(safe(row)&&(row.uri===target||ownLegacyEndpoint&&row.uri===legacyTarget)&&
+      (row.filter===null||row.filter===""||expected.pilotOrderGid&&row.filter===`id:${expected.pilotOrderGid.split("/").at(-1)}`))))
       throw new ShopifyIntegrationError("WEBHOOK_CONFIGURATION_CONFLICT");}
   const updateSchema=z.object({webhookSubscriptionUpdate:createSchema.shape.webhookSubscriptionCreate});
   for(const topic of topics){
     const existing=rows.find(row=>row.topic===topic);if(existing&&ready(existing))continue;
     await check();
-    if(existing){const response=await configureShopifyUnifiedWebhook({...base,topic,subscriptionId:existing.id,schema:updateSchema},actor,transport,env);
+    if(existing){const response=await configureShopifyUnifiedWebhook({...base,topic,subscriptionId:existing.id,connectionId:routeBinding?.connectionId,schema:updateSchema},actor,transport,env);
       const result=response.data.webhookSubscriptionUpdate;
       if(result.userErrors.length||!result.webhookSubscription||result.webhookSubscription.id!==existing.id||result.webhookSubscription.topic!==topic||!ready(result.webhookSubscription))throw new ShopifyIntegrationError("WEBHOOK_SETUP_UNCONFIRMED");
-    }else{const response=await configureShopifyUnifiedWebhook({...base,topic,subscriptionId:null,schema:createSchema},actor,transport,env);
+    }else{const response=await configureShopifyUnifiedWebhook({...base,topic,subscriptionId:null,connectionId:routeBinding?.connectionId,schema:createSchema},actor,transport,env);
       const result=response.data.webhookSubscriptionCreate;
       if(result.userErrors.length||!result.webhookSubscription||result.webhookSubscription.topic!==topic||!ready(result.webhookSubscription))throw new ShopifyIntegrationError("WEBHOOK_SETUP_UNCONFIRMED");}
   }

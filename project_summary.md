@@ -1,5 +1,15 @@
 # OS PLUS Project Summary
 
+## Shopify tenant linking — 8 November 2026
+
+Owners can approve their own Shopify store behind a production rollout gate.
+Credential lookup, scheduled work and signed order webhook destinations use the
+verified tenant/store binding. A pilot selector keeps wider onboarding closed.
+Read-only production check: Phantom Threads Test holds the shared store and 15
+retained source orders; Phantom Threads has no binding. Leave Test linked until
+the same-store cutover is reviewed. No production changes were made.
+[Rollout and pilot steps](docs/49_Shopify_Tenant_Linking_Rollout.md).
+
 ## Shopify deployment checks 21 October 2026
 
 Owner reports the OAuth SQL, Shopify callback version and two Vercel encryption

@@ -9,7 +9,7 @@ import { beginShopifyApproval } from "../../src/integrations/shopify/oauth.ts";
 import { sealShopifyCredential } from "../../src/integrations/shopify/oauth-crypto.ts";
 import { createShopifyOAuthService } from "../../src/integrations/shopify/oauth-service.ts";
 import { createShopifyOAuthHandlers } from "../../src/integrations/shopify/oauth-handler.ts";
-import { resolveShopifyTenantEnvironment, readShopifyTenantToken } from "../../src/integrations/shopify/tenant-credentials.ts";
+import { createShopifyWorkerCredentialReader, resolveShopifyTenantEnvironment, readShopifyTenantToken } from "../../src/integrations/shopify/tenant-credentials.ts";
 
 const db = new PGlite({extensions:{pgcrypto}}), folder = new URL("../../supabase/migrations/", import.meta.url);
 before(async () => {
@@ -21,6 +21,7 @@ before(async () => {
   for (const file of (await readdir(folder)).filter(f => f.endsWith(".sql")).sort())
     await db.exec((await readFile(new URL(file, folder), "utf8")));
   await db.exec(await readFile(new URL("../../docs/sql/20261020180000_shopify_oauth_credentials.proposed.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../../docs/sql/20261108190000_shopify_tenant_linking.proposed.sql", import.meta.url), "utf8"));
 });
 after(() => db.close());
 const command = async (actor, action, input) => (await db.query(
@@ -31,6 +32,7 @@ async function fixture() {
     membershipUserId: "fictional-owner", membershipTenantId: tenantId, membershipStatus: "active", tenantStatus: "active" };
   await db.query("insert into tenants(id,name,slug,store_name) values($1::uuid,'Fictional','fictional-'||($1::uuid)::text,'Fictional')", [tenantId]);
   await db.query("insert into tenant_users(tenant_id,clerk_user_id,role,status) values($1,'fictional-owner','owner_admin','active')", [tenantId]);
+  await db.query("insert into tenant_verticals(tenant_id,vertical_definition_id,is_enabled,enabled_at) select $1,id,true,now() from vertical_definitions where key='boutique'", [tenantId]);
   const env = { SHOPIFY_OAUTH_ENABLED: "true", SHOPIFY_CONNECTION_TEST_TENANT_ID: tenantId,
     VERCEL_ENV: "production", SHOPIFY_DEPLOYMENT_ENV: "production", SHOPIFY_CLIENT_ID: "fictional-app",
     SHOPIFY_CLIENT_SECRET: "fictional-secret", SHOPIFY_APPLICATION_ORIGIN: "https://osplus.example",
@@ -198,4 +200,63 @@ test("approval service verifies the Shopify shop, persists credentials and refre
   assert.equal(baseEnv.SHOPIFY_SHOP_DOMAIN, "wrong-global-shop.myshopify.com");
   assert.equal((await readShopifyTenantToken(adapter, f.actor, signal, scopedEnv, transport, () => now)).accessToken, "fictional-access");
   await assert.rejects(service.complete(f.actor, params, started.cookie, signal, f.env), /SHOPIFY_APPROVAL_USED/);
+});
+
+test("a shared Phantom shop cannot be approved by two tenants, even before either callback", async () => {
+  const testTenant = await fixture(), phantom = await fixture(), shared = testTenant.approval.attempt.shopDomain;
+  await command(testTenant.actor, "begin", testTenant.approval.attempt);
+  await assert.rejects(command(phantom.actor, "begin", { ...phantom.approval.attempt, shopDomain: shared }),
+    /SHOPIFY_CONFIGURATION_BUSY/);
+  await db.query("update shopify_oauth_attempts set status='superseded' where tenant_id=$1", [testTenant.actor.tenantId]);
+  testTenant.approval = beginShopifyApproval(testTenant.actor, shared, testTenant.env);
+  const saved = await connect(testTenant, "gid://shopify/Shop/987133");
+  await db.query("update shopify_connections set status='disconnected' where id=$1", [saved.connectionId]);
+  await assert.rejects(command(phantom.actor, "begin", { ...phantom.approval.attempt, shopDomain: shared }),
+    /SHOPIFY_ACCESS_DENIED/);
+});
+
+test("independent owner approvals and scheduled workers stay within their own Shopify binding", async () => {
+  const testTenant = await fixture(), phantom = await fixture(), unrelated = await fixture();
+  const settings = { ...testTenant.env, SHOPIFY_TENANT_LINKING_ENABLED: "true", SHOPIFY_UNIFIED_ORDERS_ENABLED: "true",
+    SHOPIFY_CONNECTION_SCREEN_ENABLED: "true", SHOPIFY_API_VERSION: "2026-10",
+    SHOPIFY_SYNC_ENABLED: "true", SHOPIFY_HYDRATION_ENABLED: "true", SHOPIFY_SHOP_DOMAIN: testTenant.approval.attempt.shopDomain };
+  const signal = AbortSignal.timeout(10000);
+  const adapter = { rpc(name, args) {
+    assert.equal(name, "shopify_oauth_storage");
+    return { async abortSignal() {
+      try { return { data: await command({ tenantId: args.p_tenant_id, userId: args.p_actor_id }, args.p_action, args.p_input), error: null }; }
+      catch (error) { return { data: null, error: { message: error.message } }; }
+    } };
+  } };
+  assert.equal((await resolveShopifyTenantEnvironment(adapter, phantom.actor.tenantId, phantom.actor.userId, signal, settings)).SHOPIFY_SHOP_DOMAIN, undefined);
+  await assert.rejects(readShopifyTenantToken(adapter, phantom.actor, signal, settings, async()=>assert.fail("global token fallback")), /AUTHENTICATION_REQUIRED/);
+
+  const installed = [];
+  for (const [index, tenant] of [phantom, unrelated].entries()) {
+    const shopGid = `gid://shopify/Shop/98714${index}`;
+    const shopDomain = tenant.approval.attempt.shopDomain;
+    tenant.approval = beginShopifyApproval(tenant.actor, shopDomain, settings);
+    tenant.token = { ...tenant.token, accessToken: `fictional-store-token-${index}` };
+    tenant.packet = sealShopifyCredential(tenant.token, tenant.approval.attempt, settings);
+    const saved = await connect(tenant, shopGid);
+    const verifiedAt = new Date().toISOString();
+    await command(tenant.actor, "enable_imports", { connectionId:saved.connectionId,revision:1,
+      shopDomain,shopGid,appRef:settings.SHOPIFY_CLIENT_ID,verifiedAt,consent:true,requestKey:randomUUID() });
+    const revision = Number((await db.query("select revision from shopify_connections where id=$1",[saved.connectionId])).rows[0].revision);
+    installed.push({ tenantId:tenant.actor.tenantId, connectionId:saved.connectionId, shopDomain, shopGid,
+      appRef:settings.SHOPIFY_CLIENT_ID, environment:"production", apiVersion:"2026-10", status:"verified", revision,
+      tenantStatus:"active", intakeEnabled:true, processingEnabled:true, requiredScopesVerified:true,
+      protectedCustomerFieldsVerified:true, importCreatedAtCutoff:verifiedAt });
+  }
+  const read = createShopifyWorkerCredentialReader(adapter, async()=>assert.fail("unexpected external request"));
+  for (const [index, context] of installed.entries()) {
+    assert.equal((await read(context, signal, settings)).accessToken, `fictional-store-token-${index}`);
+    await assert.rejects(read({ ...context, shopDomain: installed[1-index].shopDomain }, signal, settings), /ACCESS_DENIED/);
+    await assert.rejects(read({ ...context, tenantId: installed[1-index].tenantId }, signal, settings), /ACCESS_DENIED/);
+    await assert.rejects(read({ ...context, revision: context.revision-1 }, signal, settings), /ACCESS_DENIED/);
+  }
+  const poll = async()=> (await db.query("select next_shopify_tenant_worker($1) as b",[settings.SHOPIFY_CLIENT_ID])).rows[0].b;
+  const first = await poll(), second = await poll();
+  assert.deepEqual(new Set([first.connectionId,second.connectionId]),new Set(installed.map(c=>c.connectionId)));
+  assert.equal((await poll()).connectionId, first.connectionId);
 });

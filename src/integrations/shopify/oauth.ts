@@ -6,6 +6,8 @@ import { ShopifyIntegrationError } from "./errors.ts";
 import { z } from "zod";
 import { readBoundedBody } from "./bounded-body.ts";
 
+import { shopifyTenantEligible } from "./tenant-rollout.ts";
+
 export const SHOPIFY_OAUTH_CALLBACK = "/api/integrations/shopify/oauth/callback";
 export const SHOPIFY_OAUTH_SCOPES = ["read_orders", "read_customers", "read_products"] as const;
 export type ShopifyApprovalAttempt = {
@@ -13,16 +15,19 @@ export type ShopifyApprovalAttempt = {
   stateHash: string; expiresAt: string;
 };
 
-// Rollout remains Test-only. A later approved rollout can widen this explicit
-// gate; choosing a different shop must never change the current tenant.
+// The authenticated OS+ membership chooses the tenant, never the Shopify shop.
 export function getShopifyOAuthConfig(actor: ShopifyProbeActor, env: NodeJS.ProcessEnv, purpose: "owner" | "credential" = "owner") {
   if (purpose === "credential" && actor.role === "manager") {
     if (!actor.userId || actor.userId !== actor.membershipUserId || actor.tenantId !== actor.membershipTenantId ||
       !z.string().uuid().safeParse(actor.tenantId).success || actor.membershipStatus !== "active" || actor.tenantStatus !== "active")
       throw new ShopifyIntegrationError("ACCESS_DENIED");
   } else assertShopifyProbeActor(actor);
-  if (env.SHOPIFY_OAUTH_ENABLED !== "true" || actor.tenantId !== env.SHOPIFY_CONNECTION_TEST_TENANT_ID)
+  if (env.SHOPIFY_OAUTH_ENABLED !== "true" || !shopifyTenantEligible(actor.tenantId,env))
     throw new ShopifyIntegrationError("ACCESS_DENIED");
+  return getShopifyOAuthApplicationConfig(env);
+}
+
+export function getShopifyOAuthApplicationConfig(env: NodeJS.ProcessEnv) {
   if (env.VERCEL_ENV !== "production" || env.SHOPIFY_DEPLOYMENT_ENV !== "production")
     throw new ShopifyIntegrationError("CONFIGURATION_INVALID");
   let origin: URL;

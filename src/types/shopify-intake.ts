@@ -72,8 +72,9 @@ export type ShopifyIntakeTables = {
   };
 };
 export type ShopifyIntakeFunctions = {
+  next_shopify_tenant_worker: { Args: { p_app_ref: string }; Returns: Json };
   shopify_oauth_storage: {
-    Args: { p_tenant_id: string; p_actor_id: string; p_action: string; p_input: Json };
+    Args: { p_tenant_id: string; p_actor_id: string | null; p_action: string; p_input: Json };
     Returns: Json;
   };
   read_shopify_privacy_review: {Args:{p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_request_id:string};Returns:Json};

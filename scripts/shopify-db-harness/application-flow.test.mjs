@@ -220,10 +220,10 @@ test('upgrading an existing pilot refreshes the same order into retained details
   assert.equal(await scalar('SELECT count(*)::int AS result FROM orders WHERE tenant_id=$1',[f.tenant]),1);
 }));
 
-test('OAuth connection drives manual preview and import from its own shop despite a different global shop setting',isolated(async f=>{
-  await f.run({action:'connect',cutoff:new Date(Date.now()-3600000).toISOString()});
+test('an owner outside the Test tenant connects, imports and completes drafts using only the saved store',isolated(async f=>{
   Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true',
-    SHOPIFY_OAUTH_ENABLED:'true',SHOPIFY_SCHEDULED_WORKER_ENABLED:'false',SHOPIFY_CREDENTIAL_KEY_ID:'fictional',
+    SHOPIFY_OAUTH_ENABLED:'true',SHOPIFY_TENANT_LINKING_ENABLED:'true',SHOPIFY_CONNECTION_TEST_TENANT_ID:randomUUID(),
+    SHOPIFY_SCHEDULED_WORKER_ENABLED:'false',SHOPIFY_CREDENTIAL_KEY_ID:'fictional',
     SHOPIFY_CREDENTIAL_ENCRYPTION_KEYS_JSON:JSON.stringify({fictional:Buffer.alloc(32,17).toString('base64')})});
   const domain=f.env.SHOPIFY_SHOP_DOMAIN,approval=beginShopifyApproval(f.actor,domain,f.env);
   const storage=(action,input)=>scalar('SELECT shopify_oauth_storage($1,$2,$3,$4::jsonb) AS result',[f.tenant,f.actor.userId,action,JSON.stringify(input)]);

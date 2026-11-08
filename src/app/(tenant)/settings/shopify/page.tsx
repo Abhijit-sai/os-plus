@@ -17,6 +17,8 @@ import type { UnifiedWorkspace } from "@/integrations/shopify/unified-contract";
 import {readShopifyTenantConnection,resolveShopifyTenantEnvironment} from "@/integrations/shopify/tenant-credentials";
 import {getShopifyOAuthConfig} from "@/integrations/shopify/oauth";
 
+import {shopifyTenantLinkingEnabled} from "@/integrations/shopify/tenant-rollout";
+
 function currentIndiaDate(){return new Date(Date.now()+330*60000).toISOString().slice(0,10);}
 
 export const dynamic="force-dynamic";
@@ -27,7 +29,7 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
   if(!actor || actor.role!=="owner_admin" || !isShopifyConnectionScreenEnabled(actor.tenantId))notFound();
   if(process.env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true"){
     let unified:UnifiedWorkspace|null=null,shopDomain="";
-    let approval:{hasCredential:boolean;result?:string}|undefined;
+    let approval:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}|undefined;
     try{
       const db=createSupabaseServiceRoleClient(),signal=AbortSignal.timeout(6000);
       let needsApproval=false;
@@ -35,8 +37,8 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
         getShopifyOAuthConfig(actor,process.env);
         const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal);
         const params=await searchParams;
-        approval={hasCredential:binding?.hasCredential??false,result:params.connection==="approved"||params.connection==="failed"?params.connection:undefined};
-        needsApproval=!binding;
+        approval={hasCredential:binding?.hasCredential??false,automaticAvailable:shopifyTenantLinkingEnabled(process.env)&&!!binding?.hasCredential,result:params.connection==="approved"||params.connection==="failed"?params.connection:undefined};
+        needsApproval=!binding || (!binding.hasCredential && actor.tenantId!==process.env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
       }
       if(needsApproval){
         unified={connection:null,workerConfigured:false};
@@ -47,7 +49,7 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
       }
     }catch{ /* Never render raw configuration or SQL errors. */ }
     if(!unified)return <div role="alert" className="rounded-lg border p-5"><h1 className="text-xl font-semibold">Shopify setup is unavailable</h1>
-      <p>Nothing was imported. The administrator needs to verify the approved database update and Test connection.</p></div>;
+      <p>Nothing was imported. The administrator needs to verify the Shopify app configuration and database connection.</p></div>;
     return <ShopifySimpleSetup key={actor.tenantId} initial={unified} shopDomain={shopDomain} today={currentIndiaDate()} submitAction={shopifyUnifiedAction} approval={approval}/>;
   }
   if(process.env.SHOPIFY_PILOT_OPERATIONS_ENABLED==="true"){

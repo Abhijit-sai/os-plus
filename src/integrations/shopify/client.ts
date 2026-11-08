@@ -1,5 +1,6 @@
 import "server-only";
 
+import { shopifyOrdersWebhookUrl } from "./webhook-binding.ts";
 import { z } from "zod";
 import { canonicalShopDomain, SHOPIFY_API_VERSION } from "./config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
@@ -114,6 +115,7 @@ export async function readShopifyApplicationGraphQL<T>(input:ShopifyGraphQLReque
   return executeShopifyGraphQL(input,transport);
 }
 
+
 const webhookCreateQuery=`mutation OSPlusCreatePilotWebhook($topic: WebhookSubscriptionTopic!, $subscription: WebhookSubscriptionInput!) {
   webhookSubscriptionCreate(topic: $topic, webhookSubscription: $subscription) {
     webhookSubscription { id topic uri filter format includeFields apiVersion { handle } }
@@ -129,13 +131,15 @@ const webhookUpdateQuery=`mutation OSPlusUpdateTestWebhook($id: ID!, $subscripti
 // Only the Test setup reconciler may expand its own subscriptions. Caller has
 // already verified the existing endpoint, topic, installation and pilot filter.
 export async function configureShopifyUnifiedWebhook<T>(input:Omit<ShopifyGraphQLRequest<T>,"query"|"variables"> & {
-  topic:"ORDERS_CREATE"|"ORDERS_UPDATED"|"ORDERS_CANCELLED";subscriptionId:string|null;
+  topic:"ORDERS_CREATE"|"ORDERS_UPDATED"|"ORDERS_CANCELLED";subscriptionId:string|null;connectionId?:string;
 },actor:ShopifyProbeActor,transport:typeof fetch=fetch,env:NodeJS.ProcessEnv=process.env){
   const config=getShopifyApplicationConfig(actor,env);
   if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true"||input.shopDomain!==config.shopDomain||input.connectionEnvironment!=="production"||
     !["ORDERS_CREATE","ORDERS_UPDATED","ORDERS_CANCELLED"].includes(input.topic)||
     (input.subscriptionId!==null&&!/^gid:\/\/shopify\/WebhookSubscription\/[1-9][0-9]*$/.test(input.subscriptionId)))throw new ShopifyIntegrationError("ACCESS_DENIED");
-  const subscription={uri:`${config.origin}/api/integrations/shopify/orders-webhook`,format:"JSON",filter:"",includeFields:["id","admin_graphql_api_id","updated_at"]};
+  if(!input.connectionId&&actor.tenantId!==env.SHOPIFY_CONNECTION_TEST_TENANT_ID)throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const binding=input.connectionId?{connectionId:input.connectionId,tenantId:actor.tenantId,shopDomain:config.shopDomain,appRef:config.clientId}:undefined;
+  const subscription={uri:shopifyOrdersWebhookUrl(config.origin,binding,config.clientSecret),format:"JSON",filter:"",includeFields:["id","admin_graphql_api_id","updated_at"]};
   return executeShopifyGraphQL({...input,query:input.subscriptionId?webhookUpdateQuery:webhookCreateQuery,
     variables:input.subscriptionId?{id:input.subscriptionId,subscription}:{topic:input.topic,subscription}},transport,true);
 }

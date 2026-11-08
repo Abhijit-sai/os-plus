@@ -9,7 +9,7 @@ import type {UnifiedWorkspace,UnifiedActionState,UnifiedImportPreview} from "@/i
 import {ShopifyApprovalForm} from "./shopify-approval-form";
 
 export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approval}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>;
-  approval?:{hasCredential:boolean;result?:string}}){
+  approval?:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}}){
   const [view,setView]=useState(initial),[from,setFrom]=useState(today),[through,setThrough]=useState(today),[consent,setConsent]=useState(false),
     [preview,setPreview]=useState<UnifiedImportPreview|null>(null),[page,setPage]=useState(0),[running,setRunning]=useState(false),[processed,setProcessed]=useState(0);
   const [open,setOpen]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
@@ -70,7 +70,7 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
   }
   return <div className="mx-auto max-w-5xl space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Shopify</h1>
-      <p className="text-sm text-muted-foreground">{shopDomain} → Phantom Threads Test</p></div><Button asChild variant="outline"><Link href="/orders">Open Orders</Link></Button></header>
+      <p className="text-sm text-muted-foreground">{shopDomain || "Connect a store to this business"}</p></div><Button asChild variant="outline"><Link href="/orders">Open Orders</Link></Button></header>
     <p className="rounded-lg border p-4 text-sm">Shopify orders appear in the normal Orders table as drafts. Your managers add garment types and workflows there. No customer messages or local payment receipts are created.</p>
     <ol className="flex flex-wrap gap-4 text-sm" aria-label="Setup steps"><li>1. Connect</li><li>2. Import orders</li><li>3. Automatic sync</li></ol>
     {!open&&feedback}
@@ -78,19 +78,19 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
       {approval&&(c?.unified?<details open={approval.result==="failed"||approval.result==="approved"}><summary className="min-h-11 cursor-pointer py-2">Manage Shopify approval</summary>
         <ShopifyApprovalForm shopDomain={shopDomain} hasCredential={approval.hasCredential} result={approval.result}/></details>:
         <ShopifyApprovalForm shopDomain={c?shopDomain:undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
-      <p>{c?.unified?"Connected for Test-account imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how Test data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This Test store connection needs administrator verification before importing."}</p>
+      <p>{c?.unified?"Connected for imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how imported data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This store connection needs administrator verification before importing."}</p>
       {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
         <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>
-          <span>Keep imported Test orders and customers until removed. Temporary raw Shopify payloads expire after one day.
+          <span>Keep imported orders and customers until removed. Temporary raw Shopify payloads expire after one day.
             {manual&&" With background cleanup off, I will return after 24 hours and run Remove expired raw payloads. Expiry alone does not delete them."}</span></label>
-        <Button disabled={disabled||!consent||(!c?.ready&&!approval?.hasCredential)}>{pending?"Checking…":"Verify and enable Test imports"}</Button></form>}
+        <Button disabled={disabled||!consent||(!c?.ready&&!approval?.hasCredential)}>{pending?"Checking…":"Verify and enable imports"}</Button></form>}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>2. Import existing orders</CardTitle></CardHeader><CardContent className="space-y-4">
       <p className="text-sm">Choose dates, review new orders and reference clashes, then import only the new orders as drafts.</p>
       {!!c?.pending&&<p>{c.pending} orders waiting to finish importing. Open the import sheet to continue.</p>}
       {!!c?.needsAttention&&<p role="alert">{c.needsAttention} imports need administrator review.</p>}
       <Button type="button" ref={importTrigger} aria-haspopup="dialog" aria-expanded={open} onClick={()=>changeOpen(true)}>Import orders</Button>
-      <Dialog title="Import Shopify orders" description="Phantom Threads Test only. Existing orders are never overwritten by a date-range import."
+      <Dialog title="Import Shopify orders" description="Existing orders are never overwritten by a date-range import."
         placement="side" open={open} onOpenChange={changeOpen} preventClose={pending} confirmClose={()=>true}>
       <div className="space-y-5">
       <ol className="flex flex-wrap gap-3 rounded-lg bg-muted p-3 text-sm" aria-label="Import steps">
@@ -158,13 +158,13 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
     </CardContent></Card>
     <Card><CardHeader><CardTitle>3. Automatic sync</CardTitle></CardHeader><CardContent className="space-y-4">
       <p>When enabled, new Shopify orders become drafts automatically. Updates refresh Shopify details without overwriting your team&apos;s workflow choices.</p>
-      <p className="font-medium">{c?.automatic?"Automatic sync is on for Phantom Threads Test.":"Automatic sync is off."}</p>
+      <p className="font-medium">{c?.automatic?"Automatic sync is on for this business.":"Automatic sync is off."}</p>
       {manual&&<p className="text-sm">Background worker setup is deferred. You can import dates and complete drafts now; automatic sync stays unavailable until the worker is configured.</p>}
       {!manual&&<p className="text-sm">Worker endpoint configured. Confirm that the external retry and cleanup schedule is running before enabling automatic sync.</p>}
-      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified||(manual||!!approval)&&!c?.automatic}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
+      <form action={action}><input type="hidden" name="operation" value="automatic"/><Button disabled={disabled||!c?.unified||(manual||!!approval&&!approval.automaticAvailable)&&!c?.automatic}>{c?.automatic?"Turn off automatic sync":"Set up automatic sync"}</Button></form>
     </CardContent></Card>
     <details className="rounded-lg border p-4"><summary className="min-h-11 cursor-pointer py-2">Connection details</summary>
-      <p className="text-sm">Status: {c?.status??"Not connected"}. These settings apply only to Phantom Threads Test. Production tenants and chat/CRM are not enabled by this setup.</p></details>
+      <p className="text-sm">Status: {c?.status??"Not connected"}. These settings apply to this business.</p></details>
     {c?.unified&&<Card><CardHeader><CardTitle>Temporary data cleanup</CardTitle></CardHeader><CardContent className="space-y-3">
       <p className="text-sm">Removes only expired raw payloads, up to 100 per click. Imported orders and customers remain. {manual?"Return after 24 hours to run this until background cleanup is configured.":"The external worker schedule must handle cleanup."}</p>
       <form action={action}><input type="hidden" name="operation" value="cleanup"/><Button variant="outline" disabled={disabled}>Remove expired raw payloads</Button></form>

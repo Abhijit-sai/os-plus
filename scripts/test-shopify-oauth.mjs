@@ -121,3 +121,18 @@ test("aborted OAuth exchange is bounded even when the transport ignores cancella
   controller.abort();
   await assert.rejects(pending, /UPSTREAM_UNAVAILABLE/);
 });
+
+test("production self-serve gate permits only the selected pilot until the allowlist is cleared", () => {
+  const other = "10000000-0000-4000-8000-000000000009";
+  const owner = {userId:"owner",membershipUserId:"owner",tenantId:other,membershipTenantId:other,
+    role:"owner_admin",membershipStatus:"active",tenantStatus:"active"};
+  const settings = {SHOPIFY_TENANT_LINKING_ENABLED:"true",SHOPIFY_CONNECTION_SCREEN_ENABLED:"true",SHOPIFY_OAUTH_ENABLED:"true",
+    SHOPIFY_UNIFIED_ORDERS_ENABLED:"true",SHOPIFY_API_VERSION:"2026-10",SHOPIFY_CLIENT_ID:"fictional-app",SHOPIFY_CLIENT_SECRET:"secret",
+    SHOPIFY_APPLICATION_ORIGIN:"https://osplus.example",VERCEL_ENV:"production",SHOPIFY_DEPLOYMENT_ENV:"production"};
+  const shop = "example.myshopify.com";
+  assert.throws(()=>beginShopifyApproval(owner,shop,{...settings,SHOPIFY_TENANT_LINKING_PILOT_TENANT_ID:"10000000-0000-4000-8000-000000000008"}),/ACCESS_DENIED/);
+  assert.throws(()=>beginShopifyApproval({...owner,role:"manager"},shop,settings),/ACCESS_DENIED/);
+  assert.throws(()=>beginShopifyApproval(owner,shop,{...settings,VERCEL_ENV:"preview"}),/ACCESS_DENIED/);
+  assert.equal(beginShopifyApproval(owner,shop,{...settings,SHOPIFY_TENANT_LINKING_PILOT_TENANT_ID:other}).attempt.tenantId,other);
+  assert.equal(beginShopifyApproval(owner,shop,settings).attempt.tenantId,other);
+});
