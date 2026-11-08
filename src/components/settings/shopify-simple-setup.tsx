@@ -8,11 +8,11 @@ import {importDateError,importExplanation,importLabels as labels,previewExpired}
 import type {UnifiedWorkspace,UnifiedActionState,UnifiedImportPreview} from "@/integrations/shopify/unified-contract";
 import {ShopifyApprovalForm} from "./shopify-approval-form";
 
-export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approval}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>;
+export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approval,startImport=false}:{initial:UnifiedWorkspace;shopDomain:string;today:string;submitAction:(state:UnifiedActionState,form:FormData)=>Promise<UnifiedActionState>;startImport?:boolean;
   approval?:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}}){
   const [view,setView]=useState(initial),[from,setFrom]=useState(today),[through,setThrough]=useState(today),[consent,setConsent]=useState(false),
     [preview,setPreview]=useState<UnifiedImportPreview|null>(null),[page,setPage]=useState(0),[running,setRunning]=useState(false),[processed,setProcessed]=useState(0);
-  const [open,setOpen]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
+  const [open,setOpen]=useState(startImport),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[now,setNow]=useState(0),
     [receipt,setReceipt]=useState<UnifiedActionState["receipt"]>(),[operation,setOperation]=useState("");
   const intent=useRef<{body:string;key:string}|null>(null);
   const importTrigger=useRef<HTMLButtonElement>(null);

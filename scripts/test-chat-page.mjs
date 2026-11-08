@@ -7,6 +7,7 @@ const guard = loadServerModule("src/features/chat/module.ts", {
   "./permissions": {},
 });
 const marker = new Error("NEXT_NOT_FOUND");
+const pageProps = { searchParams: Promise.resolve({}) };
 function page(failure) {
   return loadServerModule("src/app/(tenant)/settings/chat/page.tsx", {
     "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
@@ -51,11 +52,11 @@ function page(failure) {
 }
 test("Chat page converts expected authorization denial into notFound", async () => {
   const denial = new guard.ChatAccessError();
-  await assert.rejects(page(denial)(), (error) => error === marker);
+  await assert.rejects(page(denial)(pageProps), (error) => error === marker);
 });
 test("Chat page preserves unexpected storage failures for operational diagnosis", async () => {
   const failure = new Error("Unexpected storage failure");
-  await assert.rejects(page(failure)(), (error) => error === failure);
+  await assert.rejects(page(failure)(pageProps), (error) => error === failure);
 });
 
 test("permission-query outages propagate through the real guard and page as safe operational errors", async () => {
@@ -148,7 +149,7 @@ test("permission-query outages propagate through the real guard and page as safe
         },
       ).default;
       await assert.rejects(
-        actualPage(),
+        actualPage(pageProps),
         (error) =>
           error !== marker &&
           !(error instanceof actual.ChatAccessError) &&

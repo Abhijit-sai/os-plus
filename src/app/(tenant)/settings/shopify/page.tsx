@@ -13,7 +13,7 @@ import type { ShopifyApplicationView } from "@/integrations/shopify/application-
 import { ShopifySimpleSetup } from "@/components/settings/shopify-simple-setup";
 import {shopifyUnifiedAction} from "./unified-actions";
 import { createShopifyUnifiedService } from "@/integrations/shopify/unified-service";
-import type { UnifiedWorkspace } from "@/integrations/shopify/unified-contract";
+import { isShopifyImportReady, type UnifiedWorkspace } from "@/integrations/shopify/unified-contract";
 import {readShopifyTenantConnection,resolveShopifyTenantEnvironment} from "@/integrations/shopify/tenant-credentials";
 import {getShopifyOAuthConfig} from "@/integrations/shopify/oauth";
 
@@ -23,11 +23,12 @@ function currentIndiaDate(){return new Date(Date.now()+330*60000).toISOString().
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
-export default async function ShopifySettingsPage({searchParams}:{searchParams:Promise<{customerSearch?:string;connection?:string}>}){
+export default async function ShopifySettingsPage({searchParams}:{searchParams:Promise<{customerSearch?:string;connection?:string;import?:string}>}){
   if(process.env.SHOPIFY_CONNECTION_SCREEN_ENABLED!=="true")notFound();
   const actor=await getShopifyProbeActor();
   if(!actor || actor.role!=="owner_admin" || !isShopifyConnectionScreenEnabled(actor.tenantId))notFound();
   if(process.env.SHOPIFY_UNIFIED_ORDERS_ENABLED==="true"){
+    const params=await searchParams;
     let unified:UnifiedWorkspace|null=null,shopDomain="",retired=false;
     let approval:{hasCredential:boolean;automaticAvailable?:boolean;result?:string}|undefined;
     try{
@@ -36,7 +37,6 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
       if(process.env.SHOPIFY_OAUTH_ENABLED==="true"){
         getShopifyOAuthConfig(actor,process.env);
         const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal);
-        const params=await searchParams;
         approval={hasCredential:binding?.hasCredential??false,automaticAvailable:shopifyTenantLinkingEnabled(process.env)&&!!binding?.hasCredential,result:params.connection==="approved"||params.connection==="failed"?params.connection:undefined};
         retired=binding?.retired??false;
         shopDomain=binding?.shopDomain??"";
@@ -56,7 +56,8 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
     </div>;
     if(!unified)return <div role="alert" className="rounded-lg border p-5"><h1 className="text-xl font-semibold">Shopify setup is unavailable</h1>
       <p>Nothing was imported. The administrator needs to verify the Shopify app configuration and database connection.</p></div>;
-    return <ShopifySimpleSetup key={actor.tenantId} initial={unified} shopDomain={shopDomain} today={currentIndiaDate()} submitAction={shopifyUnifiedAction} approval={approval}/>;
+    const startImport=params.import==="1"&&isShopifyImportReady(unified);
+    return <ShopifySimpleSetup key={`${actor.tenantId}:${startImport}`} initial={unified} shopDomain={shopDomain} today={currentIndiaDate()} submitAction={shopifyUnifiedAction} approval={approval} startImport={startImport}/>;
   }
   if(process.env.SHOPIFY_PILOT_OPERATIONS_ENABLED==="true"){
     let view:ShopifyApplicationView|null=null;

@@ -30,10 +30,10 @@ import { ChatVoiceSettings } from "@/components/chat/voice-settings";
 export default async function ChatSettingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ section?: string | string[] }>;
-} = {}) {
+  searchParams: Promise<{ section?: string | string[] }>;
+}) {
   if (!isChatFoundationEnabled()) notFound();
-  const section = chatSettingsSection((await searchParams)?.section);
+  const section = chatSettingsSection((await searchParams).section);
   let data: Awaited<ReturnType<typeof getChatSetup>>;
   try {
     data = await getChatSetup();
