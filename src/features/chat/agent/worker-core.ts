@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { agentScopeSchema } from "./context.ts";
+import type { CustomerLookup } from "./customer-lookup.ts";
 import {
   runAgentTurn,
   type AgentModel,
@@ -25,7 +26,7 @@ export type MockTurnStore = {
   prepare?(
     capability: { runId: string; leaseToken: string },
     data: unknown,
-  ): Promise<{ status: string; data?: unknown; result?: TurnResult; orderStatus?: string }>;
+  ): Promise<{ status: string; data?: unknown; result?: TurnResult; customerLookup?: CustomerLookup }>;
   publicDelivery?(capability: {
     runId: string;
     leaseToken: string;
@@ -104,7 +105,7 @@ export async function runStoredAgentTurn(
         {
           scope: input.scope, now: input.now, data: prepared.data,
           allowAutomatic: input.publicAuto,
-          orderStatus: "orderStatus" in prepared ? prepared.orderStatus : undefined,
+          customerLookup: "customerLookup" in prepared ? prepared.customerLookup : undefined,
         },
         factory.create(capability),
       ));

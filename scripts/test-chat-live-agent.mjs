@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runAgentTurn } from "../src/features/chat/agent/turn.ts";
+import * as customerLookups from "../src/features/chat/agent/customer-lookup.ts";
 import { parseKnowledgePack } from "../src/features/chat/knowledge-pack.ts";
 const id = (n) => "7c000000-0000-4000-8000-" + String(n).padStart(12, "0");
 const scope = {
@@ -204,6 +205,12 @@ test("Auto configuration stays out of private Draft model context", async () => 
   const req = request();
   req.data.pack.body.replies = { greeting: "Auto welcome." };
   req.data.pack.body.brand.localGreetings = ["adaab"];
+  req.data.messages.unshift({
+    ...req.data.messages[0], id: id(39), providerId: 2, author: "bot",
+    content: "Here is your order tracking link: https://os-plus.vercel.app/track/synthetic",
+    at: "2026-11-01T09:59:59Z",
+  });
+  req.data.verifiedLookupReplyIds = [id(39)];
   const contexts = [];
   const result = await runAgentTurn(req, {
     kind: "live",
@@ -220,6 +227,7 @@ test("Auto configuration stays out of private Draft model context", async () => 
     assert.equal(context.knowledge.replies, undefined);
     assert.equal(context.knowledge.brand.localGreetings, undefined);
     assert.equal(context.brand.localGreetings, undefined);
+    assert.equal(context.messages.some(message => message.id === id(39)), false);
   }
 });
 
@@ -361,10 +369,10 @@ test("live assistance refuses automatic mode before making any model call", asyn
 });
 
 test("approved automatic mode greets, uses only approved facts and checks verified orders", async () => {
-  async function automatic(content, answer, orderStatus, previous) {
+  async function automatic(content, answer, customerLookup, previous) {
     const req = request();
     req.allowAutomatic = true;
-    req.orderStatus = orderStatus;
+    req.customerLookup = customerLookup;
     req.data.agentMode = "auto";
     req.data.channelKind = "whatsapp";
     req.data.messages[0].content = content;
@@ -427,13 +435,24 @@ test("approved automatic mode greets, uses only approved facts and checks verifi
     assert.equal(unavailable.result.decision.handoff, true);
     assert.equal(unavailable.calls, 0);
   }
-  const order = await automatic("Where is my order ORD-000123?", undefined, "in_progress");
-  assert.equal(order.result.replyText, "The status of your order is in progress.");
+  const verified = { kind: "status", text: "We’re working on your order.", proof: "a".repeat(64) };
+  const order = await automatic("Where is my order ORD-000123?", undefined, verified);
+  assert.equal(order.result.replyText, verified.text);
+  assert.deepEqual(order.result.decision.verifiedCustomerLookup, { kind: "status", proof: verified.proof });
   assert.equal(order.calls, 0);
+  assert.equal(customerLookups.customerLookupKind("Can you give me an update?"), null);
+  assert.equal(customerLookups.customerLookupKind("Where is my order #1234?"), null);
+  assert.equal(customerLookups.customerLookupKind("Can I see the tracking link?"), "tracking");
+  for (const wording of [
+    "Where is my order: ORD-000123?",
+    "Please check my order #ORD-000123",
+    "What is the current status of my order ORD-000123?",
+  ]) assert.equal((await automatic(wording, undefined, verified)).result.replyText, verified.text);
+  assert.equal(customerLookups.customerLookupKind("Send me the tracking link for order ORD-000123"), "tracking");
   const unverified = await automatic("Where is my order ORD-000123?");
   assert.equal(unverified.result.decision.handoff, true);
   assert.match(unverified.result.replyText, /couldn’t confirm/);
-  const paid = await automatic("I've paid for ORD-000123", undefined, "in_progress");
+  const paid = await automatic("I've paid for ORD-000123", undefined, verified);
   assert.equal(paid.result.replyText, pack.locked.paymentClaimReply);
   assert.equal(paid.result.decision.handoff, true);
   const vendor = await automatic("I'm a supplier");
@@ -949,6 +968,7 @@ test("captured pilot jobs reject unrelated scope before loading and recheck the 
     "../secrets": {},
     "./mock-model": {},
     "./worker-core": core,
+    "./customer-lookup.ts": customerLookups,
     "./runtime-config": { selectAgentRuntime: () => ({ kind: "live", config: {}, pilot }) },
     "./live-draft-pilot": pilotModule,
     "./live-model": { createLiveModel() { models++; throw new Error("Pilot crossed its boundary"); } },
@@ -1163,6 +1183,7 @@ test("scoped draft preparation excludes contact and location records but preserv
     "../connection": { chatwootOrigin: () => "https://chat.example.invalid" },
     "../secrets": {},
     "./mock-model": {},
+    "./customer-lookup.ts": customerLookups,
     "./worker-core": {
       async runStoredAgentTurn(_raw, store) { prepared = await store.prepare({}, fixture.data); },
     },

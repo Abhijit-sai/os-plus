@@ -88,6 +88,7 @@ test("disabled agent avoids configuration reads and malformed local configuratio
       "../secrets": {},
       "./mock-model": {},
       "./worker-core": {},
+      "./customer-lookup.ts": {},
       "./runtime-config": {},
       "./live-draft-pilot": {},
       "./live-model": {},

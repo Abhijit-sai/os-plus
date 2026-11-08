@@ -15096,3 +15096,12 @@ Concrete later releaseproposal is deploy/chat-release/20261031-staff-only/RELEAS
 - Validated the local Phantom pack with 23 policies and seven linked answers. Publication is pending owner action after release.
 - The approved live sizing test remains pending. Read-only Chatwoot checks found no matching test message or acknowledgement.
 - Release requires approval for the additive migration and app deployment. If rolling back after use, pause Auto, publish the previous pack shape, remove `automaticClarification` from affected ledgers with approved SQL, restore the previous app and reapprove the pack.
+
+## 8 November 2026 IST — Verified Phantom WhatsApp customer context
+
+- PR #22 is live on `5f58d6a`. The exact 23-policy version 3 is published and approved for Phantom WhatsApp Auto.
+- New branch `codex/chat-verified-customer-context` adds named, read-only lookup operations for explicit requests. An exact verified sender match and ownership recheck fence each lookup and send.
+- An unnumbered enquiry uses the newest order if open. Replies use customer-facing status or an explicitly requested tracking link. Payment, address and measurement replies limit disclosure to confirmation.
+- Customer lookup replies stay out of later model prompts. The saved-size staff handoff remains a separate path.
+- Phantom Threads has no production Shopify binding. The existing connection screen, OAuth and imports are scoped to Test. A separate production binding and import release are needed.
+- Customer context release is pending approval of the additive migration and app deployment. The live sizing test remains pending.
