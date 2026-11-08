@@ -81,6 +81,8 @@ export type ShopifyIntakeFunctions = {
   purge_expired_shopify_pilot: {Args:{p_tenant_id:string;p_connection_id:string;p_actor_id?:string|null;p_limit?:number};Returns:Json};
   receive_shopify_pilot_event: {Args:{p_tenant_id:string;p_connection_id:string;p_envelope:Json};Returns:Json};
   observe_shopify_pilot: {Args:{p_tenant_id:string;p_connection_id:string;p_updated_at:string|null};Returns:Json};
+  uninstall_shopify_current: { Args: { p_domain: string; p_app_ref: string; p_shop_gid: string;
+    p_delivery_id: string; p_body_sha256: string }; Returns: Json };
   uninstall_shopify_pilot: {Args:{p_tenant_id:string;p_connection_id:string;p_shop_gid:string;p_delivery_id:string;p_body_sha256:string};Returns:Json};
   read_shopify_application: {Args:{p_tenant_id:string;p_actor_id:string;p_domain:string;p_app_ref:string;p_customer_search?:string};Returns:Json};
   command_shopify_application: {Args:{p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_request_key:string;p_action:string;p_input:Json};Returns:Json};
@@ -96,6 +98,8 @@ export type ShopifyIntakeFunctions = {
   release_shopify_order: { Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_request_key:string;
     p_source_order_id:string;p_review_id:string;p_input:Json;p_recovery_only?:boolean}; Returns:Json };
   save_shopify_mapping: { Args: {p_tenant_id:string;p_connection_id:string;p_actor_id:string;p_request_key:string;p_input:Json}; Returns:Json };
+  read_shopify_transfer_webhook: { Args: { p_tenant_id: string; p_connection_id: string; p_actor_id: string }; Returns: Json };
+  receive_shopify_privacy_bindings: { Args: { p_inputs: Json }; Returns: Json };
   receive_shopify_privacy: { Args: { p_input: Json }; Returns: Json };
   redact_shopify_source: { Args: { p_tenant_id: string; p_connection_id: string; p_actor_id: string;
     p_request_id: string; p_request_key: string; p_limit?: number }; Returns: Json };

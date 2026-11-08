@@ -68,8 +68,10 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
     privacy(request:Request,env:NodeJS.ProcessEnv=process.env){
       const store=createShopifyPrivacyStore(db);
       return createShopifyPrivacyHandler({async findConnection(domain,app,signal){
-        const c=await store.findConnection(domain,app,signal);return c&&(shopifyTenantLinkingEnabled(env)||pilotBinding(c.tenantId,domain,env))?c:null;
-      },receive:store.receive})(request,signEnv(env));
+        const bindings=await store.findConnections(domain,app,signal);
+        // Existing installations keep their compliance path even while onboarding is paused.
+        return bindings;
+      },receive:store.receive,receiveMany:store.receiveMany})(request,signEnv(env));
     },
     async uninstall(request:Request,env:NodeJS.ProcessEnv=process.env){
       if(request.method!=="POST")return reply({error:"METHOD_NOT_ALLOWED"},405);
@@ -86,10 +88,14 @@ export function createShopifyApplicationIngress(db:SupabaseClient<Database>,back
         // Quote numeric tokens before parsing so the store id remains lossless.
         const raw=new TextDecoder("utf-8",{fatal:true}).decode(bytes).replace(/("(?:[^"\\]|\\.)*")|(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)/g,(token,stringToken:string|undefined)=>stringToken?token:JSON.stringify(token));
         const payload=z.object({id:z.string().regex(/^[1-9][0-9]{0,31}$/),myshopify_domain:z.string()}).parse(JSON.parse(raw));
-        const binding=await createShopifyPrivacyStore(db).findConnection(domain,env.SHOPIFY_CLIENT_ID,signal);
-        if(!binding||!(shopifyTenantLinkingEnabled(env)||pilotBinding(binding.tenantId,domain,env))||payload.myshopify_domain!==domain||binding.shopGid!==`gid://shopify/Shop/${payload.id}`)throw new ShopifyIntegrationError("ACCESS_DENIED");
-        const result=await db.rpc("uninstall_shopify_pilot",{p_tenant_id:binding.tenantId,p_connection_id:binding.connectionId,p_shop_gid:binding.shopGid,p_delivery_id:delivery,p_body_sha256:createHash("sha256").update(bytes).digest("hex")}).abortSignal(signal);
-        if(result.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");return reply({status:"received"},200);
+        if(payload.myshopify_domain!==domain)throw new ShopifyIntegrationError("ACCESS_DENIED");
+        const result=await db.rpc("uninstall_shopify_current",{
+          p_domain:domain,p_app_ref:env.SHOPIFY_CLIENT_ID,p_shop_gid:`gid://shopify/Shop/${payload.id}`,
+          p_delivery_id:delivery,p_body_sha256:createHash("sha256").update(bytes).digest("hex"),
+        }).abortSignal(signal);
+        if(result.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+        if(result.data===null)throw new ShopifyIntegrationError("ACCESS_DENIED");
+        return reply({status:"received"},200);
       }catch(error){const code=error instanceof ShopifyIntegrationError?error.code:"REQUEST_INVALID";return reply({error:code},code==="ACCESS_DENIED"?401:code==="BODY_TOO_LARGE"?413:code==="UPSTREAM_UNAVAILABLE"?503:400);}
     },
     async worker(request:Request,env:NodeJS.ProcessEnv=process.env){

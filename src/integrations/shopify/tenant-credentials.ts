@@ -16,7 +16,7 @@ import { shopifyTenantEligible, shopifyTenantLinkingEnabled, withShopifyTenantDo
 
 type Db = Pick<SupabaseClient<Database>, "rpc">;
 const connectionSchema = z.object({ tenantId: z.string().uuid(), connectionId: z.string().uuid(),
-  shopDomain: z.string(), appRef: z.string(), shopGid: z.string(), hasCredential: z.boolean() }).strict();
+  shopDomain: z.string(), appRef: z.string(), shopGid: z.string(), retired: z.boolean().optional(), hasCredential: z.boolean() }).strict();
 export async function readShopifyTenantConnection(db: Db, tenantId: string, actorId: string,
   signal: AbortSignal, env: NodeJS.ProcessEnv = process.env) {
   if (env.SHOPIFY_OAUTH_ENABLED !== "true") return null;
@@ -48,6 +48,7 @@ export async function resolveShopifyTenantEnvironment(db: Db, tenantId: string, 
 export async function readShopifyTenantToken(db: Db, actor: ShopifyProbeActor, signal: AbortSignal,
   env: NodeJS.ProcessEnv, transport: typeof fetch = fetch, now = Date.now) {
   const connection = await readShopifyTenantConnection(db, actor.tenantId, actor.userId, signal, env);
+  if (connection?.retired) throw new ShopifyIntegrationError("ACCESS_DENIED");
   if (connection?.hasCredential) {
     const lease = await createShopifyOAuthService(createShopifyOAuthStorage(db), transport, now)
       .credential(actor, connection.connectionId, signal, env);

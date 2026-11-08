@@ -26,7 +26,8 @@ export function assertShopifyProbeActor(actor: ShopifyProbeActor) {
 
 export function getShopifyProbeConfig(actor: ShopifyProbeActor, env: NodeJS.ProcessEnv = process.env) {
   assertShopifyProbeActor(actor);
-  if (env.SHOPIFY_CONNECTION_TEST_ENABLED !== "true") {
+  if (env.SHOPIFY_CONNECTION_TEST_ENABLED !== "true" ||
+    env.SHOPIFY_OAUTH_ENABLED === "true" && env.SHOPIFY_UNIFIED_ORDERS_ENABLED === "true") {
     throw new ShopifyIntegrationError("CONNECTION_TEST_DISABLED");
   }
   // A production shop is never usable from a local or Preview deployment.

@@ -22,6 +22,7 @@ import { createShopifyManagerService } from '../../src/integrations/shopify/mana
 import { createShopifyUnifiedService } from '../../src/integrations/shopify/unified-service.ts';
 import { runShopifyUnifiedWorker } from '../../src/integrations/shopify/unified-worker.ts';
 import { beginShopifyApproval } from '../../src/integrations/shopify/oauth.ts';
+import { shopifyOrdersWebhookUrl } from '../../src/integrations/shopify/webhook-binding.ts';
 import { sealShopifyCredential } from '../../src/integrations/shopify/oauth-crypto.ts';
 const db=new PGlite({extensions:{pgcrypto}}),folder=new URL('../../supabase/migrations/',import.meta.url);
 before(async()=>{
@@ -33,15 +34,18 @@ before(async()=>{
   // This fixture is memory-only; the proposal is not an automatic migration.
   await db.exec(await readFile(new URL('../../docs/sql/20261015170000_shopify_trigger_permission_cleanup.proposed.sql',import.meta.url),'utf8'));
   await db.exec(await readFile(new URL('../../docs/sql/20261020180000_shopify_oauth_credentials.proposed.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../docs/sql/20261108190000_shopify_tenant_linking.proposed.sql',import.meta.url),'utf8'));
 });
 after(()=>db.close());
 const scalar=async(sql,args=[])=> (await db.query(sql,args)).rows[0]?.result;
 const adapter={
-  rpc(name,args){assert.match(name,/^[a-z_]+$/);const names=Object.keys(args);for(const key of names)assert.match(key,/^p_[a-z_]+$/);
+  rpc(name,args){assert.match(name,/^[a-z_]+$/);const names=Object.keys(args);for(const key of names)assert.match(key,/^p_[a-z_][a-z_0-9]*$/);
     return {async abortSignal(signal){signal.throwIfAborted();try{return {data:await scalar(`SELECT public.${name}(${names.map((key,i)=>`${key}=>$${i+1}`).join(',')}) AS result`,
       Object.values(args).map(v=>v!==null&&typeof v==='object'?JSON.stringify(v):v)),error:null};}catch(e){return {data:null,error:{message:e.message}};}}};},
   from(table){assert.equal(table,'shopify_connections');const filters=[],values=[];let select;
-    const q={select(v){select=v;return q;},in(key,value){assert.match(key,/^[a-z_]+$/);values.push(value);filters.push(`c.${key}=ANY($${values.length})`);return q;},eq(key,value){assert.match(key,/^[a-z_]+$/);values.push(value);filters.push(`c.${key}=$${values.length}`);return q;},limit(){return q;},async abortSignal(signal){
+    const q={select(v){select=v;return q;},not(key,operator,value){
+      assert.equal(key,'verified_at');assert.equal(operator,'is');assert.equal(value,null);filters.push('c.verified_at is not null');return q;
+    },in(key,value){assert.match(key,/^[a-z_]+$/);values.push(value);filters.push(`c.${key}=ANY($${values.length})`);return q;},eq(key,value){assert.match(key,/^[a-z_]+$/);values.push(value);filters.push(`c.${key}=$${values.length}`);return q;},limit(){return q;},async abortSignal(signal){
       signal.throwIfAborted();const rows=(await db.query(`SELECT c.*,jsonb_build_object('id',t.id,'status',t.status) AS tenants FROM shopify_connections c JOIN tenants t ON t.id=c.tenant_id WHERE ${filters.join(' AND ')}`,values)).rows;
       const fields=select.split(',tenants!')[0].split(',');return {data:rows.map(row=>({...Object.fromEntries(fields.map(k=>[k,row[k] instanceof Date?row[k].toISOString():row[k]])),...(select.includes('tenants!')?{tenants:row.tenants}:{})})),error:null};}};return q;},
 };
@@ -798,4 +802,91 @@ test('owner webhook setup→signed delivery→automatic worker creates one order
   const latest=await f.view();assert.equal(latest.jobs[0].requested,latest.jobs[0].completed);assert.equal(latest.sources[0].payment.status,'PAID');
   await db.query("UPDATE tenant_users SET status='disabled' WHERE tenant_id=$1 AND clerk_user_id='fictional-owner'",[f.tenant]);
   await assert.rejects(()=>run(command('register_webhooks')),/ACCESS_DENIED/);assert.equal(rows.length,3);
+}));
+
+test('shared-store cutover keeps the old order and switches credentials, intake and privacy to their proper bindings',isolated(async f=>{
+  const source=await retainedCopy(f),oldId=source.connection;
+  const newTenant=randomUUID(),otherTenant=randomUUID();
+  for(const tenant of [newTenant,otherTenant]){
+    await db.query("INSERT INTO tenants(id,name,slug,store_name) VALUES($1::uuid,'Fictional','cutover-'||($1::uuid)::text,'Fictional')",[tenant]);
+    await db.query("INSERT INTO tenant_users(tenant_id,clerk_user_id,role,status) VALUES($1,'fictional-owner','owner_admin','active')",[tenant]);
+    await db.query("INSERT INTO tenant_verticals(tenant_id,vertical_definition_id,is_enabled,enabled_at) SELECT $1,id,true,now() FROM vertical_definitions WHERE key='boutique'",[tenant]);
+  }
+  const actorFor=tenantId=>({...f.actor,tenantId,membershipTenantId:tenantId});
+  const settings={...f.env,SHOPIFY_OAUTH_ENABLED:'true',SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_TENANT_LINKING_ENABLED:'true',
+    SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true',SHOPIFY_INTAKE_ENABLED:'true',SHOPIFY_PRIVACY_ENABLED:'true',SHOPIFY_UNINSTALL_ENABLED:'true',
+    SHOPIFY_CREDENTIAL_KEY_ID:'fictional',SHOPIFY_CREDENTIAL_ENCRYPTION_KEYS_JSON:JSON.stringify({fictional:Buffer.alloc(32,17).toString('base64')})};
+  const domain=settings.SHOPIFY_SHOP_DOMAIN,appRef=settings.SHOPIFY_CLIENT_ID,shopGid='gid://shopify/Shop/101';
+  const storage=(tenant,action,input)=>scalar('SELECT shopify_oauth_storage($1,$2,$3,$4::jsonb) AS result',
+    [tenant,f.actor.userId,action,JSON.stringify(input)]);
+  async function approve(tenant, tokenLabel){
+    const a=beginShopifyApproval(actorFor(tenant),domain,settings);
+    await storage(tenant,'begin',a.attempt);
+    const key={stateHash:a.attempt.stateHash},claim=await storage(tenant,'claim',key);
+    const token={accessToken:tokenLabel,refreshToken:'fictional-refresh',accessExpiresAt:new Date(Date.now()+3600000).toISOString(),
+      refreshExpiresAt:new Date(Date.now()+86400000).toISOString(),scopes:['read_orders','read_products','read_customers']};
+    return storage(tenant,'complete',{...key,claimToken:claim.claimToken,shopGid,packet:sealShopifyCredential(token,a.attempt,settings),
+      accessExpiresAt:token.accessExpiresAt,refreshExpiresAt:token.refreshExpiresAt});
+  }
+  await approve(f.tenant,'old-token');
+  const revision=await scalar('SELECT revision::int AS result FROM shopify_connections WHERE id=$1',[oldId]);
+  const args=[f.tenant,oldId,revision,newTenant,randomUUID()];
+  const transfer=(params=args)=>scalar('SELECT transfer_shopify_store($1,$2,$3,$4,$5) AS result',params);
+  await db.exec('SAVEPOINT stale_transfer');
+  await assert.rejects(transfer([f.tenant,oldId,revision-1,newTenant,args[4]]),/SHOPIFY_STALE_REVISION/);
+  await db.exec('ROLLBACK TO SAVEPOINT stale_transfer');
+  await db.exec('SAVEPOINT busy_transfer');
+  await db.query('UPDATE shopify_sync_jobs SET completed_generation=0 WHERE connection_id=$1',[oldId]);
+  await assert.rejects(transfer(),/SHOPIFY_CONFIGURATION_BUSY/);
+  await db.exec('ROLLBACK TO SAVEPOINT busy_transfer');
+  assert.equal(await scalar("SELECT has_function_privilege('service_role','public.transfer_shopify_store(uuid,uuid,bigint,uuid,uuid)','EXECUTE') AS result"),false);
+  const cutover=await transfer();
+  assert.deepEqual(await transfer(),cutover);
+  const targetId=cutover.connectionId;
+  assert.notEqual(targetId,oldId);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM shopify_source_orders WHERE tenant_id=$1 AND connection_id=$2',[f.tenant,oldId]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM shopify_source_orders WHERE tenant_id=$1',[newTenant]),0);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM shopify_oauth_credentials WHERE connection_id=$1',[oldId]),0);
+  assert.equal((await storage(f.tenant,'read_connection',{})).retired,true);
+  assert.equal((await storage(newTenant,'read_connection',{})).connectionId,targetId);
+  await db.exec('SAVEPOINT foreign_transfer_claim');
+  await assert.rejects(approve(otherTenant,'foreign-token'),/SHOPIFY_ACCESS_DENIED/);
+  await db.exec('ROLLBACK TO SAVEPOINT foreign_transfer_claim');
+  assert.equal((await approve(newTenant,'new-token')).connectionId,targetId);
+  const targetRevision=await scalar('SELECT revision::int AS result FROM shopify_connections WHERE id=$1',[targetId]);
+  const enable=()=>storage(newTenant,'enable_imports',{connectionId:targetId,revision:targetRevision,shopDomain:domain,shopGid,appRef,
+    verifiedAt:new Date().toISOString(),consent:true,requestKey:randomUUID()});
+  await db.exec('SAVEPOINT pending_privacy');
+  const gapRedaction=JSON.stringify({shop_id:101,shop_domain:domain,customer:{id:101},orders_to_redact:[101]});
+  assert.equal((await createShopifyApplicationIngress(adapter).privacy(signedRequest(settings.SHOPIFY_APPLICATION_ORIGIN,
+    'customers/redact',gapRedaction),settings)).status,200);
+  await assert.rejects(enable(),/SHOPIFY_PRIVACY_REVIEW/);
+  await db.exec('ROLLBACK TO SAVEPOINT pending_privacy');
+  await enable();
+  const previous=await scalar('SELECT read_shopify_transfer_webhook($1,$2,$3) AS result',[newTenant,targetId,f.actor.userId]);
+  assert.deepEqual(previous,{tenantId:f.tenant,connectionId:oldId,pilotOrderGid:f.source.order.id});
+  await scalar('SELECT set_shopify_unified_automatic($1,$2,$3,$4,$5,$6,true,clock_timestamp()) AS result',
+    [newTenant,targetId,f.actor.userId,domain,appRef,randomUUID()]);
+  const ingress=createShopifyApplicationIngress(adapter);
+  function signedRequest(url,topic,body,delivery=randomUUID()){
+    return new Request(url,{method:'POST',body,headers:{'content-type':'application/json','x-shopify-shop-domain':domain,
+      'x-shopify-topic':topic,'x-shopify-api-version':'2026-10','x-shopify-webhook-id':delivery,
+      'x-shopify-hmac-sha256':createHmac('sha256',settings.SHOPIFY_CLIENT_SECRET).update(body).digest('base64')}});
+  }
+  const target=(tenantId,connectionId)=>shopifyOrdersWebhookUrl(settings.SHOPIFY_APPLICATION_ORIGIN,
+    {tenantId,connectionId,shopDomain:domain,appRef},settings.SHOPIFY_CLIENT_SECRET);
+  const orderBody=JSON.stringify({admin_graphql_api_id:'gid://shopify/Order/777'});
+  assert.equal((await ingress.orders(signedRequest(target(f.tenant,oldId),'orders/create',orderBody),settings)).status,503);
+  assert.equal((await ingress.orders(signedRequest(target(newTenant,targetId),'orders/create',orderBody),settings)).status,200);
+  assert.equal(await scalar("SELECT count(*)::int AS result FROM shopify_sync_jobs WHERE tenant_id=$1 AND order_gid='gid://shopify/Order/777'",[newTenant]),1);
+  assert.equal(await scalar("SELECT count(*)::int AS result FROM shopify_sync_jobs WHERE tenant_id=$1 AND order_gid='gid://shopify/Order/777'",[f.tenant]),0);
+  const privacyBody=JSON.stringify({shop_id:101,shop_domain:domain,customer:{id:101},orders_requested:[101]});
+  const privacyId=randomUUID();
+  for(let i=0;i<2;i++)assert.equal((await ingress.privacy(signedRequest(settings.SHOPIFY_APPLICATION_ORIGIN,'customers/data_request',privacyBody,privacyId),settings)).status,200);
+  const receipts=(await db.query('SELECT tenant_id,connection_id FROM shopify_privacy_requests WHERE delivery_id=$1',[privacyId])).rows;
+  assert.deepEqual(new Set(receipts.map(row=>row.tenant_id+row.connection_id)),new Set([f.tenant+oldId,newTenant+targetId]));
+  const uninstallBody=JSON.stringify({id:101,myshopify_domain:domain});
+  assert.equal((await ingress.uninstall(signedRequest(settings.SHOPIFY_APPLICATION_ORIGIN,'app/uninstalled',uninstallBody),settings)).status,200);
+  assert.equal(await scalar('SELECT status AS result FROM shopify_connections WHERE id=$1',[targetId]),'disconnected');
+  assert.equal(await scalar("SELECT count(*)::int AS result FROM shopify_pilot_external_receipts WHERE connection_id=$1 AND topic='app/uninstalled'",[oldId]),0);
 }));

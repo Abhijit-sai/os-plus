@@ -77,7 +77,7 @@ export function ShopifySimpleSetup({initial,shopDomain,today,submitAction,approv
     <Card><CardHeader><CardTitle>1. Connect your store</CardTitle></CardHeader><CardContent className="space-y-4">
       {approval&&(c?.unified?<details open={approval.result==="failed"||approval.result==="approved"}><summary className="min-h-11 cursor-pointer py-2">Manage Shopify approval</summary>
         <ShopifyApprovalForm shopDomain={shopDomain} hasCredential={approval.hasCredential} result={approval.result}/></details>:
-        <ShopifyApprovalForm shopDomain={c?shopDomain:undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
+        <ShopifyApprovalForm shopDomain={shopDomain||undefined} hasCredential={approval.hasCredential} result={approval.result}/>)}
       <p>{c?.unified?"Connected for imports.":c?.ready||approval?.hasCredential?"Your store is connected. Confirm how imported data is kept; access will be checked before importing.":approval?"Connect your Shopify store above, then return here to enable manual imports.":"This store connection needs administrator verification before importing."}</p>
       {!c?.unified&&<form action={action} className="space-y-4"><input type="hidden" name="operation" value="enable"/>
         <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={consent} disabled={disabled} onChange={e=>setConsent(e.target.checked)}/>

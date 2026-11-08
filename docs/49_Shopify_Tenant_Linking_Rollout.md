@@ -10,11 +10,12 @@ Connecting a store does not activate that vertical or alter other workflows.
 
 ## Release sequence
 
-1. Keep `SHOPIFY_TENANT_LINKING_ENABLED=false` during deployment. Verify the
-   existing OAuth SQL package is installed, then apply
+1. Keep `SHOPIFY_TENANT_LINKING_ENABLED=false`. Verify the existing OAuth
+   package is installed and apply
    [the tenant linking SQL](sql/20261108190000_shopify_tenant_linking.proposed.sql)
-   after explicit production approval. The SQL installs no shops and changes no
-   tenant or order data. On rollback keep the SQL and disable the new flag.
+   before deploying the matching application code. The migration installs no
+   shops and changes no tenant or order data. The deployed privacy and
+   uninstall handlers use the new functions even before rollout starts.
 2. Confirm the Shopify app can be installed by the intended merchants, has the
    necessary protected customer data access and API version, and has the OS+
    callback and privacy URLs configured. For unrelated Shopify merchants, use
@@ -49,17 +50,34 @@ no active leases and automatic sync off. Phantom Threads had no connection.
 The existing one-store/one-tenant reservation stays in place even after
 disconnecting. A disconnect or uninstall alone cannot free the store.
 
-Leave the Test binding in place pending a separately reviewed cutover. Review
-the disposition of the 15 Test records and their privacy requests; preserve
-their tenant ownership and audit history. Plan how to retire the old connection,
-credentials and subscriptions and continue handling privacy events for data
-retained in Test before reserving the shop for Phantom Threads. A new
-authorization and a read-only import preview must happen in Phantom Threads
-before any live import. Do not test the shared production shop by changing a
-global store domain, assigning Test rows to Phantom Threads, or connecting both
-businesses at the same time.
-
-The local tests use fictional Phantom/Test and unrelated-store fixtures. They
-exercise the shared-shop refusal, owner-only installation, store-bound token
-reads, background work, webhook replay across shop bindings, and the existing
-manual draft workflow. They do not establish hosted acceptance.
+1. Keep the Shopify app installed on the shared store. Apply the schema and
+   deploy the matching code before transferring the reservation. Verify the
+   production privacy and uninstall routes are enabled for this app. Keep the
+   legacy connection probe disabled. Set the
+   tenant linking pilot selector to Phantom Threads and keep broader onboarding
+   restricted during the pilot.
+2. Recheck the exact source connection ID and revision, the destination tenant,
+   automatic sync, queued jobs, leases and privacy holds. While signed in as a
+   database operator, run `transfer_shopify_store(source_tenant_id,
+   source_connection_id, expected_revision, destination_tenant_id, request_key)`
+   after approval. Supply a fresh UUID as the request key and reuse it on retry.
+   This archives Test's connection, removes its stored OAuth credential and
+   creates a fresh, pending connection reserved to Phantom Threads in one
+   transaction. Test's imported records and audit history stay with Test.
+3. Sign in to Phantom Threads and open Settings → Shopify. Approve the reserved
+   shop on Shopify. After consent and access verification, preview a narrow date
+   range and confirm the results belong to the store. Approve a single eligible
+   draft import separately. If there is no eligible order, record preview
+   acceptance and wait for a natural order.
+4. Test order webhook delivery only after automatic sync is explicitly approved.
+   The setup can adopt an exact prior OS+ order subscription identified by the
+   transfer audit. The retired URL cannot queue into either business. Shopify
+   compliance requests for the same installation still record separate receipts
+   against the connections that held data. Uninstall applies to the current
+   connection. Shopify documents these as separate event topics.
+   [Shopify compliance webhooks](https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance)
+5. If authorization fails, retry in Phantom Threads against the pending
+   reservation. Keep the compatible application code and database functions
+   deployed after the transfer. To pause new onboarding, disable the rollout
+   flag. Returning store access to Test requires a separately reviewed recovery
+   because the old token and worker access have been retired.

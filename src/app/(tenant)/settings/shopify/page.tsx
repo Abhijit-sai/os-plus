@@ -38,6 +38,11 @@ export default async function ShopifySettingsPage({searchParams}:{searchParams:P
         const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal);
         const params=await searchParams;
         approval={hasCredential:binding?.hasCredential??false,automaticAvailable:shopifyTenantLinkingEnabled(process.env)&&!!binding?.hasCredential,result:params.connection==="approved"||params.connection==="failed"?params.connection:undefined};
+        if(binding?.retired)return <div className="rounded-lg border p-5">
+          <h1 className="text-xl font-semibold">Shopify connection retired</h1>
+          <p>This business retains its imported order history. Open Orders to view it.</p>
+        </div>;
+        shopDomain=binding?.shopDomain??"";
         needsApproval=!binding || (!binding.hasCredential && actor.tenantId!==process.env.SHOPIFY_CONNECTION_TEST_TENANT_ID);
       }
       if(needsApproval){

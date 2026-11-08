@@ -41,7 +41,7 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
     async execute(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedActionState>{
       env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const config=assertUnifiedRuntime(actor,env),command=unifiedCommandSchema.parse(input),state=await view(actor,signal,env),c=state.connection;
-      if(!c)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
+      if(!c||c.status==="disconnected")throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
       if(command.action==="automatic"&&command.enabled&&!workerConfigured(env))
         throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
       if((command.action==="enable"||command.action==="import"||command.action==="process")&&
@@ -120,7 +120,14 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
           if(token.connectionId!==c.id)throw new ShopifyIntegrationError("ACCESS_DENIED");
           return token.accessToken;
         }:undefined;
-        const proof=await registerShopifyUnifiedWebhooks(actor,await check(),check,signal,env,transport,now,readToken);verifiedAt=proof.verifiedAt;
+        const prior=tenantWebhooks?await db.rpc("read_shopify_transfer_webhook",{
+          p_tenant_id:actor.tenantId,p_connection_id:c.id,p_actor_id:actor.userId,
+        }).abortSignal(signal):null;
+        if(prior?.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+        const previous=prior?.data?z.object({tenantId:z.string().uuid(),connectionId:z.string().uuid(),
+          pilotOrderGid:z.string().regex(/^gid:\/\/shopify\/Order\/[1-9][0-9]*$/).nullable()}).strict().parse(prior.data):undefined;
+        const proof=await registerShopifyUnifiedWebhooks(actor,await check(),check,signal,env,transport,now,readToken,previous);
+        verifiedAt=proof.verifiedAt;
       }
       const result=await db.rpc("set_shopify_unified_automatic",{...args,p_request_key:command.requestKey,p_enabled:command.enabled,p_verified_at:verifiedAt}).abortSignal(signal);
       if(result.error)fail(result.error.message);

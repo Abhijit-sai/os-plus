@@ -15,10 +15,11 @@ const pageSchema=z.object({shop:z.object({id:z.string(),myshopifyDomain:z.string
   webhookSubscriptions:z.object({nodes:z.array(node).max(100),pageInfo:z.object({hasNextPage:z.boolean(),endCursor:z.string().nullable()})})});
 const createSchema=z.object({webhookSubscriptionCreate:z.object({webhookSubscription:node.nullable(),userErrors:z.array(z.object({field:z.array(z.string()).nullable(),message:z.string()}))})});
 type Binding={connectionId:string;shopGid:string;orderGid:string;expiresAt:string};
+type PriorWebhookBinding = { connectionId: string; tenantId: string; pilotOrderGid: string | null };
 type UnifiedBinding={connectionId:string;shopGid:string;revision:number;pilotOrderGid:string|null};
 
 export async function registerShopifyUnifiedWebhooks(actor:ShopifyProbeActor,expected:UnifiedBinding,checkBinding:()=>Promise<UnifiedBinding>,
-  signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,transport:typeof fetch=fetch,now=Date.now,readToken?:()=>Promise<string>){
+  signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,transport:typeof fetch=fetch,now=Date.now,readToken?:()=>Promise<string>,previous?:PriorWebhookBinding){
   const config=assertWebhookRuntime(actor,env);
   if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true")throw new ShopifyIntegrationError("ACCESS_DENIED");
   const check=async()=>{signal.throwIfAborted();if(JSON.stringify(await checkBinding())!==JSON.stringify(expected))throw new ShopifyIntegrationError("STALE_REVISION");};
@@ -32,6 +33,8 @@ export async function registerShopifyUnifiedWebhooks(actor:ShopifyProbeActor,exp
   const legacyTarget=shopifyOrdersWebhookUrl(config.origin);
   const ownLegacyEndpoint=actor.tenantId===env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&
     config.shopDomain===env.SHOPIFY_SHOP_DOMAIN&&routeBinding!==undefined;
+  const previousTarget=previous&&routeBinding?shopifyOrdersWebhookUrl(config.origin,
+    {...routeBinding,connectionId:previous.connectionId,tenantId:previous.tenantId},config.clientSecret):null;
   const ready=(row:z.infer<typeof node>)=>row.uri===target&&safe(row)&&(row.filter===null||row.filter==="");
   async function list(){
     const rows:z.infer<typeof node>[]=[],seen=new Set<string>(),cursors=new Set<string>();let cursor:string|null=null;
@@ -55,8 +58,13 @@ export async function registerShopifyUnifiedWebhooks(actor:ShopifyProbeActor,exp
   // Validate the complete set before ANY mutation. Never replace an unknown
   // integration, endpoint or filter, and never delete another subscription.
   for(const topic of topics){const selected=rows.filter(row=>row.topic===topic);
-    if(selected.length>1||selected.some(row=>!ready(row)&&!(safe(row)&&(row.uri===target||ownLegacyEndpoint&&row.uri===legacyTarget)&&
-      (row.filter===null||row.filter===""||expected.pilotOrderGid&&row.filter===`id:${expected.pilotOrderGid.split("/").at(-1)}`))))
+    if(selected.length>1||selected.some(row=>{
+      if(ready(row))return false;
+      const isPrevious=!!previous&&(row.uri===previousTarget||row.uri===legacyTarget);
+      if(!safe(row)||!(row.uri===target||ownLegacyEndpoint&&row.uri===legacyTarget||isPrevious))return true;
+      const allowedOrder=isPrevious?previous.pilotOrderGid:expected.pilotOrderGid;
+      return row.filter!==null&&row.filter!==""&&(!allowedOrder||row.filter!==`id:${allowedOrder.split("/").at(-1)}`);
+    }))
       throw new ShopifyIntegrationError("WEBHOOK_CONFIGURATION_CONFLICT");}
   const updateSchema=z.object({webhookSubscriptionUpdate:createSchema.shape.webhookSubscriptionCreate});
   for(const topic of topics){
