@@ -1,5 +1,10 @@
 import type { UnifiedImportPreview } from "./unified-contract";
 
+export function currentShopifyIndiaDate(): string {
+  const indiaOffsetMs = (5 * 60 + 30) * 60_000;
+  return new Date(Date.now() + indiaOffsetMs).toISOString().slice(0, 10);
+}
+
 export type ImportRow = UnifiedImportPreview["rows"][number];
 export const importLabels = {
   new: "New — ready to import",

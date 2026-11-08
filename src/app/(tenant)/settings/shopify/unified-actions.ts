@@ -5,20 +5,40 @@ import {getShopifyProbeActor} from "@/integrations/shopify/probe-actor";
 import {assertUnifiedRuntime,createShopifyUnifiedService} from "@/integrations/shopify/unified-service";
 import {createSupabaseServiceRoleClient} from "@/lib/supabase/server";
 import {ShopifyIntegrationError} from "@/integrations/shopify/errors";
-import type {UnifiedActionState} from "@/integrations/shopify/unified-contract";
+import {unifiedCommandSchema,type UnifiedActionState} from "@/integrations/shopify/unified-contract";
 import {resolveShopifyTenantEnvironment} from "@/integrations/shopify/tenant-credentials";
 
 export async function shopifyUnifiedAction(_previous:UnifiedActionState,form:FormData):Promise<UnifiedActionState>{
+  return executeShopifyAction(form);
+}
+
+export async function shopifyOrdersImportAction(tenantId:string,_previous:UnifiedActionState,form:FormData):Promise<UnifiedActionState>{
+  return executeShopifyAction(form,tenantId);
+}
+
+async function executeShopifyAction(form:FormData,ordersTenantId?:string):Promise<UnifiedActionState>{
   try{
     const actor=await getShopifyProbeActor();if(!actor)throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+    if(ordersTenantId!==undefined&&actor.tenantId!==ordersTenantId)throw new ShopifyIntegrationError("ACCESS_DENIED");
     const db=createSupabaseServiceRoleClient();
     const env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,AbortSignal.timeout(5000));
     const config=assertUnifiedRuntime(actor,env),h=await headers();
     if(h.get("origin")!==config.origin||h.get("sec-fetch-site")==="cross-site")throw new ShopifyIntegrationError("ACCESS_DENIED");
     const raw=form.get("command");if(typeof raw!=="string"||Buffer.byteLength(raw)>4096)throw new ShopifyIntegrationError("REQUEST_INVALID");
     let input:unknown;try{input=JSON.parse(raw);}catch{throw new ShopifyIntegrationError("REQUEST_INVALID");}
+    let refreshPages=true;
+    if(ordersTenantId!==undefined){
+      const command=unifiedCommandSchema.parse(input);
+      if(command.action!=="preview"&&command.action!=="import"&&command.action!=="process")
+        throw new ShopifyIntegrationError("ACCESS_DENIED");
+      refreshPages=command.action!=="preview";
+    }
     const result=await createShopifyUnifiedService(db).execute(actor,input,AbortSignal.timeout(48000),env);
-    revalidatePath("/orders");revalidatePath("/settings/shopify");return result;
+    if(refreshPages){
+      revalidatePath("/orders");
+      revalidatePath("/settings/shopify");
+    }
+    return result;
   }catch(error){
     const code=error instanceof ShopifyIntegrationError?error.code:error instanceof Error&&error.name==="ZodError"?"REQUEST_INVALID":"UNKNOWN";
     const messages:Record<string,string>={
