@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runAgentTurn } from "../src/features/chat/agent/turn.ts";
+import { parseKnowledgePack } from "../src/features/chat/knowledge-pack.ts";
 const id = (n) => "7c000000-0000-4000-8000-" + String(n).padStart(12, "0");
 const scope = {
   tenantId: id(1),
@@ -58,6 +59,181 @@ const understanding = {
   signals: [],
   slots: [],
 };
+
+const autoRequest = (content) => {
+  const req = request();
+  req.allowAutomatic = true;
+  req.data.agentMode = "auto";
+  req.data.channelKind = "whatsapp";
+  req.data.messages[0].content = content;
+  return req;
+};
+const autoModel = (fact) => ({
+  kind: "live",
+  async complete({ stage }) {
+    assert.equal(stage, "write");
+    if (fact instanceof Error) throw fact;
+    return { json: { fact }, model: "synthetic/auto-test", costUsd: "0" };
+  },
+});
+const autoRun = (req, fact = null) => runAgentTurn(req, autoModel(fact));
+const fallbackHandoff = "I’ll pass this to our team. They’ll check the details and reply here.";
+
+test("each automatic reply can be overridden independently and validates customer text", async () => {
+  const cases = [
+    ["greeting", "Hello", `Hi! How can I help you with ${pack.brand.displayName} today?`, false, false],
+    ["needsPerson", "I want to cancel", fallbackHandoff, true, true],
+    ["handoffTopic", "How do I wash it?", fallbackHandoff, true, false],
+    ["askOrderNumber", "Where is my order?", "Could you share your order number so I can check the latest status?", false, false],
+    ["orderUnconfirmed", "Where is my order ORD-000123?", `I couldn’t confirm that order from this chat. ${fallbackHandoff}`, true, true],
+    ["availability", "Is it in stock?", `${fallbackHandoff} If you have a product link or a size in mind, you can share it here.`, true, true],
+    ["clarify", "Something unusual", "Could you tell me a little more about what you need?", false, false],
+    ["error", "Something unusual", fallbackHandoff, true, true, new Error("fake provider failure")],
+  ];
+  for (const [key, message, defaultText, handoff, alert, fact] of cases) {
+    const req = autoRequest(message);
+    const body = req.data.pack.body;
+    body.handoffTopics = ["wash", "where is my order"];
+    const check = async (expected) => {
+      const result = await autoRun(req, fact);
+      assert.equal(result.replyText, expected, key);
+      assert.equal(result.decision.handoff, handoff, key);
+      assert.equal(result.decision.staffAlert, alert, key);
+    };
+    await check(defaultText);
+    const override = `Approved ${key} response.`;
+    body.replies = { [key]: override };
+    await check(override);
+    body.replies[key] = "tenant_id";
+    assert.throws(() => parseKnowledgePack(body), /Unsafe reply/, key);
+  }
+  assert.throws(() => parseKnowledgePack({ ...pack, replies: { typo: "Hi" } }));
+});
+
+test("Auto clarifies once per session, escalates the next miss, and suppresses a repeated handoff", async () => {
+  const req = autoRequest("Something unusual");
+  req.data.pack.body.replies = { clarify: "Which detail should we check?" };
+  const next = (previous, minutes) => {
+    const prior = req.data.messages.at(-1);
+    const at = new Date(Date.parse(prior.at) + minutes * 60000).toISOString();
+    const bot = { ...prior, id: id(prior.providerId + 20), providerId: prior.providerId + 1,
+      author: "bot", content: previous.replyText };
+    const trigger = { ...prior, id: id(prior.providerId + 21), providerId: prior.providerId + 2, at };
+    if (previous.replyText) req.data.messages.push(bot);
+    req.data.messages.push(trigger);
+    req.scope = { ...req.scope, triggerMessageId: trigger.id };
+    req.data.triggerMessageId = trigger.id;
+    req.data.ledger = previous.ledger;
+    req.now = at;
+  };
+  const first = await autoRun(req);
+  assert.equal(first.replyText, "Which detail should we check?");
+  assert.equal(first.ledger.automaticClarification, first.replyText);
+  assert.equal(first.decision.handoff, false);
+  assert.equal(first.decision.staffAlert, false);
+  next(first, 1);
+  req.data.pack.body.replies.clarify = "A revised question?";
+  const bot = req.data.messages.splice(1, 1)[0];
+  const unsent = await autoRun(req);
+  assert.equal(unsent.replyText, "A revised question?");
+  assert.equal(unsent.decision.handoff, false);
+  req.data.messages.splice(1, 0, bot);
+  const second = await autoRun(req);
+  assert.equal(second.replyText, pack.locked.handoffLine);
+  assert.equal(second.decision.handoff, true);
+  assert.equal(second.decision.staffAlert, true);
+  next(second, 1);
+  const repeated = await autoRun(req);
+  assert.equal(repeated.outcome, "silent");
+  next(repeated, 25 * 60);
+  const fresh = await autoRun(req);
+  assert.equal(fresh.replyText, "A revised question?");
+  assert.equal(fresh.decision.handoff, false);
+});
+
+test("Auto greetings and ordinary product, sizing, store, returns and custom answers never hand off", async () => {
+  for (const greeting of ["hi there", "hii", "hello sir", "hi team", "namaste", "good evening sir", "Hello! 👋🏽", "Adaab 🙏"]) {
+    const req = autoRequest(greeting);
+    req.data.pack.body.brand.localGreetings = ["adaab"];
+    req.data.pack.body.replies = { greeting: "Welcome!" };
+    const result = await autoRun(req, new Error("Greeting must skip the provider"));
+    assert.equal(result.replyText, "Welcome!", greeting);
+    assert.equal(result.decision.handoff, false, greeting);
+    assert.equal(result.decision.staffAlert, false, greeting);
+  }
+  for (const [question, topic, fact] of [
+    ["Hello 👋 what shirts do you sell?", "products", "policy:0"],
+    ["Is the size chart available in inches?", "sizing", "policy:0"],
+    ["Where is your store?", "store", "policy:0"],
+    ["What is your returns window?", "returns", "policy:0"],
+    ["Do you make custom designs?", "custom_design_enquiry", null],
+  ]) {
+    const req = autoRequest(question);
+    const answer = "An approved answer. https://example.invalid/collection";
+    req.data.pack.body.policies = [{ topic, answer }];
+    const result = await autoRun(req, fact);
+    assert.equal(result.replyText, answer, question);
+    assert.equal(result.decision.handoff, false, question);
+    assert.equal(result.decision.staffAlert, false, question);
+  }
+});
+
+test("payment and sensitive requests alert while saved sizing and unrelated handoff topics only create tasks", async () => {
+  for (const [question, alert] of [
+    ["I already paid", true],
+    ["Paid just now", true],
+    ["Where is the payment link?", false],
+    ["Can I have a refund?", true],
+    ["I have a complaint", true],
+    ["It arrived damaged", true],
+    ["I received the wrong item", true],
+    ["I want a person", true],
+    ["You already know my size", false],
+    ["When will you deliver?", false],
+    ["Stock?", true],
+    ["Do you have stock for this?", true],
+  ]) {
+    const result = await autoRun(autoRequest(question), new Error("Must skip the provider"));
+    assert.equal(result.outcome, "handoff", question);
+    assert.equal(result.decision.staffAlert, alert, question);
+    if (question === "I already paid") assert.equal(result.replyText, pack.locked.paymentClaimReply);
+  }
+});
+
+test("Auto configuration stays out of private Draft model context", async () => {
+  const req = request();
+  req.data.pack.body.replies = { greeting: "Auto welcome." };
+  req.data.pack.body.brand.localGreetings = ["adaab"];
+  const contexts = [];
+  const result = await runAgentTurn(req, {
+    kind: "live",
+    async complete({ stage, context }) {
+      contexts.push(context.context ?? context);
+      const json = stage === "understand" ? understanding
+        : stage === "classify" ? { signals: [] } : { text: "{{FACT:hours}}" };
+      return { json, model: "synthetic/draft-test", costUsd: "0" };
+    },
+  });
+  assert.equal(result.replyText, pack.hours.default);
+  assert.equal(contexts.length, 3);
+  for (const context of contexts) {
+    assert.equal(context.knowledge.replies, undefined);
+    assert.equal(context.knowledge.brand.localGreetings, undefined);
+    assert.equal(context.brand.localGreetings, undefined);
+  }
+});
+
+test("suppressing repeated customer text does not hide a new sensitive request", async () => {
+  const req = autoRequest("I want a refund");
+  const prior = {
+    ...req.data.messages[0], id: id(40), providerId: 2, author: "bot",
+    content: fallbackHandoff, at: "2026-11-01T09:59:59Z",
+  };
+  req.data.messages.unshift(prior);
+  const result = await autoRun(req, new Error("Must skip the provider"));
+  assert.equal(result.outcome, "silent");
+  assert.equal(result.decision.staffAlert, true);
+});
 test("live text assistance returns a private draft with exact incurred costs and approved fact provenance", async () => {
   const result = await runAgentTurn(request(), {
     kind: "live",

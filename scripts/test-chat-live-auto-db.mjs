@@ -20,6 +20,7 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
     const run = (name, input) => action("chat_live_agent_run", name, input);
     const send = (name, input) => action("chat_live_public_reply", name, input);
     const pack = JSON.parse(readFileSync(new URL("../docs_chat/examples/new-business.pack.json", import.meta.url), "utf8"));
+    pack.replies = { clarify: "Which detail should we check?", error: "The team will check and reply here." };
     await q("insert into tenants(id,name,store_name,slug) values($1,'Auto QA','Auto QA','chat-auto-qa')", [tenant]);
     await q("insert into tenant_users(id,tenant_id,clerk_user_id,email,display_name,role,status) values($1,$2,'auto-owner','auto@example.invalid','Owner','owner_admin','active')", [owner, tenant]);
     await q("insert into tenant_modules(tenant_id,module_key,is_enabled,config_json) values($1,'chat_leads',true,$2)", [tenant, { agentEnabled: true, uncappedDraftChannelId: channel }]);
@@ -81,6 +82,39 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
     assert.equal((await send("record", { ...cap, providerMessageId: 501 })).status, "sent");
     assert.equal((await send("claim", cap)).status, "sent");
 
+    const finish = async (input, providerMessageId) => {
+      const claimed = await run("claim", input);
+      const result = await runAgentTurn({
+        scope: scope(input), now: new Date(Date.now() + 3000).toISOString(),
+        data: claimed.context, allowAutomatic: true,
+      }, { kind: "live", async complete() { return { json: { fact: null }, model: "synthetic", costUsd: "0" }; } });
+      const capability = { ...input, runId: claimed.runId, leaseToken: claimed.leaseToken };
+      assert.equal((await run("complete", { ...capability, result })).status, "ready");
+      if (providerMessageId) {
+        assert.equal((await send("claim", capability)).status, "claimed");
+        assert.equal((await send("record", { ...capability, providerMessageId })).status, "sent");
+      }
+      return result;
+    };
+    const sources = async (input) => (await q(`
+      select kind from chat_notification_sources($1, '-infinity')
+      where kind in ('handoff','agent_failure') and lead_id in (
+        select id from leads where tenant_id=$1 and conversation_id=$2)
+      order by kind`, [tenant, input.conversationId])).rows.map((row) => row.kind);
+    assert.deepEqual(await sources(fresh), []);
+    const sizing = await captures("You already know my size", 20);
+    assert.equal((await finish(sizing)).decision.handoff, true);
+    assert.deepEqual(await sources(sizing), []);
+    assert.equal(await scalar("select count(*)::int result from chat_task_records tr join leads l on l.tenant_id=tr.tenant_id and l.id=tr.lead_id where tr.tenant_id=$1 and l.conversation_id=$2", [tenant, sizing.conversationId]), 1);
+    const unknownFirst = await captures("Something unusual", 21);
+    assert.equal((await finish(unknownFirst, 502)).replyText, pack.replies.clarify);
+    assert.equal(await scalar("select ledger_json->>'automaticClarification' result from chat_state where tenant_id=$1 and conversation_id=$2", [tenant, unknownFirst.conversationId]), pack.replies.clarify);
+    assert.deepEqual(await sources(unknownFirst), []);
+    // The next customer message can arrive before Chatwoot captures the outgoing reply.
+    const unknownAgain = await captures("Still something unusual", 23, undefined, new Date(Date.now() + 2400).toISOString(), 21);
+    assert.equal((await finish(unknownAgain)).replyText, pack.locked.handoffLine);
+    assert.deepEqual(await sources(unknownAgain), ["handoff"]);
+
     const interrupted = await captures("What are your hours?", 16);
     const second = await run("claim", interrupted);
     const pending = { ...interrupted, runId: second.runId, leaseToken: second.leaseToken };
@@ -90,9 +124,17 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
       now: new Date(Date.now() + 3000).toISOString(), data: second.context, allowAutomatic: true }, {
       kind: "live", complete() { throw Error("Synthetic timeout"); },
     });
-    assert.equal((await run("complete", { ...pending, result: failure })).status, "finished");
-    assert.equal(await scalar("select decision_json->>'reason' result from chat_turns where trigger_message_id=$1", [interrupted.triggerMessageId]), "model_result_unconfirmed");
-    assert.equal(await scalar("select count(*)::int result from chat_task_records where tenant_id=$1", [tenant]), 1);
+    const forged = { ...failure, replyText: "Unapproved error wording." };
+    assert.equal((await action("chat_agent_run", "complete", { ...pending, result: forged })).status, "cost_pending");
+    const oldDecision = { ...failure.decision };
+    delete oldDecision.staffAlert;
+    assert.equal((await action("chat_agent_run", "complete", {
+      ...pending, result: { ...failure, decision: oldDecision },
+    })).status, "cost_pending");
+    assert.equal((await run("complete", { ...pending, result: failure })).status, "ready");
+    assert.equal(await scalar("select reply_text result from chat_turns where trigger_message_id=$1", [interrupted.triggerMessageId]), pack.replies.error);
+    assert.deepEqual(await sources(interrupted), ["handoff"]);
+    assert.equal((await send("claim", pending)).status, "claimed");
     assert.equal(await scalar("select state result from chat_agent_cost_entries where run_id=$1", [second.runId]), "uncertain");
   } finally {
     await local.stop();
