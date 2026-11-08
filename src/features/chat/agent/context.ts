@@ -74,6 +74,7 @@ const dataSchema = agentScopeSchema
     quietUntil: z.string().datetime({ offset: true }).nullable(),
     ledger: z.unknown(),
     automaticClarificationSent: z.boolean().optional(),
+    verifiedLookupReplyIds: z.array(uuid).max(500).optional(),
     quietMinutes: z.number().int().min(1).max(10080).default(60),
     currency: z
       .string()
@@ -154,6 +155,7 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
   );
   const { replies: _automaticReplies, ...draftKnowledge } = pack;
   const { localGreetings: _localGreetings, ...draftBrand } = pack.brand;
+  const verifiedLookupReplyIds = new Set(data.verifiedLookupReplyIds);
   return {
     scope,
     brandId: data.brandId,
@@ -192,7 +194,7 @@ export function buildAgentContext(scopeInput: unknown, raw: unknown) {
       ),
       brand: draftBrand,
       knowledge: { ...draftKnowledge, brand: draftBrand },
-      messages: session.messages,
+      messages: session.messages.filter((message) => !verifiedLookupReplyIds.has(message.id)),
       sessionBand: session.band,
       requestOpen: ledger.requestOpen,
     },

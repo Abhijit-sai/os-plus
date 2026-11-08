@@ -6,6 +6,7 @@ import { chatwootOrigin, accountClient } from "../connection";
 import { decryptChatSecret } from "../secrets";
 import { createMockModel } from "./mock-model";
 import { runStoredAgentTurn, type AgentModelFactory } from "./worker-core";
+import { customerLookupKind, customerLookupSchema } from "./customer-lookup.ts";
 import { matchesScopedDraftChannel, selectAgentRuntime } from "./runtime-config";
 import { allowsPilotContext, allowsPilotScope } from "./live-draft-pilot";
 import { createLiveModel } from "./live-model";
@@ -308,12 +309,15 @@ export async function processCapturedAgent(job: CapturedAgentJob) {
             const data = scopedContext(loadedContext);
             if (!data) return { status: "draft_scope_changed" };
             const trigger = data.messages.find((message) => message.id === job.triggerMessageId);
-            if (liveAuto && job.verifiedPhone && typeof trigger?.content === "string" && /\bord-[0-9]{6,12}\b/i.test(trigger.content)) {
-              const order = await db.rpc("chat_live_auto_order_status", {
+            const kind = liveAuto && process.env.VERCEL_ENV === "production" && typeof trigger?.content === "string"
+              ? customerLookupKind(trigger.content) : null;
+            if (kind && job.verifiedPhone) {
+              const lookup = await db.rpc("chat_live_auto_customer_lookup", {
                 p_context: context,
-                p_input: { ...input, verifiedPhone: job.verifiedPhone },
+                p_input: { ...input, verifiedPhone: job.verifiedPhone, kind },
               });
-              return { status: "ready", data, orderStatus: order.data ?? undefined };
+              const checked = customerLookupSchema.safeParse(lookup.error ? null : lookup.data);
+              return { status: "ready", data, customerLookup: checked.success ? checked.data : undefined };
             }
             return { status: "ready", data };
           }

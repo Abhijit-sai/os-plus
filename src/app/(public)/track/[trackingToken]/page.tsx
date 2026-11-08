@@ -24,6 +24,22 @@ function titleCase(value: string) {
     .join(" ");
 }
 
+function publicStatus(value: string) {
+  switch (value) {
+    case "confirmed":
+    case "not_started": return "Order received";
+    case "completed":
+    case "ready":
+    case "ready_for_pickup":
+    case "ready_for_dispatch": return "Ready";
+    case "dispatched": return "On the way";
+    case "delivered": return "Delivered";
+    case "partially_delivered": return "Partially delivered";
+    case "cancelled": return "Cancelled";
+    default: return "In progress";
+  }
+}
+
 export default async function TrackingPage({
   params
 }: {
@@ -46,7 +62,7 @@ export default async function TrackingPage({
         ? "partially delivered"
         : completedItems === items.length && items.length
           ? "ready"
-          : formatStatus(order.order_status);
+          : publicStatus(order.order_status);
 
   return (
     <main className="min-h-screen bg-muted/40 px-4 py-6 md:px-8">
@@ -122,7 +138,7 @@ export default async function TrackingPage({
                       </p>
                     </div>
                     <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-                      {customerStatus ?? titleCase(item.item_status)}
+                      {customerStatus ?? publicStatus(item.item_status)}
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">

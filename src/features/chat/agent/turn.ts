@@ -7,6 +7,7 @@ import { choosePlan, hasPublicReply } from "./plan.ts";
 import { automaticClarification, automaticErrorReply, automaticReplyContext, checkedAutomaticReply, immediateAutomaticReply } from "./automatic-reply.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { ledgerSchema } from "./ledger.ts";
+import { customerLookupSchema } from "./customer-lookup.ts";
 import { addUsd, usd } from "./budget.ts";
 
 export type ModelStage = "understand" | "classify" | "write" | "rewrite";
@@ -38,7 +39,7 @@ const requestSchema = z
     now: z.string().datetime({ offset: true }),
     timeoutMs: z.number().int().min(10).max(10000).default(8000),
     allowAutomatic: z.boolean().default(false),
-    orderStatus: z.string().optional(),
+    customerLookup: customerLookupSchema.optional(),
   })
   .strict();
 const resultSchema = z
@@ -209,7 +210,7 @@ export async function runAgentTurn(
   try {
     if (automatic) {
       const { unanswered, facts } = automaticReplyContext(ctx);
-      const immediate = immediateAutomaticReply(ctx, unanswered, request.orderStatus);
+      const immediate = immediateAutomaticReply(ctx, unanswered, request.customerLookup);
       const selection = immediate ? null : z.object({ fact: z.string().nullable() })
         .strict().parse(await call("write", { unanswered, facts })).fact;
       const grounded = immediate?.text ?? checkedAutomaticReply(facts, selection);
@@ -235,7 +236,10 @@ export async function runAgentTurn(
         staffAlert: immediate?.staffAlert ?? (noMatch && handoff),
         mock: false,
       };
-      if (immediate?.verifiedOrderStatus) result.decision.verifiedOrderStatus = immediate.verifiedOrderStatus;
+      if (immediate?.lookup) {
+        const { kind, proof } = immediate.lookup;
+        result.decision.verifiedCustomerLookup = { kind, proof };
+      }
       if (selection && grounded)
         result.provenance.push({ kind: "knowledge", version: ctx.packVersion, reference: selection });
       result.ledger.handoff ||= handoff;

@@ -321,6 +321,10 @@ export type ChatFunctions = {
     Args: { p_context: Json; p_input: Json };
     Returns: string | null;
   };
+  chat_live_auto_customer_lookup: {
+    Args: { p_context: Json; p_input: Json };
+    Returns: Json;
+  };
   chat_action_configure: {
     Args: { p_context: Json; p_input: Json };
     Returns: Json;

@@ -30,13 +30,14 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
     await q("insert into chat_channels(id,tenant_id,workspace_id,brand_id,chatwoot_inbox_id,kind,name,agent_mode) values($1,$2,$3,$4,905,'whatsapp','Synthetic','draft')", [channel, tenant, workspace, brand]);
     await q("insert into chat_knowledge_packs(id,tenant_id,brand_id,version,status,pack_json) values($1,$2,$3,1,'published',$4)", [packId, tenant, brand, pack]);
     await q("insert into customers(id,tenant_id,name,phone,normalized_phone_e164) values($1,$2,'Synthetic customer','+12025550123','+12025550123')", [customer, tenant]);
-    await q("insert into orders(id,tenant_id,customer_id,order_number,order_status,tracking_token) values($1,$2,$3,'ORD-000123','in_progress','synthetic-token')", [order, tenant, customer]);
-    const captures = (content, provider, phone = "+12025550123", createdAt = new Date(Date.now() + 2000).toISOString(), conversation = provider) =>
+    const trackingToken = "x".repeat(32);
+    await q("insert into orders(id,tenant_id,customer_id,order_number,order_status,tracking_token,delivery_type,delivery_address,total_amount) values($1,$2,$3,'ORD-000123','in_progress',$4,'courier','100 Synthetic Road',225)", [order, tenant, customer, trackingToken]);
+    const captures = (content, provider, phone = "+12025550123", createdAt = new Date(Date.now() + 2000).toISOString(), conversation = provider, contact = conversation) =>
       scalar("select chat_capture($1,'agent',$2) result", [hook, {
         workspaceId: workspace, channelId: channel, secretHash,
         identity: { displayName: "Synthetic", sourceId: phone.slice(1), phoneE164: phone },
         message: { messageId: provider, accountId: 904, inboxId: 905, conversationId: conversation,
-          contactId: conversation, status: "open", channelKind: "whatsapp", author: "customer",
+          contactId: contact, status: "open", channelKind: "whatsapp", author: "customer",
           private: false, content, contentType: "text", attachments: [], staffUserId: null, createdAt },
       }]).then((r) => ({ workspaceId: workspace, channelId: channel, secretHash,
         conversationId: r.conversationId, triggerMessageId: r.messageId }));
@@ -45,26 +46,74 @@ test("live WhatsApp auto uses owner approval, verified orders, one outbox and du
       version: 0, mode: "auto", canBook: false, packId, approveAuto: true, locationId: null, teamId: null }]);
     assert.equal((await run("claim", old)).status, "auto_unapproved");
     const known = await captures("Where is my order ORD-000123?", 13);
-    const status = (input, verifiedPhone) => scalar("select chat_live_auto_order_status($1,$2) result", [hook, { ...input, verifiedPhone }]);
-    assert.equal(await status(known, "+12025550123"), "in_progress");
-    assert.equal(await status(known, "+12025550124"), null);
-    assert.equal(await status(known, null), null);
+    const lookup = (input, kind = "status", verifiedPhone = "+12025550123") =>
+      scalar("select chat_live_auto_customer_lookup($1,$2) result", [hook, { ...input, verifiedPhone, kind }]);
+    const customerLookup = await lookup(known);
+    assert.equal(customerLookup.text, "We’re working on your order.");
+    assert.deepEqual(Object.keys(customerLookup).sort(), ["kind", "proof", "text"]);
+    assert.equal(await lookup(known, "status", "+12025550124"), null);
+    assert.equal(await lookup(known, "status", null), null);
     const unknown = await captures("Where is my order ORD-000123?", 14, "+12025550124");
-    assert.equal(await status(unknown, "+12025550124"), null);
+    assert.equal(await lookup(unknown, "status", "+12025550124"), null);
 
     const scope = ({ secretHash, ...binding }) => ({ ...binding, tenantId: tenant });
     const orderClaim = await run("claim", known);
     const orderResult = await runAgentTurn({
       scope: scope(known), now: new Date(Date.now() + 3000).toISOString(),
-      data: orderClaim.context, allowAutomatic: true, orderStatus: "in_progress",
+      data: orderClaim.context, allowAutomatic: true, customerLookup,
     }, { kind: "live", complete() { throw Error("Verified status needs no provider call"); } });
     const orderCap = { ...known, runId: orderClaim.runId, leaseToken: orderClaim.leaseToken };
     assert.equal((await run("complete", { ...orderCap, result: orderResult })).status, "ready");
-    assert.equal((await send("claim", { ...orderCap, verifiedPhone: "+12025550124" })).status, "order_changed");
+    assert.equal((await send("claim", { ...orderCap, verifiedPhone: "+12025550124" })).status, "customer_context_changed");
     const verifiedOrderCap = { ...orderCap, verifiedPhone: "+12025550123" };
     assert.equal((await send("claim", verifiedOrderCap)).status, "claimed");
     await q("update orders set order_status='ready' where id=$1", [order]);
-    assert.equal((await send("target", verifiedOrderCap)).status, "order_changed");
+    assert.equal((await send("target", verifiedOrderCap)).status, "customer_context_changed");
+
+    const owned = (content, message) => captures(content, message, undefined, undefined, message, 13);
+    const latest = await owned("Where is my order?", 30);
+    assert.equal((await lookup(latest)).text, "Your order is ready.");
+    assert.equal(await lookup(latest, "tracking"), null);
+    const link = await owned("Send me my tracking link", 31);
+    const trackingLookup = await lookup(link, "tracking");
+    assert.equal(trackingLookup.text, "Here is your order tracking link: https://os-plus.vercel.app/track/" + trackingToken);
+    const trackingClaim = await run("claim", link);
+    const trackingCap = { ...link, runId: trackingClaim.runId, leaseToken: trackingClaim.leaseToken, verifiedPhone: "+12025550123" };
+    const trackingResult = await runAgentTurn({
+      scope: scope(link), now: new Date(Date.now() + 3000).toISOString(),
+      data: trackingClaim.context, allowAutomatic: true, customerLookup: trackingLookup,
+    }, { kind: "live", complete() { throw Error("Tracking needs no provider call"); } });
+    const { verifiedPhone, ...trackingComplete } = trackingCap;
+    assert.equal((await run("complete", { ...trackingComplete, result: trackingResult })).status, "ready");
+    assert.equal((await send("claim", trackingCap)).status, "claimed");
+    // A captured public reply may appear before the outbox has its provider receipt.
+    await q("insert into chat_messages(id,tenant_id,conversation_id,chatwoot_message_id,author,private,content,content_type,created_at) values($1,$2,$3,503,'bot',false,$4,'text',now())",
+      [key(52), tenant, link.conversationId, trackingLookup.text]);
+    await q("update chat_channels set agent_mode='draft' where tenant_id=$1 and id=$2", [tenant, channel]);
+    const draftContext = await scalar("select chat_agent_load($1,$2) result", [hook, link]);
+    assert.deepEqual(draftContext.verifiedLookupReplyIds, [key(52)]);
+    await q("update chat_channels set agent_mode='auto' where tenant_id=$1 and id=$2", [tenant, channel]);
+    const balance = await owned("How much do I owe?", 32);
+    assert.equal((await lookup(balance, "balance")).text, "There is a payment pending on your order. Our team can confirm the amount and payment options.");
+    const address = await owned("Is my delivery address 100 Synthetic Road?", 33);
+    assert.equal((await lookup(address, "address")).text, "That matches the delivery address on file for your order.");
+    const addressOnFile = await owned("Is my delivery address on file?", 36);
+    assert.equal((await lookup(addressOnFile, "address")).text, "We have a delivery address on file for your order.");
+    const measurement = await owned("Do you have my measurements?", 34);
+    assert.equal(await lookup(measurement, "measurements"), null);
+    await q("insert into customer_measurements(tenant_id,customer_id,measurement_data_json) values($1,$2,$3)", [tenant, customer, { chest: 41, privateNote: "Staff only" }]);
+    assert.equal((await lookup(measurement, "measurements")).text, "We have a saved measurement record. Our team can help confirm which fitting details apply.");
+    await q("insert into customers(id,tenant_id,name,phone,normalized_phone_e164) values($1,$2,'Different customer','+12025550124','+12025550124')", [key(50), tenant]);
+    await q("insert into orders(tenant_id,customer_id,order_number,order_status,tracking_token) values($1,$2,'ORD-000456','ready',$3)", [tenant, key(50), "y".repeat(32)]);
+    const wrongOrder = await owned("Tracking link for ORD-000456", 35);
+    assert.equal(await lookup(wrongOrder, "tracking"), null);
+    assert.equal(await lookup(wrongOrder), null);
+    await q("insert into orders(tenant_id,customer_id,order_number,order_status,tracking_token) values($1,$2,'ORD-000125','cancelled',$3)", [tenant, customer, "z".repeat(32)]);
+    assert.equal(await lookup(latest), null);
+    await assert.rejects(
+      q("insert into customers(id,tenant_id,name,phone,normalized_phone_e164) values($1,$2,'Duplicate customer','+12025550123','+12025550123')", [key(51), tenant]),
+      { code: "23505" },
+    );
 
     await captures("Hello. You there?", 11, undefined, new Date(Date.now() - 1000).toISOString(), 15);
     const fresh = await captures("Are you there", 15);

@@ -1,6 +1,7 @@
 import type { AgentContext } from "./context.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { hasPublicReply } from "./plan.ts";
+import { customerLookupKind, type CustomerLookup } from "./customer-lookup.ts";
 
 const greeting = /^(?:(?:hi+|hey+|hello|namaste|good (?:morning|afternoon|evening))(?: (?:there|sir|team))?(?:[.!?,\s]+(?:are you there|you there|anyone there))?|are you there|you there|anyone there)$/i;
 const greetingSuffix = /(?:[.!?,\s]|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[#*0-9]\ufe0f?\u20e3|[\u200d\ufe0f\u{e0020}-\u{e007f}])+$/u;
@@ -14,16 +15,6 @@ const paymentDetails = /\b(?:payment|paid|how much (?:do|should) i (?:need to )?
 const orderNumber = /\bord-[0-9]{6,12}\b/i;
 const visiting = /^(?:when (?:do you|are you) open|(?:what are )?(?:your )?(?:opening|store|business) hours|are you open(?: (?:now|today|tomorrow))?|(?:can|may) i (?:come (?:down|by)|visit)(?: (?:today|tomorrow))?)[.!?\s]*$/i;
 const customDesign = /^(?:do you (?:do|make|offer)|can you (?:do|make)) (?:a |any )?(?:custom|personalized|personalised) designs?[.!?\s]*$/i;
-const pureOrderStatus = /^(?:(?:what(?:'s| is) (?:the )?(?:current )?(?:status (?:of|for) )?(?:my order|order)|where(?:'s| is) (?:my order|order)|(?:can you |please )?(?:check|track) (?:my order|order)|(?:my )?order status)[\s:#-]*)?ord-[0-9]{6,12}[.!?\s]*$/i;
-const statuses = new Map([
-  ["confirmed", "confirmed"],
-  ["in_progress", "in progress"],
-  ["ready", "ready"],
-  ["partially_delivered", "partially delivered"],
-  ["completed", "marked complete"],
-  ["delivered", "marked delivered"],
-  ["cancelled", "cancelled"],
-]);
 
 const automaticHandoffReply =
   "I’ll pass this to our team. They’ll check the details and reply here.";
@@ -64,8 +55,8 @@ export function automaticReplyContext(ctx: AgentContext) {
 export function immediateAutomaticReply(
   ctx: AgentContext,
   unanswered: string[],
-  orderStatus?: string,
-): { text: string; handoff: boolean; staffAlert?: boolean; verifiedOrderStatus?: string; once?: boolean } | null {
+  lookup?: CustomerLookup,
+): { text: string; handoff: boolean; staffAlert?: boolean; lookup?: CustomerLookup; once?: boolean } | null {
   const { brand, replies } = ctx.pack;
   const inquiries = unanswered.filter((message) => !isGreeting(message, brand.localGreetings ?? []));
   if (unanswered.length > 0 && inquiries.length === 0)
@@ -77,6 +68,24 @@ export function immediateAutomaticReply(
       ? ctx.pack.locked.paymentClaimAgain : ctx.pack.locked.paymentClaimReply, handoff: true, staffAlert: true };
   if (sensitiveRequest.test(text))
     return { text: replies?.needsPerson ?? automaticHandoffReply, handoff: true, staffAlert: true };
+  const requestedLookup = inquiries.length === 1 ? customerLookupKind(text) : null;
+  if (requestedLookup) {
+    if (lookup?.kind === requestedLookup)
+      return { text: lookup.text, handoff: false, lookup };
+    const hasReference = orderNumber.test(text);
+    if (hasReference)
+      return {
+        text: replies?.orderUnconfirmed ?? `I couldn’t confirm that order from this chat. ${automaticHandoffReply}`,
+        handoff: true,
+        staffAlert: true,
+      };
+    if (requestedLookup === "status" || requestedLookup === "tracking")
+      return {
+        text: replies?.askOrderNumber ?? "Could you share your order number so I can check the latest status?",
+        handoff: false,
+      };
+    return { text: replies?.handoffTopic ?? automaticHandoffReply, handoff: true };
+  }
   if (paymentDetails.test(text))
     return { text: replies?.handoffTopic ?? automaticHandoffReply, handoff: true };
   if (/\b(?:are you (?:a bot|human|real)|who are you)\b/i.test(text))
@@ -84,9 +93,6 @@ export function immediateAutomaticReply(
   if (/\b(?:(?:we|i) (?:supply|manufacture)|(?:we(?:['’]re| are)|i(?:['’]m| am)) (?:a )?(?:vendor|supplier|manufacturer))\b/i.test(text))
     return { text: ctx.pack.locked.vendorReply, handoff: false, once: true };
   if (order.test(text)) {
-    const verified = statuses.get(orderStatus ?? "");
-    if (verified && orderStatus && inquiries.length === 1 && pureOrderStatus.test(text))
-      return { text: `The status of your order is ${verified}.`, handoff: false, verifiedOrderStatus: orderStatus };
     if (orderNumber.test(text))
       return {
         text: replies?.orderUnconfirmed ?? `I couldn’t confirm that order from this chat. ${automaticHandoffReply}`,
