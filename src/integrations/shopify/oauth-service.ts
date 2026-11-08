@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { ShopifyProbeActor } from "./probe-config.ts";
 import { beginShopifyApproval, exchangeShopifyApprovalToken, getShopifyOAuthConfig,
-  validateShopifyApprovalCallback, type ShopifyApprovalAttempt } from "./oauth.ts";
+  getShopifyOAuthApplicationConfig, validateShopifyApprovalCallback, type ShopifyApprovalAttempt } from "./oauth.ts";
 import { openShopifyCredential, sealShopifyCredential } from "./oauth-crypto.ts";
 import { readShopifyApprovalIdentity } from "./client.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
@@ -43,32 +43,43 @@ export function createShopifyOAuthService(storage: ShopifyOAuthStorage, transpor
         shopGid: identity.shopGid, packet, accessExpiresAt: token.accessExpiresAt, refreshExpiresAt: token.refreshExpiresAt }, signal);
       return z.object({ status: z.literal("connected"), connectionId: z.string().uuid() }).strict().parse(saved);
     },
-    async credential(actor: ShopifyProbeActor, connectionId: string, signal: AbortSignal, env: NodeJS.ProcessEnv) {
-      const config = getShopifyOAuthConfig(actor, env, "credential");
-      z.string().uuid().parse(connectionId);
-      const raw = await storage(actor, "read_credential", { connectionId }, signal);
-      if (raw === null) return null; // Only absence permits the legacy pilot adapter.
-      const record = credentialSchema.parse(raw);
-      if (record.tenantId !== actor.tenantId || record.connectionId !== connectionId || record.appRef !== config.clientId)
-        throw new ShopifyIntegrationError("ACCESS_DENIED");
-      let token = openShopifyCredential(record.packet, record, env);
-      if (Date.parse(token.accessExpiresAt) !== Date.parse(record.accessExpiresAt) ||
-        Date.parse(token.refreshExpiresAt) !== Date.parse(record.refreshExpiresAt))
-        throw new ShopifyIntegrationError("RESPONSE_INVALID");
-      if (record.refreshPending) throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
-      if (Date.parse(token.accessExpiresAt) <= now() + 60000) {
-        if (Date.parse(token.refreshExpiresAt) <= now() + 60000) throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
-        const claim = z.object({ lease: z.string().uuid() }).strict().parse(await storage(actor, "claim_refresh",
-          { connectionId, revision: record.revision }, signal));
-        // Deliberately leave the lease occupied on unknown network/commit
-        // outcomes. Reauthorization recovers without reusing a rotated token.
-        token = await exchangeShopifyApprovalToken(record.shopDomain, { refreshToken: token.refreshToken }, env, signal, transport, now);
-        await storage(actor, "finish_refresh", { connectionId, revision: record.revision, lease: claim.lease,
-          packet: sealShopifyCredential(token, record, env), accessExpiresAt: token.accessExpiresAt,
-          refreshExpiresAt: token.refreshExpiresAt }, signal);
-      }
-      return { tenantId: record.tenantId, connectionId, shopDomain: record.shopDomain, appRef: record.appRef,
-        accessToken: token.accessToken, expiresAt: token.accessExpiresAt };
+    credential(actor: ShopifyProbeActor, connectionId: string, signal: AbortSignal, env: NodeJS.ProcessEnv) {
+      getShopifyOAuthConfig(actor, env, "credential");
+      return readShopifyOAuthCredential(actor.tenantId, connectionId, (action,input,s)=>storage(actor,action,input,s),
+        signal, env, transport, now);
     },
   };
+}
+
+// Only called from the owner/manager service and the verified queue context.
+export async function readShopifyOAuthCredential(tenantId: string, connectionId: string,
+  storage: (action: string, input: Record<string,unknown>, signal: AbortSignal) => Promise<unknown>,
+  signal: AbortSignal, env: NodeJS.ProcessEnv, transport: typeof fetch, now: () => number, expectedDomain?: string) {
+  const config = getShopifyOAuthApplicationConfig(env);
+  z.string().uuid().parse(connectionId);
+  const raw = await storage("read_credential", { connectionId }, signal);
+  if (raw === null) return null; // Only absence permits the legacy pilot adapter.
+  const record = credentialSchema.parse(raw);
+  if (record.tenantId !== tenantId || record.connectionId !== connectionId || record.appRef !== config.clientId)
+    throw new ShopifyIntegrationError("ACCESS_DENIED");
+  if (expectedDomain && record.shopDomain !== expectedDomain)
+    throw new ShopifyIntegrationError("ACCESS_DENIED");
+  let token = openShopifyCredential(record.packet, record, env);
+  if (Date.parse(token.accessExpiresAt) !== Date.parse(record.accessExpiresAt) ||
+    Date.parse(token.refreshExpiresAt) !== Date.parse(record.refreshExpiresAt))
+    throw new ShopifyIntegrationError("RESPONSE_INVALID");
+  if (record.refreshPending) throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+  if (Date.parse(token.accessExpiresAt) <= now() + 60000) {
+    if (Date.parse(token.refreshExpiresAt) <= now() + 60000) throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+    const claim = z.object({ lease: z.string().uuid() }).strict().parse(await storage("claim_refresh",
+      { connectionId, revision: record.revision }, signal));
+    // Deliberately leave the lease occupied on unknown network/commit
+    // outcomes. Reauthorization recovers without reusing a rotated token.
+    token = await exchangeShopifyApprovalToken(record.shopDomain, { refreshToken: token.refreshToken }, env, signal, transport, now);
+    await storage("finish_refresh", { connectionId, revision: record.revision, lease: claim.lease,
+      packet: sealShopifyCredential(token, record, env), accessExpiresAt: token.accessExpiresAt,
+      refreshExpiresAt: token.refreshExpiresAt }, signal);
+  }
+  return { tenantId: record.tenantId, connectionId, shopDomain: record.shopDomain, appRef: record.appRef,
+    accessToken: token.accessToken, expiresAt: token.accessExpiresAt };
 }

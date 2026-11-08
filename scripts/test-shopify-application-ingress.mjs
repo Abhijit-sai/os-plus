@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createHmac } from 'node:crypto';
 import { createShopifyApplicationIngress } from '../src/integrations/shopify/application-ingress.ts';
+import { shopifyOrdersWebhookUrl } from '../src/integrations/shopify/webhook-binding.ts';
 const tenant='10000000-0000-4000-8000-000000000001',connection='20000000-0000-4000-8000-000000000001';
 const env={VERCEL_ENV:'production',SHOPIFY_DEPLOYMENT_ENV:'production',SHOPIFY_API_VERSION:'2026-10',SHOPIFY_CONNECTION_TEST_TENANT_ID:tenant,
   SHOPIFY_SHOP_DOMAIN:'synthetic-pilot.myshopify.com',SHOPIFY_CLIENT_ID:'synthetic-app',SHOPIFY_CLIENT_SECRET:'synthetic-secret',SHOPIFY_WORKER_SECRET:'fictional_012345678901234567890123456789',
@@ -61,4 +62,36 @@ test('automatic background work is scheduled only after accepted durable receipt
     calls.length=0;
     await ingress.orders(req(),{...settings,SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'false'});assert.equal(tasks.length,0);
   }
+});
+
+test('two stores route only with their own endpoint binding and valid Shopify body HMAC',async()=>{
+  const settings={...env,SHOPIFY_CONNECTION_SCREEN_ENABLED:'true',SHOPIFY_TENANT_LINKING_ENABLED:'true',
+    SHOPIFY_OAUTH_ENABLED:'true',SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_INTAKE_ENABLED:'true'};
+  const rows=[{id:connection,tenant_id:tenant,shop_gid:'gid://shopify/Shop/101',canonical_domain:env.SHOPIFY_SHOP_DOMAIN},
+    {id:'20000000-0000-4000-8000-000000000002',tenant_id:'10000000-0000-4000-8000-000000000002',
+      shop_gid:'gid://shopify/Shop/102',canonical_domain:'unrelated.myshopify.com'}];
+  const writes=[];
+  const db={from(){const query={};const q={select(){return q;},eq(k,v){query[k]=v;return q;},in(){return q;},limit(){return q;},
+    async abortSignal(){return {data:rows.filter(r=>r.canonical_domain===query.canonical_domain).map(r=>({...r,
+      app_ref:env.SHOPIFY_CLIENT_ID,environment:'production',api_version:'2026-10',status:'verified',intake_enabled:true,
+      verified_at:new Date().toISOString(),revision:2})),error:null};}};return q;},
+    rpc(name,args){writes.push([name,args.p_tenant_id,args.p_connection_id]);return {async abortSignal(){
+      return {data:{status:'accepted',receiptId:connection},error:null};}};}};
+  const ingress=createShopifyApplicationIngress(db);
+  const url=r=>shopifyOrdersWebhookUrl('https://example.invalid',{connectionId:r.id,tenantId:r.tenant_id,shopDomain:r.canonical_domain,
+    appRef:env.SHOPIFY_CLIENT_ID},env.SHOPIFY_CLIENT_SECRET);
+  const request=(target,row,secret=env.SHOPIFY_CLIENT_SECRET)=>{
+    const body=JSON.stringify({admin_graphql_api_id:'gid://shopify/Order/101'});
+    return new Request(target,{method:'POST',body,headers:{'content-type':'application/json','x-shopify-shop-domain':row.canonical_domain,
+      'x-shopify-topic':'orders/create','x-shopify-api-version':'2026-10','x-shopify-webhook-id':connection,
+      'x-shopify-hmac-sha256':createHmac('sha256',secret).update(body).digest('base64')}});
+  };
+  for(const row of rows) assert.equal((await ingress.orders(request(url(row),row),settings)).status,200);
+  assert.deepEqual(writes,rows.map(r=>['receive_shopify_unified_event',r.tenant_id,r.id]));
+  writes.length=0;
+  assert.equal((await ingress.orders(request(url(rows[0]),rows[1]),settings)).status,503);
+  assert.equal((await ingress.orders(request(url(rows[1]),rows[0]),settings)).status,503);
+  assert.equal((await ingress.orders(request(shopifyOrdersWebhookUrl('https://example.invalid'),rows[0]),settings)).status,503);
+  assert.equal((await ingress.orders(request(url(rows[1]),rows[1],'wrong'),settings)).status,401);
+  assert.deepEqual(writes,[]);
 });

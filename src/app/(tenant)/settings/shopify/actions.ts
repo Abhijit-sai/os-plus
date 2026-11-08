@@ -27,6 +27,7 @@ const messages:Record<string,string>={
 export async function shopifyApplicationAction(_previous:ShopifyApplicationActionState,form:FormData):Promise<ShopifyApplicationActionState>{
   try{
     const actor=await getShopifyProbeActor();if(!actor)throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+    if (process.env.SHOPIFY_UNIFIED_ORDERS_ENABLED === "true") throw new ShopifyIntegrationError("ACCESS_DENIED");
     const config=getShopifyApplicationConfig(actor),requestHeaders=await headers();
     if(requestHeaders.get("origin")!==config.origin||requestHeaders.get("sec-fetch-site")==="cross-site")throw new ShopifyIntegrationError("ACCESS_DENIED");
     const raw=form.get("command");if(typeof raw!=="string"||Buffer.byteLength(raw)>128000)throw new ShopifyIntegrationError("REQUEST_INVALID");

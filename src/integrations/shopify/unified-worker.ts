@@ -10,12 +10,15 @@ import {createShopifyQueueStore} from "./queue-store.ts";
 import {createShopifyDraftStore} from "./draft-store.ts";
 import {createShopifyDraftExecutor} from "./draft-executor.ts";
 import {createShopifyOrderHydrator} from "./order-hydration.ts";
+import {createShopifyWorkerCredentialReader} from "./tenant-credentials.ts";
 import {ShopifyIntegrationError} from "./errors.ts";
 
-export async function readUnifiedPolicy(db:Pick<SupabaseClient<Database>,"rpc">,connectionId:string,signal:AbortSignal,env:NodeJS.ProcessEnv){
+type WorkerBinding = { tenantId: string; shopDomain: string };
+
+export async function readUnifiedPolicy(db:Pick<SupabaseClient<Database>,"rpc">,connectionId:string,signal:AbortSignal,env:NodeJS.ProcessEnv,binding?:WorkerBinding){
   if(env.VERCEL_ENV!=="production"||env.SHOPIFY_DEPLOYMENT_ENV!=="production"||env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true")throw new ShopifyIntegrationError("ACCESS_DENIED");
-  const result=await db.rpc("read_shopify_unified_policy",{p_tenant_id:z.string().uuid().parse(env.SHOPIFY_CONNECTION_TEST_TENANT_ID),
-    p_connection_id:z.string().uuid().parse(connectionId),p_domain:canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??""),
+  const result=await db.rpc("read_shopify_unified_policy",{p_tenant_id:z.string().uuid().parse(binding?.tenantId??env.SHOPIFY_CONNECTION_TEST_TENANT_ID),
+    p_connection_id:z.string().uuid().parse(connectionId),p_domain:canonicalShopDomain(binding?.shopDomain??env.SHOPIFY_SHOP_DOMAIN??""),
     p_app_ref:z.string().min(1).max(256).parse(env.SHOPIFY_CLIENT_ID)}).abortSignal(signal);
   if(result.error)throw new ShopifyIntegrationError("ACCESS_DENIED");
   if(result.data===null)return null;
@@ -23,13 +26,13 @@ export async function readUnifiedPolicy(db:Pick<SupabaseClient<Database>,"rpc">,
   if(policy.connectionId!==connectionId)throw new ShopifyIntegrationError("ACCESS_DENIED");return policy;
 }
 export async function runShopifyUnifiedWorker(db:SupabaseClient<Database>,connectionId:string,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,transport:typeof fetch=fetch,
-  readCredential?:ReturnType<typeof createShopifyPilotCredentialReader>){
+  readCredential?:ReturnType<typeof createShopifyPilotCredentialReader>,binding?:WorkerBinding){
   assertShopifyApplicationStage("worker",env);
-  if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true"||env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED!=="true"||!await readUnifiedPolicy(db,connectionId,signal,env))throw new ShopifyIntegrationError("ACCESS_DENIED");
-  const context=await readShopifyWorkerContext(db,{tenantId:z.string().uuid().parse(env.SHOPIFY_CONNECTION_TEST_TENANT_ID),connectionId,
+  if(env.SHOPIFY_UNIFIED_ORDERS_ENABLED!=="true"||env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED!=="true"||!await readUnifiedPolicy(db,connectionId,signal,env,binding))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const context=await readShopifyWorkerContext(db,{tenantId:z.string().uuid().parse(binding?.tenantId??env.SHOPIFY_CONNECTION_TEST_TENANT_ID),connectionId,
     appRef:z.string().min(1).parse(env.SHOPIFY_CLIENT_ID),environment:"production"},signal);
-  if(context.shopDomain!==canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN??""))throw new ShopifyIntegrationError("ACCESS_DENIED");
-  const credentials=readCredential??createShopifyPilotCredentialReader(transport),hydrate=createShopifyOrderHydrator(transport,Date.now,30000);
+  if(context.shopDomain!==canonicalShopDomain(binding?.shopDomain??env.SHOPIFY_SHOP_DOMAIN??""))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  const credentials=readCredential??createShopifyWorkerCredentialReader(db,transport),hydrate=createShopifyOrderHydrator(transport,Date.now,30000);
   return createShopifyDraftExecutor({queue:createShopifyQueueStore(db),drafts:createShopifyDraftStore(db,{retainBusinessDetails:true}),
     readCredential:(ctx,s)=>credentials(ctx,s,env),
     async resolveContext(ctx,lease,s){

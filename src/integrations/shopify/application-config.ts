@@ -4,9 +4,10 @@ import { canonicalShopDomain,SHOPIFY_API_VERSION } from "./config.ts";
 import { assertShopifyProbeActor,type ShopifyProbeActor } from "./probe-config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 
+import { hasShopifyTenantDomain, shopifyTenantEligible } from "./tenant-rollout.ts";
+
 export function isShopifyApplicationVisible(tenantId:string,env:NodeJS.ProcessEnv=process.env){
-  return env.SHOPIFY_CONNECTION_SCREEN_ENABLED==="true" && z.string().uuid().safeParse(tenantId).success
-    &&tenantId===env.SHOPIFY_CONNECTION_TEST_TENANT_ID;
+  return env.SHOPIFY_CONNECTION_SCREEN_ENABLED==="true" && shopifyTenantEligible(tenantId,env);
 }
 // Private server configuration. Never serialize this object to a client or log.
 // Same-organization pilot, not a global store binding for arbitrary tenants.
@@ -25,6 +26,8 @@ export function getShopifyManagerConfig(actor:ShopifyProbeActor,env:NodeJS.Proce
 }
 function privateConfig(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv,mode:"read"|"operate"){
   if(!isShopifyApplicationVisible(actor.tenantId,env))throw new ShopifyIntegrationError("ACCESS_DENIED");
+  if(actor.tenantId!==env.SHOPIFY_CONNECTION_TEST_TENANT_ID&&!hasShopifyTenantDomain(env,actor.tenantId))
+    throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
   if(mode==="operate"&&env.SHOPIFY_PILOT_OPERATIONS_ENABLED!=="true")throw new ShopifyIntegrationError("ACCESS_DENIED");
   if(env.VERCEL_ENV!=="production"||env.SHOPIFY_DEPLOYMENT_ENV!=="production"||env.SHOPIFY_API_VERSION!==SHOPIFY_API_VERSION)
     throw new ShopifyIntegrationError("CONFIGURATION_INVALID");

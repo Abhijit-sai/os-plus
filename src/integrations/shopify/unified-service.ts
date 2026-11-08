@@ -13,6 +13,7 @@ import {ShopifyIntegrationError} from "./errors.ts";
 import {registerShopifyUnifiedWebhooks} from "./webhook-registration.ts";
 import {resolveShopifyTenantEnvironment,readShopifyTenantConnection,readShopifyTenantToken,createShopifyTenantCredentialReader} from "./tenant-credentials.ts";
 import {createShopifyOAuthStorage} from "./oauth-store.ts";
+import {shopifyTenantLinkingEnabled} from "./tenant-rollout.ts";
 import {readShopifyApprovalIdentity} from "./client.ts";
 
 export function assertUnifiedRuntime(actor:ShopifyProbeActor,env:NodeJS.ProcessEnv){
@@ -40,7 +41,7 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
     async execute(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env):Promise<UnifiedActionState>{
       env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const config=assertUnifiedRuntime(actor,env),command=unifiedCommandSchema.parse(input),state=await view(actor,signal,env),c=state.connection;
-      if(!c)throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
+      if(!c||c.status==="disconnected")throw new ShopifyIntegrationError("CONNECTION_UNAVAILABLE");
       if(command.action==="automatic"&&command.enabled&&!workerConfigured(env))
         throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
       if((command.action==="enable"||command.action==="import"||command.action==="process")&&
@@ -59,6 +60,7 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
           return {status:"success",message:"Store verified. Choose dates to import orders as drafts. Automatic sync remains off.",
             view:await view(actor,signal,env)};
         }
+        if(actor.tenantId!==env.SHOPIFY_CONNECTION_TEST_TENANT_ID)throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
         const proof=await createShopifyApplicationSource(transport,now)(actor,null,signal,env);
         if(proof.shopGid!==c.shopGid)throw new ShopifyIntegrationError("ACCESS_DENIED");
         const result=await db.rpc("enable_shopify_unified_imports",{...args,p_request_key:command.requestKey,p_expected_revision:c.revision,p_consent:command.consent}).abortSignal(signal);
@@ -99,22 +101,37 @@ export function createShopifyUnifiedService(db:SupabaseClient<Database>,transpor
       }
       if(command.action==="process"){
         const result=await runShopifyUnifiedWorker(db,c.id,signal,env,transport,
-          createShopifyTenantCredentialReader(db,actor,transport,now)),latest=await view(actor,signal,env);
+          createShopifyTenantCredentialReader(db,actor,transport,now),{tenantId:actor.tenantId,shopDomain:config.shopDomain}),latest=await view(actor,signal,env);
         return {status:"success",message:result.status==="draft"||result.status==="observed"?"Order synced. You can open it in Orders.":
           result.status==="idle"?"No import is ready to process now. Any waiting retries are still retained.":"An import needs a retry or review. No duplicate order was created.",
           view:latest,continueProcessing:(result.status==="draft"||result.status==="observed")&&(latest.connection?.pending??0)>0};
       }
       let verifiedAt:string|null=null;
-      if(command.enabled&&env.SHOPIFY_OAUTH_ENABLED==="true")throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
+      const tenantWebhooks=shopifyTenantLinkingEnabled(env);
+      if(command.enabled&&env.SHOPIFY_OAUTH_ENABLED==="true"&&!tenantWebhooks)throw new ShopifyIntegrationError("WEBHOOK_SETUP_REQUIRED");
       if(command.enabled){
         const check=async()=>{const fresh=(await view(actor,signal,env)).connection;
           if(!fresh||fresh.id!==c.id||!fresh.unified||fresh.status!=="verified")throw new ShopifyIntegrationError("ACCESS_DENIED");
           return {connectionId:fresh.id,shopGid:fresh.shopGid,revision:fresh.revision,pilotOrderGid:fresh.pilotOrderGid};};
-        const proof=await registerShopifyUnifiedWebhooks(actor,await check(),check,signal,env,transport,now);verifiedAt=proof.verifiedAt;
+        const readToken=tenantWebhooks?async()=>{
+          const binding=await readShopifyTenantConnection(db,actor.tenantId,actor.userId,signal,env);
+          if(!binding?.hasCredential||binding.connectionId!==c.id)throw new ShopifyIntegrationError("AUTHENTICATION_REQUIRED");
+          const token=await readShopifyTenantToken(db,actor,signal,env,transport,now);
+          if(token.connectionId!==c.id)throw new ShopifyIntegrationError("ACCESS_DENIED");
+          return token.accessToken;
+        }:undefined;
+        const prior=tenantWebhooks?await db.rpc("read_shopify_transfer_webhook",{
+          p_tenant_id:actor.tenantId,p_connection_id:c.id,p_actor_id:actor.userId,
+        }).abortSignal(signal):null;
+        if(prior?.error)throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+        const previous=prior?.data?z.object({tenantId:z.string().uuid(),connectionId:z.string().uuid(),
+          pilotOrderGid:z.string().regex(/^gid:\/\/shopify\/Order\/[1-9][0-9]*$/).nullable()}).strict().parse(prior.data):undefined;
+        const proof=await registerShopifyUnifiedWebhooks(actor,await check(),check,signal,env,transport,now,readToken,previous);
+        verifiedAt=proof.verifiedAt;
       }
       const result=await db.rpc("set_shopify_unified_automatic",{...args,p_request_key:command.requestKey,p_enabled:command.enabled,p_verified_at:verifiedAt}).abortSignal(signal);
       if(result.error)fail(result.error.message);
-      return {status:"success",message:command.enabled?"Automatic Shopify sync is enabled for Phantom Threads Test only.":"Automatic sync is off. Existing orders are unchanged.",view:await view(actor,signal,env)};
+      return {status:"success",message:command.enabled?"Automatic Shopify sync is enabled for this business.":"Automatic sync is off. Existing orders are unchanged.",view:await view(actor,signal,env)};
     },
   };
 }

@@ -5,6 +5,8 @@ import {z} from 'zod';
 import {registerShopifyPilotWebhooks,registerShopifyUnifiedWebhooks} from '../src/integrations/shopify/webhook-registration.ts';
 import {testShopifyWebhookDelivery} from '../src/integrations/shopify/webhook-test.ts';
 import {readShopifyApplicationGraphQL,createShopifyApplicationWebhook} from '../src/integrations/shopify/client.ts';
+import { withShopifyTenantDomain } from '../src/integrations/shopify/tenant-rollout.ts';
+import { matchesShopifyWebhookBinding, shopifyOrdersWebhookUrl } from '../src/integrations/shopify/webhook-binding.ts';
 const tenant='10000000-0000-4000-8000-000000000001';
 const actor={userId:'fictional-owner',tenantId:tenant,role:'owner_admin',membershipUserId:'fictional-owner',membershipTenantId:tenant,membershipStatus:'active',tenantStatus:'active'};
 const env={VERCEL_ENV:'production',SHOPIFY_DEPLOYMENT_ENV:'production',SHOPIFY_API_VERSION:'2026-10',SHOPIFY_CONNECTION_SCREEN_ENABLED:'true',SHOPIFY_PILOT_OPERATIONS_ENABLED:'true',SHOPIFY_CONNECTION_TEST_TENANT_ID:tenant,
@@ -104,4 +106,46 @@ test('synthetic delivery stops on revoked binding, bad responses or disabled int
   await assert.rejects(()=>testShopifyWebhookDelivery(actor,expected.orderGid,randomUUID(),async()=>{throw Error('revoked');},signal,env,transport,now),/revoked/);assert.equal(calls,0);
   await assert.rejects(()=>testShopifyWebhookDelivery(actor,expected.orderGid,randomUUID(),async()=>{},signal,{...env,SHOPIFY_INTAKE_ENABLED:'false'},transport,now));assert.equal(calls,0);
   await assert.rejects(()=>testShopifyWebhookDelivery(actor,expected.orderGid,randomUUID(),async()=>{},signal,env,transport,now),e=>e.code==='WEBHOOK_SETUP_UNCONFIRMED'&&!e.message.includes('fictional-private'));assert.equal(calls,1);
+});
+
+test('OAuth subscription setup uses the selected tenant token and generates a store-bound destination',async()=>{
+  const tenantId=randomUUID(),owner={...actor,tenantId,membershipTenantId:tenantId};
+  const shopDomain='second-business.myshopify.com';
+  const settings=withShopifyTenantDomain({...env,SHOPIFY_TENANT_LINKING_ENABLED:'true',SHOPIFY_OAUTH_ENABLED:'true',
+    SHOPIFY_UNIFIED_ORDERS_ENABLED:'true'},tenantId,shopDomain);
+  const binding={connectionId:randomUUID(),shopGid:'gid://shopify/Shop/102',revision:2,pilotOrderGid:null};
+  const previous={connectionId:randomUUID(),tenantId:tenant,pilotOrderGid:'gid://shopify/Order/201'};
+  const rows=[{id:'gid://shopify/WebhookSubscription/1',topic:'ORDERS_CREATE',filter:'id:201',
+    uri:shopifyOrdersWebhookUrl(env.SHOPIFY_APPLICATION_ORIGIN,{...previous,shopDomain,appRef:env.SHOPIFY_CLIENT_ID},env.SHOPIFY_CLIENT_SECRET),
+    format:'JSON',includeFields:['admin_graphql_api_id','id','updated_at'],apiVersion:{handle:'2026-10'}}];
+  let tokenReads=0;
+  const run=()=>registerShopifyUnifiedWebhooks(owner,binding,async()=>binding,signal,settings,async(url,init)=>{
+    assert.equal(new URL(url).hostname,shopDomain);
+    assert.ok(url.endsWith('/graphql.json'),'do not use global client credentials');
+    assert.equal(init.headers['X-Shopify-Access-Token'],'second-business-token');
+    const input=JSON.parse(init.body);let data;
+    if(input.query.startsWith('query ')) data={shop:{id:binding.shopGid,myshopifyDomain:shopDomain},
+      currentAppInstallation:{app:{apiKey:env.SHOPIFY_CLIENT_ID,webhookApiVersion:'2026-10'}},
+      webhookSubscriptions:{nodes:rows,pageInfo:{hasNextPage:false,endCursor:null}}};
+    else {
+      const sub=input.variables.subscription;
+      const expectedRoute={connectionId:binding.connectionId,tenantId,shopDomain,appRef:env.SHOPIFY_CLIENT_ID};
+      assert.ok(matchesShopifyWebhookBinding(sub.uri,expectedRoute,env.SHOPIFY_CLIENT_SECRET));
+      assert.ok(!matchesShopifyWebhookBinding(sub.uri,{...expectedRoute,tenantId:tenant},env.SHOPIFY_CLIENT_SECRET));
+      if(input.variables.id){
+        const index=rows.findIndex(row=>row.id===input.variables.id);
+        assert.equal(index,0);
+        rows[index]={...rows[index],...sub};
+        data={webhookSubscriptionUpdate:{webhookSubscription:rows[index],userErrors:[]}};
+      }else{
+        const row={...sub,id:`gid://shopify/WebhookSubscription/${rows.length+1}`,topic:input.variables.topic,apiVersion:{handle:'2026-10'}};
+        rows.push(row);
+        data={webhookSubscriptionCreate:{webhookSubscription:row,userErrors:[]}};
+      }
+    }
+    return Response.json({data},{headers:{'X-Shopify-API-Version':'2026-10'}});
+  },now,async()=>{tokenReads++;return 'second-business-token';},previous);
+  await run();await run();
+  assert.equal(tokenReads,2);
+  assert.equal(rows.length,3);
 });

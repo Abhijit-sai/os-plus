@@ -6,6 +6,8 @@ import type { Database } from "../../types/database.ts";
 import { assertShopifyProbeActor, getShopifyProbeConfig, type ShopifyProbeActor } from "./probe-config.ts";
 import { ShopifyIntegrationError } from "./errors.ts";
 
+import { shopifyTenantEligible } from "./tenant-rollout.ts";
+
 const connectionSchema=z.object({tenant_id:z.string().uuid(),canonical_domain:z.string(),
   status:z.enum(["pending","verified","paused","disconnected"]),revision:z.number().int().positive().safe(),
   intake_enabled:z.boolean(),processing_enabled:z.boolean(),draft_import_enabled:z.boolean(),release_enabled:z.boolean()}).strict();
@@ -19,8 +21,7 @@ export type ShopifyConnectionScreen={
 
 // Server-side pilot gate. Environment values are never browser-selected bindings.
 export function isShopifyConnectionScreenEnabled(tenantId:string,env:NodeJS.ProcessEnv=process.env){
-  return env.SHOPIFY_CONNECTION_SCREEN_ENABLED==="true" && z.string().uuid().safeParse(tenantId).success &&
-    tenantId===env.SHOPIFY_CONNECTION_TEST_TENANT_ID;
+  return env.SHOPIFY_CONNECTION_SCREEN_ENABLED==="true" && shopifyTenantEligible(tenantId,env);
 }
 
 export async function getShopifyConnectionScreen(db:Pick<SupabaseClient<Database>,"from">,

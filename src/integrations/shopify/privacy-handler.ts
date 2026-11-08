@@ -16,12 +16,13 @@ const payloadSchema = z.object({ shop_id: decimalId, shop_domain: z.string(),
 const bindingSchema = z.object({ tenantId: z.string().uuid(), connectionId: z.string().uuid(),
   shopGid: z.string().regex(/^gid:\/\/shopify\/Shop\/[1-9][0-9]{0,31}$/), shopDomain: z.string(),
   appRef: z.string(), environment: z.literal("production"), verifiedAt: z.string().datetime({ offset: true }) }).strict();
-type Binding = z.infer<typeof bindingSchema>;
-export type ShopifyPrivacyInput = Binding & { topic: string; deliveryId: string; bodySha256: string;
+export type ShopifyPrivacyBinding = z.infer<typeof bindingSchema>;
+export type ShopifyPrivacyInput = ShopifyPrivacyBinding & { topic: string; deliveryId: string; bodySha256: string;
   customerGid: string | null; orderGids: string[]; sealedContact: ReturnType<typeof sealShopifySource> };
 type Dependencies = {
-  findConnection(domain: string, appRef: string, signal: AbortSignal): Promise<Binding | null>;
+  findConnection(domain: string, appRef: string, signal: AbortSignal): Promise<ShopifyPrivacyBinding | ShopifyPrivacyBinding[] | null>;
   receive(input: ShopifyPrivacyInput, signal: AbortSignal): Promise<unknown>;
+  receiveMany?(inputs: ShopifyPrivacyInput[], signal: AbortSignal): Promise<unknown>;
 };
 
 // Quote numeric JSON tokens outside strings BEFORE parsing. IDs above 2^53 are
@@ -77,20 +78,27 @@ export function createShopifyPrivacyHandler(dependencies: Dependencies, timeoutM
       const domain = canonicalShopDomain(request.headers.get("x-shopify-shop-domain") ?? "");
       const payload = parseShopifyPrivacyPayload(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
       if (canonicalShopDomain(payload.shop_domain) !== domain) throw new ShopifyIntegrationError("ACCESS_DENIED");
-      const parsed = bindingSchema.safeParse(await withDeadline(() => dependencies.findConnection(domain, appRef, controller.signal)));
-      if (!parsed.success || parsed.data.shopDomain !== domain || parsed.data.appRef !== appRef ||
-        parsed.data.shopGid !== `gid://shopify/Shop/${payload.shop_id}`) throw new ShopifyIntegrationError("ACCESS_DENIED");
-      const binding = parsed.data;
+      const rawBindings = await withDeadline(() => dependencies.findConnection(domain, appRef, controller.signal));
+      const bindings = z.array(bindingSchema).min(1).max(2).safeParse(Array.isArray(rawBindings) ? rawBindings : [rawBindings]);
+      if (!bindings.success || bindings.data.some(binding => binding.shopDomain !== domain || binding.appRef !== appRef ||
+        binding.shopGid !== `gid://shopify/Shop/${payload.shop_id}`))
+        throw new ShopifyIntegrationError("ACCESS_DENIED");
       const bodySha256 = createHash("sha256").update(bytes).digest("hex");
       const contact = topic === "shop/redact" ? {} : { email: payload.customer?.email ?? null, phone: payload.customer?.phone ?? null };
-      const sealedContact = sealShopifySource(JSON.stringify(contact), JSON.stringify([
-        "shopify-privacy", binding.tenantId, binding.connectionId, deliveryId, bodySha256 ]), env);
-      const input: ShopifyPrivacyInput = { ...binding, topic, deliveryId, bodySha256,
+      const orderGids = [...new Set((topic === "customers/data_request" ? payload.orders_requested : payload.orders_to_redact) ?? [])]
+        .map(value => `gid://shopify/Order/${value}`);
+      const inputs: ShopifyPrivacyInput[] = bindings.data.map(binding => ({
+        ...binding, topic, deliveryId, bodySha256, orderGids,
         customerGid: payload.customer?.id ? `gid://shopify/Customer/${payload.customer.id}` : null,
-        orderGids: [...new Set((topic === "customers/data_request" ? payload.orders_requested : payload.orders_to_redact) ?? [])]
-          .map((value) => `gid://shopify/Order/${value}`), sealedContact };
-      const result = z.object({ status: z.literal("received"), requestId: z.string().uuid() }).strict()
-        .parse(await withDeadline(() => dependencies.receive(input, controller.signal)));
+        sealedContact: sealShopifySource(JSON.stringify(contact), JSON.stringify([
+          "shopify-privacy", binding.tenantId, binding.connectionId, deliveryId, bodySha256 ]), env),
+      }));
+      const response = await withDeadline(() => {
+        if (dependencies.receiveMany) return dependencies.receiveMany(inputs, controller.signal);
+        if (inputs.length !== 1) throw new ShopifyIntegrationError("UPSTREAM_UNAVAILABLE");
+        return dependencies.receive(inputs[0], controller.signal);
+      });
+      const result = z.object({ status: z.literal("received"), requestId: z.string().uuid() }).strict().parse(response);
       return reply(result, 200); // Durable receipt, never fulfilment/export status.
     } catch (error) {
       const code = error instanceof ShopifyIntegrationError ? error.code : error instanceof z.ZodError ? "REQUEST_INVALID" : "UPSTREAM_UNAVAILABLE";

@@ -1,5 +1,15 @@
 # OS PLUS Project Summary
 
+## Shopify tenant linking — 8 November 2026
+
+Owners can approve their own Shopify store behind a production rollout gate.
+Credential lookup, scheduled work and signed order webhook destinations use the
+verified tenant/store binding. A pilot selector keeps wider onboarding closed.
+The cutover command preserves Test history and reserves a fresh Phantom binding
+atomically. The read-only check found 15 Test source orders, no queued or leased
+jobs and no recorded redaction requests. Production awaits release and cutover.
+[Rollout and pilot steps](docs/49_Shopify_Tenant_Linking_Rollout.md).
+
 ## Shopify deployment checks 21 October 2026
 
 Owner reports the OAuth SQL, Shopify callback version and two Vercel encryption

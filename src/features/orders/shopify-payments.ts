@@ -6,11 +6,14 @@ import { readShopifyCommercialPayment } from "@/integrations/shopify/commercial-
 import { canonicalShopDomain } from "@/integrations/shopify/config";
 import { resolveShopifyTenantEnvironment } from "@/integrations/shopify/tenant-credentials";
 
+import { shopifyTenantEligible } from "@/integrations/shopify/tenant-rollout";
+
 export async function getShopifyPaymentDisplay(db: SupabaseClient<Database>, tenantId: string, actorId: string,
   orderId: string, env: NodeJS.ProcessEnv = process.env): Promise<ShopifyPaymentDisplay> {
   try {
-    if (env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED === "true" && tenantId === env.SHOPIFY_CONNECTION_TEST_TENANT_ID) {
+    if (env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED === "true" && shopifyTenantEligible(tenantId, env)) {
       env=await resolveShopifyTenantEnvironment(db,tenantId,actorId,AbortSignal.timeout(4000),env);
+      if (!env.SHOPIFY_SHOP_DOMAIN) return { availability: "unavailable" };
       const retained = await db.rpc("read_shopify_retained_payment", {
         p_tenant_id: tenantId, p_actor_id: actorId, p_order_id: orderId,
         p_domain: canonicalShopDomain(env.SHOPIFY_SHOP_DOMAIN ?? ""), p_app_ref: env.SHOPIFY_CLIENT_ID ?? "",

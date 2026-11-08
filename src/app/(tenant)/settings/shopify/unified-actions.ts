@@ -24,14 +24,15 @@ export async function shopifyUnifiedAction(_previous:UnifiedActionState,form:For
     const messages:Record<string,string>={
       REQUEST_INVALID:"Choose valid dates: up to 31 days, ending no later than today (India time).",
       ORDER_HISTORY_SCOPE_REQUIRED:"Shopify has not granted access to orders older than 60 days. Choose a recent range or ask the store administrator to grant history access.",
-      ACCESS_DENIED:"The verified Test connection and active owner access are required. No production tenant is enabled.",
+      ACCESS_DENIED:"This action requires a verified store and an active Owner/Admin for this business.",
       AUTHENTICATION_REQUIRED:"Sign in to OS Plus to continue. If already signed in, reauthorize Shopify under Connect your store, then retry.",
       STALE_REVISION:"This preview expired or the connection changed. Preview the date range again before importing.",
       IDEMPOTENCY_CONFLICT:"This request no longer matches the original action. Refresh and preview again; existing orders will not be duplicated.",
       WEBHOOK_SETUP_REQUIRED:"Automatic sync setup is not ready yet. Date-range imports remain available.",
-      CONNECTION_UNAVAILABLE:"An administrator needs to connect this Test tenant to the Shopify store first.",
+      CONNECTION_UNAVAILABLE:"Connect a Shopify store for this business before importing.",
+      REVIEW_REQUIRED:"A privacy request needs review before imports can be enabled.",
       MANUAL_CLEANUP_REQUIRED:"Confirm manual cleanup of temporary payloads after 24 hours before importing. Imported orders and customers will remain.",
-      CONFIGURATION_INVALID:"The Test import configuration is incomplete. Ask the administrator to check its credentials and import settings; n8n is not required for manual imports.",
+      CONFIGURATION_INVALID:"Shopify import configuration is incomplete. Ask the administrator to check the app and import settings.",
     };
     return {status:"error",message:messages[code]??"The result could not be confirmed. Retry the same action; duplicate protection remains active."};
   }

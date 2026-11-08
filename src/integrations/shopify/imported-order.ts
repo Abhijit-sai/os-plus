@@ -1,4 +1,5 @@
 import "server-only";
+import { shopifyTenantEligible } from "./tenant-rollout.ts";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { openShopifySource } from "./source-crypto.ts";
@@ -79,6 +80,6 @@ export function projectImportedShopifyOrderSafely(input: unknown, expectedTenant
 
 export function importedShopifyOrdersVisible(tenantId: string, role: string, env: NodeJS.ProcessEnv = process.env) {
   return env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED === "true" &&
-    id.safeParse(tenantId).success && tenantId === env.SHOPIFY_CONNECTION_TEST_TENANT_ID &&
+    shopifyTenantEligible(tenantId, env) &&
     (role === "owner_admin" || role === "manager");
 }
