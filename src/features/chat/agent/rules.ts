@@ -12,6 +12,7 @@ export const agentMessageSchema = z
     inputSource: z.enum(["typed", "voice"]).optional(),
     voicePending: z.boolean().optional(),
     originalContent: z.string().max(150000).nullable().optional(),
+    hasImage: z.boolean().optional(),
   })
   .strict();
 export type AgentMessage = z.infer<typeof agentMessageSchema>;

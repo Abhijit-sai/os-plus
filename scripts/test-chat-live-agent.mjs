@@ -79,6 +79,83 @@ const autoModel = (fact) => ({
 const autoRun = (req, fact = null) => runAgentTurn(req, autoModel(fact));
 const fallbackHandoff = "I’ll pass this to our team. They’ll check the details and reply here.";
 
+function phantomConversation() {
+  const req = autoRequest("");
+  const tenantId = "7be40f50-94a0-46c5-af57-7eea5e36ea8a";
+  req.scope = { ...req.scope, tenantId };
+  req.data.tenantId = tenantId;
+  req.data.pack.tenantId = tenantId;
+  req.data.pack.body.handoffTopics = ["custom", "shirt"];
+  req.data.pack.body.hours = { default: "We are open every day, 10 AM to 7 PM." };
+  req.data.messages = [];
+  let previous;
+  let nextId = 20;
+  return async (content, hasImage = false) => {
+    const add = (author, text, photo) => {
+      const providerId = nextId++;
+      const message = {
+        id: id(providerId), tenantId, conversationId: req.scope.conversationId,
+        providerId, author, private: false, content: text, hasImage: photo,
+        at: new Date(Date.parse("2026-11-07T16:00:00Z") + providerId * 1000).toISOString(),
+      };
+      req.data.messages.push(message);
+      return message;
+    };
+    if (previous?.replyText) add("bot", previous.replyText, false);
+    if (previous) req.data.ledger = previous.ledger;
+    const current = add("customer", content, hasImage);
+    req.now = current.at;
+    req.scope.triggerMessageId = req.data.triggerMessageId = current.id;
+    previous = await runAgentTurn(req, {
+      kind: "live", complete() { throw Error("Phantom conversation should use grounded replies"); },
+    });
+    return previous;
+  };
+}
+
+test("Phantom WhatsApp keeps discovery open and sends an existing product to checkout", async () => {
+  const chat = phantomConversation();
+  assert.match((await chat("Hi")).replyText, /Hi/i);
+  const browse = await chat("I want a shirt");
+  assert.match(browse.replyText, /collections\/black-outfits/);
+  assert.equal(browse.decision.handoff, false);
+  const product = await chat("https://phantomthreads.in/products/a-shirt?utm_source=message");
+  assert.match(product.replyText, /choose a standard size and order here/);
+  assert.match(product.replyText, /phantomthreads.in\/products\/a-shirt$/);
+  assert.equal(product.decision.handoff, false);
+});
+
+test("Phantom WhatsApp accepts a photo, resumes after a pause, and hands off a complete brief", async () => {
+  const chat = phantomConversation();
+  assert.match((await chat("I’d like a custom shirt")).replyText, /photo or link/);
+  assert.match((await chat("I’ll send the photo tomorrow")).replyText, /whenever you’re ready/);
+  assert.equal((await chat("OK")).replyText, null);
+  assert.match((await chat(null, true)).replyText, /date you need it by/);
+  assert.match((await chat("20 November")).replyText, /size or fit/);
+  const handoff = await chat("Relaxed fit");
+  assert.match(handoff.replyText, /design team.*tomorrow during working hours/);
+  assert.equal(handoff.decision.staffAlert, true);
+  assert.deepEqual(handoff.decision.phantomRequest, {
+    category: "design", garment: "shirt", reference: "photo",
+    deadline: "20 November", fit: "Relaxed fit",
+  });
+  assert.equal((await chat("Relaxed fit")).decision.handoff, undefined);
+  const revised = await chat("Could I have it by tomorrow?");
+  assert.equal(revised.decision.phantomRequest.category, "delivery");
+  assert.equal(revised.decision.phantomRequest.deadline, "tomorrow");
+});
+
+test("Phantom WhatsApp routes urgent dates, human requests and payment claims", async () => {
+  const urgent = await phantomConversation()("I want pants. Can you deliver tomorrow?");
+  assert.equal(urgent.decision.phantomRequest.category, "delivery");
+  assert.doesNotMatch(urgent.replyText, /deliver tomorrow/);
+  const person = await phantomConversation()("I want to speak to a human about a custom shirt");
+  assert.equal(person.decision.handoff, true);
+  assert.equal(person.decision.phantomRequest, undefined);
+  const paid = await phantomConversation()("I already paid for my shirt");
+  assert.equal(paid.decision.phantomPaymentClaim, true);
+});
+
 test("each automatic reply can be overridden independently and validates customer text", async () => {
   const cases = [
     ["greeting", "Hello", `Hi! How can I help you with ${pack.brand.displayName} today?`, false, false],

@@ -8,6 +8,7 @@ import { automaticClarification, automaticErrorReply, automaticReplyContext, che
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { ledgerSchema } from "./ledger.ts";
 import { addUsd, usd } from "./budget.ts";
+import { usesPhantomWorkflow } from "../phantom-scope.ts";
 
 export type ModelStage = "understand" | "classify" | "write" | "rewrite";
 export interface AgentModel {
@@ -209,7 +210,8 @@ export async function runAgentTurn(
   try {
     if (automatic) {
       const { unanswered, facts } = automaticReplyContext(ctx);
-      const immediate = immediateAutomaticReply(ctx, unanswered, request.orderStatus);
+      const immediate = immediateAutomaticReply(ctx, unanswered, request.orderStatus, request.now);
+      if (immediate?.text === null) return result;
       const selection = immediate ? null : z.object({ fact: z.string().nullable() })
         .strict().parse(await call("write", { unanswered, facts })).fact;
       const grounded = immediate?.text ?? checkedAutomaticReply(facts, selection);
@@ -236,6 +238,9 @@ export async function runAgentTurn(
         mock: false,
       };
       if (immediate?.verifiedOrderStatus) result.decision.verifiedOrderStatus = immediate.verifiedOrderStatus;
+      if (immediate?.phantomRequest) result.decision.phantomRequest = immediate.phantomRequest;
+      if (immediate?.paymentClaim && usesPhantomWorkflow(ctx.scope.tenantId))
+        result.decision.phantomPaymentClaim = true;
       if (selection && grounded)
         result.provenance.push({ kind: "knowledge", version: ctx.packVersion, reference: selection });
       result.ledger.handoff ||= handoff;

@@ -292,6 +292,10 @@ export type ChatFunctions = {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;
   };
+  chat_phantom_notification_context: {
+    Args: { t: string; delivery: string; token: string };
+    Returns: Json;
+  };
   chat_supplemental_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

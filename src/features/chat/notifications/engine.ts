@@ -38,6 +38,15 @@ export async function notifyTenant(tenantId: string) {
           throw new Error("Notification processing unavailable.");
         return result.data;
       },
+      async loadPhantomContext(tenantId, claim) {
+        const result = await db.rpc("chat_phantom_notification_context", {
+          t: tenantId,
+          delivery: claim.id,
+          token: claim.token,
+        });
+        if (result.error) throw new Error("Phantom notification details unavailable.");
+        return result.data;
+      },
       send: (input) => transport.send(input),
     },
     process.env.CHAT_APP_ORIGIN ?? "",

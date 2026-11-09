@@ -1,6 +1,8 @@
 import type { AgentContext } from "./context.ts";
 import { customerTextSchema } from "../actions/customer-text.ts";
 import { hasPublicReply } from "./plan.ts";
+import { phantomSalesReply, type PhantomRequest } from "./phantom-sales.ts";
+import { usesPhantomWorkflow } from "../phantom-scope.ts";
 
 const greeting = /^(?:(?:hi+|hey+|hello|namaste|good (?:morning|afternoon|evening))(?: (?:there|sir|team))?(?:[.!?,\s]+(?:are you there|you there|anyone there))?|are you there|you there|anyone there)$/i;
 const greetingSuffix = /(?:[.!?,\s]|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[#*0-9]\ufe0f?\u20e3|[\u200d\ufe0f\u{e0020}-\u{e007f}])+$/u;
@@ -65,16 +67,18 @@ export function immediateAutomaticReply(
   ctx: AgentContext,
   unanswered: string[],
   orderStatus?: string,
-): { text: string; handoff: boolean; staffAlert?: boolean; verifiedOrderStatus?: string; once?: boolean } | null {
+  now?: string,
+): { text: string | null; handoff: boolean; staffAlert?: boolean; verifiedOrderStatus?: string; once?: boolean; phantomRequest?: PhantomRequest; paymentClaim?: boolean } | null {
   const { brand, replies } = ctx.pack;
   const inquiries = unanswered.filter((message) => !isGreeting(message, brand.localGreetings ?? []));
   if (unanswered.length > 0 && inquiries.length === 0)
     return { text: replies?.greeting ?? `Hi! How can I help you with ${brand.displayName} today?`, handoff: false };
   const text = inquiries.join("\n");
   const stockCheck = inquiries.some((message) => availability.test(message));
+  const phantom = ctx.channelKind === "whatsapp" && usesPhantomWorkflow(ctx.scope.tenantId);
   if (inquiries.some((message) => paymentClaim.test(message)))
     return { text: hasPublicReply(ctx, ctx.pack.locked.paymentClaimReply)
-      ? ctx.pack.locked.paymentClaimAgain : ctx.pack.locked.paymentClaimReply, handoff: true, staffAlert: true };
+      ? ctx.pack.locked.paymentClaimAgain : ctx.pack.locked.paymentClaimReply, handoff: true, staffAlert: true, paymentClaim: true };
   if (sensitiveRequest.test(text))
     return { text: replies?.needsPerson ?? automaticHandoffReply, handoff: true, staffAlert: true };
   if (paymentDetails.test(text))
@@ -99,21 +103,32 @@ export function immediateAutomaticReply(
         handoff: false,
       };
   }
+  const handoffTopic = ctx.pack.handoffTopics.some((topic) =>
+    !["order status", "stock availability"].includes(topic.toLowerCase()) &&
+    text.toLowerCase().includes(topic.toLowerCase()),
+  );
+  if (savedSizing.test(text) && (phantom || !stockCheck))
+    return {
+      text: replies?.handoffTopic ?? "I’ll ask our team to check your sizing details. They’ll follow up with you here.",
+      handoff: true,
+    };
+  if (phantom && inquiries.length === 1 && visiting.test(text))
+    return { text: ctx.pack.hours.default, handoff: false };
+  const operationalPolicy = handoffTopic && /\b(?:free shipping|shipping charge|delivery charge|cash on delivery|wash(?:ing)?|dry clean|wrong size|discount|bulk order|wholesale)\b/i.test(text);
+  const sales = phantom && now && !operationalPolicy ? phantomSalesReply(ctx, now) : null;
+  if (sales) return {
+    text: sales.text,
+    handoff: !!sales.request,
+    staffAlert: !!sales.request,
+    once: true,
+    phantomRequest: sales.request,
+  };
   if (stockCheck)
     return {
       text: replies?.availability ?? defaultAvailabilityReply,
       handoff: true,
       staffAlert: true,
     };
-  if (savedSizing.test(text))
-    return {
-      text: replies?.handoffTopic ?? "I’ll ask our team to check your sizing details. They’ll follow up with you here.",
-      handoff: true,
-    };
-  const handoffTopic = ctx.pack.handoffTopics.some((topic) =>
-    !["order status", "stock availability"].includes(topic.toLowerCase()) &&
-    text.toLowerCase().includes(topic.toLowerCase()),
-  );
   if (handoffTopic)
     return { text: replies?.handoffTopic ?? automaticHandoffReply, handoff: true };
   if (deliveryTiming.test(text))
