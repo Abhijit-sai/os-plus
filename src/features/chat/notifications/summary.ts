@@ -133,9 +133,10 @@ function lines(m: z.infer<typeof metricsSchema>): string[] {
         : ""),
   ];
 }
-export function formatDailySummary(raw: unknown, appOrigin: string): string {
+export function formatDailySummary(raw: unknown, appOrigin: string, phantom?: unknown): string {
   const data = summarySchema.parse(raw),
     link = origin(appOrigin) + "/leads/performance";
+  if (phantom !== undefined) return formatPhantomDigest(data, appOrigin, phantom);
   const header = [
     "Daily enquiries — " + data.localDate + " (" + safe(data.timezone) + ")",
     "Window: " + data.windowStart + " → " + data.windowEnd,
@@ -173,9 +174,12 @@ const titles = {
   agent_failure: "Reply assistance needs attention",
   new_lead: "New enquiry",
 };
-export function formatInstantAlert(raw: unknown, appOrigin: string): string {
+export function formatInstantAlert(raw: unknown, appOrigin: string, phantom?: unknown): string {
   const data = alertSchema.parse(raw),
     base = origin(appOrigin);
+  const context = phantomAlert.safeParse(phantom);
+  if (context.success && data.leadId)
+    return formatPhantomAlert(data.kind, data.leadId, base, context.data);
   return (
     titles[data.kind] +
     "\n" +
@@ -184,4 +188,120 @@ export function formatInstantAlert(raw: unknown, appOrigin: string): string {
     base +
     (data.leadId ? "/leads/" + data.leadId : "/leads")
   );
+}
+
+const briefSchema = z.object({
+  category: z.enum(["design", "delivery", "availability"]),
+  garment: z.enum(["shirt", "pants", "kurta", "hand-painted", "clothing"]),
+  reference: z.enum(["photo", "product", "link", "description"]).nullable(),
+  deadline: z.string().max(40).nullable(),
+  fit: z.string().max(40).nullable(),
+}).strict();
+const phantomAlert = z.object({
+  customer: z.string().nullable(),
+  at: z.string().datetime({ offset: true }),
+  reason: z.string().nullable(),
+  request: briefSchema.nullable(),
+  failure: z.boolean(),
+  photo: z.boolean(),
+  excerpt: z.string().nullable(),
+}).strict();
+const workSchema = z.array(z.object({
+  leadId: z.string().uuid(),
+  customer: z.string().nullable(),
+  action: z.enum(["staff", "reply"]),
+  lastCustomerAt: z.string().datetime({ offset: true }),
+  request: briefSchema.nullable(),
+  priority: z.number().int(),
+}).strict()).max(5);
+const labels = {
+  design: "🎨 Designer review",
+  delivery: "🚚 Delivery or pickup request",
+  availability: "👕 Product or size check",
+};
+const actions = {
+  design: "Review the reference and confirm what can be made.",
+  delivery: "Check whether the requested timing is possible.",
+  availability: "Check the product and size, then share the next step.",
+};
+const referenceLabels = {
+  photo: "Photo in chat",
+  product: "Product link in chat",
+  link: "Reference link in chat",
+  description: "Design described in chat",
+};
+const formatTime = (iso: string, timezone = "Asia/Kolkata") =>
+  new Intl.DateTimeFormat("en-IN", {
+    timeZone: timezone, hour: "numeric", minute: "2-digit", hour12: true,
+  }).format(new Date(iso));
+const protectedText = (value: string, limit: number) =>
+  Array.from(safe(value)
+    .replace(/(?:https?:\/\/|www\.)\S+/gi, "[link in chat]")
+    .replace(/[^\s@]+@[^\s@]+/g, "[contact detail]")
+    .replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, "[number in chat]"))
+    .slice(0, limit).join("");
+const leadName = (name: string | null) => name ? protectedText(name, 65) : "Customer";
+const briefDetails = (brief: z.infer<typeof briefSchema>) => [
+  brief.garment === "hand-painted" ? "Hand-painted piece" : brief.garment,
+  brief.reference && referenceLabels[brief.reference],
+  brief.fit && protectedText(brief.fit, 40),
+  brief.deadline && "Needed by " + protectedText(brief.deadline, 40),
+].filter(Boolean).join(" · ");
+
+function formatPhantomAlert(
+  kind: z.infer<typeof alertSchema>["kind"],
+  leadId: string,
+  base: string,
+  context: z.infer<typeof phantomAlert>,
+) {
+  const excerpt = context.excerpt ? protectedText(context.excerpt, 220) : "";
+  const payment = kind === "payment_claim" || context.reason === "dues" || context.reason === "payment_claim" ||
+    /\b(?:paid|payment|upi|utr|bank|card number)\b/i.test(excerpt);
+  const failure = kind === "agent_failure" || context.failure;
+  const status = /\b(?:order status|order update|my (?:order|parcel|package)|track|is .+ ready)\b/i.test(excerpt);
+  const logistics = /\b(?:pick[ -]?up|collect|deliver(?:y|ed)?|ship(?:ping|ped)?)\b/i.test(excerpt);
+  const brief = context.request;
+  const [title, next] = failure ? ["⚠️ Reply needs attention", "Read the last message and reply to the customer."]
+    : payment ? ["🧾 Payment needs verification", "Check the payment record before replying."]
+    : brief ? [labels[brief.category], actions[brief.category]]
+    : status ? ["📦 Order status check", "Look up the order and send the customer an update."]
+    : logistics ? [labels.delivery, actions.delivery]
+    : kind === "booking_request" ? ["📌 Request to confirm", "Check the request details and reply."]
+    : ["🙋 Staff reply needed", "Read the enquiry and reply to the customer."];
+  return [
+    title, leadName(context.customer),
+    brief && briefDetails(brief),
+    !payment && (excerpt ? `“${excerpt}”` : context.photo ? "Photo attached in chat." : null),
+    "", `Next step · ${next}`, "", `Open conversation → ${base}/leads/${leadId}`,
+    `${formatTime(context.at)} IST`,
+  ].filter((line) => line !== null && line !== false).join("\n");
+}
+
+function formatPhantomDigest(data: DailySummary, appOrigin: string, raw: unknown) {
+  const base = origin(appOrigin), metrics = data.totals;
+  const work = workSchema.safeParse(raw);
+  const localDay = new Intl.DateTimeFormat("en-IN", {
+    timeZone: data.timezone, weekday: "short", day: "numeric", month: "short",
+  }).format(new Date(data.windowEnd));
+  const cutoff = formatTime(data.windowEnd, data.timezone);
+  const seconds = metrics.medianReplySeconds;
+  const speed = seconds === null ? "" : seconds < 60
+    ? ` · typical first reply ${Math.round(seconds)}s`
+    : ` · typical first reply ${Math.round(seconds / 60)} min`;
+  return [
+    `📊 Phantom Threads · ${localDay} (through ${cutoff})`,
+    "",
+    ...(work.success && work.data.length ? ["Needs attention now", ...work.data.flatMap((row) => [
+      `• ${leadName(row.customer)} · ${row.request ? briefDetails(row.request) :
+        row.action === "staff" ? "Staff follow-up pending" : "Waiting for a reply"}`,
+      `  Open → ${base}/leads/${row.leadId}`,
+    ]), ""] : work.success ? ["No open follow-ups or waiting replies.", ""] : []),
+    metrics.chats === 0 ? "No chats in this reporting window." :
+      `💬 ${metrics.chats} chats · ${metrics.customerMessages} customer messages · ${metrics.newLeads} new enquiries`,
+    `🤖 ${metrics.botReplies} bot replies · ${metrics.staffReplies} staff replies${speed}`,
+    `🙋 ${metrics.handoffs} handed to staff · ${metrics.unansweredChats} first enquiries without a reply`,
+    ...(metrics.errors ? [`⚠️ ${metrics.errors} reply errors or fallbacks`] : []),
+    "",
+    `Open reports → ${base}/leads/performance`,
+  ].join("\n");
 }

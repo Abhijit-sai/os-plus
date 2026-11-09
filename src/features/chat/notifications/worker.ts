@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { decryptChatSecret } from "../secrets.ts";
+import { usesPhantomWorkflow } from "../phantom-scope.ts";
 import {
   formatDailySummary,
   formatInstantAlert,
@@ -20,6 +21,7 @@ export type NotificationDependencies = {
     input: Record<string, string | number | boolean | null>,
   ): Promise<unknown>;
   send(input: { chatId: string; text: string }): Promise<{ messageId: number }>;
+  loadPhantomContext?(tenantId: string, claim: { id: string; token: string }): Promise<unknown>;
 };
 const claimSchema = z
   .object({
@@ -78,10 +80,13 @@ export async function runNotificationBatch(
           }),
         ),
       );
+      const phantom = usesPhantomWorkflow(tenantId)
+        ? await deps.loadPhantomContext?.(tenantId, identity).catch(() => null)
+        : undefined;
       const text =
         claim.kind === "daily_summary"
-          ? formatDailySummary(claim.payload, appOrigin)
-          : formatInstantAlert(claim.payload, appOrigin);
+          ? formatDailySummary(claim.payload, appOrigin, phantom)
+          : formatInstantAlert(claim.payload, appOrigin, phantom);
       const authorized = z
         .object({ allowed: z.boolean() })
         .strict()
