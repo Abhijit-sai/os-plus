@@ -7,6 +7,10 @@ const configSchema = z
     provider: identifier,
     system: z.string().min(1).max(100000),
     user: z.string().min(1).max(140000),
+    history: z.array(z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1).max(100000),
+    }).strict()).max(40).optional(),
     maxTokens: z.number().int().min(1).max(8192),
     timeoutMs: z.number().int().min(100).max(30000),
     maxPrice: z
@@ -125,6 +129,7 @@ export class OpenRouterClient {
           model: input.model,
           messages: [
             { role: "system", content: input.system },
+            ...(input.history ?? []),
             { role: "user", content: input.user },
           ],
           stream: false,
