@@ -32,6 +32,7 @@ const isChatMaintenance = (request: Request) =>
     "/api/chat/cron/stages",
     "/api/chat/cron/hourly",
     "/api/chat/webhooks/telegram",
+    "/api/chat/phantom/grammar",
   ].includes(new URL(request.url).pathname);
 
 // Only the GET fallback shell is public; panel POST/actions and all lead reads remain authenticated.
