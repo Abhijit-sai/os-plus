@@ -45,6 +45,7 @@ const navItems: Array<{
   external?: boolean;
   permission: Permission;
   vertical?: TenantVerticalKey;
+  ownerOnly?: boolean;
 }> = [
   {
     href: "/dashboard",
@@ -121,6 +122,14 @@ const navItems: Array<{
     permission: "reports:view",
   },
   {
+    href: "/onboarding",
+    label: "Complete your onboarding",
+    icon: ListChecks,
+    permission: "settings:manage",
+    vertical: "boutique",
+    ownerOnly: true,
+  },
+  {
     href: "/settings",
     label: "Settings",
     icon: Settings,
@@ -151,6 +160,7 @@ export function AppShell({
 }) {
   const platformItems = navItems.filter((item) =>
     hasPermission(context.membership.role, item.permission) &&
+    (!item.ownerOnly || context.membership.role === "owner_admin") &&
     (!item.vertical || verticalKeys.includes(item.vertical)),
   );
   const chatItems = [
@@ -228,7 +238,7 @@ export function AppShell({
               )}
             </button>
           </div>
-          <nav className="flex-1 space-y-1 p-3">
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
             {visibleNavItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);

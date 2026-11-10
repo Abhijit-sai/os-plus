@@ -1149,6 +1149,17 @@ type TenantRelationship = {
 export type Database = {
   public: {
     Tables: ShopifyIntakeTables & ChatTables & {
+      boutique_onboarding: {
+        Row: {
+          tenant_id: string;
+          profile: { businessType: string; description: string; hours: { days: string[]; opens: string; closes: string } | null } | null;
+          last_step: string | null;
+          updated_by: string;
+        };
+        Insert: { tenant_id: string; last_step?: string; updated_by: string };
+        Update: { last_step?: string; updated_by?: string };
+        Relationships: [];
+      };
       tenants: {
         Row: Tenant;
         Insert: Omit<Tenant, "id" | "created_at" | "updated_at"> & {
@@ -2370,6 +2381,14 @@ export type Database = {
       shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
     };
     Functions: ShopifyIntakeFunctions & ChatFunctions & {
+      save_boutique_onboarding_profile: {
+        Args: { p_tenant_id: string; p_store_name: string; p_profile: Json; p_actor_id: string };
+        Returns: undefined;
+      };
+      create_boutique_onboarding_workflow: {
+        Args: { p_tenant_id: string; p_item_type_id: string; p_name: string; p_is_default: boolean; p_rows: Json; p_actor_id: string };
+        Returns: string;
+      };
       list_shopify_commercial_orders: {
         Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string;
           p_search?: string | null; p_source?: string | null; p_status?: string | null; p_payment?: string | null;

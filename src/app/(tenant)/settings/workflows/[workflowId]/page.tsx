@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { WorkflowSequenceFields } from "@/components/settings/workflow-sequence-fields";
 import { notFound } from "next/navigation";
 
 import { deleteWorkflowAction, replaceWorkflowStagesAction, updateWorkflowAction } from "@/features/workflows/actions";
@@ -9,11 +11,14 @@ import { AutoCloseActionDialog } from "@/components/ui/auto-close-action-dialog"
 import { Input } from "@/components/ui/input";
 
 export default async function WorkflowDetailPage({
-  params
+  params,
+  searchParams,
 }: {
   params: Promise<{ workflowId: string }>;
+  searchParams: Promise<{ onboarding?: string }>;
 }) {
-  const { workflowId } = await params;
+  const [{ workflowId }, { onboarding }] = await Promise.all([params, searchParams]);
+  const returnToOnboarding = typeof onboarding === "string" && /^[a-f0-9-]{36}$/i.test(onboarding);
   const { workflow, workflowStages, stages, customerStatuses, itemTypes } = await getWorkflowDetailPageData(workflowId);
 
   if (!workflow) {
@@ -25,6 +30,7 @@ export default async function WorkflowDetailPage({
 
   return (
     <div className="space-y-6">
+      {returnToOnboarding ? <Button asChild variant="outline"><Link href={`/onboarding?step=flows&garment=${onboarding}`}>Back to onboarding</Link></Button> : null}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">{workflow.name}</h2>
@@ -67,44 +73,14 @@ export default async function WorkflowDetailPage({
           {!workflowStages.length ? <p className="text-sm text-muted-foreground">No stages configured.</p> : null}
         </CardContent>
       </Card>
-      <AutoCloseActionDialog action={replaceWorkflowStagesAction} title="Edit stage sequence" description="Use this to fix a workflow created in the wrong order. Empty steps are ignored." className="max-w-3xl" trigger={<span className="inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium">Edit stage sequence</span>}>
+      <AutoCloseActionDialog action={replaceWorkflowStagesAction} title="Edit stage sequence" description="Drag stages or use the arrow buttons. Customer statuses move with their stages." className="max-w-3xl" trigger={<span className="inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium">Edit stage sequence</span>}>
             <input type="hidden" name="workflowId" value={workflow.id} />
-            <div className="space-y-3">
-              {Array.from({ length: Math.max(stages.length, workflowStages.length, 1) }).map((_, index) => {
-                const existingStage = workflowStages[index];
-                return (
-                  <div key={index} className="grid gap-3 rounded-md border p-3 lg:grid-cols-[90px_1fr_1fr] lg:items-center">
-                    <Label htmlFor={`edit-stage-${index + 1}`}>Step {index + 1}</Label>
-                    <select
-                      id={`edit-stage-${index + 1}`}
-                      name={`stageId_${index + 1}`}
-                      defaultValue={existingStage?.stage_master_id ?? ""}
-                      className="h-10 rounded-md border bg-background px-3 text-sm"
-                      required={index === 0}
-                    >
-                      <option value="">Skip this step</option>
-                      {stages.map((stage) => (
-                        <option key={stage.id} value={stage.id}>
-                          {stage.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      name={`customerStatusId_${index + 1}`}
-                      defaultValue={existingStage?.customer_status_id ?? ""}
-                      className="h-10 rounded-md border bg-background px-3 text-sm"
-                    >
-                      <option value="">No customer status</option>
-                      {customerStatuses.map((status) => (
-                        <option key={status.id} value={status.id}>
-                          {status.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
+            <WorkflowSequenceFields
+              key={workflowStages.map((stage) => [stage.id, stage.stage_master_id, stage.customer_status_id].join(":")).join(",")}
+              initialRows={workflowStages.map((stage) => ({ key: stage.id, stageId: stage.stage_master_id, customerStatusId: stage.customer_status_id ?? "" }))}
+              stages={stages}
+              statuses={customerStatuses}
+            />
             <Button type="submit">Save sequence</Button>
           </AutoCloseActionDialog>
     </div>
