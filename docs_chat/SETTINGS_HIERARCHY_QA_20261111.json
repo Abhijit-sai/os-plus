@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-11",
+  "repository": "Abhijit-sai/os-plus",
+  "releaseBase": "b6c29b69b778be3614d511038eb7150ec0be57d3",
+  "scope": "Settings hierarchy only; production delivery acceptance remains owner-run.",
+  "checks": {
+    "typescript": "passed",
+    "scopedEslint": "passed",
+    "whitespace": "passed",
+    "clientServerBoundary": "passed",
+    "chatPageAuthorization": "3 passed",
+    "browser": {
+      "passed": true,
+      "browser": "Installed Google Chrome",
+      "desktopWidth": 1440,
+      "mobileWidth": 390,
+      "fictionalData": true,
+      "simulatedActions": true,
+      "errors": [],
+      "checks": [
+        "Account summaries and collapsed defaults",
+        "Keyboard disclosure",
+        "Draft preservation across collapse",
+        "Scoped notification saves",
+        "New recipient link preparation",
+        "Confirmation gates activation",
+        "Setup-test feedback",
+        "Per-channel reply controls",
+        "Desktop and mobile layout"
+      ]
+    }
+  },
+  "components": {
+    "src/components/chat/notification-settings.tsx": {
+      "sha256": "ffb1330b8ada76160534ab494a1a340c8b9a857846dfaa30e3012021737bb0a4"
+    },
+    "src/components/chat/action-settings.tsx": {
+      "sha256": "4fb9ef922ab840a1e27e453936dcf4552c5437b036c69f947b451089f561a573"
+    },
+    "src/components/settings/settings-disclosure.tsx": {
+      "sha256": "66fb094f42b7b5b96255a19c63807b05741b1d9c5ea51204ef24529a6cf9537d"
+    }
+  },
+  "limits": [
+    "Fictional browser data and simulated actions",
+    "No full-app audit",
+    "Hosted staging waived earlier; not passed",
+    "No new provider send or settings mutation for deployment verification"
+  ]
+}

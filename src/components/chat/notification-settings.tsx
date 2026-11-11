@@ -15,7 +15,8 @@ import {
 import { createConfirmedCommand } from "@/features/leads/confirmed-command";
 import { useHydrated } from "./use-hydrated";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsDisclosure } from "@/components/settings/settings-disclosure";
+import { CheckCircle2, CircleAlert, RefreshCw } from "lucide-react";
 import { fieldClass } from "@/components/leads/workspace";
 type Feedback = {
   ok: boolean;
@@ -23,6 +24,7 @@ type Feedback = {
   code?: string | null;
   version?: number | null;
   expiresAt?: string | null;
+  uncertain?: boolean;
 };
 const eventLabels = {
   booking_request: "New provisional request",
@@ -65,88 +67,210 @@ export function ChatNotificationSettings({
 }: {
   data: NotificationSettings;
 }) {
-  const router = useRouter(),
-    [message, setMessage] = useState("");
+  const router = useRouter();
+  const [scheduleFeedback, setScheduleFeedback] = useState<Feedback | null>(
+    null,
+  );
+  const [createFeedback, setCreateFeedback] = useState<Feedback | null>(null);
+  const active = data.targets.filter((target) => target.active).length;
+  const needsAttention = data.targets.filter(
+    (target) => !target.linked || !target.confirmed,
+  ).length;
+  const latest = data.deliveries[0];
+  const pendingDeliveries = data.deliveries.filter(
+    (delivery) =>
+      delivery.status === "queued" ||
+      delivery.status === "sending" ||
+      delivery.status === "uncertain",
+  ).length;
+
   return (
     <NotificationTenant.Provider value={data.tenantId}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Telegram notifications</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Owner reports and staff alerts. Chatwoot remains the place to reply
-            to customers.
+      <div className="space-y-7">
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-xl font-semibold tracking-tight">
+              Telegram notifications
+            </h3>
+            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+              {data.deliveryEnabled && data.settings.enabled
+                ? "Delivery enabled"
+                : "Delivery paused"}
+            </span>
+          </div>
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Choose who receives business alerts and daily owner reports.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!data.deliveryEnabled ? (
-            <p role="status" className="text-sm">
-              Delivery is paused on this installation. You can prepare settings
-              and preview reports.
-            </p>
-          ) : null}
+        </header>
+
+        {!data.deliveryEnabled ? (
+          <p
+            role="status"
+            className="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm"
+          >
+            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            Delivery is paused on this installation. You can still prepare
+            destinations and preview reports.
+          </p>
+        ) : null}
+
+        <SettingsDisclosure
+          title="Delivery schedule"
+          description={
+            data.settings.enabled
+              ? "Daily report at " +
+                data.settings.localTime +
+                " · " +
+                data.settings.timezone
+              : "Business notifications are paused"
+          }
+          status={data.settings.enabled ? "On" : "Off"}
+          defaultOpen={!data.settings.enabled}
+        >
           <Schedule
             key={data.settings.version}
             settings={data.settings}
-            onResult={(r) => setMessage(r.message)}
+            onResult={setScheduleFeedback}
           />
-          {message ? (
-            <p role="status" className="text-sm">
-              {message}
-            </p>
-          ) : null}
-          <CreateTarget onResult={(r) => setMessage(r.message)} />
-          {!data.targets.length ? (
-            <p className="text-sm text-muted-foreground">
-              No destinations yet. Add a label, link the destination, then
-              confirm which alerts it may receive.
-            </p>
-          ) : null}
+          <SaveFeedback feedback={scheduleFeedback} />
+        </SettingsDisclosure>
+
+        <section aria-labelledby="telegram-destinations" className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h4 id="telegram-destinations" className="font-semibold">
+                Recipients
+              </h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {data.targets.length
+                  ? active +
+                    " enabled" +
+                    (needsAttention
+                      ? " · " + needsAttention + " need setup"
+                      : "")
+                  : "Connect a private Telegram account or a staff group."}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 gap-2"
+              onClick={() => router.refresh()}
+            >
+              <RefreshCw className="size-4" aria-hidden /> Refresh status
+            </Button>
+          </div>
+
           {data.targets.map((target) => (
-            <Target key={target.id} target={target} brands={data.brands} />
+            <Target
+              key={target.id}
+              target={target}
+              brands={data.brands}
+              deliveryEnabled={data.deliveryEnabled && data.settings.enabled}
+            />
           ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.refresh()}
+
+          <SettingsDisclosure
+            title="Add a recipient"
+            description="Connect another Telegram account or staff group."
+            defaultOpen={!data.targets.length}
           >
-            Refresh link and delivery status
-          </Button>
-          {data.deliveries.length ? (
-            <section className="space-y-2 border-t pt-5">
-              <h3 className="font-medium">Recent deliveries</h3>
-              <ul className="space-y-3 text-sm">
-                {data.deliveries.map((d) => (
+            <CreateTarget onResult={setCreateFeedback} />
+            <SaveFeedback feedback={createFeedback} />
+          </SettingsDisclosure>
+        </section>
+
+        <section
+          aria-label="Delivery history and report preview"
+          className="space-y-3 border-t pt-5"
+        >
+          <SettingsDisclosure
+            title="Delivery history"
+            description={
+              latest
+                ? latest.target +
+                  " · " +
+                  (latest.isSetupTest
+                    ? "Setup test"
+                    : eventLabels[latest.kind]) +
+                  " · " +
+                  deliveryLabels[latest.status]
+                : "Sent messages and pending delivery receipts appear here."
+            }
+            status={
+              pendingDeliveries ? pendingDeliveries + " to check" : undefined
+            }
+          >
+            {data.deliveries.length ? (
+              <ul className="divide-y">
+                {data.deliveries.map((delivery) => (
                   <li
-                    key={d.id}
-                    className="flex flex-col gap-1 sm:flex-row sm:justify-between"
+                    key={delivery.id}
+                    className="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0 last:pb-0"
                   >
-                    <span>
-                      {d.target} · {d.isSetupTest ? "Setup test" : eventLabels[d.kind]}
-                    </span>
-                    <span>
-                      {
-                        {
-                          queued: "Queued",
-                          sending: "Receipt pending",
-                          sent: "Sent and confirmed",
-                          uncertain: "Held — delivery unconfirmed",
-                          cancelled: "Cancelled",
-                        }[d.status]
-                      }
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-medium">
+                        {delivery.target}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {delivery.isSetupTest
+                          ? "Setup test"
+                          : eventLabels[delivery.kind]}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs">
+                      {deliveryLabels[delivery.status]}
                     </span>
                   </li>
                 ))}
               </ul>
+            ) : (
               <p className="text-sm text-muted-foreground">
-                Unconfirmed deliveries are held for review and are never
-                automatically resent.
+                No delivery receipts yet.
               </p>
-            </section>
-          ) : null}
-          <ReportPreview end={data.previewEnd} />
-        </CardContent>
-      </Card>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Unconfirmed deliveries are held for review and are never
+              automatically resent.
+            </p>
+          </SettingsDisclosure>
+          <SettingsDisclosure
+            title="Preview a daily report"
+            description="Review a reporting window before sending anything."
+          >
+            <ReportPreview end={data.previewEnd} />
+          </SettingsDisclosure>
+        </section>
+      </div>
     </NotificationTenant.Provider>
+  );
+}
+
+const deliveryLabels = {
+  queued: "Queued",
+  sending: "Receipt pending",
+  sent: "Sent and confirmed",
+  uncertain: "Held for review",
+  cancelled: "Cancelled",
+};
+
+function SaveFeedback({ feedback }: { feedback: Feedback | null }) {
+  if (!feedback?.message) return null;
+  return (
+    <div className="space-y-2">
+      <p role={feedback.ok ? "status" : "alert"} className="text-sm">
+        {feedback.message}
+      </p>
+      {feedback.uncertain ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => window.location.reload()}
+        >
+          Reload page to check saved changes
+        </Button>
+      ) : null}
+    </div>
   );
 }
 function Schedule({
@@ -278,157 +402,297 @@ type TargetData = NotificationSettings["targets"][number];
 function Target({
   target,
   brands,
+  deliveryEnabled,
 }: {
   target: TargetData;
   brands: NotificationSettings["brands"];
+  deliveryEnabled: boolean;
 }) {
-  const [feedback, setFeedback] = useState<Feedback | null>(null),
-    router = useRouter();
-  const setupTest = useSave(setFeedback);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const router = useRouter();
+  // The action revalidates this page. Keep feedback outside the versioned form.
+  const command = useSave(setFeedback);
   const code =
     feedback?.code && feedback.version === target.version
       ? feedback.code
       : null;
+  const state = !target.linked
+    ? "Link account"
+    : !target.confirmed
+      ? "Confirm account"
+      : target.active
+        ? "Enabled"
+        : "Paused";
+  const description = target.linked
+    ? (target.kind === "private" ? "Private account" : "Staff group") +
+      " ending " +
+      target.hint +
+      " · " +
+      target.events.length +
+      " alert types"
+    : "Waiting for a Telegram account to connect";
+  const testReady =
+    deliveryEnabled &&
+    target.active &&
+    target.confirmed &&
+    target.kind === "private" &&
+    target.events.includes("new_lead");
+
   return (
-    <section className="space-y-3 border-t pt-5">
-      <h3 className="font-medium">{target.label}</h3>
-      <p className="text-sm text-muted-foreground">
-        {target.linked
-          ? (target.kind === "private"
-              ? "Private destination"
-              : "Staff group") +
-            " ending " +
-            target.hint +
-            (target.active
-              ? " · Enabled"
-              : target.confirmed
-                ? " · Paused"
-                : " · Awaiting owner confirmation")
-          : "Not linked · Paused"}
-      </p>
+    <SettingsDisclosure
+      title={target.label}
+      description={description}
+      status={
+        <span className="inline-flex items-center gap-1.5">
+          {target.active ? (
+            <CheckCircle2 className="size-3.5" aria-hidden />
+          ) : null}
+          {state}
+        </span>
+      }
+      defaultOpen={!target.confirmed}
+    >
+      {!target.linked ? (
+        <section className="space-y-3" aria-label="Link this Telegram account">
+          <div>
+            <h5 className="text-sm font-semibold">Connect Telegram</h5>
+            <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+              Create a one-time command and ask the recipient to send it to the
+              bot from the account they want to connect.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={command.disabled}
+            onClick={() =>
+              command.save({
+                action: "issue",
+                input: { id: target.id, version: target.version },
+              })
+            }
+          >
+            {command.pending ? "Preparing…" : "Create link code"}
+          </Button>
+          {target.expiresAt && !code ? (
+            <p className="text-sm text-muted-foreground">
+              A link command is pending. Use the command you copied, or create a
+              replacement.
+            </p>
+          ) : null}
+          {code ? (
+            <div className="space-y-3 rounded-lg bg-muted/40 p-3">
+              <label className="grid gap-2 text-sm font-medium">
+                One-time Telegram link command
+                <textarea
+                  readOnly
+                  value={"/start " + code}
+                  className={fieldClass + " min-h-20 break-all"}
+                  aria-label="One-time Telegram link command"
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Expires{" "}
+                {feedback?.expiresAt
+                  ? new Date(feedback.expiresAt).toLocaleString()
+                  : "in 30 minutes"}
+                . Keep this command private.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText("/start " + code);
+                      setFeedback((value) =>
+                        value
+                          ? { ...value, message: "Link command copied." }
+                          : value,
+                      );
+                    } catch {
+                      setFeedback((value) =>
+                        value
+                          ? {
+                              ...value,
+                              message:
+                                "Select the command and copy it manually.",
+                            }
+                          : value,
+                      );
+                    }
+                  }}
+                >
+                  Copy link command
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => router.refresh()}
+                >
+                  Check for connection
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <TargetForm
         key={target.id + ":" + target.version}
         target={target}
         brands={brands}
-        onResult={setFeedback}
+        command={command}
       />
-      <div className="space-y-2">
-        <Button type="button" variant="outline" className="min-h-11"
-          disabled={setupTest.disabled || !target.active || !target.confirmed || target.kind !== "private" || !target.events.includes("new_lead")}
-          onClick={() => setupTest.save({ action: "test", input: { id: target.id, version: target.version } })}>
-          {setupTest.pending ? "Queuing test…" : "Send setup test"}
-        </Button>
-        <p className="text-xs text-muted-foreground">Sends a labelled setup alert to an enabled private destination. No customer or lead is created. One test per destination every 15 minutes; check its receipt before trying again.</p>
-      </div>
-      {code ? (
-        <div className="space-y-2">
-          <label className="block space-y-1 text-sm">
-            Send this command to the platform bot in the intended private chat
-            or staff group
-            <textarea
-              readOnly
-              value={"/start " + code}
-              className={fieldClass + " min-h-20 break-all"}
-              aria-label="One-time Telegram link command"
-            />
-          </label>
-          <p className="text-sm">
-            Expires{" "}
-            {feedback?.expiresAt
-              ? new Date(feedback.expiresAt).toLocaleString()
-              : "in 30 minutes"}
-            . Keep this code private. Linking alone does not enable delivery.
-          </p>
+
+      <SaveFeedback
+        feedback={
+          feedback && (!feedback.code || feedback.version === target.version)
+            ? feedback
+            : null
+        }
+      />
+
+      {target.linked ? (
+        <section className="space-y-3 border-t pt-4" aria-label="Test delivery">
+          <div>
+            <h5 className="text-sm font-semibold">Test delivery</h5>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {!deliveryEnabled
+                ? "Delivery is paused. Enable business notifications before sending a test."
+                : !target.confirmed
+                  ? "Confirm this account and save your settings first."
+                  : !target.active
+                    ? "Enable this recipient and save your settings first."
+                    : target.kind !== "private"
+                      ? "Setup tests are available for private accounts."
+                      : !target.events.includes("new_lead")
+                        ? "Select New enquiry and save your settings to enable the setup test."
+                        : "Send a labelled setup message to this recipient. One test is available every 15 minutes."}
+            </p>
+          </div>
           <Button
             type="button"
             variant="outline"
-            className="min-h-11"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText("/start " + code);
-                setFeedback((f) =>
-                  f ? { ...f, message: "Link command copied." } : f,
-                );
-              } catch {
-                setFeedback((f) =>
-                  f
-                    ? {
-                        ...f,
-                        message:
-                          "Copy was unavailable. Select the command and copy it manually.",
-                      }
-                    : f,
-                );
-              }
-            }}
+            disabled={command.disabled || !testReady}
+            onClick={() =>
+              command.save({
+                action: "test",
+                input: { id: target.id, version: target.version },
+              })
+            }
           >
-            Copy link command
+            {command.pending ? "Working…" : "Send setup test"}
           </Button>
-        </div>
+        </section>
       ) : null}
-      {feedback?.message &&
-      (!feedback.code || feedback.version === target.version) ? (
-        <p role="status" className="text-sm">
-          {feedback.message}
-        </p>
+
+      {target.linked ? (
+        <details className="border-t pt-3">
+          <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">
+            Reconnect this Telegram account
+          </summary>
+          <div className="space-y-3 pb-1">
+            <p className="max-w-prose text-sm text-muted-foreground">
+              A replacement command pauses this recipient’s alerts. The newly
+              connected account must be confirmed again.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={command.disabled}
+              onClick={() =>
+                command.save({
+                  action: "issue",
+                  input: { id: target.id, version: target.version },
+                })
+              }
+            >
+              Replace link and pause delivery
+            </Button>
+          </div>
+        </details>
       ) : null}
-      {target.expiresAt && !code && !target.linked ? (
-        <p className="text-sm">
-          A link code is pending. Use the command you already copied, or create
-          a replacement.
-        </p>
-      ) : null}
-      {target.linked && !target.confirmed ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={() => router.refresh()}
-        >
-          Refresh before confirming
-        </Button>
-      ) : null}
-    </section>
+    </SettingsDisclosure>
   );
 }
+
 function TargetForm({
   target,
   brands,
-  onResult,
+  command,
 }: {
   target: TargetData;
   brands: NotificationSettings["brands"];
-  onResult: (r: Feedback) => void;
+  command: ReturnType<typeof useSave>;
 }) {
-  const { disabled, pending, save } = useSave(onResult);
+  const [confirmed, setConfirmed] = useState(false);
   return (
     <form
       data-unsaved-guard="true"
       data-preserve-dirty-on-submit="true"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const element = e.currentTarget;
-        const f = new FormData(element);
-        save(
+      onSubmit={(event) => {
+        event.preventDefault();
+        const element = event.currentTarget;
+        const form = new FormData(element);
+        command.save(
           {
             action: "save",
             input: {
               id: target.id,
               version: target.version,
-              label: String(f.get("label")),
-              events: f.getAll("events"),
-              brandIds: f.getAll("brands"),
-              active: f.has("active"),
-              confirm: f.has("confirm"),
+              label: String(form.get("label")),
+              events: form.getAll("events"),
+              brandIds: form.getAll("brands"),
+              active: form.has("active"),
+              confirm: form.has("confirm"),
             },
           },
           element,
         );
       }}
     >
-      <fieldset disabled={disabled} aria-busy={pending} className="space-y-4">
-        <label className="block max-w-sm space-y-1 text-sm">
-          Label
+      <fieldset
+        disabled={command.disabled}
+        aria-busy={command.pending}
+        className="space-y-5"
+      >
+        {target.linked && !target.confirmed ? (
+          <section
+            className="space-y-3 rounded-lg border border-ring/20 bg-muted/40 p-4"
+            aria-label="Confirm the new recipient"
+          >
+            <div className="flex items-start gap-2">
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <div>
+                <h5 className="text-sm font-semibold">
+                  Confirm the new recipient
+                </h5>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Telegram connected a{" "}
+                  {target.kind === "private"
+                    ? "private account"
+                    : "staff group"}{" "}
+                  ending {target.hint}. Check that it belongs to the person you
+                  intend to notify.
+                </p>
+              </div>
+            </div>
+            <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                name="confirm"
+                className="mt-1 size-4 shrink-0"
+                checked={confirmed}
+                onChange={(event) => setConfirmed(event.target.checked)}
+              />
+              I checked this account and confirm it is the intended recipient.
+            </label>
+          </section>
+        ) : null}
+
+        <label className="grid max-w-md gap-2 text-sm font-medium">
+          Recipient label
           <input
             name="label"
             required
@@ -437,95 +701,91 @@ function TargetForm({
             className={fieldClass}
           />
         </label>
-        <fieldset className="grid gap-x-6 sm:grid-cols-2">
-          <legend className="mb-1 text-sm font-medium">Allowed events</legend>
-          {(Object.entries(eventLabels) as [Event, string][]).map(
-            ([event, label]) => (
-              <label
-                key={event}
-                className="flex min-h-11 items-center gap-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  name="events"
-                  value={event}
-                  defaultChecked={target.events.includes(event)}
-                  disabled={
-                    event === "daily_summary" && target.kind !== "private"
-                  }
-                />
-                {label}
-              </label>
-            ),
-          )}
+
+        <fieldset className="space-y-3 border-t pt-4">
+          <legend className="text-sm font-semibold">Alerts to send</legend>
+          <div className="grid gap-x-5 sm:grid-cols-2">
+            {(Object.entries(eventLabels) as [Event, string][]).map(
+              ([event, label]) => (
+                <label
+                  key={event}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 text-sm has-[:disabled]:cursor-default has-[:disabled]:text-muted-foreground"
+                >
+                  <input
+                    type="checkbox"
+                    name="events"
+                    value={event}
+                    defaultChecked={target.events.includes(event)}
+                    className="size-4"
+                    disabled={
+                      event === "daily_summary" && target.kind !== "private"
+                    }
+                  />
+                  {label}
+                </label>
+              ),
+            )}
+          </div>
+          <p className="max-w-prose text-xs text-muted-foreground">
+            Daily reports are available to private owner accounts. Group alerts
+            exclude customer messages, contact details, and financial amounts.
+          </p>
         </fieldset>
-        <p className="text-sm text-muted-foreground">
-          Daily reports require a private owner destination. Staff group alerts
-          contain no customer messages, contact details or financial amounts.
-        </p>
+
         {brands.length ? (
-          <fieldset className="grid gap-x-6 sm:grid-cols-2">
-            <legend className="mb-1 text-sm font-medium">
-              Brand filter — leave empty for all brands
-            </legend>
-            {brands.map((b) => (
-              <label
-                key={b.id}
-                className="flex min-h-11 items-center gap-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  name="brands"
-                  value={b.id}
-                  defaultChecked={target.brandIds.includes(b.id)}
-                />
-                {b.name}
-              </label>
-            ))}
+          <fieldset className="space-y-2 border-t pt-4">
+            <legend className="text-sm font-semibold">Brands to include</legend>
+            <p className="text-xs text-muted-foreground">
+              Leave all unchecked to include every brand.
+            </p>
+            <div className="flex flex-wrap gap-x-6">
+              {brands.map((brand) => (
+                <label
+                  key={brand.id}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    name="brands"
+                    value={brand.id}
+                    defaultChecked={target.brandIds.includes(brand.id)}
+                    className="size-4"
+                  />
+                  {brand.name}
+                </label>
+              ))}
+            </div>
           </fieldset>
         ) : null}
-        {target.linked && !target.confirmed ? (
-          <label className="flex min-h-11 items-start gap-2 text-sm">
-            <input type="checkbox" name="confirm" className="mt-1" />I checked
-            the destination type and ending above and confirm it is the intended
-            recipient.
+
+        <div className="space-y-2 border-t pt-4">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium has-[:disabled]:cursor-default has-[:disabled]:text-muted-foreground">
+            <input
+              type="checkbox"
+              name="active"
+              defaultChecked={target.active}
+              className="size-4"
+              disabled={!target.linked || (!target.confirmed && !confirmed)}
+            />
+            Enable selected events for this destination
           </label>
-        ) : null}
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="active"
-            defaultChecked={target.active}
-            disabled={!target.linked}
-          />
-          Enable selected events for this destination
-        </label>
-        <div className="flex flex-wrap gap-3">
+          {!target.linked ? (
+            <p className="text-xs text-muted-foreground">
+              Link Telegram above before enabling delivery.
+            </p>
+          ) : !target.confirmed && !confirmed ? (
+            <p className="text-xs text-muted-foreground">
+              Confirm the recipient above to enable alerts.
+            </p>
+          ) : null}
           <Button type="submit" className="min-h-11">
-            {pending ? "Saving…" : "Save destination"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11"
-            onClick={() =>
-              save({
-                action: "issue",
-                input: { id: target.id, version: target.version },
-              })
-            }
-          >
-            {target.linked
-              ? "Replace link and pause delivery"
-              : "Create link code"}
+            {command.pending
+              ? "Saving…"
+              : !target.confirmed && confirmed
+                ? "Confirm and save destination"
+                : "Save destination"}
           </Button>
         </div>
-        {target.linked ? (
-          <p className="text-sm text-muted-foreground">
-            Replacing the link immediately pauses delivery and requires fresh
-            confirmation.
-          </p>
-        ) : null}
       </fieldset>
     </form>
   );
@@ -541,8 +801,7 @@ function ReportPreview({ end }: { end: string }) {
     hydrated = useHydrated();
   const [now] = useState(() => new Date(end));
   return (
-    <section className="space-y-3 border-t pt-5">
-      <h3 className="font-medium">Preview an owner report</h3>
+    <section className="space-y-3">
       <form
         onSubmit={(e) => {
           e.preventDefault();

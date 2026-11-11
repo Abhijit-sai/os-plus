@@ -6,29 +6,31 @@ import { configureChatActionsAction } from "@/features/chat/actions/server-actio
 import { createConfirmedCommand } from "@/features/leads/confirmed-command";
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/leads/workspace";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsDisclosure } from "@/components/settings/settings-disclosure";
 export function ChatActionSettingsPanel({
   data,
 }: {
   data: ChatActionSettings;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Requests and reply approval</CardTitle>
+    <section className="space-y-4" aria-labelledby="reply-approval-heading">
+      <header className="space-y-2">
+        <h4 id="reply-approval-heading" className="text-lg font-semibold">
+          Requests and reply approval
+        </h4>
         <p className="text-sm text-muted-foreground">
           Enable requests after publishing booking knowledge. Automatic replies
           require your approval of the current knowledge version; operational
           bookings still need staff approval.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      </header>
+      <div className="space-y-3">
         {data.channels.map((channel) => (
           <ChannelSettings key={channel.id} channel={channel} data={data} />
         ))}
         {!data.channels.length ? <p>No active inboxes mapped.</p> : null}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
 type ChannelProps = {
@@ -38,7 +40,32 @@ type ChannelProps = {
 function ChannelSettings({ channel, data }: ChannelProps) {
   const [message, setMessage] = useState("");
   return (
-    <div className="space-y-3">
+    <SettingsDisclosure
+      title={channel.name}
+      description={
+        channel.kind +
+        " · " +
+        (channel.packVersion
+          ? "Published knowledge version " + channel.packVersion
+          : "Publish knowledge to finish setup")
+      }
+      status={
+        channel.mode === "auto" && !channel.automaticAvailable
+          ? "Automatic replies unavailable"
+          : channel.mode === "auto" && !channel.autoApproved
+            ? "Needs approval"
+            : channel.mode === "auto"
+              ? "Automatic replies"
+              : channel.mode === "draft"
+                ? "Staff-reviewed drafts"
+                : "Off"
+      }
+      defaultOpen={
+        !channel.packVersion ||
+        (channel.mode === "auto" &&
+          (!channel.autoApproved || !channel.automaticAvailable))
+      }
+    >
       <ChannelForm
         // Revalidation must discard edits/consent bound to an older settings or pack version.
         key={
@@ -53,7 +80,7 @@ function ChannelSettings({ channel, data }: ChannelProps) {
           {message}
         </p>
       ) : null}
-    </div>
+    </SettingsDisclosure>
   );
 }
 function ChannelForm({
@@ -73,7 +100,7 @@ function ChannelForm({
     <form
       data-unsaved-guard="true"
       data-preserve-dirty-on-submit="true"
-      className="space-y-3 border-b pb-5"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
         const element = event.currentTarget;
@@ -95,9 +122,6 @@ function ChannelForm({
         });
       }}
     >
-      <h3 className="font-medium">
-        {channel.name} · {channel.kind}
-      </h3>
       <p className="text-sm">
         {channel.packVersion
           ? "Published knowledge version " + channel.packVersion
@@ -107,7 +131,9 @@ function ChannelForm({
           : ""}
       </p>
       <p className="text-sm">
-        {channel.mode === "auto" && channel.automaticAvailable && channel.autoApproved
+        {channel.mode === "auto" &&
+        channel.automaticAvailable &&
+        channel.autoApproved
           ? "Automatic replies enabled for the approved knowledge version."
           : channel.mode === "draft"
             ? "Suggestions appear as private notes for your staff."
