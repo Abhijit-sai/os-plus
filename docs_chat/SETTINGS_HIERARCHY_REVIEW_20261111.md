@@ -1,6 +1,6 @@
 # Settings hierarchy review — 11 November 2026
 
-The Telegram recipient confirmation journey exposed a hierarchy problem: account setup, ordinary preferences, reconnect actions, delivery receipts and report previews appeared as one long form. This review implements a local correction to Notifications and Reply assistance. It is not a full application audit or a production release.
+The Telegram recipient confirmation journey exposed a hierarchy problem: account setup, ordinary preferences, reconnect actions, delivery receipts and report previews appeared as one long form. This review began as a local correction to Notifications and Reply assistance. The owner-approved production release is recorded below. It is not a full application audit.
 
 ## Implemented
 
@@ -35,3 +35,15 @@ TypeScript, scoped ESLint, whitespace validation, the client/server boundary con
 The isolated preview imports the actual changed components and AppShell, with fictional Studio Iris data and simulated server actions. It checks recipient disclosure, keyboard access, edit preservation, scoped saves, link-code preparation, confirmation gating, setup-test feedback and per-channel controls. This proves local rendering and interaction behavior; it does not prove production persistence or delivery. No provider calls, database changes, downloads or deployment are part of this UI pass. The real client's earlier successful Telegram receipt is separate evidence.
 
 Final browser run: PASS at desktop 1440px and mobile 390px, including expanded recipient and reply-approval panels; no horizontal overflow, page errors or console errors. See `outputs/settings-hierarchy-review/last-result.json` in the enclosing workspace and the accompanying screenshots. Earlier preview failures involved cold development-server startup and cached font URLs after changing the preview build directory. The final runner warms the preview first, waits for hydration and font readiness, and serves already-cached font files locally. No download was needed.
+
+
+## Approved production follow-up
+
+### 11 November 2026 IST — Production deployment receipt and current acceptance
+
+- Owner-approved PR [#31](https://github.com/Abhijit-sai/os-plus/pull/31) merged as `7080b7ab06a1b1becaf8f5b34dd8c4d58a731879`; reviewed source head `10dbefff7f88859f38c50cf85c3f33503600d3b6`. The exact candidate passed its Vercel Preview build before merge. Production environment deployment `7709993221` succeeded at [https://os-plus-h540cvofg-abhijit-ss-projects.vercel.app](https://os-plus-h540cvofg-abhijit-ss-projects.vercel.app). Public alias `https://os-plus.vercel.app` serves marker `dpl_3o4zxCJbxM85SkdFTEvbUKxpxAud`, matching that release's Vercel status. The prior runtime baseline `b6c29b69b778be3614d511038eb7150ec0be57d3` is retained as the UI rollback reference; no migration rollback is involved.
+- Read-only production check at `2026-11-11T12:24:53.143Z`: home/sign-in HTTP 200; unauthenticated settings request HTTP 404, consistent with the pre-release authorization boundary. All 13 checked JavaScript assets returned HTTP 200. The authenticated settings page was not exercised in this post-deployment check and its UI bundle was not exposed by the anonymous response; the owner will check it.
+- Both live Phantom Threads recipients remain linked, confirmed and active: original owner ending 9115 (version 6), owner client ending 8507 (version 4). Schedule remains 21:30 Asia/Kolkata (notification version 2); event selections and brand mappings match the pre-release snapshot exactly. Sanitized configuration SHA-256: `b4a92dc0342392f55b6caba85a906fce6246ab277a148a8c9a0ecd76d7ce128a`. No settings write, recipient relink, test message or provider activation was performed for this deployment verification.
+- Fresh local role/route checks also passed: role policy, Chat guarded integration, and 23 exact Chat/Shopify proxy cases. These supplement the earlier UI/type/lint/boundary evidence, not a full Chat/onboarding regression.
+- **Acceptance pending:** owner's signed-in Notifications/Reply assistance review, save/return check and continuing Telegram alert delivery. Do not mark those checks passed until the owner reports results. Their earlier confirmation that the new Telegram recipient received its setup test remains valid dated evidence.
+- This receipt is saved as a documentation-only follow-up. Runtime source is unchanged. Preserve the pending-item list above, including Workflow/Communications hierarchy review, later signup/workspace recovery, separate pilot provisioning and integration decisions, and historical items needing fresh evidence.

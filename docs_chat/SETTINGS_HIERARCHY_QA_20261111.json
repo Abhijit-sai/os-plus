@@ -28,7 +28,8 @@
         "Per-channel reply controls",
         "Desktop and mobile layout"
       ]
-    }
+    },
+    "roleRoutePolicy": "passed, including Chat guarded integration and 23 exact ingress cases"
   },
   "components": {
     "src/components/chat/notification-settings.tsx": {
@@ -46,5 +47,24 @@
     "No full-app audit",
     "Hosted staging waived earlier; not passed",
     "No new provider send or settings mutation for deployment verification"
-  ]
+  ],
+  "production": {
+    "runtimeCommit": "7080b7ab06a1b1becaf8f5b34dd8c4d58a731879",
+    "pr": "https://github.com/Abhijit-sai/os-plus/pull/31",
+    "deploymentId": 7709993221,
+    "deploymentUrl": "https://os-plus-h540cvofg-abhijit-ss-projects.vercel.app",
+    "vercelMarker": "dpl_3o4zxCJbxM85SkdFTEvbUKxpxAud",
+    "checkedAt": "2026-11-11T12:24:53.143Z",
+    "readOnly": true,
+    "configurationUnchanged": true,
+    "configurationHash": "b4a92dc0342392f55b6caba85a906fce6246ab277a148a8c9a0ecd76d7ce128a",
+    "assets": {
+      "checked": 13,
+      "allHealthy": true,
+      "hierarchyBundleFound": false
+    },
+    "authenticatedSettings": "pending owner check",
+    "telegramDelivery": "pending owner check; earlier setup test receipt separately confirmed",
+    "writesOrSends": false
+  }
 }
