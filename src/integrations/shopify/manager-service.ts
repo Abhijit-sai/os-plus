@@ -34,7 +34,7 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
   async function view(actor:ShopifyProbeActor,orderId:string,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
     env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
     const args=scope(actor,env,"read");z.string().uuid().parse(orderId);
-    const result=await db.rpc("read_shopify_manager_draft_setup",{...args,p_order_id:orderId}).abortSignal(signal);
+    const result=await db.rpc("read_shopify_manager_draft_setup_with_defaults",{...args,p_order_id:orderId}).abortSignal(signal);
     if(result.error)fail(result.error.message);
     if(result.data===null)return null;
     const value=shopifyDraftSetupViewSchema.parse(result.data);
@@ -49,14 +49,14 @@ export function createShopifyManagerService(db:Pick<SupabaseClient<Database>,"rp
       if(result.error)fail(result.error.message);
       return shopifySetupOptionsSchema.parse(result.data);
     },
-    async save(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env){
+    async save(actor:ShopifyProbeActor,input:unknown,signal:AbortSignal,env:NodeJS.ProcessEnv=process.env,connectionId?:string){
       env=await resolveShopifyTenantEnvironment(db,actor.tenantId,actor.userId,signal,env);
       const args=scope(actor,env),command=shopifySaveDraftSetupSchema.parse(input);
-      const state=await view(actor,command.orderId,signal,env);
-      if(!state)throw new ShopifyIntegrationError("ACCESS_DENIED");
-      // Do not pre-reject old versions: the SQL command first recovers an exact
-      // successful save receipt, then fences any new intent against latest state.
-      const result=await db.rpc("save_shopify_manager_draft_setup",{...args,p_connection_id:state.connectionId,
+      const binding=connectionId??(await view(actor,command.orderId,signal,env))?.connectionId;
+      if(!binding)throw new ShopifyIntegrationError("ACCESS_DENIED");
+      // SQL checks the actor and order binding, then recovers the exact save
+      // receipt even if the same start request has already released the order.
+      const result=await db.rpc("save_shopify_manager_draft_setup",{...args,p_connection_id:binding,
         p_order_id:command.orderId,p_source_revision_id:command.sourceRevisionId,p_expected_version:command.expectedVersion,
         p_request_key:command.requestKey,p_choices:command.choices}).abortSignal(signal);
       if(result.error)fail(result.error.message);

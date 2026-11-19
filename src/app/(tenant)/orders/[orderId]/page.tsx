@@ -5,6 +5,7 @@ import { getOrderDetailPageData } from "@/features/orders/queries";
 import { getImportedShopifyOrders,getRetainedShopifyBusinessOrder,getShopifyDraftPreviews } from "@/features/orders/shopify-imported";
 import { ShopifyImportedOrder } from "@/components/orders/shopify-imported-order";
 import { ShopifyDraftSetupForm } from "@/components/orders/shopify-draft-setup-form";
+import { ShopifyDeliveryAssignment } from "@/components/orders/shopify-delivery-assignment";
 import { getShopifyManagerSetup } from "@/features/orders/shopify-setup";
 import {shopifyDraftSetupAction,searchShopifySetupOptions} from "@/features/orders/shopify-setup-actions";
 import { localOrderReceivable } from "@/features/orders/financial-display";
@@ -368,7 +369,14 @@ export default async function OrderDetailPage({
                 </div>
                 <div>
                   <p className="font-medium">Delivery</p>
-                  <p className="text-muted-foreground">{order.delivery_type.replace("_", " ")}</p>
+                  {order.delivery_type ? (
+                    <p className="text-muted-foreground">{order.delivery_type.replaceAll("_", " ")}</p>
+                  ) : isShopify && shopifySummary?.held === false && order.order_status !== "cancelled" &&
+                    ["owner_admin", "manager"].includes(context.membership.role) ? (
+                    <ShopifyDeliveryAssignment orderId={order.id} />
+                  ) : (
+                    <p className="font-medium text-amber-800 dark:text-amber-300">Not assigned</p>
+                  )}
                 </div>
                 <div>
                   <p className="font-medium">Status</p>

@@ -121,6 +121,17 @@ async function findCustomerByNormalizedMobile({
   if (!normalized) return null;
 
   const supabase = createSupabaseServiceRoleClient();
+  // Resolve the canonical unique key directly; the legacy directory scan below
+  // can be capped by the API and must not hide a known normalized customer.
+  const exact = await supabase.from("customers")
+    .select("id, name, phone, normalized_phone_e164")
+    .eq("tenant_id", tenantId)
+    .eq("normalized_phone_e164", normalized.e164)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (exact.error) throw new Error("Unable to check customer mobile number. Please try again.");
+  if (exact.data && exact.data.id !== excludeCustomerId) return exact.data;
+
   const { data, error } = await supabase
     .from("customers")
     .select("id, name, phone, normalized_phone_e164")
@@ -301,6 +312,15 @@ export async function createCustomerInlineAction(formData: FormData) {
     .single();
 
   if (error) {
+    // The active normalized-phone unique constraint also covers two staff
+    // members creating the same profile at once. Recover the winning row.
+    if (error.code === "23505" && parsed.phone) {
+      const resolved = await findCustomerByNormalizedMobile({
+        normalizedPhone: parsed.phone,
+        tenantId: context.tenant.id,
+      });
+      if (resolved) return { customer: resolved, wasExisting: true };
+    }
     throw new Error(`Unable to create customer: ${error.message}`);
   }
 
