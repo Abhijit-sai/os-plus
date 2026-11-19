@@ -23,6 +23,8 @@ export type OrderStatus = "confirmed" | "in_progress" | "ready" | "partially_del
 export type CommercialOrder = Omit<Order, "order_status" | "customer_id" | "delivery_type"> & {
   order_status: OrderStatus | "draft"; customer_id: string | null; delivery_type: DeliveryType | null;
 };
+export type OperationalOrder = (Order & { source: Exclude<OrderSource, "shopify"> }) |
+  (Omit<Order, "source" | "delivery_type"> & { source: "shopify"; delivery_type: DeliveryType | null });
 export type OrderRuntimeModel = "legacy_item_v1" | "work_unit_v2";
 export type OrderLineType = "service" | "product" | "fee" | "discount" | "other";
 export type WorkUnitStatus = "not_started" | "in_progress" | "blocked" | "production_complete" | "cancelled";
@@ -2376,7 +2378,7 @@ export type Database = {
     // customer/delivery fields; raw orders can contain unresolved Shopify drafts.
     Views: {
       local_operational_orders: { Row: Order; Relationships: [TenantRelationship] };
-      operational_orders: { Row: Order; Relationships: [TenantRelationship] };
+      operational_orders: { Row: OperationalOrder; Relationships: [TenantRelationship] };
       operational_order_items: { Row: OrderItem; Relationships: [TenantRelationship] };
       shopify_operational_summaries: { Row: { tenant_id: string; order_id: string; held: boolean; reasons: Json }; Relationships: [TenantRelationship] };
     };
@@ -2432,11 +2434,19 @@ export type Database = {
         Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string };
         Returns: Json;
       };
+      read_shopify_manager_draft_setup_with_defaults: {
+        Args: { p_tenant_id: string; p_actor_id: string; p_domain: string; p_app_ref: string; p_order_id: string };
+        Returns: Json;
+      };
       complete_shopify_manager_setup: {
         Args: { p_tenant_id: string; p_connection_id: string; p_domain: string; p_app_ref: string; p_actor_id: string;
           p_order_id: string; p_setup_id: string; p_request_key: string; p_connection_revision: number;
           p_source_updated_at: string; p_verified_at: string };
         Returns: Json;
+      };
+      assign_shopify_order_delivery: {
+        Args: { p_tenant_id: string; p_order_id: string; p_actor_id: string; p_delivery_type: DeliveryType };
+        Returns: boolean;
       };
       recover_shopify_manager_setup: {
         Args: { p_tenant_id: string; p_connection_id: string; p_domain: string; p_app_ref: string; p_actor_id: string;

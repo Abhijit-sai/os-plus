@@ -189,6 +189,54 @@ test('date range service previews, skips manual references, imports an older aut
     await assert.rejects(()=>service.execute(changedActor,{action:'cleanup',requestKey:randomUUID()},f.signal,f.env),/ACCESS_DENIED/);
 }));
 
+test('unassigned Shopify customer can save an incomplete draft, select an existing customer and persist a production name',isolated(async f=>{
+  Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true'});
+  const existing=randomUUID();
+  await db.query("INSERT INTO customers(id,tenant_id,name,email) VALUES($1,$2,'Fictional existing buyer','buyer@example.invalid')",[existing,f.tenant]);
+  f.source.order.customer.phone=null;f.source.order.phone=null;f.source.order.customer.email='buyer@example.invalid';
+  const {result,connection}=await retainedCopy(f);
+  assert.equal(result.customerId,null,'ambiguous email must not silently assign a customer');
+  const manager={...f.actor,userId:'fictional-manager',membershipUserId:'fictional-manager',role:'manager'};
+  const service=createShopifyManagerService(adapter,f.transport),view=await service.view(manager,result.orderId,f.signal,f.env);
+  const choices={customerId:null,deliveryType:'store_pickup',promisedDeliveryDate:null,note:'',
+    lines:[{lineGid:f.source.lines[0].id,itemTypeId:f.itemType,workflowId:f.workflow,standardSizeId:null,expectedCompletionDate:null,productionName:'Team production name'}]};
+  const command={orderId:result.orderId,sourceRevisionId:view.sourceRevisionId,expectedVersion:0,requestKey:randomUUID(),choices};
+  const partial=await service.save(manager,command,f.signal,f.env);
+  assert.deepEqual(await service.save(manager,command,f.signal,f.env),partial);
+  const reloaded=await service.view(manager,result.orderId,f.signal,f.env);
+  assert.equal(reloaded.choices.customerId,null);
+  assert.equal(reloaded.choices.lines[0].productionName,'Team production name');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_items WHERE tenant_id=$1',[f.tenant]),0);
+  const completeChoices={...choices,customerId:existing};
+  const saved=await service.save(manager,{...command,choices:completeChoices,expectedVersion:partial.version,requestKey:randomUUID()},f.signal,f.env);
+  const completion={orderId:result.orderId,connectionId:connection,setupId:saved.setupId,requestKey:randomUUID()};
+  const done=await service.complete(manager,completion,f.signal,f.env);
+  assert.deepEqual(await service.complete(manager,completion,f.signal,f.env),done);
+  assert.equal(await scalar('SELECT name AS result FROM order_items WHERE tenant_id=$1',[f.tenant]),'Team production name');
+  const retainedTitle=await scalar("SELECT details->'lines'->0->>'title' AS result FROM shopify_commercial_details WHERE tenant_id=$1 AND revision_id=$2",[f.tenant,view.sourceRevisionId]);
+  assert.equal(retainedTitle,f.source.lines[0].title,'source title stays intact after completion');
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM customers WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_items WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM order_payments WHERE tenant_id=$1',[f.tenant]),0);
+}));
+
+test('production name SQL rejects malformed choices and keeps service-only permissions',isolated(async f=>{
+  Object.assign(f.env,{SHOPIFY_UNIFIED_ORDERS_ENABLED:'true',SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED:'true'});
+  const {result,connection}=await retainedCopy(f);
+  const scope=[f.tenant,connection,f.env.SHOPIFY_SHOP_DOMAIN,f.env.SHOPIFY_CLIENT_ID,f.actor.userId,result.orderId];
+  const view=await createShopifyManagerService(adapter,f.transport).view(f.actor,result.orderId,f.signal,f.env);
+  for(const invalid of [42,{},'   ','x'.repeat(2001)]){
+    const choices={customerId:view.customerId,deliveryType:null,promisedDeliveryDate:null,note:'',lines:[{
+      lineGid:f.source.lines[0].id,itemTypeId:null,workflowId:null,standardSizeId:null,expectedCompletionDate:null,productionName:invalid}]};
+    await db.exec('SAVEPOINT invalid_name');
+    await assert.rejects(()=>scalar('SELECT save_shopify_manager_draft_setup($1,$2,$3,$4,$5,$6,$7,0,$8,$9::jsonb) AS result',
+      [...scope,view.sourceRevisionId,randomUUID(),JSON.stringify(choices)]),/SHOPIFY_COMMAND_INVALID/);
+    await db.exec('ROLLBACK TO SAVEPOINT invalid_name');
+  }
+  for(const role of ['anon','authenticated'])
+    assert.equal(await scalar("SELECT has_function_privilege($1,'public.save_shopify_manager_draft_setup(uuid,uuid,text,text,text,uuid,uuid,bigint,uuid,jsonb)','EXECUTE') AS result",[role]),false);
+}));
+
 test('a different Shopify buyer name sharing an existing phone still creates a retained draft without renaming the customer',isolated(async f=>{
   const existing=randomUUID();
   f.source.order.phone='+919876543210';
@@ -351,12 +399,14 @@ test('unified webhook setup upgrades only its pilot subscriptions and automatica
   for(const table of ['order_items','order_payments','shopify_variant_mappings'])assert.equal(await scalar(`SELECT count(*)::int AS result FROM ${table} WHERE tenant_id=$1`,[f.tenant]),0);
 }));
 
-test('actual manager service saves, checks fresh Shopify, completes and recovers without another source read',isolated(async f=>{
+test('manager starts production without delivery, recovers an exact retry and assigns delivery later',isolated(async f=>{
   const {connection,result}=await retainedCopy(f);f.env.SHOPIFY_AUTOMATIC_ORDER_CREATION_ENABLED='true';
   const actor={...f.actor,userId:'fictional-manager',membershipUserId:'fictional-manager',role:'manager'};
   const service=createShopifyManagerService(adapter,f.transport);
+  await db.query('UPDATE item_types SET default_workflow_id=$1 WHERE tenant_id=$2 AND id=$3',[f.workflow,f.tenant,f.itemType]);
   const state=await service.view(actor,result.orderId,f.signal,f.env);
-  const choices={customerId:result.customerId,deliveryType:'store_pickup',promisedDeliveryDate:null,note:'Team choices',
+  assert.equal(state.itemTypes.find(type=>type.id===f.itemType).defaultWorkflowId,f.workflow);
+  const choices={customerId:result.customerId,deliveryType:null,promisedDeliveryDate:null,note:'Team choices',
     lines:[{lineGid:f.source.lines[0].id,itemTypeId:f.itemType,workflowId:f.workflow,standardSizeId:null,expectedCompletionDate:null}]};
   const command={orderId:result.orderId,sourceRevisionId:state.sourceRevisionId,expectedVersion:0,requestKey:randomUUID(),choices};
   const saved=await service.save(actor,command,f.signal,f.env);assert.deepEqual(await service.save(actor,command,f.signal,f.env),saved);
@@ -365,10 +415,34 @@ test('actual manager service saves, checks fresh Shopify, completes and recovers
   const original=f.source.order.updatedAt;f.source.order.updatedAt=new Date().toISOString();
   await assert.rejects(()=>service.complete(actor,complete,f.signal,f.env),/SOURCE_CHANGED/);f.source.order.updatedAt=original;
   const first=await service.complete(actor,complete,f.signal,f.env);assert.equal(first.status,'setup_complete');
+  assert.deepEqual(await service.save(actor,command,f.signal,f.env,connection),saved,'start retry can recover the save after release');
   const calls=f.calls.length;assert.deepEqual(await service.complete(actor,complete,f.signal,f.env),first);assert.equal(f.calls.length,calls);
   assert.equal(await service.view(actor,result.orderId,f.signal,f.env),null);
   for(const table of ['orders','order_items','item_workflow_instances','shopify_releases'])assert.equal(await scalar(`SELECT count(*)::int AS result FROM ${table} WHERE tenant_id=$1`,[f.tenant]),1);
   for(const table of ['order_payments','shopify_variant_mappings'])assert.equal(await scalar(`SELECT count(*)::int AS result FROM ${table} WHERE tenant_id=$1`,[f.tenant]),0);
+  const row=await scalar('SELECT to_jsonb(o) AS result FROM operational_orders o WHERE tenant_id=$1 AND id=$2',[f.tenant,result.orderId]);
+  assert.equal(row.order_status,'confirmed');assert.equal(row.delivery_type,null);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM operational_order_items WHERE tenant_id=$1 AND order_id=$2',[f.tenant,result.orderId]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM item_stage_instances WHERE tenant_id=$1',[f.tenant]),1);
+  assert.equal(await scalar('SELECT count(*)::int AS result FROM local_operational_orders WHERE tenant_id=$1',[f.tenant]),0);
+  await db.query('SELECT assert_shopify_production_allowed($1,$2)',[f.tenant,result.orderId]);
+
+  const assign=(type,tenant=f.tenant,user=actor.userId)=>scalar('SELECT assign_shopify_order_delivery($1,$2,$3,$4) AS result',[tenant,result.orderId,user,type]);
+  const denied=async(fn,pattern)=>{await db.exec('SAVEPOINT delivery_denied');await assert.rejects(fn,pattern);await db.exec('ROLLBACK TO SAVEPOINT delivery_denied');};
+  await denied(()=>assign('courier',randomUUID()),/SHOPIFY_ACCESS_DENIED/);
+  await denied(()=>assign('courier',f.tenant,'different-actor'),/SHOPIFY_ACCESS_DENIED/);
+  await denied(()=>db.query("INSERT INTO orders(tenant_id,customer_id,tracking_token,delivery_type) VALUES($1,$2,'local-null-delivery',null)",[f.tenant,result.customerId]),/orders_customer_and_delivery_required/);
+  await db.exec('SAVEPOINT source_hold');
+  await db.query('UPDATE shopify_operational_state SET held=true WHERE tenant_id=$1',[f.tenant]);
+  await assert.rejects(()=>assign('courier'),/SHOPIFY_PRODUCTION_HELD/);
+  await db.exec('ROLLBACK TO SAVEPOINT source_hold');
+  for(const role of ['anon','authenticated'])assert.equal(await scalar("SELECT has_function_privilege($1,'public.assign_shopify_order_delivery(uuid,uuid,text,public.delivery_type)','EXECUTE') AS result",[role]),false);
+  await db.exec('SET LOCAL ROLE service_role');
+  assert.equal(await assign('courier'),true);
+  assert.equal(await assign('courier'),true);
+  assert.equal(await assign('store_pickup'),false);
+  await db.exec('RESET ROLE');
+  assert.equal(await scalar('SELECT delivery_type AS result FROM operational_orders WHERE tenant_id=$1 AND id=$2',[f.tenant,result.orderId]),'courier');
   await assert.rejects(()=>service.complete({...actor,role:'viewer'},complete,f.signal,f.env),/ACCESS_DENIED/);
   await assert.rejects(()=>service.complete(actor,{...complete,p_verified_at:new Date().toISOString()},f.signal,f.env),/unrecognized_keys/);
 }));

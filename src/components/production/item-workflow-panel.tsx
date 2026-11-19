@@ -222,7 +222,7 @@ export function ItemWorkflowPanel({
   variant = "page"
 }: {
   item: OrderItem;
-  order: Order | null;
+  order: Pick<Order, "source" | "order_number"> | null;
   workflow: Workflow | null;
   workflows: Workflow[];
   itemType: ItemType | null;

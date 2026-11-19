@@ -38,11 +38,13 @@ const emptyDraft: CustomerDraft = {
 export function CreateCustomerDialog({
   customers,
   initialPhone = "",
+  initialName = "",
   onCustomerResolved,
   trigger,
 }: {
   customers: InlineCustomerOption[];
   initialPhone?: string;
+  initialName?: string;
   onCustomerResolved: (customer: InlineCustomerOption) => void;
   trigger: React.ReactNode;
 }) {
@@ -67,7 +69,7 @@ export function CreateCustomerDialog({
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen && !open) {
-      setDraft({ ...emptyDraft, phone: initialPhone });
+      setDraft({ ...emptyDraft, phone: initialPhone, name: initialName });
       setDirty(false);
       setError(null);
     }

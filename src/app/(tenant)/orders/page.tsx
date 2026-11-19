@@ -348,7 +348,11 @@ export default async function OrdersPage({
 
                   <div>
                     <p className={`font-medium ${promisedTone}`}>{formatDate(order.promised_delivery_date)}</p>
-                    <p className="text-xs capitalize text-muted-foreground">{formatEnum(order.delivery_type)}</p>
+                    {order.source === "shopify" && !order.delivery_type ? (
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Delivery not assigned</p>
+                    ) : (
+                      <p className="text-xs capitalize text-muted-foreground">{formatEnum(order.delivery_type)}</p>
+                    )}
                   </div>
 
                   <p className="capitalize text-muted-foreground">{formatEnum(order.source)}</p>
