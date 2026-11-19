@@ -15163,3 +15163,7 @@ This entry carries forward the current owner's decisions and observed results. I
 - Fresh local role/route checks also passed: role policy, Chat guarded integration, and 23 exact Chat/Shopify proxy cases. These supplement the earlier UI/type/lint/boundary evidence, not a full Chat/onboarding regression.
 - **Acceptance pending:** owner's signed-in Notifications/Reply assistance review, save/return check and continuing Telegram alert delivery. Do not mark those checks passed until the owner reports results. Their earlier confirmation that the new Telegram recipient received its setup test remains valid dated evidence.
 - This receipt is saved as a documentation-only follow-up. Runtime source is unchanged. Preserve the pending-item list above, including Workflow/Communications hierarchy review, later signup/workspace recovery, separate pilot provisioning and integration decisions, and historical items needing fresh evidence.
+
+### 19 November 2026 — Phantom Threads daily production headline
+
+The daily Telegram summary leads with the number of production items that advanced. Summary-only acknowledgements and original-message edits are scoped to the digest. The November 19 read-only check found 22 distinct items before the 21:30 IST cutoff and two sent private summary receipts. See docs_chat/CH10_QA.md for the regression checks.

@@ -28,6 +28,23 @@ test("Phantom Threads Test projects a photo and queues one Telegram alert per ta
     await q("insert into tenant_modules(tenant_id,module_key,is_enabled,config_json) values($1,'chat_leads',true,$2)", [tenant, { agentEnabled: true, uncappedDraftChannelId: channel }]);
     await q("insert into chat_settings(tenant_id,notifications_enabled,summary_local_time) values($1,true,((now()-interval '10 seconds') at time zone 'Asia/Kolkata')::time)", [tenant]);
     await q("insert into chat_brands(id,tenant_id,name,slug,persona_name) values($1,$2,'Phantom Threads Test','phantom','Demo')", [brand, tenant]);
+    // Isolated audit fixtures. Roll back after checking the calendar boundary, tenant and distinct item count.
+    await q("begin");
+    await q("set local session_replication_role=replica");
+    for (const [business,item,event,at] of [
+      [tenant,70,"stage_completed","2026-11-19 00:00+05:30"],
+      [tenant,70,"stage_completed","2026-11-19 10:01+05:30"],
+      [tenant,71,"stage_completed","2026-11-19 21:29:59+05:30"],
+      [tenant,72,"stage_started","2026-11-19 11:00+05:30"],
+      [tenant,73,"stage_completed","2026-11-18 23:59:59+05:30"],
+      [tenant,74,"stage_completed","2026-11-19 21:30+05:30"],
+      [key(94),75,"stage_completed","2026-11-19 12:00+05:30"],
+    ]) await q("insert into item_history(tenant_id,order_item_id,event_type,created_at) values($1,$2,$3,$4)",[business,key(item),event,at]);
+    const window = {localDate:"2026-11-19",timezone:"Asia/Kolkata",windowEnd:"2026-11-19T16:00:00Z",brands:[{id:brand}]};
+    const moved = report => scalar("select chat_phantom_items_advanced($1,$2)::integer result",[tenant,report]);
+    assert.equal(await moved(window),2);
+    assert.equal(await moved({...window,brands:[{id:key(99)}]}),null);
+    await q("rollback");
     await q("insert into chat_workspaces(id,tenant_id,chatwoot_base_url,chatwoot_account_id,workspace_key,webhook_secret_hash,api_token_enc,status) values($1,$2,'https://chat.example.invalid',904,$3,$4,'gcm1.v1.fixture','active')", [workspace, tenant, "b".repeat(32), "a".repeat(64)]);
     await q("insert into chat_channels(id,tenant_id,workspace_id,brand_id,chatwoot_inbox_id,kind,name,agent_mode) values($1,$2,$3,$4,905,'whatsapp','Synthetic','draft')", [channel, tenant, workspace, brand]);
     await q("insert into chat_knowledge_packs(id,tenant_id,brand_id,version,status,pack_json) values($1,$2,$3,1,'published',$4)", [packId, tenant, brand, pack]);
@@ -81,9 +98,16 @@ test("Phantom Threads Test projects a photo and queues one Telegram alert per ta
       const context = await scalar("select chat_phantom_notification_context($1,$2,$3) result", [tenant, delivery.id, delivery.token]);
       seen.push(delivery.kind);
       if (delivery.kind === "daily_summary") {
-        const digest = formatDailySummary(delivery.payload, origin, context);
+        const details = () => scalar("select chat_phantom_daily_summary_context($1,$2,$3) result", [tenant,delivery.id,delivery.token]);
+        const digest = formatDailySummary(delivery.payload, origin, await details());
+        assert.match(digest, /0 production items advanced in the OS PLUS queue today/);
         assert.match(digest, /Needs attention now/);
         assert.match(digest, /Needed by Friday/);
+        assert.equal(await scalar("select chat_phantom_daily_summary_context($1,$2,$3) result", [tenant,delivery.id,key(90)]), null);
+        await q("insert into chat_digest_acknowledgements values($1,$2,clock_timestamp())",[tenant,leadId]);
+        assert.deepEqual((await details()).attention, []);
+        await capture(34, "I have another question");
+        assert.equal((await details()).attention[0].leadId,leadId);
       } else {
         const alert = formatInstantAlert(delivery.payload, origin, context);
         deadlines.push(context.request.deadline);
@@ -100,6 +124,19 @@ test("Phantom Threads Test projects a photo and queues one Telegram alert per ta
     assert.deepEqual(seen.sort(), ["daily_summary", "handoff", "handoff"]);
     assert.deepEqual(deadlines.sort(), ["Friday", "tomorrow"]);
     assert.equal((await dispatch("claim")).status, "none");
+    const original = (await q("select id,provider_message_id from chat_notification_outbox where tenant_id=$1 and kind='daily_summary'",[tenant]))[0];
+    await q("insert into chat_digest_edits(tenant_id,delivery_id,details) values($1,$2,$3)",[tenant,original.id,{itemsAdvanced:1,attention:[]}]);
+    await q("update chat_notification_targets set is_active=false where id=$1",[target]);
+    const claimEdit = () => scalar("select chat_claim_digest_edit($1) result",[tenant]);
+    assert.equal(await claimEdit(),null);
+    await q("update chat_notification_targets set is_active=true where id=$1",[target]);
+    const edit = await claimEdit();
+    assert.equal(edit.messageId,Number(original.provider_message_id));
+    assert.equal(edit.targetId,target);
+    assert.equal(await claimEdit(),null);
+    assert.equal(await scalar("select chat_confirm_digest_edit($1,$2,$3) result",[tenant,original.id,key(99)]),false);
+    assert.equal(await scalar("select chat_confirm_digest_edit($1,$2,$3) result",[tenant,original.id,edit.token]),true);
+    assert.equal(await claimEdit(),null);
   } finally {
     await db.close();
   }

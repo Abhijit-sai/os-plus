@@ -21,7 +21,7 @@ export type NotificationDependencies = {
     input: Record<string, string | number | boolean | null>,
   ): Promise<unknown>;
   send(input: { chatId: string; text: string }): Promise<{ messageId: number }>;
-  loadPhantomContext?(tenantId: string, claim: { id: string; token: string }): Promise<unknown>;
+  loadPhantomContext?(tenantId: string, claim: { id: string; token: string }, kind: z.infer<typeof notificationEventSchema>): Promise<unknown>;
 };
 const claimSchema = z
   .object({
@@ -81,7 +81,7 @@ export async function runNotificationBatch(
         ),
       );
       const phantom = usesPhantomWorkflow(tenantId)
-        ? await deps.loadPhantomContext?.(tenantId, identity).catch(() => null)
+        ? await deps.loadPhantomContext?.(tenantId, identity, claim.kind).catch(() => null)
         : undefined;
       const text =
         claim.kind === "daily_summary"

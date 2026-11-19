@@ -5,6 +5,9 @@ import { TelegramClient } from "@/integrations/telegram/client";
 import { runNotificationBatch } from "./worker";
 import { runPlatformAlert } from "./platform-worker";
 import { notificationsEnabled } from "./flags";
+import { decryptChatSecret } from "../secrets";
+import { usesPhantomWorkflow } from "../phantom-scope";
+import { formatDailySummary, phantomDigestDetails, summarySchema } from "./summary";
 const deliveryEnabled = () =>
   notificationsEnabled() &&
   process.env.CHAT_DRY_RUN === "false" &&
@@ -38,8 +41,9 @@ export async function notifyTenant(tenantId: string) {
           throw new Error("Notification processing unavailable.");
         return result.data;
       },
-      async loadPhantomContext(tenantId, claim) {
-        const result = await db.rpc("chat_phantom_notification_context", {
+      async loadPhantomContext(tenantId, claim, kind) {
+        const rpc = kind === "daily_summary" ? "chat_phantom_daily_summary_context" : "chat_phantom_notification_context";
+        const result = await db.rpc(rpc, {
           t: tenantId,
           delivery: claim.id,
           token: claim.token,
@@ -51,12 +55,35 @@ export async function notifyTenant(tenantId: string) {
     },
     process.env.CHAT_APP_ORIGIN ?? "",
   );
+  if (usesPhantomWorkflow(tenantId)) await processDigestEdits(tenantId, db, transport);
   if (result.held > 0)
     try {
       await notifyPlatformFailure(tenantId);
     } catch {
       /* Operator transport may also be held. */
     }
+}
+const digestEdit = z.object({
+  deliveryId: z.string().uuid(), token: z.string().uuid(), targetId: z.string().uuid(),
+  messageId: z.number().int().positive().safe(), recipientEnc: z.string().max(12000),
+  payload: summarySchema, details: phantomDigestDetails,
+}).strict();
+
+async function processDigestEdits(tenantId: string, db: ReturnType<typeof createSupabaseServiceRoleClient>, transport: TelegramClient) {
+  for (let i = 0; i < 2 && deliveryEnabled(); i++) {
+    const claim = await db.rpc("chat_claim_digest_edit", { t: tenantId });
+    if (claim.error) throw new Error("Cannot read pending daily summary edits.");
+    if (claim.data === null) return;
+    const job = digestEdit.parse(claim.data);
+    const recipient = z.object({ chatId: z.string(), senderId: z.string() }).strict().parse(JSON.parse(
+      decryptChatSecret(job.recipientEnc, { tenantId, workspaceId: job.targetId, purpose: "notification_recipient" }),
+    ));
+    const text = formatDailySummary(job.payload, process.env.CHAT_APP_ORIGIN ?? "", job.details);
+    // An ambiguous provider response leaves the claim held for operator inspection.
+    await transport.edit({ chatId: recipient.chatId, text }, job.messageId);
+    const stored = await db.rpc("chat_confirm_digest_edit", { t: tenantId, delivery: job.deliveryId, token: job.token });
+    if (stored.error || !stored.data) throw new Error("Cannot confirm the daily summary edit.");
+  }
 }
 export async function notifyPlatformFailure(tenantId?: string) {
   if (process.env.CHAT_PLATFORM_ALERTS_ENABLED !== "true" || !deliveryEnabled())

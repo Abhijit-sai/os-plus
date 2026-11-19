@@ -34,6 +34,12 @@ export class TelegramClient {
     this.origin = url.origin;
   }
   async send(raw: unknown): Promise<{ messageId: number }> {
+    return this.deliver(raw);
+  }
+  async edit(raw: unknown, messageId: number): Promise<{ messageId: number }> {
+    return this.deliver(raw, z.number().int().positive().safe().parse(messageId));
+  }
+  private async deliver(raw: unknown, messageId?: number): Promise<{ messageId: number }> {
     if (
       process.env.CHAT_FOUNDATION_ENABLED !== "true" ||
       process.env.CHAT_NOTIFICATIONS_ENABLED !== "true" ||
@@ -49,7 +55,7 @@ export class TelegramClient {
       throw new Error("Telegram transport unavailable.");
     try {
       const response = await fetch(
-        this.origin + "/bot" + token + "/sendMessage",
+        this.origin + "/bot" + token + (messageId === undefined ? "/sendMessage" : "/editMessageText"),
         {
           method: "POST",
           redirect: "error",
@@ -58,6 +64,7 @@ export class TelegramClient {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: input.chatId,
+            message_id: messageId,
             text: input.text,
             link_preview_options: { is_disabled: true },
           }),
@@ -94,6 +101,7 @@ export class TelegramClient {
           }),
         })
         .parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      if (messageId !== undefined && receipt.result.message_id !== messageId) throw new Error("Wrong edit receipt");
       return { messageId: receipt.result.message_id };
     } catch {
       // Never include request URLs, provider descriptions or original exceptions: they may contain tokens.
