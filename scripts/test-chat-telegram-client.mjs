@@ -4,11 +4,13 @@ import { createServer } from "node:http";
 import { TelegramClient } from "../src/integrations/telegram/client.ts";
 test("mock Telegram sends once, checks the exact receipt and obeys call-time kill switches", async () => {
   const received = [];
+  const methods = [];
   let mode = "ok";
   const server = createServer(async (req, res) => {
     let body = "";
     for await (const part of req) body += part;
     received.push(JSON.parse(body));
+    methods.push(req.url.split("/").at(-1));
     res.setHeader("Content-Type", "application/json");
     const sent = received.at(-1);
     res.end(
@@ -59,10 +61,15 @@ test("mock Telegram sends once, checks the exact receipt and obeys call-time kil
     mode = "oversize";
     await assert.rejects(client.send({ chatId: "-123", text: "Bounded" }));
     assert.equal(received.length, 3);
+    mode = "ok";
+    assert.deepEqual(await client.edit({ chatId: "-123", text: "Corrected summary" }, 19), { messageId: 19 });
+    assert.equal(methods.at(-1), "editMessageText");
+    assert.equal(received.at(-1).message_id, 19);
+    await assert.rejects(client.edit({ chatId: "-123", text: "Wrong message" }, 20));
     await assert.rejects(
       client.send({ chatId: "-123", text: "x".repeat(4097) }),
     );
-    assert.equal(received.length, 3);
+    assert.equal(received.length, 5);
     assert.throws(
       () =>
         new TelegramClient({

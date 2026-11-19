@@ -296,6 +296,12 @@ export type ChatFunctions = {
     Args: { t: string; delivery: string; token: string };
     Returns: Json;
   };
+  chat_phantom_daily_summary_context: {
+    Args: { t: string; delivery: string; token: string };
+    Returns: Json;
+  };
+  chat_claim_digest_edit: { Args: { t: string }; Returns: Json };
+  chat_confirm_digest_edit: { Args: { t: string; delivery: string; token: string }; Returns: boolean };
   chat_supplemental_command: {
     Args: { p_context: Json; p_action: string; p_input: Json };
     Returns: Json;

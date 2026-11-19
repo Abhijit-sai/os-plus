@@ -26,7 +26,11 @@ export const chatReleaseFollowups = Object.freeze([
   "20261107115000_chat_uncapped_whatsapp_drafts.sql",
   "20261108100000_chat_live_whatsapp_auto.sql",
   "20261108110000_chat_auto_replies.sql",
+  "20261109120000_boutique_onboarding.sql",
   "20261109120000_phantom_chat_intake_and_alerts.sql",
+  "20261114100000_shopify_production_names.sql",
+  "20261119100000_shopify_production_without_delivery.sql",
+  "20261119220000_phantom_chat_daily_production_summary.sql",
 ]);
 
 // Pure preparation. No database, credentials, network or application env access.

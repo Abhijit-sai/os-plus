@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { handleTelegramLink } from "../src/features/chat/notifications/handlers.ts";
 import { decryptChatSecret } from "../src/features/chat/secrets.ts";
+import { usesPhantomWorkflow } from "../src/features/chat/phantom-scope.ts";
+import * as summary from "../src/features/chat/notifications/summary.ts";
 test("Telegram authenticates before parsing and resolves tenant only from issued code before deferred claim", async () => {
   const saved = { ...process.env };
   const secret = "s".repeat(40);
@@ -165,6 +167,9 @@ test("a paused notification transport leaves durable sources unclaimed, even whe
       },
     },
     "./worker": { runNotificationBatch: forbidden },
+    "../secrets": { decryptChatSecret: forbidden },
+    "../phantom-scope": { usesPhantomWorkflow },
+    "./summary": summary,
     "./platform-worker": { runPlatformAlert: forbidden },
     "./flags": { notificationsEnabled: () => true },
   });

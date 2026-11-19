@@ -214,6 +214,10 @@ const workSchema = z.array(z.object({
   request: briefSchema.nullable(),
   priority: z.number().int(),
 }).strict()).max(5);
+export const phantomDigestDetails = z.object({
+  itemsAdvanced: count.nullable(),
+  attention: workSchema,
+}).strict();
 const labels = {
   design: "🎨 Designer review",
   delivery: "🚚 Delivery or pickup request",
@@ -279,7 +283,9 @@ function formatPhantomAlert(
 
 function formatPhantomDigest(data: DailySummary, appOrigin: string, raw: unknown) {
   const base = origin(appOrigin), metrics = data.totals;
-  const work = workSchema.safeParse(raw);
+  const details = phantomDigestDetails.safeParse(raw);
+  const work = workSchema.safeParse(details.success ? details.data.attention : raw);
+  const moved = details.success ? details.data.itemsAdvanced : null;
   const localDay = new Intl.DateTimeFormat("en-IN", {
     timeZone: data.timezone, weekday: "short", day: "numeric", month: "short",
   }).format(new Date(data.windowEnd));
@@ -290,6 +296,7 @@ function formatPhantomDigest(data: DailySummary, appOrigin: string, raw: unknown
     : ` · typical first reply ${Math.round(seconds / 60)} min`;
   return [
     `📊 Phantom Threads · ${localDay} (through ${cutoff})`,
+    ...(moved !== null ? [`🏭 ${moved} production ${moved === 1 ? "item" : "items"} advanced in the OS PLUS queue today`] : []),
     "",
     ...(work.success && work.data.length ? ["Needs attention now", ...work.data.flatMap((row) => [
       `• ${leadName(row.customer)} · ${row.request ? briefDetails(row.request) :

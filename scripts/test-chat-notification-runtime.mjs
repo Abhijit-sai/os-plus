@@ -1223,6 +1223,7 @@ test("a stale owner tab cannot save or preview notifications for a different cur
       "../secrets": secrets,
       "./schemas": schema,
       "./summary": summary,
+      "./trigger": { scheduleNotificationCheck: async () => {} },
       "./flags": { notificationsEnabled: () => true },
     },
   );
