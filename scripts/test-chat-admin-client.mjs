@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createServer } from "node:http";
+import { z } from "zod";
 import { ChatwootAdminClient } from "../src/integrations/chatwoot/admin-client.ts";
+import { loadServerModule } from "./chat-db-harness/server-adapter.mjs";
 async function mock(handler, run) {
   const server = createServer(handler);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -428,6 +430,80 @@ test("handoff label merge preserves unrelated observed labels and reconciles an 
       assert.equal(posts, 1);
     },
   );
+});
+
+test("the live handoff worker records label delivery with admin operations disabled", async (t) => {
+  const flags = {
+    CHATWOOT_BASE_URL: "https://chat.example.invalid",
+    CHAT_DRY_RUN: "false",
+    CHAT_AGENT_ENABLED: "true",
+    CHAT_AGENT_MODEL_MODE: "live-scoped",
+    CHAT_ADMIN_LIVE_ENABLED: "false",
+  };
+  const previous = Object.fromEntries(
+    Object.keys(flags).map((key) => [key, process.env[key]]),
+  );
+  Object.assign(process.env, flags);
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  const tenantId = "00000000-0000-4000-8000-000000000001";
+  const workspaceId = "00000000-0000-4000-8000-000000000002";
+  const workspace = {
+    tenant_id: tenantId,
+    id: workspaceId,
+    chatwoot_account_id: 901,
+    chatwoot_base_url: flags.CHATWOOT_BASE_URL,
+    api_token_enc: "fixture",
+    status: "active",
+  };
+  const merge = t.mock.method(
+    ChatwootAdminClient.prototype,
+    "mergeConversationLabel",
+    async () => {},
+  );
+  const connection = loadServerModule("src/features/chat/connection.ts", {
+    "@/integrations/chatwoot/admin-client": { ChatwootAdminClient },
+    "./secrets": { decryptChatSecret: () => "fixture-token" },
+  });
+  const actions = [];
+  const db = {
+    async rpc(_name, { p_action }) {
+      actions.push(p_action);
+      return {
+        data: { status: "claimed", workspaceId, accountId: 901, conversationId: 7, label: "osplus-handoff" },
+      };
+    },
+    from: () => ({
+      select() {
+        return this;
+      },
+      eq() {
+        return this;
+      },
+      async single() {
+        return { data: workspace, error: null };
+      },
+    }),
+  };
+  const { deliverHandoffLabel } = loadServerModule("src/features/chat/actions/label-worker.ts", {
+    zod: { z },
+    "@/lib/supabase/server": { createSupabaseServiceRoleClient: () => db },
+    "../connection": connection,
+  });
+
+  assert.throws(() => connection.accountClient(workspace), /dry-run mode/);
+  assert.throws(() => connection.platformClient(), /dry-run mode/);
+  await deliverHandoffLabel({ tenantId }, {}, { tenantId, id: workspaceId, accountId: 901 }, true);
+  assert.deepEqual(
+    merge.mock.calls.map((call) => Array.from(call.arguments)),
+    [[901, 7, "osplus-handoff"]],
+  );
+  assert.deepEqual(actions, ["claim", "record"]);
 });
 
 

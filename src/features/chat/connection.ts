@@ -24,8 +24,7 @@ export function assertChatLiveAccess() {
   )
     throw new Error("Chat connection is in dry-run mode.");
 }
-export function accountClient(workspace: ChatWorkspace) {
-  assertChatLiveAccess();
+function workspaceAccountClient(workspace: ChatWorkspace) {
   const origin = chatwootOrigin();
   if (
     workspace.chatwoot_base_url !== origin ||
@@ -41,6 +40,34 @@ export function accountClient(workspace: ChatWorkspace) {
   });
   return new ChatwootAdminClient({ origin, token });
 }
+export function accountClient(workspace: ChatWorkspace) {
+  assertChatLiveAccess();
+  return workspaceAccountClient(workspace);
+}
+
+export async function mergeLiveHandoffLabel(
+  workspace: ChatWorkspace,
+  conversationId: number,
+  label: string,
+) {
+  const accountId = workspace.chatwoot_account_id;
+  if (
+    process.env.CHAT_DRY_RUN !== "false" ||
+    process.env.CHAT_AGENT_ENABLED !== "true" ||
+    process.env.CHAT_AGENT_MODEL_MODE !== "live-scoped" ||
+    !accountId ||
+    label !== "osplus-handoff"
+  )
+    throw new Error("Live handoff label unavailable.");
+
+  // Live agent delivery stays available when Chatwoot administrative operations are disabled.
+  await workspaceAccountClient(workspace).mergeConversationLabel(
+    accountId,
+    conversationId,
+    label,
+  );
+}
+
 export function platformClient() {
   assertChatLiveAccess();
   return new ChatwootAdminClient({

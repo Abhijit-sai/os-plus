@@ -222,3 +222,9 @@ Fresh host11:46:51UTC7running/4healthy/allpins/1793MiBavailable/64GiBfree, Rails
 ### 19 November 2026 — Phantom Threads daily summary
 
 The summary counts distinct production item IDs with a completed stage from the report date’s local midnight up to its cutoff. A disposable PostgreSQL test covers repeat completions, both time boundaries, a second tenant and partial brand visibility. Digest acknowledgements clear attention entries until new customer or handoff activity. Historical corrections use the original private recipient and provider message ID, and require an exact edit receipt. Live correction status is verified separately from these fixtures.
+
+### 27 November 2026 — Phantom Threads handoff label delivery
+
+The live worker used the Chatwoot administrative connection, which was disabled in production. Phantom had 20 label receipts in the uncertain state. Applying the missing label to the owner’s test chat triggered the configured Chatwoot rule and assigned it to Phantom Threads Staff. The live worker now uses a label-only operation within its existing approved live inbox scope. Administrative operations still require their original gate. This change does not replay historical receipts or require SQL.
+
+The focused regression reproduced the failure with live reply assistance enabled and administration disabled, then verified claim, label delivery and receipt after the fix. The same test verifies that account and platform administration remain gated. Local Chatwoot client tests, scoped lint, TypeScript and route-policy checks passed. A fresh production conversation is the release smoke test.
