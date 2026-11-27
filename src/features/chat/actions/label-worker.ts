@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { accountClient, chatwootOrigin } from "../connection";
+import { accountClient, chatwootOrigin, mergeLiveHandoffLabel } from "../connection";
 import type { Json } from "@/types/database";
 export async function deliverHandoffLabel(
   context: Json,
@@ -60,11 +60,15 @@ export async function deliverHandoffLabel(
         !claim.label
       )
         throw new Error("Label target unavailable");
-      await accountClient(row.data).mergeConversationLabel(
-        claim.accountId,
-        claim.conversationId,
-        claim.label,
-      );
+      if (live) {
+        await mergeLiveHandoffLabel(row.data, claim.conversationId, claim.label);
+      } else {
+        await accountClient(row.data).mergeConversationLabel(
+          claim.accountId,
+          claim.conversationId,
+          claim.label,
+        );
+      }
       await call("record");
     } catch {
       try {
